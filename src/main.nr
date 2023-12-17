@@ -3,6 +3,13 @@ use dep::biguint::BigUint56;
 use dep::rsa::{verify_rsa_sha256_pkcs1v15};
 use dep::std::hash::sha256;
 
+/**
+* WARNING: while the signatures are checked and the age is verified,
+* there are some checks missing in this code that are needed to make 
+* it robust enough to prevent the prover from cheating. The necessary 
+* checks will be added soon.
+*/
+
 global MRZ_COUNTRY_INDEX = 54;
 global MRZ_BIRTHDATE_INDEX = 57;
 global MRZ_GENDER_INDEX = 64;
