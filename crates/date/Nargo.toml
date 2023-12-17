@@ -1,5 +1,5 @@
 [package]
-name = "rsa"
+name = "date"
 authors = ["Théo Madzou"]
 type = "lib"
 compiler_version = ">=0.19.0"
