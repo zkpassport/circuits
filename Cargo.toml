@@ -1,0 +1,6 @@
+[package]
+name = "idhuman_circuits"
+version = "0.1.0"
+
+[dependencies]
+noir_rsa_optimised = { git = "https://github.com/madztheo/noir-rsa-optimised.git" }

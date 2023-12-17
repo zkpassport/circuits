@@ -1,0 +1,9 @@
+[package]
+name = "idhuman_circuits"
+type = "bin"
+authors = ["Theo Madzou"]
+compiler_version = ">=0.19.0"
+
+[dependencies]
+rsa = { tag = "main", git = "https://github.com/madztheo/noir-rsa-optimised", directory = "crates/rsa" }
+biguint = { tag = "main", git = "https://github.com/madztheo/noir-rsa-optimised", directory = "crates/rsa-biguint" }
