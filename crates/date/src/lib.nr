@@ -5,6 +5,7 @@ struct Date {
 }
 
 fn get_number_from_utf8_code(code: u8) -> u8 {
+    assert(code >= 48 & code <= 57);
     code - 48
 }
 
@@ -38,7 +39,7 @@ impl Date {
 
         let mut currentYear: u16 = currentYearFirstDigit as u16 * 10 + currentYearSecondDigit as u16;
 
-        // This way we have smooth 100 years period according to the current year
+        // This way we have a smooth 100 years period according to the current year
         // If the current year is 2023, then 24 will be interpreted as 1924
         // while 22 will be interpreted as 2022
         // A bit problematic for people over 100 years old

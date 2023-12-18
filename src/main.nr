@@ -133,9 +133,16 @@ fn proof_of_age(
 fn main(
     passport_data: PassportData,
     dsc_data: DSCData,
-    csca_cert_data: CSCACertData,
-    current_date: str<8>,
-    min_age_required: u8
+    // The CSCA certificates are public knowledge and 
+    // we want to let verifiers use the CSCA certificate
+    // that they got from a source they trust to verify the proof
+    csca_cert_data: pub CSCACertData,
+    // The current date is public so verifiers can check the date
+    // provided to the proof is correct
+    current_date: pub str<8>,
+    // The minimum age required is public so verifiers can check
+    // the age provided to the proof is correct
+    min_age_required: pub u8
 ) {
     // First verify the signature of the passport data
     verify_passport_signature(passport_data, dsc_data);
