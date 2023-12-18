@@ -105,6 +105,23 @@ fn verify_dsc_signature(dsc_data: DSCData, csca_cert_data: CSCACertData) -> bool
     )
 }
 
+fn check_expiry(passport_data: PassportData, current_date_bytes: [u8; 8]) {
+    let bytes_mrz = passport_data.mrz.as_bytes();
+
+    let threshold_year = Date::new(2070, 1, 1);
+    let threshold_year_bytes = threshold_year.to_bytes();
+
+    let current_date = Date::from_bytes_long_year(current_date_bytes);
+
+    let expiry_date_bytes = utils::get_array_slice(bytes_mrz, MRZ_EXPIRY_DATE_INDEX, MRZ_EXPIRY_DATE_INDEX + 6);
+    let expiry_date = Date::from_bytes_short_year(
+        expiry_date_bytes,
+        [threshold_year_bytes[2], threshold_year_bytes[3]]
+    );
+
+    assert(current_date.lt(expiry_date));
+}
+
 fn proof_of_age(
     passport_data: PassportData,
     age_required: u8,
@@ -121,13 +138,23 @@ fn proof_of_age(
 
     let current_date = Date::from_bytes_long_year(current_date_bytes);
 
-    let totalDuration = current_date.get_duration_in_days(birthdate);
+    let totalDuration = current_date.get_duration_in_days(birthdate, true);
 
     if is_limit_minimum {
         assert(totalDuration as i16 >= age_required as i16 * 365);
     } else {
         assert(totalDuration as i16 <= age_required as i16 * 365);
     }
+}
+
+fn proof_of_citizenship(passport_data: PassportData, country: [u8; 3]) {
+    let bytes_mrz = passport_data.mrz.as_bytes();
+
+    let country_bytes: [u8; 3] = utils::get_array_slice(bytes_mrz, MRZ_COUNTRY_INDEX, MRZ_COUNTRY_INDEX + 3);
+
+    assert(country_bytes[0] == country[0]);
+    assert(country_bytes[1] == country[1]);
+    assert(country_bytes[2] == country[2]);
 }
 
 fn main(
@@ -142,13 +169,20 @@ fn main(
     current_date: pub str<8>,
     // The minimum age required is public so verifiers can check
     // the age provided to the proof is correct
-    min_age_required: pub u8
+    min_age_required: pub u8,
+    // The country is public so verifiers can check 
+    // the country provided to the proof is correct
+    country: pub str<3>
 ) {
+    // Check the passport is not expired first
+    // check_expiry(passport_data, current_date.as_bytes());
     // First verify the signature of the passport data
     verify_passport_signature(passport_data, dsc_data);
     // Then verify the signature of the DSC to make sure
     // it was signed by the CSCA certificate of the issuing State
     verify_dsc_signature(dsc_data, csca_cert_data);
-    // Finally, verify the age of the passport holder
+    // Verify the age of the passport holder
     proof_of_age(passport_data, min_age_required, true, current_date.as_bytes());
+    // Verify the country of the passport holder
+    proof_of_citizenship(passport_data, country.as_bytes());
 }
