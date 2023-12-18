@@ -7,4 +7,4 @@ compiler_version = ">=0.19.0"
 [dependencies]
 rsa = { tag = "main", git = "https://github.com/madztheo/noir-rsa-optimised", directory = "crates/rsa" }
 biguint = { tag = "main", git = "https://github.com/madztheo/noir-rsa-optimised", directory = "crates/rsa-biguint" }
-date = { path = "./crates/date" }
+date = { tag = "main", git = "https://github.com/madztheo/noir-date.git", directory = "crates/date" }

@@ -2,6 +2,7 @@ use dep::std::println;
 use dep::biguint::BigUint56;
 use dep::rsa::{verify_rsa_sha256_pkcs1v15};
 use dep::std::hash::sha256;
+use dep::date::Date;
 
 /**
 * WARNING: while the signatures are checked and the age is verified,
@@ -14,8 +15,6 @@ global MRZ_COUNTRY_INDEX = 54;
 global MRZ_BIRTHDATE_INDEX = 57;
 global MRZ_GENDER_INDEX = 64;
 global MRZ_EXPIRY_DATE_INDEX = 65;
-
-use dep::date::Date;
 
 mod utils;
 
