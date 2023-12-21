@@ -137,12 +137,10 @@ fn proof_of_age(
 
     let current_date = Date::from_bytes_long_year(current_date_bytes);
 
-    let totalDuration = current_date.get_duration_in_days(birthdate, true);
-
     if is_limit_minimum {
-        assert(totalDuration as i16 >= age_required as i16 * 365);
+        assert(current_date.gte(birthdate.add_years(age_required as u16)));
     } else {
-        assert(totalDuration as i16 <= age_required as i16 * 365);
+        assert(current_date.lte(birthdate.add_years(age_required as u16)));
     }
 }
 
@@ -174,7 +172,7 @@ fn main(
     country: pub str<3>
 ) {
     // Check the passport is not expired first
-    // check_expiry(passport_data, current_date.as_bytes());
+    check_expiry(passport_data, current_date.as_bytes());
     // First verify the signature of the passport data
     verify_passport_signature(passport_data, dsc_data);
     // Then verify the signature of the DSC to make sure
