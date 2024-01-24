@@ -8,3 +8,4 @@ compiler_version = ">=0.22.0"
 rsa = { tag = "main", git = "https://github.com/madztheo/noir-rsa-optimised", directory = "crates/rsa" }
 biguint = { tag = "main", git = "https://github.com/madztheo/noir-rsa-optimised", directory = "crates/rsa-biguint" }
 date = { tag = "0.4.1", git = "https://github.com/madztheo/noir-date.git" }
+sha2 = { tag = "v0.0.3", git = "https://github.com/michaelelliot/noir-sha2", directory = "crates/noir-sha2" }

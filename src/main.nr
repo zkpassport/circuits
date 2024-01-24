@@ -2,6 +2,7 @@ use dep::std::println;
 use dep::biguint::BigUint56;
 use dep::rsa::{verify_rsa_sha256_pkcs1v15};
 use dep::std::hash::sha256;
+use dep::sha2::sha256 as sha256_with_zero_padding;
 use dep::date::Date;
 
 /**
@@ -117,34 +118,6 @@ struct CSCACertData {
     pubkey: [u8; 512],
 }
 
-// Reverse the bytes of an array so you can switch from
-// big endian to little endian order and vice versa
-fn reverse_bytes_array<N>(arr: [u8; N]) -> [u8; N] {
-    let mut reversed_arr = [0 as u8; N];
-    for i in 0..N {
-        // Reverse
-        reversed_arr[i] = arr[N - 1 - i];
-    }
-    reversed_arr
-}
-
-fn is_array_empty<N>(arr: [u8; N]) -> bool {
-    let mut is_empty = true;
-    for i in 0..N {
-        if arr[i] != 0 {
-            is_empty = false;
-        }
-    }
-    is_empty
-}
-
-fn insert_into_array<N, M>(mut arr: [u8; N], sub_arr: [u8; M], index: u32) -> [u8; N] {
-    for i in index..index + M {
-        arr[i] = sub_arr[i - index];
-    }
-    arr
-}
-
 /**
 * To form the whole Data Group 1, the MRZ is padded with some tags and lengths 
 * as specified in the ICAO specifications
@@ -177,10 +150,10 @@ fn get_dg1_from_mrz(mrz: str<88>) -> [u8; 93] {
 
 fn verify_passport_signature(passport_data: PassportData, dsc_data: DSCData) -> bool {
     // We assume the bytes are in big endian format so we convert them to little endian
-    let sig_biguint = BigUint56::from_bytes(reverse_bytes_array(passport_data.encrypted_digest));
-    let pubkey_biguint = BigUint56::from_bytes(reverse_bytes_array(dsc_data.pubkey));
-    let final_e_biguint = BigUint56::from_bytes(reverse_bytes_array(passport_data.final_e));
-    let quotient_biguint = BigUint56::from_bytes(reverse_bytes_array(passport_data.quotient));
+    let sig_biguint = BigUint56::from_bytes(utils::reverse_bytes_array(passport_data.encrypted_digest));
+    let pubkey_biguint = BigUint56::from_bytes(utils::reverse_bytes_array(dsc_data.pubkey));
+    let final_e_biguint = BigUint56::from_bytes(utils::reverse_bytes_array(passport_data.final_e));
+    let quotient_biguint = BigUint56::from_bytes(utils::reverse_bytes_array(passport_data.quotient));
 
     let msg_hash = sha256(passport_data.e_content);
 
@@ -195,10 +168,10 @@ fn verify_passport_signature(passport_data: PassportData, dsc_data: DSCData) -> 
 
 fn verify_dsc_signature(dsc_data: DSCData, csca_cert_data: CSCACertData) -> bool {
     // We assume the bytes are in big endian format so we convert them to little endian
-    let sig_biguint = BigUint56::from_bytes(reverse_bytes_array(dsc_data.signature));
-    let pubkey_biguint = BigUint56::from_bytes(reverse_bytes_array(csca_cert_data.pubkey));
-    let final_e_biguint = BigUint56::from_bytes(reverse_bytes_array(dsc_data.final_e));
-    let quotient_biguint = BigUint56::from_bytes(reverse_bytes_array(dsc_data.quotient));
+    let sig_biguint = BigUint56::from_bytes(utils::reverse_bytes_array(dsc_data.signature));
+    let pubkey_biguint = BigUint56::from_bytes(utils::reverse_bytes_array(csca_cert_data.pubkey));
+    let final_e_biguint = BigUint56::from_bytes(utils::reverse_bytes_array(dsc_data.final_e));
+    let quotient_biguint = BigUint56::from_bytes(utils::reverse_bytes_array(dsc_data.quotient));
 
     let msg_hash = sha256(dsc_data.tbs_certificate);
 
@@ -281,58 +254,48 @@ fn check_integrity_of_data(passport_data: PassportData) {
     // c.f. ICAO 9303-11, 4.6.2 for more information
     assert(computed_dg1_hash == passport_data.dg1_hash);
 
-    // TO-DO: generalize this to any number of data groups
-    // For now we assume we have 7 data groups (DG1, DG2, DG3, DG11, DG12, DG13, DG14) 
-    // as is the case for French passports
-    // 224 bytes for 7 Data Group hashes (32 bytes each) + 73 bytes of padding data (24 bytes at the start + 7 bytes per data group)
+    // We group all the hashes of the data groups into an array
+    // so we can iterate over it for the final hash computation
+    let data_groups = [
+        computed_dg1_hash,
+        passport_data.dg2_hash,
+        passport_data.dg3_hash,
+        passport_data.dg4_hash,
+        passport_data.dg5_hash,
+        passport_data.dg6_hash,
+        passport_data.dg7_hash,
+        passport_data.dg8_hash,
+        passport_data.dg9_hash,
+        passport_data.dg10_hash,
+        passport_data.dg11_hash,
+        passport_data.dg12_hash,
+        passport_data.dg13_hash,
+        passport_data.dg14_hash,
+        passport_data.dg15_hash,
+        passport_data.dg16_hash
+    ];
+
     // The max size of the array is 648 bytes with all 16 data groups present
+    // i.e. 16 * (7 bytes of padding data + 32 bytes of hash data) + 24 bytes of padding data = 648 bytes
+    // Just to be safe, we set it to 700 bytes as the actual size doesn't matter
+    // as long as it's big enough for the maximum size
+    let mut content_to_hash = [0 as u8; 700];
+    let mut current_index = 0;
 
     // The first 24 bytes are padding data
-    let mut content_to_hash: [u8] = [48, 130, 1, 37, 2, 1, 0, 48, 11, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 1, 48, 130, 1, 17];
+    content_to_hash = utils::insert_into_array(content_to_hash, [48, 130, 1, 37, 2, 1, 0, 48, 11, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 1, 48, 130, 1, 17], current_index);
+    current_index += 24;
 
-    // Data Group 1
-    content_to_hash = content_to_hash.append([48, 37, 2, 1, 1, 4, 32]);
-    for i in 0..32 {
-        content_to_hash = content_to_hash.push_back(computed_dg1_hash[i]);
+    for i in 0..16 {
+        if data_groups[i] != [0 as u8; 32] {
+            // 7 bytes of padding data + 32 bytes of hash data
+            content_to_hash = utils::insert_7_bytes_into_array(content_to_hash, [48, 37, 2, 1, i + 1, 4, 32], current_index);
+            content_to_hash = utils::insert_32_bytes_into_array(content_to_hash, data_groups[i], current_index + 7);
+            current_index += 39;
+        }
     }
 
-    // Data Group 2
-    content_to_hash = content_to_hash.append([48, 37, 2, 1, 2, 4, 32]);
-    for i in 0..32 {
-        content_to_hash = content_to_hash.push_back(passport_data.dg2_hash[i]);
-    }
-
-    // Data Group 3
-    content_to_hash = content_to_hash.append([48, 37, 2, 1, 3, 4, 32]);
-    for i in 0..32 {
-        content_to_hash = content_to_hash.push_back(passport_data.dg3_hash[i]);
-    }
-
-    // Data Group 11
-    content_to_hash = content_to_hash.append([48, 37, 2, 1, 11, 4, 32]);
-    for i in 0..32 {
-        content_to_hash = content_to_hash.push_back(passport_data.dg11_hash[i]);
-    }
-
-    // Data Group 12
-    content_to_hash = content_to_hash.append([48, 37, 2, 1, 12, 4, 32]);
-    for i in 0..32 {
-        content_to_hash = content_to_hash.push_back(passport_data.dg12_hash[i]);
-    }
-
-    // Data Group 13
-    content_to_hash = content_to_hash.append([48, 37, 2, 1, 13, 4, 32]);
-    for i in 0..32 {
-        content_to_hash = content_to_hash.push_back(passport_data.dg13_hash[i]);
-    }
-
-    // Data Group 14
-    content_to_hash = content_to_hash.append([48, 37, 2, 1, 14, 4, 32]);
-    for i in 0..32 {
-        content_to_hash = content_to_hash.push_back(passport_data.dg14_hash[i]);
-    }
-
-    let computed_final_hash = sha256(content_to_hash);
+    let computed_final_hash = sha256_with_zero_padding(content_to_hash, current_index as u16);
 
     let e_content_length = passport_data.e_content.len();
     for i in 0..32 {
