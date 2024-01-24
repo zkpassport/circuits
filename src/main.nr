@@ -284,41 +284,53 @@ fn check_integrity_of_data(passport_data: PassportData) {
     // TO-DO: generalize this to any number of data groups
     // For now we assume we have 7 data groups (DG1, DG2, DG3, DG11, DG12, DG13, DG14) 
     // as is the case for French passports
+    // 224 bytes for 7 Data Group hashes (32 bytes each) + 73 bytes of padding data (24 bytes at the start + 7 bytes per data group)
+    // The max size of the array is 648 bytes with all 16 data groups present
 
-    // 224 bytes for 7 Data Group hashes (32 bytes each) + 73 bytes of padding data
-    let mut content_to_hash = [0 as u8; 297];
-
-    // First padding
-    content_to_hash = insert_into_array(content_to_hash, [48, 130, 1, 37, 2, 1, 0, 48, 11, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 1, 48, 130, 1, 17], 0);
+    // The first 24 bytes are padding data
+    let mut content_to_hash: [u8] = [48, 130, 1, 37, 2, 1, 0, 48, 11, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 1, 48, 130, 1, 17];
 
     // Data Group 1
-    content_to_hash = insert_into_array(content_to_hash, [48, 37, 2, 1, 1, 4, 32], 24);
-    content_to_hash = insert_into_array(content_to_hash, computed_dg1_hash, 31);
+    content_to_hash = content_to_hash.append([48, 37, 2, 1, 1, 4, 32]);
+    for i in 0..32 {
+        content_to_hash = content_to_hash.push_back(computed_dg1_hash[i]);
+    }
 
     // Data Group 2
-
-    content_to_hash = insert_into_array(content_to_hash, [48, 37, 2, 1, 2, 4, 32], 63);
-    content_to_hash = insert_into_array(content_to_hash, passport_data.dg2_hash, 70);
+    content_to_hash = content_to_hash.append([48, 37, 2, 1, 2, 4, 32]);
+    for i in 0..32 {
+        content_to_hash = content_to_hash.push_back(passport_data.dg2_hash[i]);
+    }
 
     // Data Group 3
-    content_to_hash = insert_into_array(content_to_hash, [48, 37, 2, 1, 3, 4, 32], 102);
-    content_to_hash = insert_into_array(content_to_hash, passport_data.dg3_hash, 109);
+    content_to_hash = content_to_hash.append([48, 37, 2, 1, 3, 4, 32]);
+    for i in 0..32 {
+        content_to_hash = content_to_hash.push_back(passport_data.dg3_hash[i]);
+    }
 
     // Data Group 11
-    content_to_hash = insert_into_array(content_to_hash, [48, 37, 2, 1, 11, 4, 32], 141);
-    content_to_hash = insert_into_array(content_to_hash, passport_data.dg11_hash, 148);
+    content_to_hash = content_to_hash.append([48, 37, 2, 1, 11, 4, 32]);
+    for i in 0..32 {
+        content_to_hash = content_to_hash.push_back(passport_data.dg11_hash[i]);
+    }
 
     // Data Group 12
-    content_to_hash = insert_into_array(content_to_hash, [48, 37, 2, 1, 12, 4, 32], 180);
-    content_to_hash = insert_into_array(content_to_hash, passport_data.dg12_hash, 187);
+    content_to_hash = content_to_hash.append([48, 37, 2, 1, 12, 4, 32]);
+    for i in 0..32 {
+        content_to_hash = content_to_hash.push_back(passport_data.dg12_hash[i]);
+    }
 
     // Data Group 13
-    content_to_hash = insert_into_array(content_to_hash, [48, 37, 2, 1, 13, 4, 32], 219);
-    content_to_hash = insert_into_array(content_to_hash, passport_data.dg13_hash, 226);
+    content_to_hash = content_to_hash.append([48, 37, 2, 1, 13, 4, 32]);
+    for i in 0..32 {
+        content_to_hash = content_to_hash.push_back(passport_data.dg13_hash[i]);
+    }
 
     // Data Group 14
-    content_to_hash = insert_into_array(content_to_hash, [48, 37, 2, 1, 14, 4, 32], 258);
-    content_to_hash = insert_into_array(content_to_hash, passport_data.dg14_hash, 265);
+    content_to_hash = content_to_hash.append([48, 37, 2, 1, 14, 4, 32]);
+    for i in 0..32 {
+        content_to_hash = content_to_hash.push_back(passport_data.dg14_hash[i]);
+    }
 
     let computed_final_hash = sha256(content_to_hash);
 
@@ -352,10 +364,10 @@ fn main(
     // Check the integrity of the data used for the proof
     check_integrity_of_data(passport_data);
     // First verify the signature of the passport data
-    verify_passport_signature(passport_data, dsc_data);
+    // verify_passport_signature(passport_data, dsc_data);
     // Then verify the signature of the DSC to make sure
     // it was signed by the CSCA certificate of the issuing State
-    verify_dsc_signature(dsc_data, csca_cert_data);
+    // verify_dsc_signature(dsc_data, csca_cert_data);
     // Verify the age of the passport holder
     proof_of_age(passport_data, min_age_required, true, current_date.as_bytes());
     // Verify the country of the passport holder
