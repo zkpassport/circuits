@@ -364,10 +364,10 @@ fn main(
     // Check the integrity of the data used for the proof
     check_integrity_of_data(passport_data);
     // First verify the signature of the passport data
-    // verify_passport_signature(passport_data, dsc_data);
+    verify_passport_signature(passport_data, dsc_data);
     // Then verify the signature of the DSC to make sure
     // it was signed by the CSCA certificate of the issuing State
-    // verify_dsc_signature(dsc_data, csca_cert_data);
+    verify_dsc_signature(dsc_data, csca_cert_data);
     // Verify the age of the passport holder
     proof_of_age(passport_data, min_age_required, true, current_date.as_bytes());
     // Verify the country of the passport holder
