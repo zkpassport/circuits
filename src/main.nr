@@ -34,6 +34,9 @@ global MRZ_SEX_INDEX = 64;
 // Index for the date of expiry (YYMMDD)
 global MRZ_EXPIRY_DATE_INDEX = 65;
 
+// Index of where the public key is in the TBS certificate of the DSC
+global PUB_KEY_INDEX_IN_TBS_DSC = 261;
+
 mod utils;
 
 struct PassportData {
@@ -148,6 +151,11 @@ fn get_dg1_from_mrz(mrz: str<88>) -> [u8; 93] {
     dg1
 }
 
+/**
+* The Document Signing Certificate (DSC) signs the passport data, which is the hash of the
+* all the data groups present in the passport. So using the DSC public key and this signature
+* we can verify the authenticity of the passport data.
+*/
 fn verify_passport_signature(passport_data: PassportData, dsc_data: DSCData) -> bool {
     // We assume the bytes are in big endian format so we convert them to little endian
     let sig_biguint = BigUint56::from_bytes(utils::reverse_bytes_array(passport_data.encrypted_digest));
@@ -157,6 +165,7 @@ fn verify_passport_signature(passport_data: PassportData, dsc_data: DSCData) -> 
 
     let msg_hash = sha256(passport_data.e_content);
 
+    // Verify the signature of the passport data by the DSC
     verify_rsa_sha256_pkcs1v15(
         msg_hash,
         sig_biguint,
@@ -166,7 +175,23 @@ fn verify_passport_signature(passport_data: PassportData, dsc_data: DSCData) -> 
     )
 }
 
+/**
+* The Document Signing Certificate (DSC) is signed by the 
+* Country Signing Certificate Authority (CSCA) of the issuing State.
+* So using the CSCA certificate public key and the signature of 
+* the TBS certificate of the DSC we can verify the authenticity of the DSC. 
+* And since the CSCA certificate is our Trust Anchor, we have completed 
+* the necessary chain of trust to verify the authenticity and validity of the passport.
+*/
 fn verify_dsc_signature(dsc_data: DSCData, csca_cert_data: CSCACertData) -> bool {
+    // Check that the public key of the DSC is the same as the one in the TBS certificate.
+    // And since the TBS certificate is the data signed by the private key of the CSCA certificate
+    // we can make sure the DSC, which signed the data of the passport, has been signed by the 
+    // root certificate of the issuing State (i.e. CSCA certificate) by verifying the signature below
+    for i in PUB_KEY_INDEX_IN_TBS_DSC..PUB_KEY_INDEX_IN_TBS_DSC + dsc_data.pubkey.len() {
+        assert(dsc_data.tbs_certificate[i] == dsc_data.pubkey[i - PUB_KEY_INDEX_IN_TBS_DSC]);
+    }
+
     // We assume the bytes are in big endian format so we convert them to little endian
     let sig_biguint = BigUint56::from_bytes(utils::reverse_bytes_array(dsc_data.signature));
     let pubkey_biguint = BigUint56::from_bytes(utils::reverse_bytes_array(csca_cert_data.pubkey));
@@ -175,6 +200,7 @@ fn verify_dsc_signature(dsc_data: DSCData, csca_cert_data: CSCACertData) -> bool
 
     let msg_hash = sha256(dsc_data.tbs_certificate);
 
+    // Verify the signature of the DSC by the CSCA certificate
     verify_rsa_sha256_pkcs1v15(
         msg_hash,
         sig_biguint,
