@@ -2,7 +2,7 @@
 
 ## Description
 
-This project contains Noir circuits to generate Zero-Knowledge Proofs from the data contained within electronic passports.
+This project contains Noir circuits to generate Zero-Knowledge Proofs from the data contained within electronic passports and potentially other electronic travel/identity documents.
 
 ## General FAQ
 
