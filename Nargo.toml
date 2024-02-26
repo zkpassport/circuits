@@ -1,11 +1,9 @@
-[package]
-name = "idhuman_circuits"
-type = "bin"
-authors = ["Theo Madzou"]
-compiler_version = ">=0.22.0"
-
-[dependencies]
-rsa = { tag = "main", git = "https://github.com/madztheo/noir-rsa-optimised", directory = "crates/rsa" }
-biguint = { tag = "main", git = "https://github.com/madztheo/noir-rsa-optimised", directory = "crates/rsa-biguint" }
-date = { tag = "0.4.1", git = "https://github.com/madztheo/noir-date.git" }
-sha2 = { tag = "v0.0.3", git = "https://github.com/michaelelliot/noir-sha2", directory = "crates/noir-sha2" }
+[workspace]
+members = [
+    "crates/data-check/expiry", 
+    "crates/data-check/integrity", 
+    "crates/sig-check/dsc", 
+    "crates/sig-check/passport-data",
+    "crates/proof/age",
+    "crates/proof/citizenship",
+]
