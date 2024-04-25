@@ -1,6 +1,5 @@
-use dep::std::hash::sha256;
 use dep::utils::{PassportData, insert_7_bytes_into_array, insert_32_bytes_into_array, insert_into_array};
-use dep::sha2::sha256 as sha256_with_zero_padding;
+use dep::std::sha256;
 
 /**
 * To form the whole Data Group 1, the MRZ is padded with some tags and lengths 
@@ -45,7 +44,7 @@ fn check_integrity_of_data(passport_data: PassportData) {
 
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
-    let computed_dg1_hash = sha256(computed_dg1);
+    let computed_dg1_hash = sha256::sha256_var(computed_dg1, 93 as u64);
 
     // Check the computed hash of Data Group 1 (i.e. MRZ) is the same 
     // as the one from the SOD file of the passport
@@ -93,7 +92,7 @@ fn check_integrity_of_data(passport_data: PassportData) {
         }
     }
 
-    let computed_final_hash = sha256_with_zero_padding(content_to_hash, current_index as u16);
+    let computed_final_hash = sha256::sha256_var(content_to_hash, current_index as u64);
 
     let e_content_length = passport_data.e_content.len();
     for i in 0..32 {
@@ -103,8 +102,6 @@ fn check_integrity_of_data(passport_data: PassportData) {
     }
 }
 
-fn main(
-    passport_data: PassportData,
-) {
+fn main(passport_data: PassportData) {
     check_integrity_of_data(passport_data);
 }

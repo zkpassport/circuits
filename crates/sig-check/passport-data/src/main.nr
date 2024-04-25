@@ -1,5 +1,5 @@
-use dep::biguint::BigUint56;
-use dep::rsa::{verify_rsa_sha256_pkcs1v15};
+use dep::large_integer::LargeInteger;
+use dep::rsa::verify_rsa_sha256_pkcs1v15;
 use dep::std::hash::sha256;
 use dep::utils::{PassportData, DSCData, reverse_bytes_array};
 
@@ -10,7 +10,6 @@ use dep::utils::{PassportData, DSCData, reverse_bytes_array};
 * secure implementation fairly soon.
 */
 
-
 /**
 * The Document Signing Certificate (DSC) signs the passport data, which is the hash of the
 * all the data groups present in the passport. So using the DSC public key and this signature
@@ -18,10 +17,10 @@ use dep::utils::{PassportData, DSCData, reverse_bytes_array};
 */
 fn verify_passport_signature(passport_data: PassportData, dsc_data: DSCData) -> bool {
     // We assume the bytes are in big endian format so we convert them to little endian
-    let sig_biguint = BigUint56::from_bytes(reverse_bytes_array(passport_data.encrypted_digest));
-    let pubkey_biguint = BigUint56::from_bytes(reverse_bytes_array(dsc_data.pubkey));
-    let final_e_biguint = BigUint56::from_bytes(reverse_bytes_array(passport_data.final_e));
-    let quotient_biguint = BigUint56::from_bytes(reverse_bytes_array(passport_data.quotient));
+    let sig_biguint = LargeInteger::from_bytes(reverse_bytes_array(passport_data.encrypted_digest));
+    let pubkey_biguint = LargeInteger::from_bytes(reverse_bytes_array(dsc_data.pubkey));
+    let final_e_biguint = LargeInteger::from_bytes(reverse_bytes_array(passport_data.final_e));
+    let quotient_biguint = LargeInteger::from_bytes(reverse_bytes_array(passport_data.quotient));
 
     let msg_hash = sha256(passport_data.e_content);
 
@@ -35,9 +34,6 @@ fn verify_passport_signature(passport_data: PassportData, dsc_data: DSCData) -> 
     )
 }
 
-fn main(
-    passport_data: PassportData,
-    dsc_data: DSCData,
-) {
+fn main(passport_data: PassportData, dsc_data: DSCData) {
     verify_passport_signature(passport_data, dsc_data);
 }

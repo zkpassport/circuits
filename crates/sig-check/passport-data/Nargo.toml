@@ -6,5 +6,5 @@ compiler_version = ">=0.22.0"
 
 [dependencies]
 rsa = { tag = "main", git = "https://github.com/madztheo/noir-rsa-optimised", directory = "crates/rsa" }
-biguint = { tag = "main", git = "https://github.com/madztheo/noir-rsa-optimised", directory = "crates/rsa-biguint" }
+large_integer = { tag = "main", git = "https://github.com/madztheo/noir-large-integer", directory = "crates/large-integer-64" }
 utils = { path = "../../utils" }

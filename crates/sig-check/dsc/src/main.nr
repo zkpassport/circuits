@@ -1,5 +1,5 @@
-use dep::biguint::BigUint56;
-use dep::rsa::{verify_rsa_sha256_pkcs1v15};
+use dep::large_integer::LargeInteger;
+use dep::rsa::verify_rsa_sha256_pkcs1v15;
 use dep::std::hash::sha256;
 use dep::utils::{DSCData, CSCACertData, reverse_bytes_array};
 
@@ -31,10 +31,10 @@ fn verify_dsc_signature(dsc_data: DSCData, csca_cert_data: CSCACertData) -> bool
     }
 
     // We assume the bytes are in big endian format so we convert them to little endian
-    let sig_biguint = BigUint56::from_bytes(reverse_bytes_array(dsc_data.signature));
-    let pubkey_biguint = BigUint56::from_bytes(reverse_bytes_array(csca_cert_data.pubkey));
-    let final_e_biguint = BigUint56::from_bytes(reverse_bytes_array(dsc_data.final_e));
-    let quotient_biguint = BigUint56::from_bytes(reverse_bytes_array(dsc_data.quotient));
+    let sig_biguint = LargeInteger::from_bytes(reverse_bytes_array(dsc_data.signature));
+    let pubkey_biguint = LargeInteger::from_bytes(reverse_bytes_array(csca_cert_data.pubkey));
+    let final_e_biguint = LargeInteger::from_bytes(reverse_bytes_array(dsc_data.final_e));
+    let quotient_biguint = LargeInteger::from_bytes(reverse_bytes_array(dsc_data.quotient));
 
     let msg_hash = sha256(dsc_data.tbs_certificate);
 
@@ -48,13 +48,12 @@ fn verify_dsc_signature(dsc_data: DSCData, csca_cert_data: CSCACertData) -> bool
     )
 }
 
-
 fn main(
     dsc_data: DSCData,
     // The CSCA certificates are public knowledge and 
     // we want to let verifiers use the CSCA certificate
     // that they got from a source they trust to verify the proof
-    csca_cert_data: pub CSCACertData,
+    csca_cert_data: pub CSCACertData
 ) {
     verify_dsc_signature(dsc_data, csca_cert_data);
 }
