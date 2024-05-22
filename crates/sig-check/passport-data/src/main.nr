@@ -1,7 +1,7 @@
 use dep::large_integer::LargeInteger;
 use dep::rsa::verify_rsa_sha256_pkcs1v15;
 use dep::std::hash::sha256;
-use dep::utils::{PassportData, DSCData, reverse_bytes_array};
+use dep::utils::{IDData, DSCData, reverse_bytes_array};
 
 /**
 * WARNING: the RSA signature verification algorithm used here is making an assumption 
@@ -11,18 +11,18 @@ use dep::utils::{PassportData, DSCData, reverse_bytes_array};
 */
 
 /**
-* The Document Signing Certificate (DSC) signs the passport data, which is the hash of the
-* all the data groups present in the passport. So using the DSC public key and this signature
-* we can verify the authenticity of the passport data.
+* The Document Signing Certificate (DSC) signs the ID data, which is the hash of the
+* all the data groups present in the ID. So using the DSC public key and this signature
+* we can verify the authenticity of the ID data.
 */
-fn verify_passport_signature(passport_data: PassportData, dsc_data: DSCData) -> bool {
+fn verify_id_signature(id_data: IDData, dsc_data: DSCData) -> bool {
     // We assume the bytes are in big endian format so we convert them to little endian
-    let sig_biguint = LargeInteger::from_bytes(reverse_bytes_array(passport_data.encrypted_digest));
+    let sig_biguint = LargeInteger::from_bytes(reverse_bytes_array(id_data.encrypted_digest));
     let pubkey_biguint = LargeInteger::from_bytes(reverse_bytes_array(dsc_data.pubkey));
-    let final_e_biguint = LargeInteger::from_bytes(reverse_bytes_array(passport_data.final_e));
-    let quotient_biguint = LargeInteger::from_bytes(reverse_bytes_array(passport_data.quotient));
+    let final_e_biguint = LargeInteger::from_bytes(reverse_bytes_array(id_data.final_e));
+    let quotient_biguint = LargeInteger::from_bytes(reverse_bytes_array(id_data.quotient));
 
-    let msg_hash = sha256(passport_data.e_content);
+    let msg_hash = sha256(id_data.e_content);
 
     // Verify the signature of the passport data by the DSC
     verify_rsa_sha256_pkcs1v15(
@@ -34,6 +34,6 @@ fn verify_passport_signature(passport_data: PassportData, dsc_data: DSCData) -> 
     )
 }
 
-fn main(passport_data: PassportData, dsc_data: DSCData) {
-    verify_passport_signature(passport_data, dsc_data);
+fn main(id_data: IDData, dsc_data: DSCData) {
+    verify_id_signature(id_data, dsc_data);
 }

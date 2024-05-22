@@ -1,19 +1,34 @@
-use dep::utils::{MRZ_BIRTHDATE_INDEX, PassportData, get_array_slice};
+use dep::utils::{
+    PASSPORT_MRZ_LENGTH, PASSPORT_MRZ_BIRTHDATE_INDEX, ID_CARD_MRZ_BIRTHDATE_INDEX, IDData,
+    get_array_slice, is_id_card
+};
 use dep::date::Date;
 
+fn get_birthdate(id_data: IDData, current_date: [u8; 8]) -> Date {
+    let mut birthdate_bytes = [0 as u8; 6];
+    let mrz_bytes = id_data.mrz.as_bytes();
+
+    // Get the slice of the MRZ representing the birthdate
+    if is_id_card(id_data) {
+        birthdate_bytes = get_array_slice(mrz_bytes, ID_CARD_MRZ_BIRTHDATE_INDEX, ID_CARD_MRZ_BIRTHDATE_INDEX + 6);
+    } else {
+        // Otherwise it's an ID card
+        birthdate_bytes = get_array_slice(mrz_bytes, PASSPORT_MRZ_BIRTHDATE_INDEX, PASSPORT_MRZ_BIRTHDATE_INDEX + 6);
+    }
+
+    // Create a Date object from the birthdate using the current date as
+    // the pivot year to differentiate between 20th and 21st centuries
+    // as the format is "YYMMDD"
+    Date::from_bytes_short_year(birthdate_bytes, [current_date[2], current_date[3]])
+}
+
 fn proof_of_age(
-    passport_data: PassportData,
+    id_data: IDData,
     age_required: u8,
     is_limit_minimum: bool,
     current_date_bytes: [u8; 8]
 ) {
-    let bytes_mrz = passport_data.mrz.as_bytes();
-
-    let birthdate_bytes = get_array_slice(bytes_mrz, MRZ_BIRTHDATE_INDEX, MRZ_BIRTHDATE_INDEX + 6);
-    let birthdate = Date::from_bytes_short_year(
-        birthdate_bytes,
-        [current_date_bytes[2], current_date_bytes[3]]
-    );
+    let birthdate = get_birthdate(id_data, current_date_bytes);
 
     let current_date = Date::from_bytes_long_year(current_date_bytes);
 
@@ -25,14 +40,14 @@ fn proof_of_age(
 }
 
 fn main(
-    passport_data: PassportData,
+    id_data: IDData,
     // The current date is public so verifiers can check the date
     // provided to the proof is correct
     current_date: pub str<8>,
     // The minimum age required is public so verifiers can check
     // the age provided to the proof is correct
-    min_age_required: pub u8,
+    min_age_required: pub u8
 ) {
-    // Verify the age of the passport holder
-    proof_of_age(passport_data, min_age_required, true, current_date.as_bytes());
+    // Verify the age of the ID holder
+    proof_of_age(id_data, min_age_required, true, current_date.as_bytes());
 }

@@ -9,42 +9,65 @@
 * so the index will always be the same for every passport
 * c.f. ICAO 9303-4, Appendix B
 */
+
+// The following constants define the indices of the information
+// we need to generate various proofs of identity from the MRZ
+// The structure of the MRZ is slightly different between passports
+// and ID cards so we need to define indices for both types
+
 // Index for the three letter code of the country of citizenship
 // Note that the first three letter code (index 2) in the MRZ is the country of issuance
-// not citizenship
-global MRZ_COUNTRY_INDEX = 54;
-// Index for the date of birth (YYMMDD)
-global MRZ_BIRTHDATE_INDEX = 57;
+// not citizenship. It is important to keep in mind for residence permits 
+// where the issuing country differs from the citizenship country
+global PASSPORT_MRZ_COUNTRY_INDEX = 54;
 // Index for the sex of the passport holder (M, F or < if unspecified)
-global MRZ_SEX_INDEX = 64;
+global PASSPORT_MRZ_SEX_INDEX = 64;
 // Index for the date of expiry (YYMMDD)
-global MRZ_EXPIRY_DATE_INDEX = 65;
+global PASSPORT_MRZ_EXPIRY_DATE_INDEX = 65;
+// Index for the date of birth (YYMMDD) in TD1 (i.e. passport) MRZ
+global PASSPORT_MRZ_BIRTHDATE_INDEX = 57;
+// Length of the MRZ on a passport
+global PASSPORT_MRZ_LENGTH = 88;
 
-struct PassportData {
+// Note that the first three letter code (index 2) in the MRZ is the country of issuance
+// not citizenship. It is important to keep in mind for residence permits 
+// where the issuing country differs from the citizenship country
+global ID_CARD_MRZ_COUNTRY_INDEX = 45;
+// Index for the sex of the passport holder (M, F or < if unspecified)
+global ID_CARD_MRZ_SEX_INDEX = 37;
+// Index for the date of expiry (YYMMDD)
+global ID_CARD_MRZ_EXPIRY_DATE_INDEX = 38;
+// Index for the date of birth (YYMMDD) in TD3 (i.e. ID cards) MRZ
+global ID_CARD_MRZ_BIRTHDATE_INDEX = 30;
+// Length of the MRZ on an ID card
+global ID_CARD_MRZ_LENGTH = 90;
+
+struct IDData {
     // Last 32 bytes: result of the hash of all the hashes of the data groups
     // Rest of the bytes: padding data + signature date
     e_content: [u8; 104],
-    // The signature of the passport data, essentially the signature by the private
-    // key of the Document Signing Certificate (DSC) of the passport over e_content
+    // The signature of the ID data, essentially the signature by the private
+    // key of the Document Signing Certificate (DSC) of the ID over e_content
     encrypted_digest: [u8; 256],
-    // The Machine Readable Zone (MRZ) of the passport
+    // The Machine Readable Zone (MRZ) of the document
     // The two lines at the bottom of the passport data page
-    mrz: str<88>,
+    // or the three bottom lines on the rear of an ID card
+    mrz: str<90>,
 
     // The hashes of each data group
     // While the hashing algorithm could be any SHA, we assume it's SHA-256
     // for now as is the case for French passports
     // Only DG1 and DG2 are mandatory
     // The others are optional (or conditional under certain circumstances)
-    // If not present in the passport, the array shall be filled with 0s
+    // If not present in the ID, the array shall be filled with 0s
 
     // Data Group 1 -> Contains the MRZ (Machine Readable Zone)
     dg1_hash: [u8; 32],
-    // Data Group 2 -> Contains the photo of the passport holder
+    // Data Group 2 -> Contains the photo of the ID holder
     dg2_hash: [u8; 32],
-    // Data Group 3 -> Contains the fingerprints of the passport holder (access likely restricted)
+    // Data Group 3 -> Contains the fingerprints of the ID holder (access likely restricted)
     dg3_hash: [u8; 32],
-    // Data Group 4 -> Contains the iris scan of the passport holder (access likely restricted)
+    // Data Group 4 -> Contains the iris scan of the ID holder (access likely restricted)
     dg4_hash: [u8; 32],
     // Data Group 5 -> Contains the displayed portrait
     dg5_hash: [u8; 32],
@@ -64,7 +87,7 @@ struct PassportData {
     dg12_hash: [u8; 32],
     // Data Group 13 -> Freeform data group where each State can fully decide of the data in it and how to encode them
     dg13_hash: [u8; 32],
-    // Data Group 14 -> Contains security options for authentication with the chip of the passport
+    // Data Group 14 -> Contains security options for authentication with the chip of the ID
     dg14_hash: [u8; 32],
     // Data Group 15 -> Contains the Active Authentication Public Key Info
     dg15_hash: [u8; 32],
@@ -101,7 +124,6 @@ struct CSCACertData {
     // 512 bytes = 4096 bits
     pubkey: [u8; 512],
 }
-
 
 pub fn get_array_slice<N, M>(arr: [u8; N], start: u32, end: u32) -> [u8; M] {
     let mut slice = [0 as u8; M];
@@ -182,4 +204,12 @@ pub fn insert_7_bytes_into_array<N>(mut arr: [u8; N], sub_arr: [u8; 7], index: u
     arr[index + 5] = sub_arr[5];
     arr[index + 6] = sub_arr[6];
     arr
+}
+
+pub fn is_id_card(id_data: IDData) -> bool {
+    let mrz_bytes = id_data.mrz.as_bytes();
+    // 95 encodes the _ character
+    // This is our padding character to support both the 
+    // MRZ of the passports and ID cards
+    (mrz_bytes[88] != 95) & (mrz_bytes[89] != 95)
 }
