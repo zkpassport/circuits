@@ -1,14 +1,14 @@
-use dep::large_integer::LargeInteger;
-use dep::rsa::verify_rsa_sha256_pkcs1v15;
+use dep::rsa::bignum::BigNum;
+use dep::rsa::bignum::runtime_bignum::BigNumInstance;
+use dep::rsa::bignum::fields::Params4096;
+use dep::rsa::RSA;
+
 use dep::std::hash::sha256;
 use dep::utils::{DSCData, CSCACertData, reverse_bytes_array};
 
-/**
-* WARNING: the RSA signature verification algorithm used here is making an assumption 
-* that is likely not fully secure.
-* For now, we continue to use it for performance reason, but we will switch to a fully 
-* secure implementation fairly soon.
-*/
+type BN4096 = BigNum<35, Params4096>;
+type BNInstance = BigNumInstance<35, Params4096>;
+type RSA4096 = RSA<BN4096, BNInstance, 512>;
 
 // Index of where the public key is in the TBS certificate of the DSC
 global PUB_KEY_INDEX_IN_TBS_DSC = 261;
@@ -30,22 +30,18 @@ fn verify_dsc_signature(dsc_data: DSCData, csca_cert_data: CSCACertData) -> bool
         assert(dsc_data.tbs_certificate[i] == dsc_data.pubkey[i - PUB_KEY_INDEX_IN_TBS_DSC]);
     }
 
-    // We assume the bytes are in big endian format so we convert them to little endian
-    let sig_biguint = LargeInteger::from_bytes(reverse_bytes_array(dsc_data.signature));
-    let pubkey_biguint = LargeInteger::from_bytes(reverse_bytes_array(csca_cert_data.pubkey));
-    let final_e_biguint = LargeInteger::from_bytes(reverse_bytes_array(dsc_data.final_e));
-    let quotient_biguint = LargeInteger::from_bytes(reverse_bytes_array(dsc_data.quotient));
-
     let msg_hash = sha256(dsc_data.tbs_certificate);
 
+    let pubkey_bignum: BN4096 = BigNum::from_byte_be(csca_cert_data.pubkey);
+    let pubkey = pubkey_bignum.get();
+
+    let signature = BigNum::from_byte_be(dsc_data.signature);
+
+    let instance: BNInstance = BigNumInstance::new(pubkey.as_array(), csca_cert_data.redc_param);
+
+    let rsa: RSA4096 = RSA {};
     // Verify the signature of the DSC by the CSCA certificate
-    verify_rsa_sha256_pkcs1v15(
-        msg_hash,
-        sig_biguint,
-        pubkey_biguint,
-        final_e_biguint,
-        quotient_biguint
-    )
+    rsa.verify_sha256_pkcs1v15(instance, msg_hash, signature)
 }
 
 fn main(

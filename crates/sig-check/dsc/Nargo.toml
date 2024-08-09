@@ -2,9 +2,9 @@
 name = "sig_check_dsc"
 type = "bin"
 authors = ["Theo Madzou"]
-compiler_version = ">=0.22.0"
+compiler_version = ">=0.32.0"
 
 [dependencies]
-rsa = { tag = "0.3.0", git = "https://github.com/madztheo/noir-rsa-optimised", directory = "crates/rsa" }
-large_integer = { tag = "0.1.0", git = "https://github.com/madztheo/noir-large-integer", directory = "crates/large-integer-64" }
+rsa = { git = "https://github.com/madztheo/noir_rsa.git", tag = "main" }
+bignum = { git = "https://github.com/madztheo/noir-bignum.git", tag = "main" }
 utils = { path = "../../utils" }
