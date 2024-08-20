@@ -35,7 +35,7 @@ fn verify_dsc_signature(dsc_data: DSCData, csca_cert_data: CSCACertData) -> bool
     let pubkey_bignum: BN4096 = BigNum::from_byte_be(csca_cert_data.pubkey);
     let pubkey = pubkey_bignum.get();
 
-    let signature = BigNum::from_byte_be(dsc_data.signature);
+    let signature: BN4096 = BigNum::from_byte_be(dsc_data.signature);
 
     let instance: BNInstance = BigNumInstance::new(pubkey.as_array(), csca_cert_data.redc_param);
 

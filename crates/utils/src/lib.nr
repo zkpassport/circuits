@@ -19,28 +19,28 @@
 // Note that the first three letter code (index 2) in the MRZ is the country of issuance
 // not citizenship. It is important to keep in mind for residence permits 
 // where the issuing country differs from the citizenship country
-global PASSPORT_MRZ_COUNTRY_INDEX = 54;
+global PASSPORT_MRZ_COUNTRY_INDEX: u32 = 54;
 // Index for the sex of the passport holder (M, F or < if unspecified)
-global PASSPORT_MRZ_SEX_INDEX = 64;
+global PASSPORT_MRZ_SEX_INDEX: u32 = 64;
 // Index for the date of expiry (YYMMDD)
-global PASSPORT_MRZ_EXPIRY_DATE_INDEX = 65;
+global PASSPORT_MRZ_EXPIRY_DATE_INDEX: u32 = 65;
 // Index for the date of birth (YYMMDD) in TD1 (i.e. passport) MRZ
-global PASSPORT_MRZ_BIRTHDATE_INDEX = 57;
+global PASSPORT_MRZ_BIRTHDATE_INDEX: u32 = 57;
 // Length of the MRZ on a passport
-global PASSPORT_MRZ_LENGTH = 88;
+global PASSPORT_MRZ_LENGTH: u32 = 88;
 
 // Note that the first three letter code (index 2) in the MRZ is the country of issuance
 // not citizenship. It is important to keep in mind for residence permits 
 // where the issuing country differs from the citizenship country
-global ID_CARD_MRZ_COUNTRY_INDEX = 45;
+global ID_CARD_MRZ_COUNTRY_INDEX: u32 = 45;
 // Index for the sex of the passport holder (M, F or < if unspecified)
-global ID_CARD_MRZ_SEX_INDEX = 37;
+global ID_CARD_MRZ_SEX_INDEX: u32 = 37;
 // Index for the date of expiry (YYMMDD)
-global ID_CARD_MRZ_EXPIRY_DATE_INDEX = 38;
+global ID_CARD_MRZ_EXPIRY_DATE_INDEX: u32 = 38;
 // Index for the date of birth (YYMMDD) in TD3 (i.e. ID cards) MRZ
-global ID_CARD_MRZ_BIRTHDATE_INDEX = 30;
+global ID_CARD_MRZ_BIRTHDATE_INDEX: u32 = 30;
 // Length of the MRZ on an ID card
-global ID_CARD_MRZ_LENGTH = 90;
+global ID_CARD_MRZ_LENGTH: u32 = 90;
 
 struct IDData {
     // Last 32 bytes: result of the hash of all the hashes of the data groups
@@ -123,7 +123,7 @@ struct CSCACertData {
     redc_param: [Field; 35],
 }
 
-pub fn get_array_slice<N, M>(arr: [u8; N], start: u32, end: u32) -> [u8; M] {
+pub fn get_array_slice<let N: u32, let M: u32>(arr: [u8; N], start: u32, end: u32) -> [u8; M] {
     let mut slice = [0 as u8; M];
     for i in start..end {
         slice[i - start] = arr[i];
@@ -133,7 +133,7 @@ pub fn get_array_slice<N, M>(arr: [u8; N], start: u32, end: u32) -> [u8; M] {
 
 // Reverse the bytes of an array so you can switch from
 // big endian to little endian order and vice versa
-pub fn reverse_bytes_array<N>(arr: [u8; N]) -> [u8; N] {
+pub fn reverse_bytes_array<let N: u32>(arr: [u8; N]) -> [u8; N] {
     let mut reversed_arr = [0 as u8; N];
     for i in 0..N {
         // Reverse
@@ -142,7 +142,11 @@ pub fn reverse_bytes_array<N>(arr: [u8; N]) -> [u8; N] {
     reversed_arr
 }
 
-pub fn insert_into_array<N, M>(mut arr: [u8; N], sub_arr: [u8; M], index: u32) -> [u8; N] {
+pub fn insert_into_array<let N: u32, let M: u32>(
+    mut arr: [u8; N],
+    sub_arr: [u8; M],
+    index: u32
+) -> [u8; N] {
     for i in index..index + M {
         arr[i] = sub_arr[i - index];
     }
@@ -153,7 +157,7 @@ pub fn insert_into_array<N, M>(mut arr: [u8; N], sub_arr: [u8; M], index: u32) -
 * Rather hacky but in some cases we cannot use a for loop as the compiler 
 * won't be able to determine its bounds at compile time
 */
-pub fn insert_32_bytes_into_array<N>(mut arr: [u8; N], sub_arr: [u8; 32], index: u32) -> [u8; N] {
+pub fn insert_32_bytes_into_array<let N: u32>(mut arr: [u8; N], sub_arr: [u8; 32], index: u32) -> [u8; N] {
     arr[index] = sub_arr[0];
     arr[index + 1] = sub_arr[1];
     arr[index + 2] = sub_arr[2];
@@ -193,7 +197,7 @@ pub fn insert_32_bytes_into_array<N>(mut arr: [u8; N], sub_arr: [u8; 32], index:
     arr
 }
 
-pub fn insert_7_bytes_into_array<N>(mut arr: [u8; N], sub_arr: [u8; 7], index: u32) -> [u8; N] {
+pub fn insert_7_bytes_into_array<let N: u32>(mut arr: [u8; N], sub_arr: [u8; 7], index: u32) -> [u8; N] {
     arr[index] = sub_arr[0];
     arr[index + 1] = sub_arr[1];
     arr[index + 2] = sub_arr[2];

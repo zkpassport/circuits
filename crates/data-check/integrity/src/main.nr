@@ -61,7 +61,7 @@ fn check_integrity_of_data(id_data: IDData) {
 
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
-    let computed_dg1_hash = sha256::sha256_var(computed_dg1, dg1_size);
+    let computed_dg1_hash = sha256::sha256_var(computed_dg1, dg1_size as u64);
 
     // Check the computed hash of Data Group 1 (i.e. MRZ) is the same 
     // as the one from the SOD file of the ID
