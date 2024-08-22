@@ -21,10 +21,11 @@ fn verify_id_signature(id_data: IDData, dsc_data: DSCData) -> bool {
 
     let msg_hash = sha256(id_data.e_content);
 
-    let pubkey_bignum: BN2048 = BigNum::from_byte_be(dsc_data.pubkey);
-    let pubkey = pubkey_bignum.get();
+    let pubkey = utils::__from_byte_be_to_fields(dsc_data.pubkey);
 
-    let instance: BNInstance = BigNumInstance::new(pubkey.as_array(), dsc_data.redc_param);
+    let redc_param = utils::__from_byte_be_to_fields(dsc_data.redc_param);
+
+    let instance: BNInstance = BigNumInstance::new(pubkey, redc_param);
 
     let rsa: RSA2048 = RSA {};
     // Verify the signature of the passport data by the DSC
