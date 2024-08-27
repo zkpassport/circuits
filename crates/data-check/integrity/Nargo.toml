@@ -1,8 +1,0 @@
-[package]
-name = "data_check_integrity"
-type = "bin"
-authors = ["Theo Madzou"]
-compiler_version = ">=0.22.0"
-
-[dependencies]
-utils = { path = "../../utils" }

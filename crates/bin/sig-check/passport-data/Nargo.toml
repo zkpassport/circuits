@@ -1,0 +1,9 @@
+[package]
+name = "sig_check_passport_data"
+type = "bin"
+authors = ["Theo Madzou"]
+compiler_version = ">=0.32.0"
+
+[dependencies]
+sig_check_passport_data = { path = "../../../lib/sig-check/passport-data" }
+utils = { path = "../../../lib/utils" }

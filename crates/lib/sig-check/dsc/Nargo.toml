@@ -1,0 +1,10 @@
+[package]
+name = "sig_check_dsc_lib"
+type = "lib"
+authors = ["Theo Madzou"]
+compiler_version = ">=0.32.0"
+
+[dependencies]
+rsa = { git = "https://github.com/madztheo/noir_rsa.git", tag = "main" }
+bignum = { git = "https://github.com/madztheo/noir-bignum.git", tag = "main" }
+utils = { path = "../../utils" }

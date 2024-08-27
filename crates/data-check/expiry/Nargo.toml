@@ -1,9 +1,0 @@
-[package]
-name = "data_check_expiry"
-type = "bin"
-authors = ["Theo Madzou"]
-compiler_version = ">=0.22.0"
-
-[dependencies]
-date = { tag = "0.4.2", git = "https://github.com/madztheo/noir-date.git" }
-utils = { path = "../../utils" }

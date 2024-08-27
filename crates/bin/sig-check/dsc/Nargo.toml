@@ -1,0 +1,9 @@
+[package]
+name = "sig_check_dsc"
+type = "bin"
+authors = ["Theo Madzou"]
+compiler_version = ">=0.32.0"
+
+[dependencies]
+sig_check_dsc = { path = "../../../lib/sig-check/dsc" }
+utils = { path = "../../../lib/utils" }

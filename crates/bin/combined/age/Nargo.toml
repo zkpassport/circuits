@@ -1,0 +1,12 @@
+[package]
+name = "combined_proof_age"
+type = "bin"
+authors = ["Theo Madzou"]
+compiler_version = ">=0.32.0"
+
+[dependencies]
+proof_age = { path = "../../../lib/proof/age" }
+sig_check_passport_data = { path = "../../../lib/sig-check/passport-data" }
+data_check_expiry = { path = "../../../lib/data-check/expiry" }
+data_check_integrity = { path = "../../../lib/data-check/integrity" }
+utils = { path = "../../../lib/utils" }
