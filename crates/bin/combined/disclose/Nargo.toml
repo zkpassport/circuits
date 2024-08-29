@@ -1,12 +1,12 @@
 [package]
-name = "combined_proof_age"
+name = "combined_disclose"
 type = "bin"
 authors = ["Theo Madzou"]
 compiler_version = ">=0.32.0"
 
 [dependencies]
-proof_age = { path = "../../../lib/proof/age" }
 sig_check_rsa = { path = "../../../lib/sig-check/rsa" }
 data_check_expiry = { path = "../../../lib/data-check/expiry" }
 data_check_integrity = { path = "../../../lib/data-check/integrity" }
+disclose = { path = "../../../lib/disclose" }
 utils = { path = "../../../lib/utils" }

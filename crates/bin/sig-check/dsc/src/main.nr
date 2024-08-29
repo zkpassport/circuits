@@ -1,5 +1,5 @@
 use dep::utils::{DSCData, CSCACertData};
-use dep::sig_check_dsc::verify_dsc_signature;
+use dep::sig_check_rsa::verify_dsc_signature;
 
 fn main(
     dsc_data: DSCData,

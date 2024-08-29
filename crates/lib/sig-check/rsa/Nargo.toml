@@ -1,5 +1,5 @@
 [package]
-name = "sig_check_passport_data_lib"
+name = "sig_check_rsa"
 type = "lib"
 authors = ["Theo Madzou"]
 compiler_version = ">=0.32.0"

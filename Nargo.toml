@@ -7,4 +7,5 @@ members = [
     "crates/bin/proof/age",
     "crates/bin/proof/citizenship",
     "crates/bin/combined/age",
+    "crates/bin/combined/disclose"
 ]

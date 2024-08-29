@@ -1,7 +1,7 @@
 use dep::utils::{IDData, DSCData};
 use dep::proof_age::proof_of_age;
 use dep::data_check_integrity::check_integrity_of_data;
-use dep::sig_check_passport_data::verify_id_signature;
+use dep::sig_check_rsa::verify_id_signature;
 
 fn main(
     id_data: IDData,
@@ -17,6 +17,6 @@ fn main(
     verify_id_signature(id_data, dsc_data);
     // Check the integrity of the ID data
     check_integrity_of_data(id_data);
-    // Now we sure the data is correct, we verify the age of the ID holder
+    // Now we make sure the data is correct, we verify the age of the ID holder
     proof_of_age(id_data, min_age_required, true, current_date.as_bytes());
 }
