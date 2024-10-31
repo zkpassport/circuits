@@ -5,5 +5,5 @@ authors = ["Theo Madzou"]
 compiler_version = ">=0.32.0"
 
 [dependencies]
-sig_check_rsa = { path = "../../../lib/sig-check/rsa" }
+sig_check_rsa = { path = "../../../lib/sig-check/rsa/pkcs1" }
 utils = { path = "../../../lib/utils" }

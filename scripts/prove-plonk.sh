@@ -5,4 +5,4 @@ package_name=$1
 nargo execute --package $package_name ${package_name}_witness
 
 # Generate a Honk proof for the circuit with the witness generated just before
-time bb prove -b ./target/$package_name.json -w ./target/${package_name}_witness.gz -o ./proofs/$package_name.proof
+time bb prove -b ./target/$package_name.json -w ./target/${package_name}_witness.gz -o ./proofs/${package_name}_plonk.proof

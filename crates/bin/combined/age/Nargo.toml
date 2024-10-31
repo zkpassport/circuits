@@ -6,7 +6,7 @@ compiler_version = ">=0.32.0"
 
 [dependencies]
 proof_age = { path = "../../../lib/proof/age" }
-sig_check_rsa = { path = "../../../lib/sig-check/rsa" }
+sig_check_rsa = { path = "../../../lib/sig-check/rsa/pkcs1" }
 data_check_expiry = { path = "../../../lib/data-check/expiry" }
 data_check_integrity = { path = "../../../lib/data-check/integrity" }
 utils = { path = "../../../lib/utils" }

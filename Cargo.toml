@@ -3,5 +3,5 @@ name = "ocelots_circuits"
 version = "0.1.0"
 
 [dependencies]
-noir-bignum-paramgen = "0.1.3"
+noir-bignum-paramgen = "0.1.4"
 num-bigint = { version = "0.8.2", features = ["i128", "prime", "zeroize"], default-features = false, package = "num-bigint-dig" }

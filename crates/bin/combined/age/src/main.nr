@@ -10,13 +10,23 @@ fn main(
     // provided to the proof is correct
     current_date: pub str<8>,
     // The minimum age required is public so verifiers can check
+    // the age provided to the proof is correct'
+    // If the minimum age is 0, it is not checked
+    min_age_required: pub u8,
+    // The maximum age required is public so verifiers can check
     // the age provided to the proof is correct
-    min_age_required: pub u8
+    // If the maximum age is 0, it is not checked
+    max_age_required: pub u8
 ) {
     // Verify the data has been signed correctly by the DSC
     verify_id_signature(id_data, dsc_data);
     // Check the integrity of the ID data
     check_integrity_of_data(id_data);
     // Now we make sure the data is correct, we verify the age of the ID holder
-    proof_of_age(id_data, min_age_required, true, current_date.as_bytes());
+    proof_of_age(
+        id_data,
+        min_age_required,
+        max_age_required,
+        current_date.as_bytes()
+    );
 }

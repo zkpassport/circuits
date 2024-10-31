@@ -2,7 +2,7 @@ use dep::rsa::bignum::BigNum;
 use dep::rsa::bignum::runtime_bignum::BigNumInstance;
 use dep::rsa::bignum::fields::Params2048;
 use dep::rsa::bignum::fields::Params4096;
-use dep::rsa::RSA;
+use dep::rsa::types::RSA;
 
 use dep::std::hash::sha256;
 use dep::utils::{DSCData, CSCACertData, IDData, reverse_bytes_array};
@@ -33,16 +33,14 @@ pub fn verify_dsc_signature(dsc_data: DSCData, csca_cert_data: CSCACertData) -> 
 
     let msg_hash = sha256(dsc_data.tbs_certificate);
 
-    let pubkey_bignum: BN4096 = BigNum::from_byte_be(csca_cert_data.pubkey);
-    let pubkey = pubkey_bignum.get();
+    let pubkey = utils::__from_byte_be_to_fields(csca_cert_data.pubkey);
 
-    let signature: BN4096 = BigNum::from_byte_be(dsc_data.signature);
+    let signature: BN4096 = BigNum::from_be_bytes(dsc_data.signature);
 
-    let instance: BN4096Instance = BigNumInstance::new(pubkey.as_array(), csca_cert_data.redc_param);
+    let instance: BN4096Instance = BigNumInstance::new(pubkey, csca_cert_data.redc_param);
 
     let rsa: RSA4096 = RSA {};
-    // Verify the signature of the DSC by the CSCA certificate
-    rsa.verify_sha256_pkcs1v15(instance, msg_hash, signature)
+    rsa.verify_sha256_pss(instance, msg_hash, signature, 4096)
 }
 
 type BN2048 = BigNum<18, Params2048>;
@@ -56,7 +54,7 @@ type RSA2048 = RSA<BN2048, BN2048Instance, 256>;
 */
 pub fn verify_id_signature(id_data: IDData, dsc_data: DSCData) -> bool {
     // We assume the bytes are in big endian order
-    let signature = BigNum::from_byte_be(id_data.encrypted_digest);
+    let signature = BigNum::from_be_bytes(id_data.encrypted_digest);
 
     let msg_hash = sha256(id_data.e_content);
 
@@ -68,5 +66,5 @@ pub fn verify_id_signature(id_data: IDData, dsc_data: DSCData) -> bool {
 
     let rsa: RSA2048 = RSA {};
     // Verify the signature of the passport data by the DSC
-    rsa.verify_sha256_pkcs1v15(instance, msg_hash, signature)
+    rsa.verify_sha256_pss(instance, msg_hash, signature, 2048)
 }
