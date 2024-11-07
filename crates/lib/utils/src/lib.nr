@@ -141,6 +141,10 @@ pub struct DSCData {
     // TBS stands for To Be Signed
     tbs_certificate: [u8; 1024],
     tbs_certificate_size: u32,
+    // The public key of the DSC (up to 512 bytes to account for RSA-4096)
+    pubkey: [u8; 512],
+    // The actual size of the public key
+    pubkey_size: u32,
     // The index of the public key in the TBS certificate
     pubkey_index: u32,
 }

@@ -4,9 +4,6 @@ use dep::rsa::{rsa::verify_sha256_pkcs1v15, rsa::verify_sha256_pss, types::RBN20
 use dep::std::hash::sha256;
 use dep::utils::{DSCData, IDData, RSA2048Info, RSA4096Info};
 
-// Index of where the public key is in the TBS certificate of the DSC
-//global PUB_KEY_INDEX_IN_TBS_DSC = 261;
-
 fn verify_signature<
     let MOD_BITS: u32,
     let IS_PSS: u32
@@ -48,8 +45,8 @@ pub fn verify_dsc_signature_4096<
     // And since the TBS certificate is the data signed by the private key of the CSCA certificate
     // we can make sure the DSC, which signed the data of the passport, has been signed by the 
     // root certificate of the issuing State (i.e. CSCA certificate) by verifying the signature below
-    for i in 0..rsa_4096_info.modulus.len() {
-        assert(dsc_data.tbs_certificate[i + dsc_data.pubkey_index] == rsa_4096_info.modulus[i]);
+    for i in 0..dsc_data.pubkey_size {
+        assert(dsc_data.tbs_certificate[i + dsc_data.pubkey_index] == dsc_data.pubkey[i]);
     }
 
     let msg_hash = sha256(dsc_data.tbs_certificate);
@@ -64,8 +61,8 @@ pub fn verify_dsc_signature_2048<
     // And since the TBS certificate is the data signed by the private key of the CSCA certificate
     // we can make sure the DSC, which signed the data of the passport, has been signed by the 
     // root certificate of the issuing State (i.e. CSCA certificate) by verifying the signature below
-    for i in 0..rsa_2048_info.modulus.len() {
-        assert(dsc_data.tbs_certificate[i + dsc_data.pubkey_index] == rsa_2048_info.modulus[i]);
+    for i in 0..dsc_data.pubkey_size {
+        assert(dsc_data.tbs_certificate[i + dsc_data.pubkey_index] == dsc_data.pubkey[i]);
     }
 
     let msg_hash = sha256(dsc_data.tbs_certificate);
