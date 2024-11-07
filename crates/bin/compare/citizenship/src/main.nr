@@ -1,5 +1,5 @@
 use dep::utils::IDData;
-use dep::proof_citizenship::proof_of_citizenship;
+use dep::compare_citizenship::compare_citizenship;
 
 fn main(
     id_data: IDData,
@@ -8,5 +8,5 @@ fn main(
     country: pub str<3>,
 ) {
     // Verify the country of the passport holder
-    proof_of_citizenship(id_data, country.as_bytes());
+    compare_citizenship(id_data, country.as_bytes());
 }

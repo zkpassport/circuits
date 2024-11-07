@@ -1,8 +1,8 @@
-use dep::utils::{IDData, get_array_slice, PASSPORT_MRZ_EXPIRY_DATE_INDEX, ID_CARD_MRZ_EXPIRY_DATE_INDEX, is_id_card};
+use dep::utils::{IDData, get_array_slice, PASSPORT_MRZ_EXPIRY_DATE_INDEX, ID_CARD_MRZ_EXPIRY_DATE_INDEX, is_id_card, get_mrz_from_dg1};
 use dep::date::Date;
 
 pub fn check_expiry(id_data: IDData, current_date_bytes: [u8; 8]) {
-    let bytes_mrz = id_data.mrz.as_bytes();
+    let mrz = get_mrz_from_dg1(id_data.dg1);
 
     // We base the threshold year for the expiry date on the current date plus 20 years
     // As most documents will have a 10 year validity (and some maybe 15 years?)
@@ -15,9 +15,9 @@ pub fn check_expiry(id_data: IDData, current_date_bytes: [u8; 8]) {
     let mut expiry_date_bytes = [0 as u8; 6];
 
     if is_id_card(id_data) {
-        expiry_date_bytes = get_array_slice(bytes_mrz, ID_CARD_MRZ_EXPIRY_DATE_INDEX, ID_CARD_MRZ_EXPIRY_DATE_INDEX + 6);
+        expiry_date_bytes = get_array_slice(mrz, ID_CARD_MRZ_EXPIRY_DATE_INDEX, ID_CARD_MRZ_EXPIRY_DATE_INDEX + 6);
     } else {
-        expiry_date_bytes = get_array_slice(bytes_mrz, PASSPORT_MRZ_EXPIRY_DATE_INDEX, PASSPORT_MRZ_EXPIRY_DATE_INDEX + 6);
+        expiry_date_bytes = get_array_slice(mrz, PASSPORT_MRZ_EXPIRY_DATE_INDEX, PASSPORT_MRZ_EXPIRY_DATE_INDEX + 6);
     }
 
     let expiry_date = Date::from_bytes_short_year(

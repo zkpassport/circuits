@@ -15,16 +15,13 @@ pub fn verify_dsc_signature(dsc_data: DSCData, ecdsa_p256_info: ECDSAP256Info) -
     // And since the TBS certificate is the data signed by the private key of the CSCA certificate
     // we can make sure the DSC, which signed the data of the passport, has been signed by the
     // root certificate of the issuing State (i.e. CSCA certificate) by verifying the signature below
-    for i in 0..dsc_data.tbs_certificate.len() {
-        if i >= dsc_data.pubkey_index {
-            assert(
-                dsc_data.tbs_certificate[i] == ecdsa_p256_info.pubkey_x[i - dsc_data.pubkey_index],
-            );
-            assert(
-                dsc_data.tbs_certificate[i]
-                    == ecdsa_p256_info.pubkey_y[i - dsc_data.pubkey_index
-                        + ecdsa_p256_info.pubkey_x.len()],
-            );
+    for i in 0..dsc_data.pubkey_size {
+        if (i < dsc_data.pubkey_size / 2){
+            assert(dsc_data.tbs_certificate[i + dsc_data.pubkey_index] == dsc_data.pubkey[i]);
+        } else {
+            // There is two bytes of padding in between the x and y coordinates of the public key
+            // So we skip it (hence the +2)
+            assert(dsc_data.tbs_certificate[i + dsc_data.pubkey_index + 2] == dsc_data.pubkey[i]);
         }
     }
 
