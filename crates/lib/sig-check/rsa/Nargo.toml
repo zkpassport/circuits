@@ -5,9 +5,8 @@ authors = ["Theo Madzou"]
 compiler_version = ">=0.36.0"
 
 [dependencies]
-# rsa = { tag = "main", git = "https://github.com/zkpassport/noir_rsa.git", directory = "lib" }
-# rsa = { tag = "mc/update-to-0.4.0", git = "https://github.com/iAmMichaelConnor/noir_rsa.git", directory = "lib" }
-rsa = { path = "../../../../../noir_rsa/lib" } # https://github.com/iAmMichaelConnor/noir_rsa/blob/mc/update-to-0.4.0/lib/Nargo.toml but with a Nargo.toml which points the `main` branch of bignum.
-# bignum = { tag = "main", git = "https://github.com/noir-lang/noir-bignum.git" }
-bignum = { path = "../../../../../noir-bignum/"}
+# Use local repos to fix an error with generics
+# Assumes that the local repo of rsa is also referencing the same local branch of bignum.
+rsa = { path = "../../../../../../../../../../Ocelots/libs/noir_rsa/lib" }
+bignum = { path = "../../../../../../../../../../Ocelots/libs/noir-bignum/"}
 utils = { path = "../../utils" }
