@@ -12,9 +12,9 @@ fn verify_signature<
     let IS_PSS: u32
 >(
     msg_hash: [u8; 32],
-    pubkey_bytes: [u8; MOD_BITS / 8],
-    sig_bytes: [u8; MOD_BITS / 8],
-    redc_param_bytes: [u8; MOD_BITS / 8 + 1],
+    pubkey_bytes: [u8; (MOD_BITS + 7) / 8],
+    sig_bytes: [u8; (MOD_BITS + 7) / 8],
+    redc_param_bytes: [u8; (MOD_BITS + 7) / 8 + 1],
     exponent: u32
 ) -> bool {
     assert((MOD_BITS == 4096) | (MOD_BITS == 2048), "Only modulus of bit size 2048 and 4096 are supported");
@@ -24,12 +24,12 @@ fn verify_signature<
 
     let params = BigNumParams::new(false, pubkey, redc_param);
 
-    let signature: RuntimeBigNum<MOD_BITS / 120, MOD_BITS> = RuntimeBigNum::from_be_bytes(params, sig_bytes);
+    let signature: RuntimeBigNum<(MOD_BITS + 119) / 120, MOD_BITS> = RuntimeBigNum::from_be_bytes(params, sig_bytes);
 
     if (IS_PSS == 1) {
-        verify_sha256_pss(msg_hash, signature, MOD_BITS)
+        verify_sha256_pss::<(MOD_BITS + 119) / 120, MOD_BITS>(msg_hash, signature, MOD_BITS)
     } else {
-        verify_sha256_pkcs1v15(msg_hash, signature, exponent)
+        verify_sha256_pkcs1v15::<(MOD_BITS + 119) / 120, MOD_BITS>(msg_hash, signature, exponent)
     }
 }
 
