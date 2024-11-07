@@ -1,11 +1,8 @@
 use dep::bignum::{params::BigNumParams, RuntimeBigNum};
-use dep::rsa::rsa::verify_sha256_pkcs1v15; //, rsa::verify_sha256_pss, types::RBN2048, types::RBN4096};
+use dep::rsa::rsa::{verify_sha256_pkcs1v15, verify_sha256_pss, RBN2048, RBN4096};
 
 use dep::std::hash::sha256;
 use dep::utils::{DSCData, IDData, RSA2048Info, RSA4096Info};
-
-// Index of where the public key is in the TBS certificate of the DSC
-//global PUB_KEY_INDEX_IN_TBS_DSC = 261;
 
 // It felt tidier to use a BYTES generic instead of BIT here.
 fn verify_signature<let SIG_BYTES: u32, let IS_PSS: u32>(
@@ -20,18 +17,17 @@ fn verify_signature<let SIG_BYTES: u32, let IS_PSS: u32>(
         "Only modulus of bit size 2048 and 4096 are supported",
     );
 
-    // It's probably not secure to call an unconstrained function like this; since a malicious prover could provide some value `pubkey` unrelated to `pubkey_bytes`. You might want to call the _constrained_ version of this function.
-    let pubkey = utils::from_byte_be_to_fields(pubkey_bytes);
-    let redc_param = utils::from_byte_be_to_fields(redc_param_bytes);
+    let pubkey = utils::from_byte_be_to_fields::<SIG_BYTES, (SIG_BYTES + 14) / 15>(pubkey_bytes);
+    let redc_param = utils::from_byte_be_to_fields::<SIG_BYTES + 1, _>(redc_param_bytes);
     let params = BigNumParams::new(false, pubkey, redc_param);
 
     let signature = RuntimeBigNum::from_be_bytes(params, sig_bytes);
 
-    // if (IS_PSS == 1) {
-    // verify_sha256_pss::<(MOD_BITS + 119) / 120, MOD_BITS>(msg_hash, signature, MOD_BITS)
-    // } else {
-    verify_sha256_pkcs1v15(msg_hash, signature, exponent)
-    // }
+    if (IS_PSS == 1) {
+        verify_sha256_pss::<_, SIG_BYTES * 8>(msg_hash, signature, SIG_BYTES * 8)
+    } else {
+        verify_sha256_pkcs1v15::<_, SIG_BYTES * 8>(msg_hash, signature, exponent)
+    }
 }
 
 /**
@@ -54,7 +50,7 @@ pub fn verify_dsc_signature_4096<let IS_PSS: u32>(
         assert(dsc_data.tbs_certificate[i + dsc_data.pubkey_index] == dsc_data.pubkey[i]);
     }
 
-    let msg_hash = sha256(dsc_data.tbs_certificate);
+    let msg_hash = sha256::sha256_var(dsc_data.tbs_certificate, dsc_data.tbs_certificate_size as u64);
 
     verify_signature::<_, IS_PSS>(
         msg_hash,
@@ -77,7 +73,7 @@ pub fn verify_dsc_signature_2048<let IS_PSS: u32>(
         assert(dsc_data.tbs_certificate[i + dsc_data.pubkey_index] == dsc_data.pubkey[i]);
     }
 
-    let msg_hash = sha256(dsc_data.tbs_certificate);
+    let msg_hash = sha256::sha256_var(dsc_data.tbs_certificate, dsc_data.tbs_certificate_size as u64);
 
     verify_signature::<_, IS_PSS>(
         msg_hash,
@@ -97,7 +93,7 @@ pub fn verify_id_signature_4096<let IS_PSS: u32>(
     id_data: IDData,
     rsa_4096_info: RSA4096Info,
 ) -> bool {
-    let msg_hash = sha256(id_data.signed_attributes);
+    let msg_hash = sha256::sha256_var(id_data.signed_attributes, id_data.signed_attributes_size as u64);
 
     verify_signature::<_, IS_PSS>(
         msg_hash,
@@ -117,7 +113,7 @@ pub fn verify_id_signature_2048<let IS_PSS: u32>(
     id_data: IDData,
     rsa_2048_info: RSA2048Info,
 ) -> bool {
-    let msg_hash = sha256(id_data.signed_attributes);
+    let msg_hash = sha256::sha256_var(id_data.signed_attributes, id_data.signed_attributes_size as u64);
 
     verify_signature::<_, IS_PSS>(
         msg_hash,
