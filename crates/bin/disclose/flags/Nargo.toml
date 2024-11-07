@@ -1,0 +1,9 @@
+[package]
+name = "disclose_flags"
+type = "bin"
+authors = ["Theo Madzou"]
+compiler_version = ">=0.32.0"
+
+[dependencies]
+disclose = { path = "../../../lib/disclose" }
+utils = { path = "../../../lib/utils" }

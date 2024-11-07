@@ -1,0 +1,9 @@
+[package]
+name = "compare_citizenship"
+type = "bin"
+authors = ["Theo Madzou"]
+compiler_version = ">=0.22.0"
+
+[dependencies]
+compare_citizenship = { path = "../../../lib/compare/citizenship" }
+utils = { path = "../../../lib/utils" }

@@ -24,7 +24,7 @@ pub fn verify_dsc_signature(dsc_data: DSCData, ecdsa_p256_info: ECDSAP256Info) -
 
     let msg_hash = sha256(dsc_data.tbs_certificate);
 
-    ecdsa_secp256r1::verify_signature(ecdsa_p256_info.pubkey_x, ecdsa_p256_info.pubkey_y, dsc_data.signature, msg_hash)
+    ecdsa_secp256r1::verify_signature(ecdsa_p256_info.pubkey_x, ecdsa_p256_info.pubkey_y, ecdsa_p256_info.signature, msg_hash)
 }
 
 /**
@@ -36,5 +36,5 @@ pub fn verify_id_signature(id_data: IDData, ecdsa_p256_info: ECDSAP256Info) -> b
     let msg_hash = sha256(id_data.signed_attributes);
 
     // Verify the signature of the passport data by the DSC
-    ecdsa_secp256r1::verify_signature(ecdsa_p256_info.pubkey_x, ecdsa_p256_info.pubkey_y, id_data.encrypted_digest, msg_hash)
+    ecdsa_secp256r1::verify_signature(ecdsa_p256_info.pubkey_x, ecdsa_p256_info.pubkey_y, ecdsa_p256_info.signature, msg_hash)
 }

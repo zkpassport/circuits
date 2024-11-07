@@ -2,10 +2,20 @@
 members = [
     "crates/bin/data-check/expiry", 
     "crates/bin/data-check/integrity", 
-    "crates/bin/sig-check/dsc", 
-    "crates/bin/sig-check/passport-data",
-    "crates/bin/proof/age",
-    "crates/bin/proof/citizenship",
+    "crates/bin/sig-check/dsc/rsa/pkcs/2048",
+    "crates/bin/sig-check/dsc/rsa/pkcs/4096",
+    "crates/bin/sig-check/dsc/rsa/pss/2048",
+    "crates/bin/sig-check/dsc/rsa/pss/4096",
+    "crates/bin/sig-check/dsc/ecdsa/nist/p256",
+    "crates/bin/sig-check/id-data/ecdsa/nist/p256",
+    "crates/bin/sig-check/id-data/rsa/pkcs/2048",
+    "crates/bin/sig-check/id-data/rsa/pkcs/4096",
+    "crates/bin/sig-check/id-data/rsa/pss/2048",
+    "crates/bin/sig-check/id-data/rsa/pss/4096",
     "crates/bin/combined/age",
-    "crates/bin/combined/disclose"
+    "crates/bin/combined/disclose",
+    "crates/bin/compare/citizenship",
+    "crates/bin/compare/age",
+    "crates/bin/disclose/flags",
+    "crates/bin/disclose/bytes"
 ]

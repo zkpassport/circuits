@@ -111,6 +111,7 @@ pub struct RSA4096Info {
 pub struct ECDSAP256Info {
     pubkey_x: [u8; 32],
     pubkey_y: [u8; 32],
+    signature: [u8; 64],
 }
 
 pub struct IDData {

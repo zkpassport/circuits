@@ -43,9 +43,9 @@ checksum = "4ec2a862134d2a7d32d7983ddcdd1c4923530833c9f2ea1a44fc5fa473989058"
 
 [[package]]
 name = "noir-bignum-paramgen"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6058cb4c50e0df6fb01d014f71bf63bcd50fa63c1ce827329dc34d74c6b7807f"
+checksum = "4a2f214558ab24dd9af1d905187b42024370600b9458be46ab34c9af2f11e441"
 dependencies = [
  "hex",
  "itoa",
@@ -102,14 +102,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ocelots_circuits"
-version = "0.1.0"
-dependencies = [
- "noir-bignum-paramgen",
- "num-bigint-dig",
-]
-
-[[package]]
 name = "ppv-lite86"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -158,3 +150,11 @@ name = "zeroize"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "525b4ec142c6b68a2d10f01f7bbf6755599ca3f81ea53b8431b7dd348f5fdb2d"
+
+[[package]]
+name = "zk-passport-circuits"
+version = "0.1.0"
+dependencies = [
+ "noir-bignum-paramgen",
+ "num-bigint-dig",
+]

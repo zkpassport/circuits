@@ -1,9 +1,0 @@
-[package]
-name = "proof_citizenship"
-type = "bin"
-authors = ["Theo Madzou"]
-compiler_version = ">=0.22.0"
-
-[dependencies]
-proof_citizenship = { path = "../../../lib/proof/citizenship" }
-utils = { path = "../../../lib/utils" }
