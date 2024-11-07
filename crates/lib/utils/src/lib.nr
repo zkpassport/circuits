@@ -127,7 +127,7 @@ pub struct IDData {
     // Rest of the bytes: information about the signature algorithm, date, etc.
     signed_attributes: [u8; 200],
     signed_attributes_size: u32,
-    // The DG1 constains the Machine Readable Zone (MRZ) of the document
+    // The DG1 contains the Machine Readable Zone (MRZ) of the document
     // The two lines at the bottom of the passport data page
     // or the three bottom lines on the rear of an ID card
     // 95 bytes for passports, 93 bytes for ID cards
@@ -214,7 +214,7 @@ pub fn is_id_card(id_data: IDData) -> bool {
     // For passport, the last two bytes are 0
     // since the real length is 93 for passports 
     // while it is 95 for ID cards
-    (id_data.dg1[91] != 0) & (id_data.dg1[92] != 0)
+    (id_data.dg1[93] != 0) & (id_data.dg1[94] != 0)
 }
 
 pub fn from_byte_be_to_fields<let NBytes: u32, let N: u32>(x: [u8; NBytes]) -> [Field; N] {
