@@ -76,3 +76,11 @@ pub fn get_disclosed_data(id_data: IDData, flags: DiscloseFlags) -> DisclosedDat
 
     disclosed_data
 }
+
+pub fn get_disclosed_bytes(id_data: IDData, mask: [u8; 90]) -> [u8; 90] {
+    let mut disclosed_bytes = [0 as u8; 90];
+    for i in 0..90 {
+        disclosed_bytes[i] = mask[i] * disclosed_data[i];
+    }
+    disclosed_bytes
+}

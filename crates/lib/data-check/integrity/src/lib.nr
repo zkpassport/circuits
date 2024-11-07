@@ -111,10 +111,10 @@ pub fn check_integrity_of_data(id_data: IDData) {
 
     let computed_final_hash = sha256::sha256_var(content_to_hash, current_index as u64);
 
-    let e_content_length = id_data.e_content.len();
+    let signed_attributes_length = id_data.signed_attributes.len();
     for i in 0..32 {
-        // The last 32 bytes of the e_content are the hash of the data groups
+        // The last 32 bytes of the signed_attributes are the hash of the data groups
         // The rest is padding and the signature date, not important to check
-        assert(computed_final_hash[i] == id_data.e_content[e_content_length - 32 + i]);
+        assert(computed_final_hash[i] == id_data.signed_attributes[signed_attributes_length - 32 + i]);
     }
 }
