@@ -1,5 +1,5 @@
 use utils::{CSCData, DSCData};
-use sig_check_rsa::verify_dsc_signature_2048;
+use sig_check_rsa::verify_dsc_signature;
 use subcircuits::{CertificateRegistry, subcircuit_a_verification};
 
 #[recursive]
@@ -22,5 +22,5 @@ fn main(
         csc_data,
         comm_out,
     );
-    verify_dsc_signature_2048::<0>(dsc_data, csc_data);
+    assert(verify_dsc_signature::<2048, 0>(dsc_data, csc_data));
 }

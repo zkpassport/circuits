@@ -1,5 +1,5 @@
 use utils::{IDData, DSCData};
-use sig_check_rsa::verify_id_signature_2048;
+use sig_check_rsa::verify_id_signature;
 use subcircuits::subcircuit_b_verification;
 
 #[recursive]
@@ -12,5 +12,5 @@ fn main(comm_in: pub Field, salt: Field, id_data: IDData, dsc_data: DSCData, com
         comm_out,
         id_data.sod_signature,
     );
-    verify_id_signature_2048::<0>(id_data, dsc_data);
+    assert(verify_id_signature::<2048, 0>(id_data, dsc_data));
 }

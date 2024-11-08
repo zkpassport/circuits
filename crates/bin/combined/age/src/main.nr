@@ -1,7 +1,7 @@
 use utils::{IDData, DSCData};
 use compare_age::compare_age;
 use data_check_integrity::check_integrity_of_data;
-use sig_check_rsa::verify_id_signature_2048;
+use sig_check_rsa::verify_id_signature;
 
 fn main(
     id_data: IDData,
@@ -19,7 +19,7 @@ fn main(
     max_age_required: pub u8,
 ) {
     // Verify the data has been signed correctly by the DSC
-    verify_id_signature_2048(id_data, dsc_data);
+    verify_id_signature::<2048, 0>(id_data, dsc_data);
     // Check the integrity of the ID data
     check_integrity_of_data(id_data);
     // Now we make sure the data is correct, we verify the age of the ID holder

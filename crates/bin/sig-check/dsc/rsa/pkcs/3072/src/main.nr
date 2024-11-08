@@ -4,13 +4,14 @@ use subcircuits::{CertificateRegistry, subcircuit_a_verification};
 
 #[recursive]
 fn main(
-    certificate_registry_root: Field,
+    // Certificate registry merkle root
+    certificate_registry_root: pub Field,
     certificate_registry: CertificateRegistry,
     salt: Field,
     country: str<3>,
     dsc_data: DSCData,
     csc_data: CSCData,
-    comm_out: Field,
+    comm_out: pub Field,
 ) {
     subcircuit_a_verification(
         certificate_registry_root,
@@ -21,5 +22,5 @@ fn main(
         csc_data,
         comm_out,
     );
-    assert(verify_dsc_signature::<4096, 0>(dsc_data, csc_data));
+    assert(verify_dsc_signature::<3072, 0>(dsc_data, csc_data));
 }

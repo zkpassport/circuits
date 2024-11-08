@@ -21,5 +21,5 @@ fn main(
         csc_data,
         comm_out,
     );
-    verify_dsc_signature(dsc_data, csc_data);
+    assert(verify_dsc_signature(dsc_data, csc_data));
 }
