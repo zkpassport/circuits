@@ -159,6 +159,14 @@ pub fn get_array_slice<let N: u32, let M: u32>(arr: [u8; N], start: u32, end: u3
     slice
 }
 
+pub fn get_array_slice_constant<let N: u32, let M: u32>(arr: [u8; N]) -> [u8; M] {
+    let mut slice = [0 as u8; M];
+    for i in 0..M {
+        slice[i] = arr[i];
+    }
+    slice
+}
+
 // Reverse the bytes of an array so you can switch from
 // big endian to little endian order and vice versa
 pub fn reverse_bytes_array<let N: u32>(arr: [u8; N]) -> [u8; N] {

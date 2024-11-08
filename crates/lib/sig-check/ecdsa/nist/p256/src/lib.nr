@@ -1,7 +1,7 @@
 use std::hash::sha256;
 use utils::{DSCData, IDData, CSCData};
 use std::ecdsa_secp256r1;
-use utils::get_array_slice;
+use utils::get_array_slice_constant;
 
 /**
 * The Document Signing Certificate (DSC) is signed by the 
@@ -17,7 +17,7 @@ pub fn verify_dsc_signature(dsc_data: DSCData, csc_data: CSCData) -> bool {
     // we can make sure the DSC, which signed the data of the passport, has been signed by the
     // root certificate of the issuing State (i.e. CSCA certificate) by verifying the signature below
     for i in 0..dsc_data.pubkey.len() {
-        if (i < dsc_data.pubkey_size / 2){
+        if (i < dsc_data.pubkey_size / 2) {
             assert(dsc_data.tbs_certificate[i + dsc_data.pubkey_index] == dsc_data.pubkey[i]);
         } else if (i < dsc_data.pubkey_size) {
             // There is two bytes of padding in between the x and y coordinates of the public key
@@ -31,9 +31,9 @@ pub fn verify_dsc_signature(dsc_data: DSCData, csc_data: CSCData) -> bool {
         dsc_data.tbs_certificate_size as u64,
     );
 
-    let pubkey_x: [u8; 32] = get_array_slice(csc_data.pubkey, 0, 32);
-    let pubkey_y: [u8; 32] = get_array_slice(csc_data.pubkey, 32, 64);
-    let signature: [u8; 64] = get_array_slice(dsc_data.signature, 0, 64);
+    let pubkey_x: [u8; 32] = get_array_slice_constant(csc_data.pubkey);
+    let pubkey_y: [u8; 32] = get_array_slice_constant(csc_data.pubkey);
+    let signature: [u8; 64] = get_array_slice_constant(dsc_data.signature);
     ecdsa_secp256r1::verify_signature(pubkey_x, pubkey_y, signature, msg_hash)
 }
 
@@ -48,9 +48,9 @@ pub fn verify_id_signature(id_data: IDData, dsc_data: DSCData) -> bool {
         id_data.signed_attributes_size as u64,
     );
 
-    let pubkey_x: [u8; 32] = get_array_slice(dsc_data.pubkey, 0, 32);
-    let pubkey_y: [u8; 32] = get_array_slice(dsc_data.pubkey, 32, 64);
-    let signature: [u8; 64] = get_array_slice(id_data.sod_signature, 0, 64);
+    let pubkey_x: [u8; 32] = get_array_slice_constant(dsc_data.pubkey);
+    let pubkey_y: [u8; 32] = get_array_slice_constant(dsc_data.pubkey);
+    let signature: [u8; 64] = get_array_slice_constant(id_data.sod_signature);
     // Verify the signature of the passport data by the DSC
     ecdsa_secp256r1::verify_signature(pubkey_x, pubkey_y, signature, msg_hash)
 }
