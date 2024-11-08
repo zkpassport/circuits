@@ -1,7 +1,5 @@
-use dep::utils::{
-    IDData, ID_CARD_MRZ_LENGTH, is_id_card, get_mrz_from_dg1
-};
-use dep::std::sha256;
+use utils::{IDData, ID_CARD_MRZ_LENGTH, is_id_card, get_mrz_from_dg1};
+use std::sha256;
 
 /**
 * Computes the hash of the MRZ (Data Group 1) and checks it is the same as the one
@@ -35,6 +33,9 @@ pub fn check_integrity_of_data(id_data: IDData) {
     for i in 0..32 {
         // The last 32 bytes of the signed_attributes are the hash of the data groups
         // The rest is padding and the signature date, not important to check
-        assert(computed_final_hash[i] == id_data.signed_attributes[id_data.signed_attributes_size - 32 + i]);
+        assert(
+            computed_final_hash[i]
+                == id_data.signed_attributes[id_data.signed_attributes_size - 32 + i],
+        );
     }
 }

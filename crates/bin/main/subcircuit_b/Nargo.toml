@@ -1,6 +1,0 @@
-[package]
-name = "subcircuit_b_dsc_rsa2048"
-type = "bin"
-compiler_version = ">=0.32.0"
-
-[dependencies]

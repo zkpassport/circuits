@@ -7,3 +7,4 @@ compiler_version = ">=0.32.0"
 [dependencies]
 disclose = { path = "../../../lib/disclose" }
 utils = { path = "../../../lib/utils" }
+subcircuits = { path = "../../../lib/subcircuits" }

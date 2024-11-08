@@ -1,9 +1,16 @@
-use dep::utils::{IDData, ECDSAP256Info};
-use dep::sig_check_ecdsa::verify_id_signature;
+use utils::{IDData, DSCData};
+use sig_check_ecdsa::verify_id_signature;
+use subcircuits::subcircuit_b_verification;
 
-fn main(
-    id_data: IDData,
-    ecdsa_p256_info: ECDSAP256Info
-) {
-    verify_id_signature(id_data, ecdsa_p256_info);
+#[recursive]
+fn main(comm_in: pub Field, salt: Field, id_data: IDData, dsc_data: DSCData, comm_out: pub Field) {
+    subcircuit_b_verification(
+        comm_in,
+        salt,
+        id_data,
+        dsc_data,
+        comm_out,
+        id_data.sod_signature,
+    );
+    verify_id_signature(id_data, dsc_data);
 }

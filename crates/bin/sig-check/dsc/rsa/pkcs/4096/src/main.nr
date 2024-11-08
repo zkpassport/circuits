@@ -1,9 +1,25 @@
-use dep::utils::{DSCData, RSA4096Info};
-use dep::sig_check_rsa::verify_dsc_signature_4096;
+use utils::{CSCData, DSCData};
+use sig_check_rsa::verify_dsc_signature_4096;
+use subcircuits::{CertificateRegistry, subcircuit_a_verification};
 
+#[recursive]
 fn main(
+    certificate_registry_root: Field,
+    certificate_registry: CertificateRegistry,
+    salt: Field,
+    country: str<3>,
     dsc_data: DSCData,
-    rsa_4096_info: RSA4096Info
+    csc_data: CSCData,
+    comm_out: Field,
 ) {
-    verify_dsc_signature_4096::<0>(dsc_data, rsa_4096_info);
+    subcircuit_a_verification(
+        certificate_registry_root,
+        certificate_registry,
+        country,
+        dsc_data,
+        salt,
+        csc_data,
+        comm_out,
+    );
+    verify_dsc_signature_4096::<0>(dsc_data, csc_data);
 }

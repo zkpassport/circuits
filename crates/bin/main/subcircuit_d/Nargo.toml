@@ -1,6 +1,0 @@
-[package]
-name = "subcircuit_d_disclose"
-type = "bin"
-compiler_version = ">=0.32.0"
-
-[dependencies]

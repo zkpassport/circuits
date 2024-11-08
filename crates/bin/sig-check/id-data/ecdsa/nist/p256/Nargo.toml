@@ -7,3 +7,4 @@ compiler_version = ">=0.36.0"
 [dependencies]
 sig_check_ecdsa = { path = "../../../../../../lib/sig-check/ecdsa/nist/p256" }
 utils = { path = "../../../../../../lib/utils" }
+subcircuits = { path = "../../../../../../lib/subcircuits" }

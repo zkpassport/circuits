@@ -1,5 +1,8 @@
-use dep::utils::{IDData, get_array_slice, PASSPORT_MRZ_EXPIRY_DATE_INDEX, ID_CARD_MRZ_EXPIRY_DATE_INDEX, is_id_card, get_mrz_from_dg1};
-use dep::date::Date;
+use utils::{
+    IDData, get_array_slice, PASSPORT_MRZ_EXPIRY_DATE_INDEX, ID_CARD_MRZ_EXPIRY_DATE_INDEX,
+    is_id_card, get_mrz_from_dg1,
+};
+use date::Date;
 
 pub fn check_expiry(id_data: IDData, current_date_bytes: [u8; 8]) {
     let mrz = get_mrz_from_dg1(id_data.dg1);
@@ -15,14 +18,22 @@ pub fn check_expiry(id_data: IDData, current_date_bytes: [u8; 8]) {
     let mut expiry_date_bytes = [0 as u8; 6];
 
     if is_id_card(id_data) {
-        expiry_date_bytes = get_array_slice(mrz, ID_CARD_MRZ_EXPIRY_DATE_INDEX, ID_CARD_MRZ_EXPIRY_DATE_INDEX + 6);
+        expiry_date_bytes = get_array_slice(
+            mrz,
+            ID_CARD_MRZ_EXPIRY_DATE_INDEX,
+            ID_CARD_MRZ_EXPIRY_DATE_INDEX + 6,
+        );
     } else {
-        expiry_date_bytes = get_array_slice(mrz, PASSPORT_MRZ_EXPIRY_DATE_INDEX, PASSPORT_MRZ_EXPIRY_DATE_INDEX + 6);
+        expiry_date_bytes = get_array_slice(
+            mrz,
+            PASSPORT_MRZ_EXPIRY_DATE_INDEX,
+            PASSPORT_MRZ_EXPIRY_DATE_INDEX + 6,
+        );
     }
 
     let expiry_date = Date::from_bytes_short_year(
         expiry_date_bytes,
-        [threshold_year_bytes[2], threshold_year_bytes[3]]
+        [threshold_year_bytes[2], threshold_year_bytes[3]],
     );
 
     assert(current_date.lt(expiry_date));

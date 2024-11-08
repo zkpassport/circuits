@@ -1,5 +1,5 @@
-use dep::utils::IDData;
-use dep::compare_citizenship::compare_citizenship;
+use utils::IDData;
+use compare_citizenship::compare_citizenship;
 
 fn main(
     id_data: IDData,

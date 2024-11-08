@@ -1,11 +1,11 @@
-use dep::utils::{IDData, RSA2048Info};
-use dep::compare_age::compare_age;
-use dep::data_check_integrity::check_integrity_of_data;
-use dep::sig_check_rsa::verify_id_signature_2048;
+use utils::{IDData, DSCData};
+use compare_age::compare_age;
+use data_check_integrity::check_integrity_of_data;
+use sig_check_rsa::verify_id_signature_2048;
 
 fn main(
     id_data: IDData,
-    rsa_2048_info: RSA2048Info,
+    dsc_data: DSCData,
     // The current date is public so verifiers can check the date
     // provided to the proof is correct
     current_date: pub str<8>,
@@ -16,10 +16,10 @@ fn main(
     // The maximum age required is public so verifiers can check
     // the age provided to the proof is correct
     // If the maximum age is 0, it is not checked
-    max_age_required: pub u8
+    max_age_required: pub u8,
 ) {
     // Verify the data has been signed correctly by the DSC
-    verify_id_signature_2048(id_data, rsa_2048_info);
+    verify_id_signature_2048(id_data, dsc_data);
     // Check the integrity of the ID data
     check_integrity_of_data(id_data);
     // Now we make sure the data is correct, we verify the age of the ID holder
@@ -27,6 +27,6 @@ fn main(
         id_data,
         min_age_required,
         max_age_required,
-        current_date.as_bytes()
+        current_date.as_bytes(),
     );
 }
