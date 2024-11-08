@@ -1,0 +1,6 @@
+[package]
+name = "subcircuit_c_integrity_sha2"
+type = "bin"
+compiler_version = ">=0.32.0"
+
+[dependencies]
