@@ -203,11 +203,11 @@ pub fn dynamic_insert_into_array<let N: u32, let M: u32>(
     arr
 }
 
-pub fn is_id_card(id_data: IDData) -> bool {
+pub fn is_id_card(dg1: [u8; 95]) -> bool {
     // For passport, the last two bytes are 0
     // since the real length is 93 for passports
     // while it is 95 for ID cards
-    (id_data.dg1[93] != 0) & (id_data.dg1[94] != 0)
+    (dg1[93] != 0) & (dg1[94] != 0)
 }
 
 pub fn from_byte_be_to_fields<let NBytes: u32, let N: u32>(x: [u8; NBytes]) -> [Field; N] {

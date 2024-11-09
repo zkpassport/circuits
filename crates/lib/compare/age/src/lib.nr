@@ -4,12 +4,12 @@ use utils::{
 };
 use date::Date;
 
-fn get_birthdate(id_data: IDData, current_date: [u8; 8]) -> Date {
+fn get_birthdate(dg1: [u8; 95], current_date: [u8; 8]) -> Date {
     let mut birthdate_bytes = [0 as u8; 6];
-    let mrz = get_mrz_from_dg1(id_data.dg1);
+    let mrz = get_mrz_from_dg1(dg1);
 
     // Get the slice of the MRZ representing the birthdate
-    if is_id_card(id_data) {
+    if is_id_card(dg1) {
         birthdate_bytes = get_array_slice(
             mrz,
             ID_CARD_MRZ_BIRTHDATE_INDEX,
@@ -30,8 +30,8 @@ fn get_birthdate(id_data: IDData, current_date: [u8; 8]) -> Date {
     Date::from_bytes_short_year(birthdate_bytes, [current_date[2], current_date[3]])
 }
 
-pub fn compare_age(id_data: IDData, min_age: u8, max_age: u8, current_date_bytes: [u8; 8]) {
-    let birthdate = get_birthdate(id_data, current_date_bytes);
+pub fn compare_age(dg1: [u8; 95], min_age: u8, max_age: u8, current_date_bytes: [u8; 8]) {
+    let birthdate: Date = get_birthdate(dg1, current_date_bytes);
 
     let current_date = Date::from_bytes_long_year(current_date_bytes);
 

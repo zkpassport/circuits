@@ -1,4 +1,4 @@
-use utils::{IDData, ID_CARD_MRZ_LENGTH, is_id_card, get_mrz_from_dg1};
+use utils::is_id_card;
 use std::sha256;
 
 /**
@@ -9,33 +9,37 @@ use std::sha256;
 * This lets us make sure the data is authentic and has not been tampered with, so we can use the data 
 * of the MRZ to build subsequent proofs (age, citizenship, etc.)
 */
-pub fn check_integrity_of_data(id_data: IDData) {
+pub fn check_integrity_of_data(
+    dg1: [u8; 95],
+    signed_attributes: [u8; 200],
+    signed_attributes_size: u32,
+    e_content: [u8; 700],
+    e_content_size: u32,
+    dg1_offset_in_e_content: u32,
+) {
     // For passports we ignore the last padding characters
     let mut dg1_size: u64 = 93;
 
     // If it's an ID card then the array should not have any padding
     // character
-    if is_id_card(id_data) {
+    if is_id_card(dg1) {
         dg1_size = 95;
     }
 
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
-    let dg1_hash = sha256::sha256_var(id_data.dg1, dg1_size as u64);
+    let dg1_hash = sha256::sha256_var(dg1, dg1_size as u64);
 
     for i in 0..32 {
         // Check the hash of dg1 is indeed in the e_content
-        assert(dg1_hash[i] == id_data.e_content[id_data.dg1_offset_in_e_content + i]);
+        assert(dg1_hash[i] == e_content[dg1_offset_in_e_content + i]);
     }
 
-    let computed_final_hash = sha256::sha256_var(id_data.e_content, id_data.e_content_size as u64);
+    let computed_final_hash = sha256::sha256_var(e_content, e_content_size as u64);
 
     for i in 0..32 {
         // The last 32 bytes of the signed_attributes are the hash of the data groups
         // The rest is padding and the signature date, not important to check
-        assert(
-            computed_final_hash[i]
-                == id_data.signed_attributes[id_data.signed_attributes_size - 32 + i],
-        );
+        assert(computed_final_hash[i] == signed_attributes[signed_attributes_size - 32 + i]);
     }
 }

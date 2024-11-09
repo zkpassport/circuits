@@ -2,7 +2,7 @@ use utils::IDData;
 use compare_age::compare_age;
 
 fn main(
-    id_data: IDData,
+    dg1: [u8; 95],
     // The current date is public so verifiers can check the date
     // provided to the proof is correct
     current_date: pub str<8>,
@@ -16,7 +16,7 @@ fn main(
 ) {
     // Verify the age of the ID holder
     compare_age(
-        id_data,
+        dg1,
         min_age_required,
         max_age_required,
         current_date.as_bytes(),

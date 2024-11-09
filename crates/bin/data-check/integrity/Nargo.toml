@@ -7,5 +7,4 @@ compiler_version = ">=0.22.0"
 [dependencies]
 data_check_integrity = { path = "../../../lib/data-check/integrity" }
 data_check_expiry = { path = "../../../lib/data-check/expiry" }
-utils = { path = "../../../lib/utils" }
-subcircuits = { path = "../../../lib/subcircuits" }
+commitment = { path = "../../../lib/commitment/integrity-to-disclosure" }

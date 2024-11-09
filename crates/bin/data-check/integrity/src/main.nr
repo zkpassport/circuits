@@ -1,27 +1,38 @@
-use utils::IDData;
 use data_check_integrity::check_integrity_of_data;
 use data_check_expiry::check_expiry;
-use subcircuits::subcircuit_c_verification;
+use commitment::commit_to_disclosure;
 
 #[recursive]
 fn main(
     current_date: pub str<8>,
     comm_in: pub Field,
     salt: Field,
-    id_data: IDData,
+    dg1: [u8; 95],
+    signed_attributes: [u8; 200],
+    signed_attributes_size: u32,
+    e_content: [u8; 700],
+    e_content_size: u32,
+    dg1_offset_in_e_content: u32,
     private_nullifier: Field,
-    comm_out: pub Field,
-) {
-    subcircuit_c_verification(
-        current_date,
+) -> pub Field {
+    // Check the ID is not expired first
+    check_expiry(dg1, current_date.as_bytes());
+    // Check the integrity of the data
+    check_integrity_of_data(
+        dg1,
+        signed_attributes,
+        signed_attributes_size,
+        e_content,
+        e_content_size,
+        dg1_offset_in_e_content,
+    );
+    let comm_out = commit_to_disclosure(
         comm_in,
         salt,
-        id_data,
+        dg1,
+        signed_attributes,
+        signed_attributes_size as Field,
         private_nullifier,
-        comm_out,
     );
-    // Check the ID is not expired first
-    check_expiry(id_data, current_date.as_bytes());
-    // Check the integrity of the data
-    check_integrity_of_data(id_data);
+    comm_out
 }

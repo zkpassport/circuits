@@ -1,25 +1,38 @@
-use utils::{CSCData, DSCData};
-use sig_check_rsa::verify_dsc_signature;
-use subcircuits::{CertificateRegistry, subcircuit_a_verification};
+use sig_check_rsa::verify_signature;
+use commitment::commit_to_dsc;
 
 #[recursive]
 fn main(
     certificate_registry_root: Field,
-    certificate_registry: CertificateRegistry,
+    certificate_registry_index: Field,
+    certificate_registry_hash_path: [Field; 14],
+    certificate_registry_id: Field,
     salt: Field,
     country: str<3>,
-    dsc_data: DSCData,
-    csc_data: CSCData,
-    comm_out: Field,
-) {
-    subcircuit_a_verification(
+    tbs_certificate: [u8; 1024],
+    tbs_certificate_len: u64,
+    csc_pubkey: [u8; 256],
+    csc_pubkey_redc_param: [u8; 257],
+    dsc_signature: [u8; 256],
+    exponent: u32,
+) -> pub Field {
+    assert(verify_signature::<256, 1, 1024>(
+        csc_pubkey,
+        dsc_signature,
+        csc_pubkey_redc_param,
+        exponent,
+        tbs_certificate,
+        tbs_certificate_len,
+    ));
+    let comm_out = commit_to_dsc(
         certificate_registry_root,
-        certificate_registry,
+        certificate_registry_index,
+        certificate_registry_hash_path,
+        certificate_registry_id,
         country,
-        dsc_data,
+        tbs_certificate,
         salt,
-        csc_data,
-        comm_out,
+        csc_pubkey,
     );
-    assert(verify_dsc_signature::<2048, 1>(dsc_data, csc_data));
+    comm_out
 }

@@ -1,56 +1,13 @@
 use std::hash::sha256;
-use utils::{DSCData, IDData, CSCData};
 use std::ecdsa_secp256r1;
-use utils::get_array_slice_constant;
 
-/**
-* The Document Signing Certificate (DSC) is signed by the 
-* Country Signing Certificate Authority (CSCA) of the issuing State.
-* So using the CSCA certificate public key and the signature of 
-* the TBS certificate of the DSC we can verify the authenticity of the DSC. 
-* And since the CSCA certificate is our Trust Anchor, we have completed 
-* the necessary chain of trust to verify the authenticity and validity of the passport.
-*/
-pub fn verify_dsc_signature(dsc_data: DSCData, csc_data: CSCData) -> bool {
-    // Check that the public key of the DSC is the same as the one in the TBS certificate.
-    // And since the TBS certificate is the data signed by the private key of the CSCA certificate
-    // we can make sure the DSC, which signed the data of the passport, has been signed by the
-    // root certificate of the issuing State (i.e. CSCA certificate) by verifying the signature below
-    for i in 0..dsc_data.pubkey.len() {
-        if (i < dsc_data.pubkey_size / 2) {
-            assert(dsc_data.tbs_certificate[i + dsc_data.pubkey_index] == dsc_data.pubkey[i]);
-        } else if (i < dsc_data.pubkey_size) {
-            // There is two bytes of padding in between the x and y coordinates of the public key
-            // So we skip it (hence the +2)
-            assert(dsc_data.tbs_certificate[i + dsc_data.pubkey_index + 2] == dsc_data.pubkey[i]);
-        }
-    }
-
-    let msg_hash = sha256::sha256_var(
-        dsc_data.tbs_certificate,
-        dsc_data.tbs_certificate_size as u64,
-    );
-
-    let pubkey_x: [u8; 32] = get_array_slice_constant(csc_data.pubkey);
-    let pubkey_y: [u8; 32] = get_array_slice_constant(csc_data.pubkey);
-    let signature: [u8; 64] = get_array_slice_constant(dsc_data.signature);
-    ecdsa_secp256r1::verify_signature(pubkey_x, pubkey_y, signature, msg_hash)
-}
-
-/**
-* The Document Signing Certificate (DSC) signs the ID data, which is the hash of the
-* all the data groups present in the ID. So using the DSC public key and this signature
-* we can verify the authenticity of the ID data.
-*/
-pub fn verify_id_signature(id_data: IDData, dsc_data: DSCData) -> bool {
-    let msg_hash = sha256::sha256_var(
-        id_data.signed_attributes,
-        id_data.signed_attributes_size as u64,
-    );
-
-    let pubkey_x: [u8; 32] = get_array_slice_constant(dsc_data.pubkey);
-    let pubkey_y: [u8; 32] = get_array_slice_constant(dsc_data.pubkey);
-    let signature: [u8; 64] = get_array_slice_constant(id_data.sod_signature);
-    // Verify the signature of the passport data by the DSC
+pub fn verify_signature<let DATA_TO_SIGN_LEN: u32>(
+    pubkey_x: [u8; 32],
+    pubkey_y: [u8; 32],
+    signature: [u8; 64],
+    data_to_sign: [u8; DATA_TO_SIGN_LEN],
+    data_to_sign_len: u64,
+) -> bool {
+    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
     ecdsa_secp256r1::verify_signature(pubkey_x, pubkey_y, signature, msg_hash)
 }

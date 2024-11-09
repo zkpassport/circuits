@@ -1,16 +1,38 @@
-use utils::{IDData, DSCData};
-use sig_check_rsa::verify_id_signature;
-use subcircuits::subcircuit_b_verification;
+use sig_check_rsa::verify_signature;
+use data_check_tbs_pubkey::verify_rsa_pubkey_in_tbs;
+use commitment::commit_to_id;
 
 #[recursive]
-fn main(comm_in: pub Field, salt: Field, id_data: IDData, dsc_data: DSCData, comm_out: pub Field) {
-    subcircuit_b_verification(
+fn main(
+    comm_in: pub Field,
+    salt: Field,
+    dg1: [u8; 95],
+    tbs_certificate: [u8; 1024],
+    dsc_pubkey: [u8; 128],
+    dsc_pubkey_redc_param: [u8; 129],
+    sod_signature: [u8; 128],
+    signed_attributes: [u8; 200],
+    signed_attributes_size: u64,
+    exponent: u32,
+    pubkey_offset_in_tbs: u32,
+) -> pub Field {
+    verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate, pubkey_offset_in_tbs);
+    assert(verify_signature::<128, 1, 200>(
+        dsc_pubkey,
+        sod_signature,
+        dsc_pubkey_redc_param,
+        exponent,
+        signed_attributes,
+        signed_attributes_size,
+    ));
+    let comm_out = commit_to_id(
         comm_in,
         salt,
-        id_data,
-        dsc_data,
-        comm_out,
-        id_data.sod_signature,
+        dg1,
+        tbs_certificate,
+        sod_signature,
+        signed_attributes,
+        signed_attributes_size as Field,
     );
-    verify_id_signature::<1024, 1>(id_data, dsc_data);
+    comm_out
 }

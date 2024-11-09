@@ -34,9 +34,9 @@ fn prepare_proof_c_inputs<let DATE_LEN: u32>(
 fn prepare_proof_d_inputs<let DG1: u32>(
     comm_in: Field,
     dg1_mask: [u8; DG1],
-    dg1_reveal: [u8; DG1],
     service_scope: Field,
     service_subscope: Field,
+    dg1_reveal: [u8; DG1],
     scoped_nullifier: Field,
 ) -> [Field; 1 + DG1 + DG1 + 3] {
     let mut result: [Field; 1 + DG1 + DG1 + 3] = [0; 1 + DG1 + DG1 + 3];
@@ -44,12 +44,12 @@ fn prepare_proof_d_inputs<let DG1: u32>(
     for i in 0..DG1 {
         result[1 + i] = dg1_mask[i] as Field;
     }
+    result[1 + DG1] = service_scope;
+    result[1 + DG1 + 1] = service_subscope;
     for i in 0..DG1 {
-        result[1 + DG1 + i] = dg1_reveal[i] as Field;
+        result[1 + DG1 + 2 + i] = dg1_reveal[i] as Field;
     }
-    result[1 + DG1 + DG1] = service_scope;
-    result[1 + DG1 + DG1 + 1] = service_subscope;
-    result[1 + DG1 + DG1 + 2] = scoped_nullifier;
+    result[1 + DG1 + 2 + DG1] = scoped_nullifier;
     result
 }
 
@@ -179,9 +179,9 @@ fn verify_subproofs(
         prepare_proof_d_inputs(
             proof_d.public_inputs[0], // comm_in
             dg1_mask,
-            dg1_reveal,
             service_scope,
             service_subscope,
+            dg1_reveal,
             scoped_nullifier,
         ),
         proof_d.key_hash,

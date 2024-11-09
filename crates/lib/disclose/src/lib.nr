@@ -16,8 +16,8 @@ fn get_array_slice<let N: u32, let M: u32>(array: [u8; N], start: u32, end: u32)
     slice
 }
 
-pub fn get_disclosed_data(id_data: IDData, flags: DiscloseFlags) -> DisclosedData {
-    let mrz = get_mrz_from_dg1(id_data.dg1);
+pub fn get_disclosed_data(dg1: [u8; 95], flags: DiscloseFlags) -> DisclosedData {
+    let mrz = get_mrz_from_dg1(dg1);
     let mut disclosed_data = DisclosedData {
         issuing_country: [0 as u8; 3],
         date_of_birth: [0 as u8; 6],
@@ -28,7 +28,7 @@ pub fn get_disclosed_data(id_data: IDData, flags: DiscloseFlags) -> DisclosedDat
         document_type: [0 as u8; 2],
     };
 
-    if is_id_card(id_data) {
+    if is_id_card(dg1) {
         if flags.issuing_country {
             disclosed_data.issuing_country = get_array_slice(
                 mrz,
@@ -127,9 +127,9 @@ pub fn get_disclosed_data(id_data: IDData, flags: DiscloseFlags) -> DisclosedDat
     disclosed_data
 }
 
-pub fn get_disclosed_bytes(id_data: IDData, mask: [u8; 90]) -> [u8; 90] {
+pub fn get_disclosed_bytes(dg1: [u8; 95], mask: [u8; 90]) -> [u8; 90] {
     let mut disclosed_bytes = [0 as u8; 90];
-    let mrz = get_mrz_from_dg1(id_data.dg1);
+    let mrz = get_mrz_from_dg1(dg1);
     for i in 0..90 {
         disclosed_bytes[i] = mask[i] * mrz[i];
     }

@@ -16,8 +16,6 @@ members = [
     "crates/bin/sig-check/id-data/rsa/pss/1024",
     "crates/bin/sig-check/id-data/rsa/pss/2048",
     "crates/bin/sig-check/id-data/rsa/pss/4096",
-    "crates/bin/combined/age",
-    "crates/bin/combined/disclose",
     "crates/bin/compare/citizenship",
     "crates/bin/compare/age",
     "crates/bin/disclose/flags",
