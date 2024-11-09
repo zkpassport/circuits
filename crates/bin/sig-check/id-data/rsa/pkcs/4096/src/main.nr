@@ -1,11 +1,12 @@
 use sig_check_rsa::verify_signature;
-use commitment::commit_to_id;
+//use commitment::commit_to_id;
 use data_check_tbs_pubkey::verify_rsa_pubkey_in_tbs;
-#[recursive]
+
+//#[recursive]
 fn main(
-    comm_in: pub Field,
+    /*comm_in: pub Field,
     salt: Field,
-    dg1: [u8; 95],
+    dg1: [u8; 95],*/
     tbs_certificate: [u8; 1024],
     dsc_pubkey: [u8; 512],
     dsc_pubkey_redc_param: [u8; 513],
@@ -14,7 +15,8 @@ fn main(
     signed_attributes_size: u64,
     exponent: u32,
     pubkey_offset_in_tbs: u32,
-) -> pub Field {
+) /*-> pub Field*/
+{
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate, pubkey_offset_in_tbs);
     assert(verify_signature::<512, 0, 200>(
         dsc_pubkey,
@@ -24,7 +26,7 @@ fn main(
         signed_attributes,
         signed_attributes_size,
     ));
-    let comm_out = commit_to_id(
+    /*let comm_out = commit_to_id(
         comm_in,
         salt,
         dg1,
@@ -33,5 +35,5 @@ fn main(
         signed_attributes,
         signed_attributes_size as Field,
     );
-    comm_out
+    comm_out*/
 }

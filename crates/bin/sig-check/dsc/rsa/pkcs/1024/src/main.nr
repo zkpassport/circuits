@@ -1,22 +1,23 @@
 use sig_check_rsa::verify_signature;
-use commitment::commit_to_dsc;
+//use commitment::commit_to_dsc;
 
-#[recursive]
+//#[recursive]
 fn main(
     // Certificate registry merkle root
-    certificate_registry_root: pub Field,
+    /*certificate_registry_root: pub Field,
     certificate_registry_index: Field,
     certificate_registry_hash_path: [Field; 14],
     certificate_registry_id: Field,
     salt: Field,
-    country: str<3>,
+    country: str<3>,*/
     tbs_certificate: [u8; 1024],
     tbs_certificate_len: u64,
     csc_pubkey: [u8; 128],
     csc_pubkey_redc_param: [u8; 129],
     dsc_signature: [u8; 128],
     exponent: u32,
-) -> pub Field {
+) /*-> pub Field*/
+{
     assert(verify_signature::<128, 0, 1024>(
         csc_pubkey,
         dsc_signature,
@@ -25,7 +26,7 @@ fn main(
         tbs_certificate,
         tbs_certificate_len,
     ));
-    let comm_out = commit_to_dsc(
+    /*let comm_out = commit_to_dsc(
         certificate_registry_root,
         certificate_registry_index,
         certificate_registry_hash_path,
@@ -35,5 +36,5 @@ fn main(
         salt,
         csc_pubkey,
     );
-    comm_out
+    comm_out*/
 }
