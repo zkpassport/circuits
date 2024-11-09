@@ -10,7 +10,7 @@ fn main(
     dsc_pubkey: [u8; 128],
     dsc_pubkey_redc_param: [u8; 129],
     sod_signature: [u8; 128],
-    tbs_certificate: [u8; 1024],
+    tbs_certificate: [u8; 1500],
     pubkey_offset_in_tbs: u32,
     signed_attributes: [u8; 200],
     signed_attributes_size: u64,

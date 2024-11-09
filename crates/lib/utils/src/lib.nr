@@ -97,7 +97,7 @@ pub struct IDData {
 pub struct DSCData {
     // The TBS certificate of the DSC
     // TBS stands for To Be Signed
-    pub tbs_certificate: [u8; 1024],
+    pub tbs_certificate: [u8; 1500],
     pub tbs_certificate_size: u32,
     // The public key of the DSC (up to 512 bytes to account for RSA-4096)
     pub pubkey: [u8; 512],

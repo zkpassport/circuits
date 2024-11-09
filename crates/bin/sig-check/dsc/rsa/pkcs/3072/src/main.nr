@@ -10,14 +10,14 @@ fn main(
     certificate_registry_id: Field,
     salt: Field,
     country: str<3>,
-    tbs_certificate: [u8; 1024],
+    tbs_certificate: [u8; 1500],
     tbs_certificate_len: u64,
     csc_pubkey: [u8; 384],
     csc_pubkey_redc_param: [u8; 385],
     dsc_signature: [u8; 384],
     exponent: u32,
 ) -> pub Field {
-    assert(verify_signature::<384, 0, 1024>(
+    assert(verify_signature::<384, 0, 1500>(
         csc_pubkey,
         dsc_signature,
         csc_pubkey_redc_param,

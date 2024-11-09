@@ -28,7 +28,7 @@ pub fn commit_to_id<let SIG_SIZE: u32, let SA_SIZE: u32>(
     comm_in: Field,
     salt: Field,
     dg1: [u8; 95],
-    tbs_certificate: [u8; 1024],
+    tbs_certificate: [u8; 1500],
     sod_signature: [u8; SIG_SIZE],
     signed_attributes: [u8; SA_SIZE],
     signed_attributes_size: Field,
