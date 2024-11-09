@@ -21,7 +21,7 @@ fn main(
     csc_pubkey_x: [u8; 32],
     csc_pubkey_y: [u8; 32],
     dsc_signature: [u8; 64],
-    tbs_certificate: [u8; 1024],
+    tbs_certificate: [u8; 1500],
     tbs_certificate_len: u64,
 ) /*-> pub Field*/
 {

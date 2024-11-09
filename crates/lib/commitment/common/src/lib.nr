@@ -1,4 +1,5 @@
-use std::hash::pedersen_hash;
+//use std::hash::pedersen_hash;
+use std::hash::poseidon2::Poseidon2;
 use utils::PASSPORT_MRZ_COUNTRY_INDEX;
 
 pub global CSC_CERT_TYPE: Field = 1;
@@ -9,7 +10,7 @@ pub fn calculate_scoped_nullifier(
     service_scope: Field,
     service_subscope: Field,
 ) -> Field {
-    pedersen_hash([private_nullifier, service_scope, service_subscope])
+    Poseidon2::hash([private_nullifier, service_scope, service_subscope], 3)
 }
 
 pub fn calculate_certificate_registry_leaf<let N: u32>(
@@ -28,7 +29,7 @@ pub fn calculate_certificate_registry_leaf<let N: u32>(
     for i in 0..N {
         result[i + 5] = csc_pubkey[i] as Field;
     }
-    pedersen_hash(result)
+    Poseidon2::hash(result, N + 5)
 }
 
 pub fn get_country_from_dg1(dg1: [u8; 95]) -> str<3> {
@@ -44,24 +45,24 @@ pub fn get_country_from_dg1(dg1: [u8; 95]) -> str<3> {
 pub fn hash_salt_country_dsc_tbs(
     salt: Field,
     country: str<3>,
-    tbs_certificate: [u8; 1024],
+    tbs_certificate: [u8; 1500],
 ) -> Field {
     let country_bytes: [u8; 3] = country.as_bytes();
-    let mut result: [Field; 1028] = [0; 1028];
+    let mut result: [Field; 1504] = [0; 1504];
     result[0] = salt as Field;
     result[1] = country_bytes[0] as Field;
     result[2] = country_bytes[1] as Field;
     result[3] = country_bytes[2] as Field;
-    for i in 0..1024 {
+    for i in 0..1500 {
         result[i + 4] = tbs_certificate[i] as Field;
     }
-    pedersen_hash(result)
+    Poseidon2::hash(result, 1504)
 }
 
 pub fn hash_salt_country_tbs_certificate(
     salt: Field,
     country: str<3>,
-    tbs_certificate: [u8; 1024],
+    tbs_certificate: [u8; 1500],
 ) -> Field {
     let country_bytes: [u8; 3] = country.as_bytes();
     let mut result: [Field; 1028] = [0; 1028];
@@ -69,10 +70,10 @@ pub fn hash_salt_country_tbs_certificate(
     result[1] = country_bytes[0] as Field;
     result[2] = country_bytes[1] as Field;
     result[3] = country_bytes[2] as Field;
-    for i in 0..1024 {
+    for i in 0..1500 {
         result[4 + i] = tbs_certificate[i] as Field;
     }
-    pedersen_hash(result)
+    Poseidon2::hash(result, 1028)
 }
 
 pub fn hash_salt_dg1_private_nullifier<let N: u32>(
@@ -86,7 +87,7 @@ pub fn hash_salt_dg1_private_nullifier<let N: u32>(
         result[1 + i] = dg1[i] as Field;
     }
     result[1 + N] = private_nullifier;
-    pedersen_hash(result)
+    Poseidon2::hash(result, N + 2)
 }
 
 pub fn calculate_private_nullifier<let DG1: u32, let SIG: u32>(
@@ -100,7 +101,7 @@ pub fn calculate_private_nullifier<let DG1: u32, let SIG: u32>(
     for i in 0..SIG {
         result[DG1 + i] = sod_sig[i] as Field;
     }
-    pedersen_hash(result)
+    Poseidon2::hash(result, DG1 + SIG + 2)
 }
 
 pub fn hash_salt_country_signed_attr_dg1_private_nullifier<let SA: u32>(
@@ -125,5 +126,5 @@ pub fn hash_salt_country_signed_attr_dg1_private_nullifier<let SA: u32>(
         result[4 + SA + 1 + i] = dg1[i] as Field;
     }
     result[4 + SA + 1 + 95] = private_nullifier;
-    pedersen_hash(result)
+    Poseidon2::hash(result, SA + 105)
 }
