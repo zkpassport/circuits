@@ -213,13 +213,12 @@ pub fn is_id_card(dg1: [u8; 95]) -> bool {
 pub fn from_byte_be_to_fields<let NBytes: u32, let N: u32>(x: [u8; NBytes]) -> [Field; N] {
     let mut result = [0 as Field; N];
 
-    let excess_bytes = N * 15 - NBytes;
-    let final_limb_bytes = 15 - excess_bytes;
     let mut limb: Field = 0;
     let mut k = 0;
-    for _j in 0..final_limb_bytes {
+    for _j in 0..(15 - (N * 15 - NBytes)) {
         limb *= 256;
         limb += x[k] as Field;
+        std::as_witness(limb);
         k += 1;
     }
     result[N - 1] = limb;
@@ -229,6 +228,7 @@ pub fn from_byte_be_to_fields<let NBytes: u32, let N: u32>(x: [u8; NBytes]) -> [
         for _j in 0..15 {
             limb *= 256;
             limb += x[k] as Field;
+            std::as_witness(limb);
             k += 1;
         }
         result[N - i - 1] = limb;
