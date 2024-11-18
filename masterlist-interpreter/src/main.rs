@@ -12,6 +12,10 @@ use serde_json::{json, Value};
 use der_parser;
 use x509_parser::der_parser::asn1_rs::FromDer;
 use x509_parser::time::ASN1Time;
+use x509_parser::extensions::AuthorityKeyIdentifier;
+use x509_parser::der_parser::ber::*;
+use x509_parser::der_parser::der::*;
+use asn1_rs::GeneralizedTime;
 
 extern crate noir_bignum_paramgen;
 use noir_bignum_paramgen::compute_barrett_reduction_parameter;
@@ -19,6 +23,7 @@ extern crate num_bigint;
 use num_bigint::BigUint;
 extern crate x509_parser;
 extern crate serde_json;
+extern crate asn1_rs;
 
 const OIDS_TO_DESCRIPTION: &[(&str, &str)] = &[
     ("1.2.840.113549.1.1.5", "sha1-with-rsa-signature"),
@@ -36,7 +41,43 @@ fn get_oid_description(oid: &str) -> String {
     OIDS_TO_DESCRIPTION.iter().find(|&&(oid_str, _)| oid_str == oid).map(|&(_, desc)| desc.to_string()).unwrap_or_else(|| oid.to_string())
 }
 
-fn parse_certificates(cert_path: &str) -> Result<Vec<(Vec<u8>, String, Vec<u8>, String, i64, i64, usize)>, Box<dyn std::error::Error>> {
+#[derive(Debug)]
+struct PrivateKeyUsagePeriod {
+    not_before: Option<GeneralizedTime>,
+    not_after: Option<GeneralizedTime>,
+}
+
+impl PrivateKeyUsagePeriod {
+    fn from_der(input: &[u8]) -> Result<(Vec<u8>, Self), der_parser::error::Error> {
+        let (rem, sequence) = parse_der_sequence(input)?;
+        let mut not_before = None;
+        let mut not_after = None;
+
+        for content in sequence.ref_iter() {
+            match content.tag() {
+                Tag(0) => {
+                    if let BerObjectContent::Unknown(val) = &content.content {
+                        if let Ok(date) = GeneralizedTime::from_bytes(val.data) {
+                            not_before = Some(date);
+                        }
+                    }
+                },
+                Tag(1) => {
+                    if let BerObjectContent::Unknown(val) = &content.content {
+                        if let Ok(date) = GeneralizedTime::from_bytes(val.data) {
+                            not_after = Some(date);
+                        }
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        Ok((rem.to_vec(), PrivateKeyUsagePeriod { not_before, not_after }))
+    }
+}
+
+fn parse_certificates(cert_path: &str) -> Result<Vec<(Vec<u8>, String, Vec<u8>, String, i64, i64, usize,Option<Vec<u8>>, Option<(Option<i64>, Option<i64>)>)>, Box<dyn std::error::Error>> {
     let cert_file = File::open(cert_path)?;
     let mut reader = BufReader::new(cert_file);
     let mut results = Vec::new();
@@ -53,6 +94,21 @@ fn parse_certificates(cert_path: &str) -> Result<Vec<(Vec<u8>, String, Vec<u8>, 
                     let not_before = cert.validity().not_before.timestamp();
                     let not_after = cert.validity().not_after.timestamp();
 
+                    let auth_key_id = cert.extensions()
+                        .iter()
+                        .find(|ext| ext.oid.to_id_string() == "2.5.29.35")
+                        .and_then(|ext| AuthorityKeyIdentifier::from_der(ext.value).ok())
+                        .and_then(|(_, aki)| aki.key_identifier.map(|ki| ki.0.to_vec()));
+
+                    let private_key_usage_period = cert.extensions()
+                        .iter()
+                        .find(|ext| ext.oid.to_id_string() == "2.5.29.16")
+                        .and_then(|ext| PrivateKeyUsagePeriod::from_der(ext.value).ok())
+                        .map(|(_, period)| (
+                            period.not_before.map(|t| t.utc_datetime().unwrap().unix_timestamp()),
+                            period.not_after.map(|t| t.utc_datetime().unwrap().unix_timestamp())
+                        ));
+
                     if let Ok(spki) = cert.public_key().parsed() {
                         if let PublicKey::RSA(rsa_pub_key) = spki {
                             let modulus = rsa_pub_key.modulus.to_vec();
@@ -68,7 +124,9 @@ fn parse_certificates(cert_path: &str) -> Result<Vec<(Vec<u8>, String, Vec<u8>, 
                                 country_code,
                                 not_before,
                                 not_after,
-                                rsa_pub_key.key_size()
+                                rsa_pub_key.key_size(),
+                                auth_key_id,
+                                private_key_usage_period
                             ));
                         } else if let PublicKey::EC(ecdsa_pub_key) = spki { 
                             let params = cert.subject_pki.algorithm.parameters();   
@@ -80,7 +138,9 @@ fn parse_certificates(cert_path: &str) -> Result<Vec<(Vec<u8>, String, Vec<u8>, 
                                     country_code,
                                     not_before,
                                     not_after,
-                                    ecdsa_pub_key.key_size()
+                                    ecdsa_pub_key.key_size(),
+                                    auth_key_id,
+                                    private_key_usage_period
                                 ));
                             }
                         }
@@ -110,7 +170,7 @@ fn main() {
         Ok(certs) => {
             let mut certificates = Vec::new();
             
-            for (pubkey, sig_algo, params, country_code, not_before, not_after, key_size) in certs.iter() {
+            for (pubkey, sig_algo, params, country_code, not_before, not_after, key_size, auth_key_id, private_key_usage_period) in certs.iter() {
                 let big_int_pub_key = BigUint::from_bytes_be(pubkey);
                 //let result = compute_barrett_reduction_parameter(&big_int_pub_key);
                 //let result_bytes = result.to_bytes_be();
@@ -120,12 +180,19 @@ fn main() {
                     "public_key": pubkey,
                     //"barrett_reduction_parameter": result_bytes,
                     "parameters": params,
-                    "issuing_country": country_code,
+                    "issuing_country": country_code.to_uppercase(),
                     "validity": {
                         "not_before": not_before,
                         "not_after": not_after
                     },
-                    "key_size": key_size
+                    "key_size": key_size,
+                    "authority_key_identifier": auth_key_id.as_ref().map(|bytes| bytes.iter().map(|b| format!("{:02x}", b)).collect::<Vec<String>>().join("")),
+                    "private_key_usage_period": private_key_usage_period.as_ref().map(|(not_before, not_after)| {
+                        json!({
+                            "not_before": not_before,
+                            "not_after": not_after
+                        })
+                    })
                 });
                 
                 certificates.push(cert_data);
