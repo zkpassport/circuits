@@ -1,5 +1,5 @@
 [package]
-name = "zk-passport-circuits"
+name = "redc-param-gen"
 version = "0.1.0"
 
 [dependencies]

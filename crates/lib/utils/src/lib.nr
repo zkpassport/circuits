@@ -218,9 +218,10 @@ pub fn from_byte_be_to_fields<let NBytes: u32, let N: u32>(x: [u8; NBytes]) -> [
     for _j in 0..(15 - (N * 15 - NBytes)) {
         limb *= 256;
         limb += x[k] as Field;
-        std::as_witness(limb);
         k += 1;
     }
+    std::as_witness(limb);
+
     result[N - 1] = limb;
 
     for i in 1..N {
@@ -228,9 +229,9 @@ pub fn from_byte_be_to_fields<let NBytes: u32, let N: u32>(x: [u8; NBytes]) -> [
         for _j in 0..15 {
             limb *= 256;
             limb += x[k] as Field;
-            std::as_witness(limb);
             k += 1;
         }
+        std::as_witness(limb);
         result[N - i - 1] = limb;
     }
 
