@@ -16,6 +16,8 @@ use x509_parser::extensions::AuthorityKeyIdentifier;
 use x509_parser::der_parser::ber::*;
 use x509_parser::der_parser::der::*;
 use asn1_rs::GeneralizedTime;
+use std::path::Path;
+use std::fs;
 
 extern crate noir_bignum_paramgen;
 use noir_bignum_paramgen::compute_barrett_reduction_parameter;
@@ -132,7 +134,8 @@ fn parse_certificates(cert_path: &str) -> Result<Vec<(Vec<u8>, String, Vec<u8>, 
                             let params = cert.subject_pki.algorithm.parameters();   
                             if let Some(parsed_params) = params {
                                 results.push((
-                                    ecdsa_pub_key.data().to_vec(),
+                                    // Skip the first byte as it's a 0x04 prefix
+                                    ecdsa_pub_key.data()[1..].to_vec(),
                                     get_oid_description(&cert.signature_algorithm.algorithm.to_id_string()),
                                     parsed_params.as_bytes().to_vec(),
                                     country_code,
@@ -162,23 +165,64 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     if args.len() != 2 {
-        println!("Usage: {} <path_to_certificates>", args[0]);
+        println!("Usage: {} <path_to_certificate_or_directory>", args[0]);
         return;
     }
 
-    match parse_certificates(&args[1]) {
+    let path = Path::new(&args[1]);
+    let mut all_certificates = Vec::new();
+
+    if path.is_dir() {
+        // Handle directory case
+        for entry in fs::read_dir(path).expect("Failed to read directory") {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+                if path.extension().and_then(|ext| ext.to_str()) == Some("cer") {
+                    process_certificate_file(&path, &mut all_certificates);
+                }
+            }
+        }
+    } else if path.is_file() {
+        // Handle single file case
+        process_certificate_file(path, &mut all_certificates);
+    } else {
+        println!("Error: {} is neither a valid file nor directory", args[1]);
+        return;
+    }
+
+    // Sort and write output
+    all_certificates.sort_by(|a, b| {
+        let country_a = a["issuing_country"].as_str().unwrap_or("");
+        let country_b = b["issuing_country"].as_str().unwrap_or("");
+        country_a.cmp(country_b)
+    });
+
+    let output = json!({
+        "certificates": all_certificates
+    });
+
+    let file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open("csc-masterlist.json")
+        .expect("Failed to create output file");
+
+    serde_json::to_writer_pretty(file, &output)
+        .expect("Failed to write JSON to file");
+
+    println!("Results have been written to csc-masterlist.json");
+}
+
+// Helper function to process a single certificate file
+fn process_certificate_file(path: &Path, all_certificates: &mut Vec<Value>) {
+    match parse_certificates(path.to_str().unwrap()) {
         Ok(certs) => {
-            let mut certificates = Vec::new();
-            
-            for (pubkey, sig_algo, params, country_code, not_before, not_after, key_size, auth_key_id, private_key_usage_period) in certs.iter() {
-                let big_int_pub_key = BigUint::from_bytes_be(pubkey);
-                //let result = compute_barrett_reduction_parameter(&big_int_pub_key);
-                //let result_bytes = result.to_bytes_be();
-                
+            for cert in certs {
+                let (pubkey, sig_algo, params, country_code, not_before, not_after, key_size, auth_key_id, private_key_usage_period) = cert;
                 let cert_data = json!({
                     "signature_algorithm": sig_algo,
                     "public_key": pubkey,
-                    //"barrett_reduction_parameter": result_bytes,
                     "parameters": params,
                     "issuing_country": country_code.to_uppercase(),
                     "validity": {
@@ -195,33 +239,9 @@ fn main() {
                     })
                 });
                 
-                certificates.push(cert_data);
+                all_certificates.push(cert_data);
             }
-
-            // Sort certificates by country code
-            certificates.sort_by(|a, b| {
-                let country_a = a["issuing_country"].as_str().unwrap_or("");
-                let country_b = b["issuing_country"].as_str().unwrap_or("");
-                country_a.cmp(country_b)
-            });
-
-            let output = json!({
-                "certificates": certificates
-            });
-
-            // Write to output.json file
-            let file = OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open("csc-masterlist.json")
-                .expect("Failed to create output file");
-
-            serde_json::to_writer_pretty(file, &output)
-                .expect("Failed to write JSON to file");
-
-            println!("Results have been written to csc-masterlist.json");
         }
-        Err(e) => println!("Error parsing certificates: {}", e),
+        Err(e) => println!("Error parsing certificate file {:?}: {}", path, e),
     }
 }
