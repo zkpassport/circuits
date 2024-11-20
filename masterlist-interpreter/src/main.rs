@@ -18,6 +18,7 @@ use x509_parser::der_parser::der::*;
 use asn1_rs::GeneralizedTime;
 use std::path::Path;
 use std::fs;
+use std::collections::HashSet;
 
 extern crate noir_bignum_paramgen;
 use noir_bignum_paramgen::compute_barrett_reduction_parameter;
@@ -163,6 +164,8 @@ fn parse_certificates(cert_path: &str) -> Result<Vec<(Vec<u8>, String, Vec<u8>, 
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+    let mut unique_pubkeys = HashSet::new();
+    let mut all_certificates = Vec::new();
 
     if args.len() != 2 {
         println!("Usage: {} <path_to_certificate_or_directory>", args[0]);
@@ -170,21 +173,18 @@ fn main() {
     }
 
     let path = Path::new(&args[1]);
-    let mut all_certificates = Vec::new();
 
     if path.is_dir() {
-        // Handle directory case
         for entry in fs::read_dir(path).expect("Failed to read directory") {
             if let Ok(entry) = entry {
                 let path = entry.path();
                 if path.extension().and_then(|ext| ext.to_str()) == Some("cer") {
-                    process_certificate_file(&path, &mut all_certificates);
+                    process_certificate_file(&path, &mut all_certificates, &mut unique_pubkeys);
                 }
             }
         }
     } else if path.is_file() {
-        // Handle single file case
-        process_certificate_file(path, &mut all_certificates);
+        process_certificate_file(path, &mut all_certificates, &mut unique_pubkeys);
     } else {
         println!("Error: {} is neither a valid file nor directory", args[1]);
         return;
@@ -215,11 +215,16 @@ fn main() {
 }
 
 // Helper function to process a single certificate file
-fn process_certificate_file(path: &Path, all_certificates: &mut Vec<Value>) {
+fn process_certificate_file(path: &Path, all_certificates: &mut Vec<Value>, unique_pubkeys: &mut HashSet<Vec<u8>>) {
     match parse_certificates(path.to_str().unwrap()) {
         Ok(certs) => {
             for cert in certs {
                 let (pubkey, sig_algo, params, country_code, not_before, not_after, key_size, auth_key_id, private_key_usage_period) = cert;
+                
+                if !unique_pubkeys.insert(pubkey.clone()) {
+                    continue;
+                }
+
                 let cert_data = json!({
                     "signature_algorithm": sig_algo,
                     "public_key": pubkey,

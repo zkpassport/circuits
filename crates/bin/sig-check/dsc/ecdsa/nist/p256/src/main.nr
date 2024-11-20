@@ -1,14 +1,6 @@
 use sig_check_ecdsa::verify_signature;
 use commitment::commit_to_dsc;
-
-fn concat_csc_pubkey(csc_pubkey_x: [u8; 32], csc_pubkey_y: [u8; 32]) -> [u8; 64] {
-    let mut csc_pubkey = [0 as u8; 64];
-    for i in 0..32 {
-        csc_pubkey[i] = csc_pubkey_x[i];
-        csc_pubkey[i + 32] = csc_pubkey_y[i];
-    }
-    csc_pubkey
-}
+use utils::concat_ecdsa_pubkey;
 
 #[recursive]
 fn main(
@@ -39,7 +31,7 @@ fn main(
         country,
         tbs_certificate,
         salt,
-        concat_csc_pubkey(csc_pubkey_x, csc_pubkey_y),
+        concat_ecdsa_pubkey(csc_pubkey_x, csc_pubkey_y),
     );
     comm_out
 }
