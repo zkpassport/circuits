@@ -252,22 +252,21 @@ pub fn get_mrz_from_dg1(dg1: [u8; 95]) -> [u8; 90] {
     mrz
 }
 
-pub fn split_ecdsa_pubkey<let N: u32>(csc_pubkey: [u8; N * 2]) -> ([u8; N], [u8; N]) {
-    let mut csc_pubkey_x = [0 as u8; N];
-    let mut csc_pubkey_y = [0 as u8; N];
+pub fn split_array<let N: u32>(array: [u8; N * 2]) -> ([u8; N], [u8; N]) {
+    let mut array_x = [0 as u8; N];
+    let mut array_y = [0 as u8; N];
     for i in 0..N {
-        csc_pubkey_x[i] = csc_pubkey[i];
-        csc_pubkey_y[i] = csc_pubkey[i + N];
+        array_x[i] = array[i];
+        array_y[i] = array[i + N];
     }
-    (csc_pubkey_x, csc_pubkey_y)
+    (array_x, array_y)
 }
 
-
-pub fn concat_ecdsa_pubkey<let N: u32>(ecdsa_pubkey_x: [u8; N], ecdsa_pubkey_y: [u8; N]) -> [u8; N * 2] {
-    let mut ecdsa_pubkey = [0 as u8; N * 2];
+pub fn concat_array<let N: u32>(array_x: [u8; N], array_y: [u8; N]) -> [u8; N * 2] {
+    let mut array = [0 as u8; N * 2];
     for i in 0..N {
-        ecdsa_pubkey[i] = ecdsa_pubkey_x[i];
-        ecdsa_pubkey[i + N] = ecdsa_pubkey_y[i];
+        array[i] = array_x[i];
+        array[i + N] = array_y[i];
     }
-    ecdsa_pubkey
+    array
 }

@@ -1,0 +1,101 @@
+use std::hash::sha256;
+use ecdsa::ecdsa::{
+    verify_secp384r1_ecdsa, verify_secp521r1_ecdsa, verify_brainpoolp256r1_ecdsa,
+    verify_brainpoolp256t1_ecdsa, verify_brainpoolp384r1_ecdsa, verify_brainpoolp384t1_ecdsa,
+};
+use ecdsa::secp521r1::params::{Secp521r1Fq, Secp521r1Fr};
+use ecdsa::brainpoolP256r1::params::{BrainpoolP256r1Fq, BrainpoolP256r1Fr};
+use ecdsa::brainpoolP384r1::params::{BrainpoolP384r1Fq, BrainpoolP384r1Fr};
+use ecdsa::brainpoolP256t1::params::{BrainpoolP256t1Fq, BrainpoolP256t1Fr};
+use ecdsa::brainpoolP384t1::params::{BrainpoolP384t1Fq, BrainpoolP384t1Fr};
+use utils::{
+    ECDSA_CURVE_P384, ECDSA_CURVE_P521, ECDSA_CURVE_BRAINPOOL_B256R1, ECDSA_CURVE_BRAINPOOL_B384R1,
+    ECDSA_CURVE_BRAINPOOL_B512R1, ECDSA_CURVE_BRAINPOOL_B256T1, ECDSA_CURVE_BRAINPOOL_B384T1,
+    ECDSA_CURVE_BRAINPOOL_B512T1,
+};
+use bignum::bignum::BigNum;
+use bigcurve::curves::secp384r1::{Secp384r1Fq, Secp384r1Fr, Secp384r1_Params};
+
+pub fn verify_signature<let DATA_TO_SIGN_LEN: u32, let CURVE: u32, let PUBKEY_BYTE_LEN: u32>(
+    pubkey_x: [u8; PUBKEY_BYTE_LEN],
+    pubkey_y: [u8; PUBKEY_BYTE_LEN],
+    signature_r: [u8; PUBKEY_BYTE_LEN],
+    signature_s: [u8; PUBKEY_BYTE_LEN],
+    data_to_sign: [u8; DATA_TO_SIGN_LEN],
+    data_to_sign_len: u64,
+) -> bool {
+    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
+    if CURVE == ECDSA_CURVE_P384 {
+        let pubkey_x_bignum: Secp384r1Fq = BigNum::from_be_bytes(pubkey_x);
+        let pubkey_y_bignum: Secp384r1Fq = BigNum::from_be_bytes(pubkey_y);
+        let signature_r_bignum: Secp384r1Fr = BigNum::from_be_bytes(signature_r);
+        let signature_s_bignum: Secp384r1Fr = BigNum::from_be_bytes(signature_s);
+        verify_secp384r1_ecdsa(
+            pubkey_x_bignum,
+            pubkey_y_bignum,
+            msg_hash,
+            (signature_r_bignum, signature_s_bignum),
+        )
+    } else if CURVE == ECDSA_CURVE_P521 {
+        let pubkey_x_bignum: Secp521r1Fq = BigNum::from_be_bytes(pubkey_x);
+        let pubkey_y_bignum: Secp521r1Fq = BigNum::from_be_bytes(pubkey_y);
+        let signature_r_bignum: Secp521r1Fr = BigNum::from_be_bytes(signature_r);
+        let signature_s_bignum: Secp521r1Fr = BigNum::from_be_bytes(signature_s);
+        verify_secp521r1_ecdsa(
+            pubkey_x_bignum,
+            pubkey_y_bignum,
+            msg_hash,
+            (signature_r_bignum, signature_s_bignum),
+        )
+    } else if CURVE == ECDSA_CURVE_BRAINPOOL_B256R1 {
+        let pubkey_x_bignum: BrainpoolP256r1Fq = BigNum::from_be_bytes(pubkey_x);
+        let pubkey_y_bignum: BrainpoolP256r1Fq = BigNum::from_be_bytes(pubkey_y);
+        let signature_r_bignum: BrainpoolP256r1Fr = BigNum::from_be_bytes(signature_r);
+        let signature_s_bignum: BrainpoolP256r1Fr = BigNum::from_be_bytes(signature_s);
+        verify_brainpoolp256r1_ecdsa(
+            pubkey_x_bignum,
+            pubkey_y_bignum,
+            msg_hash,
+            (signature_r_bignum, signature_s_bignum),
+        )
+    } else if CURVE == ECDSA_CURVE_BRAINPOOL_B384R1 {
+        let pubkey_x_bignum: BrainpoolP384r1Fq = BigNum::from_be_bytes(pubkey_x);
+        let pubkey_y_bignum: BrainpoolP384r1Fq = BigNum::from_be_bytes(pubkey_y);
+        let signature_r_bignum: BrainpoolP384r1Fr = BigNum::from_be_bytes(signature_r);
+        let signature_s_bignum: BrainpoolP384r1Fr = BigNum::from_be_bytes(signature_s);
+        verify_brainpoolp384r1_ecdsa(
+            pubkey_x_bignum,
+            pubkey_y_bignum,
+            msg_hash,
+            (signature_r_bignum, signature_s_bignum),
+        )
+    } else if CURVE == ECDSA_CURVE_BRAINPOOL_B512R1 {
+        false
+    } else if CURVE == ECDSA_CURVE_BRAINPOOL_B256T1 {
+        let pubkey_x_bignum: BrainpoolP256t1Fq = BigNum::from_be_bytes(pubkey_x);
+        let pubkey_y_bignum: BrainpoolP256t1Fq = BigNum::from_be_bytes(pubkey_y);
+        let signature_r_bignum: BrainpoolP256t1Fr = BigNum::from_be_bytes(signature_r);
+        let signature_s_bignum: BrainpoolP256t1Fr = BigNum::from_be_bytes(signature_s);
+        verify_brainpoolp256t1_ecdsa(
+            pubkey_x_bignum,
+            pubkey_y_bignum,
+            msg_hash,
+            (signature_r_bignum, signature_s_bignum),
+        )
+    } else if CURVE == ECDSA_CURVE_BRAINPOOL_B384T1 {
+        let pubkey_x_bignum: BrainpoolP384t1Fq = BigNum::from_be_bytes(pubkey_x);
+        let pubkey_y_bignum: BrainpoolP384t1Fq = BigNum::from_be_bytes(pubkey_y);
+        let signature_r_bignum: BrainpoolP384t1Fr = BigNum::from_be_bytes(signature_r);
+        let signature_s_bignum: BrainpoolP384t1Fr = BigNum::from_be_bytes(signature_s);
+        verify_brainpoolp384t1_ecdsa(
+            pubkey_x_bignum,
+            pubkey_y_bignum,
+            msg_hash,
+            (signature_r_bignum, signature_s_bignum),
+        )
+    } else if CURVE == ECDSA_CURVE_BRAINPOOL_B512T1 {
+        false
+    } else {
+        false
+    }
+}

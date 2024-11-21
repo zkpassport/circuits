@@ -1,6 +1,6 @@
 use sig_check_ecdsa::verify_signature;
 use commitment::commit_to_dsc;
-use utils::concat_array;
+use utils::{concat_array, split_array, ECDSA_CURVE_BRAINPOOL_B256R1};
 
 #[recursive]
 fn main(
@@ -16,10 +16,12 @@ fn main(
     tbs_certificate: [u8; 1500],
     tbs_certificate_len: u64,
 ) -> pub Field {
-    assert(verify_signature(
+    let (r, s) = split_array(dsc_signature);
+    assert(verify_signature::<_, ECDSA_CURVE_BRAINPOOL_B256R1, _>(
         csc_pubkey_x,
         csc_pubkey_y,
-        dsc_signature,
+        r,
+        s,
         tbs_certificate,
         tbs_certificate_len,
     ));
