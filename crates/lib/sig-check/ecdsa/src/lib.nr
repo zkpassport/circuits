@@ -2,12 +2,15 @@ use std::hash::sha256;
 use ecdsa::ecdsa::{
     verify_secp384r1_ecdsa, verify_secp521r1_ecdsa, verify_brainpoolp256r1_ecdsa,
     verify_brainpoolp256t1_ecdsa, verify_brainpoolp384r1_ecdsa, verify_brainpoolp384t1_ecdsa,
+    verify_brainpoolp512r1_ecdsa, verify_brainpoolp512t1_ecdsa,
 };
 use ecdsa::secp521r1::params::{Secp521r1Fq, Secp521r1Fr};
 use ecdsa::brainpoolP256r1::params::{BrainpoolP256r1Fq, BrainpoolP256r1Fr};
 use ecdsa::brainpoolP384r1::params::{BrainpoolP384r1Fq, BrainpoolP384r1Fr};
 use ecdsa::brainpoolP256t1::params::{BrainpoolP256t1Fq, BrainpoolP256t1Fr};
 use ecdsa::brainpoolP384t1::params::{BrainpoolP384t1Fq, BrainpoolP384t1Fr};
+use ecdsa::brainpoolP512r1::params::{BrainpoolP512r1Fq, BrainpoolP512r1Fr};
+use ecdsa::brainpoolP512t1::params::{BrainpoolP512t1Fq, BrainpoolP512t1Fr};
 use utils::{
     ECDSA_CURVE_P384, ECDSA_CURVE_P521, ECDSA_CURVE_BRAINPOOL_B256R1, ECDSA_CURVE_BRAINPOOL_B384R1,
     ECDSA_CURVE_BRAINPOOL_B512R1, ECDSA_CURVE_BRAINPOOL_B256T1, ECDSA_CURVE_BRAINPOOL_B384T1,
@@ -70,7 +73,16 @@ pub fn verify_signature<let DATA_TO_SIGN_LEN: u32, let CURVE: u32, let PUBKEY_BY
             (signature_r_bignum, signature_s_bignum),
         )
     } else if CURVE == ECDSA_CURVE_BRAINPOOL_B512R1 {
-        false
+        let pubkey_x_bignum: BrainpoolP512r1Fq = BigNum::from_be_bytes(pubkey_x);
+        let pubkey_y_bignum: BrainpoolP512r1Fq = BigNum::from_be_bytes(pubkey_y);
+        let signature_r_bignum: BrainpoolP512r1Fr = BigNum::from_be_bytes(signature_r);
+        let signature_s_bignum: BrainpoolP512r1Fr = BigNum::from_be_bytes(signature_s);
+        verify_brainpoolp512r1_ecdsa(
+            pubkey_x_bignum,
+            pubkey_y_bignum,
+            msg_hash,
+            (signature_r_bignum, signature_s_bignum),
+        )
     } else if CURVE == ECDSA_CURVE_BRAINPOOL_B256T1 {
         let pubkey_x_bignum: BrainpoolP256t1Fq = BigNum::from_be_bytes(pubkey_x);
         let pubkey_y_bignum: BrainpoolP256t1Fq = BigNum::from_be_bytes(pubkey_y);
@@ -94,7 +106,16 @@ pub fn verify_signature<let DATA_TO_SIGN_LEN: u32, let CURVE: u32, let PUBKEY_BY
             (signature_r_bignum, signature_s_bignum),
         )
     } else if CURVE == ECDSA_CURVE_BRAINPOOL_B512T1 {
-        false
+        let pubkey_x_bignum: BrainpoolP512t1Fq = BigNum::from_be_bytes(pubkey_x);
+        let pubkey_y_bignum: BrainpoolP512t1Fq = BigNum::from_be_bytes(pubkey_y);
+        let signature_r_bignum: BrainpoolP512t1Fr = BigNum::from_be_bytes(signature_r);
+        let signature_s_bignum: BrainpoolP512t1Fr = BigNum::from_be_bytes(signature_s);
+        verify_brainpoolp512t1_ecdsa(
+            pubkey_x_bignum,
+            pubkey_y_bignum,
+            msg_hash,
+            (signature_r_bignum, signature_s_bignum),
+        )
     } else {
         false
     }
