@@ -1,4 +1,10 @@
 use common::{calculate_certificate_registry_leaf, hash_salt_country_dsc_tbs, CSC_CERT_TYPE};
+use merkle_tree::merkle::MerkleTree;
+use std::hash::poseidon2::Poseidon2;
+
+fn hasher<let N: u32>(leaves: [Field; N]) -> Field {
+    Poseidon2::hash(leaves, N)
+}
 
 /*
 ############################################################
@@ -42,12 +48,9 @@ pub fn commit_to_dsc<let CSC_KEY_SIZE: u32>(
         country,
         csc_pubkey,
     );
-    let root = std::merkle::compute_merkle_root(
-        leaf,
-        certificate_registry_index,
-        certificate_registry_hash_path,
-    );
-    //assert(root == certificate_registry_root);
+    let mut mt = MerkleTree::new(hasher);
+    let root = mt.calculate_root(leaf, certificate_registry_index, certificate_registry_hash_path);
+    assert(root == certificate_registry_root);
     // Output commitment glue
     let comm_out = hash_salt_country_dsc_tbs(salt, country, tbs_certificate);
     comm_out
