@@ -1,0 +1,10 @@
+[package]
+name = "sig_check_rsa"
+type = "lib"
+authors = ["Theo Madzou"]
+compiler_version = ">=0.36.0"
+
+[dependencies]
+rsa = { git = "https://github.com/zkpassport/noir_rsa", tag = "v0.4.0" }
+bignum = { git = "https://github.com/noir-lang/noir-bignum", tag = "v0.4.2"}
+utils = { path = "../../utils" }
