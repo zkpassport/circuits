@@ -5,8 +5,6 @@ authors = ["Theo Madzou"]
 compiler_version = ">=0.36.0"
 
 [dependencies]
-# Use local repos to fix an error with generics
-# Assumes that the local repo of rsa is also referencing the same local branch of bignum.
-rsa = { path = "../../../../../../../../../../Ocelots/libs/noir_rsa/lib" }
-bignum = { path = "../../../../../../../../../../Ocelots/libs/noir-bignum"}
+rsa = { git = "https://github.com/zkpassport/noir_rsa", tag = "v0.4.0" }
+bignum = { git = "https://github.com/noir-lang/noir-bignum", tag = "v0.4.2"}
 utils = { path = "../../utils" }
