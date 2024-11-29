@@ -15,6 +15,7 @@ import { alpha2ToAlpha3 } from "i18n-iso-countries";
 
 interface Certificate {
   signature_algorithm: string;
+  public_key_type: string;
   public_key:
     | {
         modulus: string;
@@ -41,6 +42,8 @@ interface Certificate {
 }
 
 const OIDS_TO_DESCRIPTION: Record<string, string> = {
+  "1.2.840.113549.1.1.1": "rsaEncryption",
+  "1.2.840.10045.2.1": "ecPublicKey",
   "1.2.840.113549.1.1.5": "sha1-with-rsa-signature",
   "1.2.840.113549.1.1.11": "sha256WithRSAEncryption",
   "1.2.840.113549.1.1.12": "sha384WithRSAEncryption",
@@ -238,16 +241,25 @@ export function getRSAInfo(tbsCertificate: TBSCertificate): {
   modulus: bigint;
   exponent: bigint;
 } {
-  const parsedKey = AsnParser.parse(
-    tbsCertificate.subjectPublicKeyInfo.subjectPublicKey!,
-    RSAPublicKey
-  );
-  return {
-    modulus: BigInt(`0x${Buffer.from(parsedKey.modulus).toString("hex")}`),
-    exponent: BigInt(
-      `0x${Buffer.from(parsedKey.publicExponent).toString("hex")}`
-    ),
-  };
+  try {
+    const parsedKey = AsnParser.parse(
+      tbsCertificate.subjectPublicKeyInfo.subjectPublicKey!,
+      RSAPublicKey
+    );
+    return {
+      modulus: BigInt(`0x${Buffer.from(parsedKey.modulus).toString("hex")}`),
+      exponent: BigInt(
+        `0x${Buffer.from(parsedKey.publicExponent).toString("hex")}`
+      ),
+    };
+  } catch (e) {
+    console.log(tbsCertificate.subjectPublicKeyInfo);
+    console.error("Error parsing RSA key:", e);
+    return {
+      modulus: BigInt(0),
+      exponent: BigInt(0),
+    };
+  }
 }
 
 function parseCertificate(pemContent: string): Certificate[] {
@@ -296,23 +308,34 @@ function parseCertificate(pemContent: string): Certificate[] {
             1000
         );
 
-        // Get the public key info
-        const spki = x509.tbsCertificate.subjectPublicKeyInfo;
+        // Get the public key
+        const spkiAlgorithm =
+          OIDS_TO_DESCRIPTION[
+            x509.tbsCertificate.subjectPublicKeyInfo.algorithm
+              .algorithm as keyof typeof OIDS_TO_DESCRIPTION
+          ] ?? x509.tbsCertificate.subjectPublicKeyInfo.algorithm.algorithm;
 
-        // Check if it's ECDSA by examining the algorithm identifier
-        const isRSA = spki.algorithm.algorithm === "1.2.840.113549.1.1.1"; // RSA OID
+        // Check if it's RSA by examining the algorithm identifier
+        const isRSA = spkiAlgorithm.toLowerCase().includes("rsa");
+
+        const signatureAlgorithm =
+          OIDS_TO_DESCRIPTION[
+            x509.tbsCertificate.signature
+              .algorithm as keyof typeof OIDS_TO_DESCRIPTION
+          ] ?? x509.tbsCertificate.signature.algorithm;
+
+        const publicKeyType =
+          OIDS_TO_DESCRIPTION[
+            x509.tbsCertificate.subjectPublicKeyInfo.algorithm
+              .algorithm as keyof typeof OIDS_TO_DESCRIPTION
+          ] ?? x509.tbsCertificate.subjectPublicKeyInfo.algorithm.algorithm;
 
         if (isRSA) {
           const rsaInfo = getRSAInfo(x509.tbsCertificate);
 
-          const signatureAlgorithm =
-            OIDS_TO_DESCRIPTION[
-              x509.signatureAlgorithm
-                .algorithm as keyof typeof OIDS_TO_DESCRIPTION
-            ] ?? x509.signatureAlgorithm.algorithm;
-
           certificates.push({
             signature_algorithm: signatureAlgorithm,
+            public_key_type: publicKeyType,
             public_key: {
               modulus: `0x${rsaInfo.modulus.toString(16)}`,
               exponent: Number(rsaInfo.exponent),
@@ -331,14 +354,9 @@ function parseCertificate(pemContent: string): Certificate[] {
         } else {
           const ecdsaInfo = getECDSAInfo(x509.tbsCertificate);
 
-          const signatureAlgorithm =
-            OIDS_TO_DESCRIPTION[
-              x509.signatureAlgorithm
-                .algorithm as keyof typeof OIDS_TO_DESCRIPTION
-            ] ?? x509.signatureAlgorithm.algorithm;
-
           certificates.push({
             signature_algorithm: signatureAlgorithm,
+            public_key_type: publicKeyType,
             public_key: {
               curve: ecdsaInfo.curve,
               // The first byte is 0x04, which is the prefix for uncompressed public keys
@@ -449,11 +467,11 @@ function processCertificateFile(
       const pubkeyString = JSON.stringify(cert.public_key);
       if (!uniquePubkeys.has(pubkeyString)) {
         uniquePubkeys.add(pubkeyString);
-        allCertificates.push(cert);
         stats.uniqueCertificates++;
       } else {
         stats.duplicatesFound++;
       }
+      allCertificates.push(cert);
     }
   } catch (error) {
     console.error(`Error processing certificate file ${filePath}:`, error);
@@ -515,8 +533,8 @@ function main(): void {
 
   console.log("\nProcessing Summary:");
   console.log(`Total certificates processed: ${totalStats.totalCertificates}`);
-  console.log(`Unique certificates: ${totalStats.uniqueCertificates}`);
-  console.log(`Duplicates removed: ${totalStats.duplicatesFound}`);
+  console.log(`Unique public keys: ${totalStats.uniqueCertificates}`);
+  console.log(`Duplicate keys detected: ${totalStats.duplicatesFound}`);
   console.log("\nResults have been written to csc-masterlist.json");
 }
 
