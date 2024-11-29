@@ -31,10 +31,10 @@ comm_out                `H(salt, country, dsc_pubkey)`
 - Check that dsc_sig is the signature of csc_pubkey over dsc_tbs
 */
 
-pub fn commit_to_dsc<let CSC_KEY_SIZE: u32>(
+pub fn commit_to_dsc<let CSC_KEY_SIZE: u32, let HASH_PATH_SIZE: u32>(
     certificate_registry_root: Field,
     certificate_registry_index: Field,
-    certificate_registry_hash_path: [Field; 14],
+    certificate_registry_hash_path: [Field; HASH_PATH_SIZE],
     certificate_registry_id: Field,
     country: str<3>,
     tbs_certificate: [u8; 1500],

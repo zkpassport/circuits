@@ -6,7 +6,7 @@ unconstrained fn main(
     // Certificate registry merkle root
     certificate_registry_root: pub Field,
     certificate_registry_index: Field,
-    certificate_registry_hash_path: [Field; 14],
+    certificate_registry_hash_path: [Field; 2],
     certificate_registry_id: Field,
     salt: Field,
     country: str<3>,
@@ -24,7 +24,7 @@ unconstrained fn main(
         exponent,
         tbs_certificate,
         tbs_certificate_len,
-    ));
+    ), "Signature verification failed");
     let comm_out = commit_to_dsc(
         certificate_registry_root,
         certificate_registry_index,
