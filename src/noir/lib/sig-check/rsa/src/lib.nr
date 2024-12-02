@@ -24,7 +24,7 @@ pub fn verify_signature<let SIG_BYTES: u32, let IS_PSS: u32, let DATA_TO_SIGN_LE
     let signature = RuntimeBigNum::from_be_bytes(params, sig_bytes);
 
     if (IS_PSS == 1) {
-        verify_sha256_pss::<_, SIG_BYTES * 8>(msg_hash, signature, SIG_BYTES * 8)
+        verify_sha256_pss::<_, SIG_BYTES * 8>(msg_hash, signature, exponent)
     } else {
         verify_sha256_pkcs1v15::<_, SIG_BYTES * 8>(msg_hash, signature, exponent)
     }
