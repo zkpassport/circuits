@@ -1,44 +1,44 @@
-import * as fs from "fs";
-import * as path from "path";
-import { AsnParser } from "@peculiar/asn1-schema";
+import * as fs from "fs"
+import * as path from "path"
+import { AsnParser } from "@peculiar/asn1-schema"
 import {
   PrivateKeyUsagePeriod,
   TBSCertificate,
   Certificate as X509Certificate,
-} from "@peculiar/asn1-x509";
-import { ECParameters } from "@peculiar/asn1-ecc";
-import { RSAPublicKey } from "@peculiar/asn1-rsa";
-import { p256 } from "@noble/curves/p256";
-import { p384 } from "@noble/curves/p384";
-import { p521 } from "@noble/curves/p521";
-import { alpha2ToAlpha3 } from "i18n-iso-countries";
+} from "@peculiar/asn1-x509"
+import { ECParameters } from "@peculiar/asn1-ecc"
+import { RSAPublicKey } from "@peculiar/asn1-rsa"
+import { p256 } from "@noble/curves/p256"
+import { p384 } from "@noble/curves/p384"
+import { p521 } from "@noble/curves/p521"
+import { alpha2ToAlpha3 } from "i18n-iso-countries"
 
 interface Certificate {
-  signature_algorithm: string;
-  public_key_type: string;
+  signature_algorithm: string
+  public_key_type: string
   public_key:
     | {
-        modulus: string;
-        exponent: number;
-        type: "pkcs" | "pss";
+        modulus: string
+        exponent: number
+        type: "pkcs" | "pss"
       }
     | {
-        curve: string;
-        public_key_x: string;
-        public_key_y: string;
-      };
-  country: string;
+        curve: string
+        public_key_x: string
+        public_key_y: string
+      }
+  country: string
   validity: {
-    not_before: number;
-    not_after: number;
-  };
-  key_size: number;
-  authority_key_identifier?: string;
-  subject_key_identifier?: string;
+    not_before: number
+    not_after: number
+  }
+  key_size: number
+  authority_key_identifier?: string
+  subject_key_identifier?: string
   private_key_usage_period?: {
-    not_before?: number;
-    not_after?: number;
-  };
+    not_before?: number
+    not_after?: number
+  }
 }
 
 const OIDS_TO_DESCRIPTION: Record<string, string> = {
@@ -53,7 +53,7 @@ const OIDS_TO_DESCRIPTION: Record<string, string> = {
   "1.2.840.10045.4.3.2": "ecdsa-with-SHA256",
   "1.2.840.10045.4.3.3": "ecdsa-with-SHA384",
   "1.2.840.10045.4.3.4": "ecdsa-with-SHA512",
-};
+}
 
 const CURVE_OIDS = {
   "1.2.840.10045.3.1.7": "P-256",
@@ -73,7 +73,7 @@ const CURVE_OIDS = {
   "1.3.36.3.3.2.8.1.1.12": "BrainpoolP384t1",
   "1.3.36.3.3.2.8.1.1.13": "BrainpoolP512r1",
   "1.3.36.3.3.2.8.1.1.14": "BrainpoolP512t1",
-};
+}
 
 const BRAINPOOL_CURVES = {
   BrainpoolP160r1: {
@@ -160,51 +160,28 @@ const BRAINPOOL_CURVES = {
     n: 0xaadd9db8dbe9c48b3fd4e6ae33c9fc07cb308db3b3c9d20ed6639cca70330870553e5c414ca92619418661197fac10471db1d381085ddaddb58796829ca90069n,
     p: 0xaadd9db8dbe9c48b3fd4e6ae33c9fc07cb308db3b3c9d20ed6639cca703308717d4d9b009bc66842aecda12ae6a380e62881ff2f2d82c68528aa6056583a48f3n,
   },
-};
+}
 
 export function getCurveName(ecParams: ECParameters): string {
   if (ecParams.namedCurve) {
-    return CURVE_OIDS[ecParams.namedCurve as keyof typeof CURVE_OIDS] ?? "";
+    return CURVE_OIDS[ecParams.namedCurve as keyof typeof CURVE_OIDS] ?? ""
   }
   if (!ecParams.specifiedCurve) {
-    return "";
+    return ""
   }
-  const a = BigInt(
-    `0x${Buffer.from(ecParams.specifiedCurve.curve.a).toString("hex")}`
-  );
-  const b = BigInt(
-    `0x${Buffer.from(ecParams.specifiedCurve.curve.b).toString("hex")}`
-  );
-  const n = BigInt(
-    `0x${Buffer.from(ecParams.specifiedCurve.order).toString("hex")}`
-  );
+  const a = BigInt(`0x${Buffer.from(ecParams.specifiedCurve.curve.a).toString("hex")}`)
+  const b = BigInt(`0x${Buffer.from(ecParams.specifiedCurve.curve.b).toString("hex")}`)
+  const n = BigInt(`0x${Buffer.from(ecParams.specifiedCurve.order).toString("hex")}`)
   const p = BigInt(
-    `0x${Buffer.from(
-      ecParams.specifiedCurve.fieldID.parameters.slice(2)
-    ).toString("hex")}`
-  );
+    `0x${Buffer.from(ecParams.specifiedCurve.fieldID.parameters.slice(2)).toString("hex")}`,
+  )
 
-  if (
-    a == p256.CURVE.a &&
-    b == p256.CURVE.b &&
-    n == p256.CURVE.n &&
-    p == p256.CURVE.p
-  ) {
-    return "P-256";
-  } else if (
-    a == p384.CURVE.a &&
-    b == p384.CURVE.b &&
-    n == p384.CURVE.n &&
-    p == p384.CURVE.p
-  ) {
-    return "P-384";
-  } else if (
-    a == p521.CURVE.a &&
-    b == p521.CURVE.b &&
-    n == p521.CURVE.n &&
-    p == p521.CURVE.p
-  ) {
-    return "P-521";
+  if (a == p256.CURVE.a && b == p256.CURVE.b && n == p256.CURVE.n && p == p256.CURVE.p) {
+    return "P-256"
+  } else if (a == p384.CURVE.a && b == p384.CURVE.b && n == p384.CURVE.n && p == p384.CURVE.p) {
+    return "P-384"
+  } else if (a == p521.CURVE.a && b == p521.CURVE.b && n == p521.CURVE.n && p == p521.CURVE.p) {
+    return "P-521"
   }
 
   for (const key in BRAINPOOL_CURVES) {
@@ -214,124 +191,112 @@ export function getCurveName(ecParams: ECParameters): string {
       n == BRAINPOOL_CURVES[key as keyof typeof BRAINPOOL_CURVES].n &&
       p == BRAINPOOL_CURVES[key as keyof typeof BRAINPOOL_CURVES].p
     ) {
-      return key;
+      return key
     }
   }
 
-  return `unknown curve`;
+  return `unknown curve`
 }
 
 export function getECDSAInfo(tbsCertificate: TBSCertificate): {
-  curve: string;
-  publicKey: Uint8Array;
+  curve: string
+  publicKey: Uint8Array
 } {
   const parsedParams = AsnParser.parse(
     tbsCertificate.subjectPublicKeyInfo.algorithm.parameters!,
-    ECParameters
-  );
+    ECParameters,
+  )
   return {
     curve: getCurveName(parsedParams),
-    publicKey: new Uint8Array(
-      tbsCertificate!.subjectPublicKeyInfo.subjectPublicKey
-    ),
-  };
+    publicKey: new Uint8Array(tbsCertificate!.subjectPublicKeyInfo.subjectPublicKey),
+  }
 }
 
 export function getRSAInfo(tbsCertificate: TBSCertificate): {
-  modulus: bigint;
-  exponent: bigint;
+  modulus: bigint
+  exponent: bigint
 } {
   try {
     const parsedKey = AsnParser.parse(
       tbsCertificate.subjectPublicKeyInfo.subjectPublicKey!,
-      RSAPublicKey
-    );
+      RSAPublicKey,
+    )
     return {
       modulus: BigInt(`0x${Buffer.from(parsedKey.modulus).toString("hex")}`),
-      exponent: BigInt(
-        `0x${Buffer.from(parsedKey.publicExponent).toString("hex")}`
-      ),
-    };
+      exponent: BigInt(`0x${Buffer.from(parsedKey.publicExponent).toString("hex")}`),
+    }
   } catch (e) {
-    console.log(tbsCertificate.subjectPublicKeyInfo);
-    console.error("Error parsing RSA key:", e);
+    console.log(tbsCertificate.subjectPublicKeyInfo)
+    console.error("Error parsing RSA key:", e)
     return {
       modulus: BigInt(0),
       exponent: BigInt(0),
-    };
+    }
   }
 }
 
 function parseCertificate(pemContent: string): Certificate[] {
-  const certificates: Certificate[] = [];
+  const certificates: Certificate[] = []
 
   try {
     // Split the PEM content into individual certificates
-    const pemRegex =
-      /(-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----)/g;
-    const matches = pemContent.match(pemRegex) || [];
+    const pemRegex = /(-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----)/g
+    const matches = pemContent.match(pemRegex) || []
 
     for (const certPem of matches) {
       // Remove PEM headers and convert to binary
-      const b64 = certPem.replace(
-        /(-----(BEGIN|END) CERTIFICATE-----|[\n\r])/g,
-        ""
-      );
-      const binary = Buffer.from(b64, "base64");
+      const b64 = certPem.replace(/(-----(BEGIN|END) CERTIFICATE-----|[\n\r])/g, "")
+      const binary = Buffer.from(b64, "base64")
 
       try {
         // Parse using @peculiar/asn1-schema
-        const x509 = AsnParser.parse(binary, X509Certificate);
+        const x509 = AsnParser.parse(binary, X509Certificate)
 
         // Extract common fields
-        let countryCode: string = "Unknown";
+        let countryCode: string = "Unknown"
         // Iterate over the issuer values to find the country code
         for (const val of x509.tbsCertificate.issuer.values()) {
           if (val[0].type === "2.5.4.6") {
-            countryCode =
-              val[0].value.printableString?.toUpperCase() ?? "Unknown";
-            const temp = countryCode;
-            countryCode = alpha2ToAlpha3(countryCode) ?? "N/A";
+            countryCode = val[0].value.printableString?.toUpperCase() ?? "Unknown"
+            const temp = countryCode
+            countryCode = alpha2ToAlpha3(countryCode) ?? "N/A"
             // Some country codes are re not ISO 3166-1 alpha-2 codes
             // or do not correspond to any specific nation (e.g. EU, UN)
             if (countryCode === "N/A" && !!temp) {
-              countryCode = temp.length === 2 ? `${temp}_` : temp;
+              countryCode = temp.length === 2 ? `${temp}_` : temp
             }
           }
         }
         const notBefore = Math.floor(
-          new Date(x509.tbsCertificate.validity.notBefore.getTime()).getTime() /
-            1000
-        );
+          new Date(x509.tbsCertificate.validity.notBefore.getTime()).getTime() / 1000,
+        )
         const notAfter = Math.floor(
-          new Date(x509.tbsCertificate.validity.notAfter.getTime()).getTime() /
-            1000
-        );
+          new Date(x509.tbsCertificate.validity.notAfter.getTime()).getTime() / 1000,
+        )
 
         // Get the public key
         const spkiAlgorithm =
           OIDS_TO_DESCRIPTION[
             x509.tbsCertificate.subjectPublicKeyInfo.algorithm
               .algorithm as keyof typeof OIDS_TO_DESCRIPTION
-          ] ?? x509.tbsCertificate.subjectPublicKeyInfo.algorithm.algorithm;
+          ] ?? x509.tbsCertificate.subjectPublicKeyInfo.algorithm.algorithm
 
         // Check if it's RSA by examining the algorithm identifier
-        const isRSA = spkiAlgorithm.toLowerCase().includes("rsa");
+        const isRSA = spkiAlgorithm.toLowerCase().includes("rsa")
 
         const signatureAlgorithm =
           OIDS_TO_DESCRIPTION[
-            x509.tbsCertificate.signature
-              .algorithm as keyof typeof OIDS_TO_DESCRIPTION
-          ] ?? x509.tbsCertificate.signature.algorithm;
+            x509.tbsCertificate.signature.algorithm as keyof typeof OIDS_TO_DESCRIPTION
+          ] ?? x509.tbsCertificate.signature.algorithm
 
         const publicKeyType =
           OIDS_TO_DESCRIPTION[
             x509.tbsCertificate.subjectPublicKeyInfo.algorithm
               .algorithm as keyof typeof OIDS_TO_DESCRIPTION
-          ] ?? x509.tbsCertificate.subjectPublicKeyInfo.algorithm.algorithm;
+          ] ?? x509.tbsCertificate.subjectPublicKeyInfo.algorithm.algorithm
 
         if (isRSA) {
-          const rsaInfo = getRSAInfo(x509.tbsCertificate);
+          const rsaInfo = getRSAInfo(x509.tbsCertificate)
 
           certificates.push({
             signature_algorithm: signatureAlgorithm,
@@ -350,9 +315,9 @@ function parseCertificate(pemContent: string): Certificate[] {
             authority_key_identifier: getAuthorityKeyId(x509),
             subject_key_identifier: getSubjectKeyId(x509),
             private_key_usage_period: getPrivateKeyUsagePeriod(x509),
-          });
+          })
         } else {
-          const ecdsaInfo = getECDSAInfo(x509.tbsCertificate);
+          const ecdsaInfo = getECDSAInfo(x509.tbsCertificate)
 
           certificates.push({
             signature_algorithm: signatureAlgorithm,
@@ -362,10 +327,10 @@ function parseCertificate(pemContent: string): Certificate[] {
               // The first byte is 0x04, which is the prefix for uncompressed public keys
               // so we get rid of it
               public_key_x: `0x${Buffer.from(
-                ecdsaInfo.publicKey.slice(1, ecdsaInfo.publicKey.length / 2 + 1)
+                ecdsaInfo.publicKey.slice(1, ecdsaInfo.publicKey.length / 2 + 1),
               ).toString("hex")}`,
               public_key_y: `0x${Buffer.from(
-                ecdsaInfo.publicKey.slice(ecdsaInfo.publicKey.length / 2 + 1)
+                ecdsaInfo.publicKey.slice(ecdsaInfo.publicKey.length / 2 + 1),
               ).toString("hex")}`,
             },
             country: countryCode,
@@ -377,126 +342,122 @@ function parseCertificate(pemContent: string): Certificate[] {
             authority_key_identifier: getAuthorityKeyId(x509),
             subject_key_identifier: getSubjectKeyId(x509),
             private_key_usage_period: getPrivateKeyUsagePeriod(x509),
-          });
+          })
         }
       } catch (certError) {
-        console.error("Error parsing individual certificate:", certError);
+        console.error("Error parsing individual certificate:", certError)
         // Continue with next certificate even if one fails
-        continue;
+        continue
       }
     }
   } catch (error) {
-    console.error("Error parsing certificates:", error);
+    console.error("Error parsing certificates:", error)
   }
 
-  return certificates;
+  return certificates
 }
 
 // Helper function to get Authority Key Identifier
 function getAuthorityKeyId(cert: X509Certificate): string | undefined {
   const authKeyExt = cert.tbsCertificate.extensions?.find(
-    (ext) => ext.extnID === "2.5.29.35" // Authority Key Identifier OID
-  );
+    (ext) => ext.extnID === "2.5.29.35", // Authority Key Identifier OID
+  )
 
   if (authKeyExt?.extnValue) {
-    return `0x${Buffer.from(authKeyExt.extnValue.buffer).toString("hex")}`;
+    // Remove the first two bytes of the authority key identifier
+    return `0x${Buffer.from(authKeyExt.extnValue.buffer.slice(2)).toString("hex")}`
   }
-  return undefined;
+  return undefined
 }
 
 function getSubjectKeyId(cert: X509Certificate): string | undefined {
   const subjKeyExt = cert.tbsCertificate.extensions?.find(
-    (ext) => ext.extnID === "2.5.29.14" // Subject Key Identifier OID
-  );
+    (ext) => ext.extnID === "2.5.29.14", // Subject Key Identifier OID
+  )
 
   if (subjKeyExt?.extnValue) {
-    return `0x${Buffer.from(subjKeyExt.extnValue.buffer).toString("hex")}`;
+    // Remove the first two bytes of the subject key identifier
+    return `0x${Buffer.from(subjKeyExt.extnValue.buffer.slice(2)).toString("hex")}`
   }
-  return undefined;
+  return undefined
 }
 
 // Helper function to get Private Key Usage Period
 function getPrivateKeyUsagePeriod(
-  cert: X509Certificate
+  cert: X509Certificate,
 ): { not_before?: number; not_after?: number } | undefined {
   const pkupExt = cert.tbsCertificate.extensions?.find(
-    (ext) => ext.extnID === "2.5.29.16" // Private Key Usage Period OID
-  );
+    (ext) => ext.extnID === "2.5.29.16", // Private Key Usage Period OID
+  )
 
   if (pkupExt?.extnValue) {
-    const pkup = AsnParser.parse(pkupExt.extnValue, PrivateKeyUsagePeriod);
+    const pkup = AsnParser.parse(pkupExt.extnValue, PrivateKeyUsagePeriod)
     return {
-      not_before: pkup.notBefore
-        ? Math.floor(pkup.notBefore.getTime() / 1000)
-        : undefined,
-      not_after: pkup.notAfter
-        ? Math.floor(pkup.notAfter.getTime() / 1000)
-        : undefined,
-    };
+      not_before: pkup.notBefore ? Math.floor(pkup.notBefore.getTime() / 1000) : undefined,
+      not_after: pkup.notAfter ? Math.floor(pkup.notAfter.getTime() / 1000) : undefined,
+    }
   }
-  return undefined;
+  return undefined
 }
 
 interface DuplicateStats {
-  totalCertificates: number;
-  duplicatesFound: number;
-  uniqueCertificates: number;
+  totalCertificates: number
+  duplicatesFound: number
+  uniqueCertificates: number
 }
 
 function processCertificateFile(
   filePath: string,
   allCertificates: Certificate[],
-  uniquePubkeys: Set<string>
+  uniquePubkeys: Set<string>,
 ): DuplicateStats {
   const stats: DuplicateStats = {
     totalCertificates: 0,
     duplicatesFound: 0,
     uniqueCertificates: 0,
-  };
-
-  try {
-    const pemContent = fs.readFileSync(filePath, "utf8");
-    const certificates = parseCertificate(pemContent);
-    stats.totalCertificates = certificates.length;
-
-    console.log(
-      `Processing ${certificates.length} certificates from ${filePath}`
-    );
-
-    for (const cert of certificates) {
-      const pubkeyString = JSON.stringify(cert.public_key);
-      if (!uniquePubkeys.has(pubkeyString)) {
-        uniquePubkeys.add(pubkeyString);
-        stats.uniqueCertificates++;
-      } else {
-        stats.duplicatesFound++;
-      }
-      allCertificates.push(cert);
-    }
-  } catch (error) {
-    console.error(`Error processing certificate file ${filePath}:`, error);
   }
 
-  return stats;
+  try {
+    const pemContent = fs.readFileSync(filePath, "utf8")
+    const certificates = parseCertificate(pemContent)
+    stats.totalCertificates = certificates.length
+
+    console.log(`Processing ${certificates.length} certificates from ${filePath}`)
+
+    for (const cert of certificates) {
+      const pubkeyString = JSON.stringify(cert.public_key)
+      if (!uniquePubkeys.has(pubkeyString)) {
+        uniquePubkeys.add(pubkeyString)
+        stats.uniqueCertificates++
+      } else {
+        stats.duplicatesFound++
+      }
+      allCertificates.push(cert)
+    }
+  } catch (error) {
+    console.error(`Error processing certificate file ${filePath}:`, error)
+  }
+
+  return stats
 }
 
 function main(): void {
-  const args = process.argv.slice(2);
-  const uniquePubkeys = new Set<string>();
-  const allCertificates: Certificate[] = [];
+  const args = process.argv.slice(2)
+  const uniquePubkeys = new Set<string>()
+  const allCertificates: Certificate[] = []
   let totalStats: DuplicateStats = {
     totalCertificates: 0,
     duplicatesFound: 0,
     uniqueCertificates: 0,
-  };
-
-  if (args.length !== 1) {
-    console.log(`Usage: ${process.argv[1]} <path_to_certificate_or_directory>`);
-    return;
   }
 
-  const inputPath = args[0];
-  const stats = fs.statSync(inputPath);
+  if (args.length !== 1) {
+    console.log(`Usage: ${process.argv[1]} <path_to_certificate_or_directory>`)
+    return
+  }
+
+  const inputPath = args[0]
+  const stats = fs.statSync(inputPath)
 
   if (stats.isDirectory()) {
     fs.readdirSync(inputPath)
@@ -505,37 +466,33 @@ function main(): void {
         const fileStats = processCertificateFile(
           path.join(inputPath, file),
           allCertificates,
-          uniquePubkeys
-        );
-        totalStats.totalCertificates += fileStats.totalCertificates;
-        totalStats.duplicatesFound += fileStats.duplicatesFound;
-        totalStats.uniqueCertificates += fileStats.uniqueCertificates;
-      });
+          uniquePubkeys,
+        )
+        totalStats.totalCertificates += fileStats.totalCertificates
+        totalStats.duplicatesFound += fileStats.duplicatesFound
+        totalStats.uniqueCertificates += fileStats.uniqueCertificates
+      })
   } else if (stats.isFile()) {
-    totalStats = processCertificateFile(
-      inputPath,
-      allCertificates,
-      uniquePubkeys
-    );
+    totalStats = processCertificateFile(inputPath, allCertificates, uniquePubkeys)
   } else {
-    console.log(`Error: ${inputPath} is neither a valid file nor directory`);
-    return;
+    console.log(`Error: ${inputPath} is neither a valid file nor directory`)
+    return
   }
 
   // Sort certificates by country
-  allCertificates.sort((a, b) => a.country.localeCompare(b.country));
+  allCertificates.sort((a, b) => a.country.localeCompare(b.country))
 
   const output = {
     certificates: allCertificates,
-  };
+  }
 
-  fs.writeFileSync("csc-masterlist.json", JSON.stringify(output, null, 2));
+  fs.writeFileSync("csc-masterlist.json", JSON.stringify(output, null, 2))
 
-  console.log("\nProcessing Summary:");
-  console.log(`Total certificates processed: ${totalStats.totalCertificates}`);
-  console.log(`Unique public keys: ${totalStats.uniqueCertificates}`);
-  console.log(`Duplicate keys detected: ${totalStats.duplicatesFound}`);
-  console.log("\nResults have been written to csc-masterlist.json");
+  console.log("\nProcessing Summary:")
+  console.log(`Total certificates processed: ${totalStats.totalCertificates}`)
+  console.log(`Unique public keys: ${totalStats.uniqueCertificates}`)
+  console.log(`Duplicate keys detected: ${totalStats.duplicatesFound}`)
+  console.log("\nResults have been written to csc-masterlist.json")
 }
 
-main();
+main()
