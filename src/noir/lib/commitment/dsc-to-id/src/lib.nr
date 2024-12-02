@@ -1,6 +1,6 @@
 use common::{
     calculate_private_nullifier, hash_salt_country_signed_attr_dg1_private_nullifier,
-    get_country_from_dg1, hash_salt_country_tbs_certificate,
+    get_country_from_dg1, hash_salt_country_dsc_tbs,
 };
 
 /*
@@ -35,7 +35,7 @@ pub fn commit_to_id<let SIG_SIZE: u32, let SA_SIZE: u32>(
 ) -> Field {
     let country = get_country_from_dg1(dg1);
 
-    assert(comm_in == hash_salt_country_tbs_certificate(salt, country, tbs_certificate));
+    assert(comm_in == hash_salt_country_dsc_tbs(salt, country, tbs_certificate));
 
     let private_nullifier = calculate_private_nullifier(dg1, sod_signature);
 

@@ -59,23 +59,6 @@ pub fn hash_salt_country_dsc_tbs(
     Poseidon2::hash(result, 1504)
 }
 
-pub fn hash_salt_country_tbs_certificate(
-    salt: Field,
-    country: str<3>,
-    tbs_certificate: [u8; 1500],
-) -> Field {
-    let country_bytes: [u8; 3] = country.as_bytes();
-    let mut result: [Field; 1028] = [0; 1028];
-    result[0] = salt as Field;
-    result[1] = country_bytes[0] as Field;
-    result[2] = country_bytes[1] as Field;
-    result[3] = country_bytes[2] as Field;
-    for i in 0..1500 {
-        result[4 + i] = tbs_certificate[i] as Field;
-    }
-    Poseidon2::hash(result, 1028)
-}
-
 pub fn hash_salt_dg1_private_nullifier<let N: u32>(
     salt: Field,
     dg1: [u8; N],
