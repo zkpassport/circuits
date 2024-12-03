@@ -6,7 +6,12 @@ function getMinNumberOfBits(num: bigint): number {
 
 function hexToBytes(hex: string): number[] {
   const hexWithoutPrefix = hex.startsWith("0x") ? hex.slice(2) : hex
-  return hexWithoutPrefix.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16))
+  console.log(hexWithoutPrefix)
+  console.log("length", hexWithoutPrefix.length)
+  return hexWithoutPrefix.match(/.{1,2}/g)!.map((byte) => {
+    console.log(byte)
+    return parseInt(byte, 16)
+  })
 }
 
 function bytesToBigInt(bytes: number[]): bigint {
@@ -52,11 +57,15 @@ export function redcLimbs(bn: bigint, numBits: number): number[] {
   const limbs = splitInto120BitLimbs(redcParam, numBits)
   return limbs
     .reverse()
-    .map((limb) => hexToBytes(padHexToEven(limb.toString(16))))
+    .map((limb, i) => {
+      const hex = limb.toString(16)
+      // Don't pad the most significant limb
+      const paddedHex = i === 0 ? hex : hex.padStart(30, "0")
+      return hexToBytes(padHexToEven(paddedHex))
+    })
     .flat()
 }
 
-// NOTE: There's currently a bug where the number of bytes returned is one less than expected
 export function redcLimbsFromBytes(bytes: number[] | Buffer): number[] {
   let bn: bigint
   if (Buffer.isBuffer(bytes)) {
