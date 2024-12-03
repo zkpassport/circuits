@@ -3,7 +3,7 @@ import { Noir } from "@noir-lang/noir_js"
 import { CompiledCircuit, ProofData, type InputMap } from "@noir-lang/types"
 import { BarretenbergBackend } from "@noir-lang/backend_barretenberg"
 import { compileCircuit, genCSC, getCertificates, loadCircuit } from "./helpers"
-import { generateRSAKeyPair, signData } from "./helpers/rsa"
+import { generateRSAKeyPair, signData, verifySignature } from "./helpers/rsa"
 import { getRSAPublicKeyParams } from "./helpers/rsa"
 import { bigIntToFields } from "./helpers/conversion"
 import { generateCSCToDSCInputs } from "./helpers/proof"
@@ -34,6 +34,7 @@ describe("dsc - rsa pkcs", () => {
       // Generate RSA key pair
       const { privateKey, publicKey } = generateRSAKeyPair()
       const publicKeyParams = getRSAPublicKeyParams(publicKey)
+      //console.log("publicKey", JSON.stringify(publicKeyParams.modulus.toFieldArray()))
       // Sign the tbs
       const signature = signData(privateKey, tbsData)
 

@@ -50,12 +50,12 @@ function splitInto120BitLimbs(input: bigint, numBits: number): bigint[] {
 export function redcLimbs(bn: bigint, numBits: number): number[] {
   const redcParam = computeBarrettReductionParameter(bn)
   const limbs = splitInto120BitLimbs(redcParam, numBits)
+  const totalBytes = numBits / 8 + (numBits % 8 !== 0 ? 1 : 0)
   return limbs
     .reverse()
     .map((limb, i) => {
       const hex = limb.toString(16)
-      // Don't pad the most significant limb
-      const paddedHex = i === 0 ? hex : hex.padStart(30, "0")
+      const paddedHex = i === 0 ? hex.padStart(totalBytes % 15, "0") : hex.padStart(30, "0")
       return hexToBytes(padHexToEven(paddedHex))
     })
     .flat()

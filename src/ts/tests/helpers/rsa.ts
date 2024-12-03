@@ -44,12 +44,12 @@ export function getRSAPublicKeyParams(publicKey: Buffer): {
 export function signData(
   privateKey: string | Buffer,
   data: string | Buffer,
-  hashAlgorithm: string = "SHA256",
+  hashAlgorithm: string = "RSA-SHA256",
 ): Buffer {
   const sign = createSign(hashAlgorithm)
   sign.update(data)
-  sign.end()
-  return sign.sign(privateKey)
+  const signature = sign.sign(privateKey)
+  return signature
 }
 
 /**

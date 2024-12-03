@@ -16,6 +16,8 @@ export async function generateCSCToDSCInputs(
   let merkleProof = await computeMerkleProof(CERTIFICATE_REGISTRY_HEIGHT, leaves, leaves[index])
 
   const csc_pubkey_redc_param = redcLimbsFromBytes(certificate.public_key)
+  //console.log("csc_pubkey_redc_param", JSON.stringify(csc_pubkey_redc_param))
+  //console.log("signature", JSON.stringify(signature.toFieldArray()))
   return {
     certificate_registry_root: merkleProof.root,
     certificate_registry_index: merkleProof.index,
