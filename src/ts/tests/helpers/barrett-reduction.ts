@@ -6,12 +6,7 @@ function getMinNumberOfBits(num: bigint): number {
 
 function hexToBytes(hex: string): number[] {
   const hexWithoutPrefix = hex.startsWith("0x") ? hex.slice(2) : hex
-  console.log(hexWithoutPrefix)
-  console.log("length", hexWithoutPrefix.length)
-  return hexWithoutPrefix.match(/.{1,2}/g)!.map((byte) => {
-    console.log(byte)
-    return parseInt(byte, 16)
-  })
+  return hexWithoutPrefix.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16))
 }
 
 function bytesToBigInt(bytes: number[]): bigint {
