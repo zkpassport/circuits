@@ -18,6 +18,7 @@ use utils::{
 };
 use bignum::bignum::BigNum;
 use bigcurve::curves::secp384r1::{Secp384r1Fq, Secp384r1Fr, Secp384r1_Params};
+use utils::check_bytes_zero_padding;
 
 pub fn verify_signature<let DATA_TO_SIGN_LEN: u32, let CURVE: u32, let PUBKEY_BYTE_LEN: u32>(
     pubkey_x: [u8; PUBKEY_BYTE_LEN],
@@ -27,6 +28,11 @@ pub fn verify_signature<let DATA_TO_SIGN_LEN: u32, let CURVE: u32, let PUBKEY_BY
     data_to_sign: [u8; DATA_TO_SIGN_LEN],
     data_to_sign_len: u64,
 ) -> bool {
+    // Check that the data signed does stop at the specified length
+    // to prevent the prover from using the bytes beyond that point
+    // to manipulate it in their favor
+    check_bytes_zero_padding(data_to_sign, data_to_sign_len as u32);
+
     let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
     if CURVE == ECDSA_CURVE_P384 {
         let pubkey_x_bignum: Secp384r1Fq = BigNum::from_be_bytes(pubkey_x);

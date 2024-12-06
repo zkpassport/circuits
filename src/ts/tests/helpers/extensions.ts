@@ -27,7 +27,7 @@ Buffer.prototype.toField = function (): string {
   return "0x" + this.toString("hex")
 }
 Buffer.prototype.toFieldArray = function (): Array<Field> {
-  return bigIntToFields(bytesToBigInt(Array.from(this)))
+  return Array.from(this)
 }
 Array.prototype.toField = function (): string {
   if (!this.every((item) => typeof item === "number")) {

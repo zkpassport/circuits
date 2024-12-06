@@ -270,3 +270,11 @@ pub fn concat_array<let N: u32>(array_x: [u8; N], array_y: [u8; N]) -> [u8; N * 
     }
     array
 }
+
+pub fn check_bytes_zero_padding<let N: u32>(padded_array: [u8; N], len: u32) {
+    for i in 0..N {
+        if i >= len {
+            assert_eq(padded_array[i], 0);
+        }
+    }
+}
