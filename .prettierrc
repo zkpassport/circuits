@@ -6,6 +6,6 @@
   "tabWidth": 2,
   "semi": false,
   "endOfLine": "lf",
-  "proseWrap": "preserve",
+  "proseWrap": "always",
   "quoteProps": "consistent"
 }

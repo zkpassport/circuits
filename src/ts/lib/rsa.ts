@@ -25,12 +25,12 @@ export function generateRSAKeyPair(keySize: number = 2048) {
 
 export function getRSAPublicKeyParams(publicKey: Buffer): {
   modulus: bigint
-  exponent: bigint
+  exponent: number
 } {
   const parsedKey = AsnParser.parse(publicKey, RSAPublicKey)
   return {
     modulus: fromArrayBufferToBigInt(parsedKey.modulus),
-    exponent: fromArrayBufferToBigInt(parsedKey.publicExponent),
+    exponent: Number(fromArrayBufferToBigInt(parsedKey.publicExponent)),
   }
 }
 

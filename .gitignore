@@ -8,3 +8,4 @@ info
 node_modules
 package-lock.json
 res
+src/ts/assets/circuits
