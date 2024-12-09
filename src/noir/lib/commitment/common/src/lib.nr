@@ -42,21 +42,21 @@ pub fn get_country_from_dg1(dg1: [u8; 95]) -> str<3> {
     country_bytes.as_str_unchecked()
 }
 
-pub fn hash_salt_country_dsc_tbs(
+pub fn hash_salt_country_tbs<let TBS_MAX_SIZE: u32>(
     salt: Field,
     country: str<3>,
-    tbs_certificate: [u8; 1500],
+    tbs: [u8; TBS_MAX_SIZE],
 ) -> Field {
     let country_bytes: [u8; 3] = country.as_bytes();
-    let mut result: [Field; 1504] = [0; 1504];
+    let mut result: [Field; TBS_MAX_SIZE + 4] = [0; TBS_MAX_SIZE + 4];
     result[0] = salt as Field;
     result[1] = country_bytes[0] as Field;
     result[2] = country_bytes[1] as Field;
     result[3] = country_bytes[2] as Field;
-    for i in 0..1500 {
-        result[i + 4] = tbs_certificate[i] as Field;
+    for i in 0..TBS_MAX_SIZE {
+        result[4 + i] = tbs[i] as Field;
     }
-    Poseidon2::hash(result, 1504)
+    Poseidon2::hash(result, TBS_MAX_SIZE + 4)
 }
 
 pub fn hash_salt_dg1_private_nullifier<let N: u32>(
@@ -77,14 +77,14 @@ pub fn calculate_private_nullifier<let DG1: u32, let SIG: u32>(
     dg1: [u8; DG1],
     sod_sig: [u8; SIG],
 ) -> Field {
-    let mut result: [Field; DG1 + SIG + 2] = [0; DG1 + SIG + 2];
+    let mut result: [Field; DG1 + SIG] = [0; DG1 + SIG];
     for i in 0..DG1 {
         result[i] = dg1[i] as Field;
     }
     for i in 0..SIG {
         result[DG1 + i] = sod_sig[i] as Field;
     }
-    Poseidon2::hash(result, DG1 + SIG + 2)
+    Poseidon2::hash(result, DG1 + SIG)
 }
 
 pub fn hash_salt_country_signed_attr_dg1_private_nullifier<let SA: u32>(
@@ -96,7 +96,7 @@ pub fn hash_salt_country_signed_attr_dg1_private_nullifier<let SA: u32>(
     private_nullifier: Field,
 ) -> Field {
     let country_bytes: [u8; 3] = country.as_bytes();
-    let mut result: [Field; SA + 5] = [0; SA + 5];
+    let mut result: [Field; SA + 101] = [0; SA + 101];
     result[0] = salt as Field;
     result[1] = country_bytes[0] as Field;
     result[2] = country_bytes[1] as Field;
@@ -109,5 +109,5 @@ pub fn hash_salt_country_signed_attr_dg1_private_nullifier<let SA: u32>(
         result[4 + SA + 1 + i] = dg1[i] as Field;
     }
     result[4 + SA + 1 + 95] = private_nullifier;
-    Poseidon2::hash(result, SA + 105)
+    Poseidon2::hash(result, SA + 101)
 }
