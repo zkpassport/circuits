@@ -1,5 +1,6 @@
 import cscMasterlistFile from "@/assets/certificates/csc-masterlist.json"
 import {
+  CERTIFICATE_PAD_EMPTY_LEAVES,
   CERTIFICATE_REGISTRY_HEIGHT,
   CERTIFICATE_REGISTRY_ID,
   DG1_INPUT_SIZE,
@@ -82,12 +83,7 @@ export function isDocumentDSCSupported(passport: PassportViewModel): boolean {
 }
 
 export function getCSCMasterlist(): CSCMasterlist {
-  const cscMasterlist: CSCMasterlist = {
-    certificates: ((cscMasterlistFile as unknown as CSCMasterlist).certificates as CSC[])
-      .filter((csc) => csc.country === "AUS")
-      .slice(0, 4),
-  }
-  return cscMasterlist as unknown as CSCMasterlist
+  return cscMasterlistFile
 }
 
 export function getCSCForPassport(passport: PassportViewModel): CSC | null {
@@ -137,6 +133,11 @@ export function getCSCForPassport(passport: PassportViewModel): CSC | null {
       (checkAgainstPrivateKeyUsagePeriod(cert) || checkAgainstAuthorityKeyIdentifier(cert))
     )
   })
+  if (!certificate) {
+    console.warn(
+      `Could not find CSC for ${country} passport with subject_key_identifier=${formattedKeyIdentifier}`,
+    )
+  }
   return certificate ?? null
 }
 
@@ -194,11 +195,16 @@ export async function getDSCCircuitInputs(passport: PassportViewModel): Promise<
   if (!csc) return null
 
   const cscMasterlist = getCSCMasterlist()
-  const merkleProof = await computeMerkleProof(
-    CERTIFICATE_REGISTRY_HEIGHT,
-    cscMasterlist.certificates.map((l) => Binary.fromHex(getCertificateLeafHash(l))),
-    cscMasterlist.certificates.findIndex((l) => l === csc),
-  )
+  const leaves = cscMasterlist.certificates.map((l) => Binary.fromHex(getCertificateLeafHash(l)))
+  const index = cscMasterlist.certificates.findIndex((l) => l === csc)
+  // Fill up leaves to CERTIFICATE_PAD_EMPTY_LEAVES
+  const emptyLeavesNeeded = CERTIFICATE_PAD_EMPTY_LEAVES - leaves.length
+  if (emptyLeavesNeeded > 0) {
+    const emptyLeaves = Array(emptyLeavesNeeded).fill(Binary.fromHex("00".repeat(32)))
+    leaves.push(...emptyLeaves)
+  }
+  const merkleProof = await computeMerkleProof(CERTIFICATE_REGISTRY_HEIGHT, leaves, index)
+
   const inputs = {
     certificate_registry_root: merkleProof.root,
     certificate_registry_index: merkleProof.index,
