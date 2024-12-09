@@ -2,7 +2,7 @@ use sig_check_rsa::verify_signature;
 use commitment::commit_to_dsc;
 
 #[recursive]
-unconstrained fn main(
+fn main(
     // Certificate registry merkle root
     certificate_registry_root: pub Field,
     certificate_registry_index: Field,
