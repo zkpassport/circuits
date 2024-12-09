@@ -101,19 +101,6 @@ export function strip0x(input: string): string {
 }
 
 /**
- * Loads a circuit from a specified file name, resolving it to a full path if necessary.
- * @param fileName - The name or full path of the circuit file.
- * @returns The loaded circuit manifest.
- */
-export async function loadCircuit(fileName: string) {
-  // Check if the input is a full path or just a base name
-  const isFullPath = path.isAbsolute(fileName) || fileName.includes("/")
-  const circuitPath = isFullPath ? fileName : path.resolve(`target/${fileName}.json`)
-
-  return await loadCircuitManifest(circuitPath)
-}
-
-/**
  * Loads a circuit manifest from a JSON file.
  * @param filename - The path to the JSON file.
  * @returns The compiled circuit.
@@ -145,15 +132,42 @@ export function fromArrayBufferToBigInt(buffer: ArrayBuffer): bigint {
   return BigInt("0x" + Buffer.from(buffer).toString("hex"))
 }
 
-export function padArrayWithZeros(array: Field[], length: number): Field[]
-export function padArrayWithZeros(array: number[], length: number): number[]
-export function padArrayWithZeros(array: Buffer, length: number): Buffer
-export function padArrayWithZeros(array: any, length: number): any {
-  if (Array.isArray(array)) {
-    return array.concat(Array(length - array.length).fill(0))
-  } else if (Buffer.isBuffer(array)) {
-    const zeros = Buffer.alloc(length - array.length)
-    return Buffer.concat([array, zeros])
+export function padArrayWithZeros(array: number[], length: number): number[] {
+  return array.concat(Array(length - array.length).fill(0))
+}
+
+export function getBitSize(number: number | string | bigint): number {
+  return number.toString(2).length
+}
+
+export function getOffsetInArray(
+  array: any[],
+  arrayToFind: any[],
+  startPosition: number = 0,
+): number {
+  for (let i = startPosition; i < array.length; i++) {
+    if (array.slice(i, i + arrayToFind.length).every((val, index) => val === arrayToFind[index])) {
+      return i
+    }
   }
-  throw new Error("Input must be an array or a Buffer.")
+  return -1
+}
+
+export function bigintToBytes(value: bigint): number[] {
+  const hexString = value.toString(16).padStart(2, "0")
+  const bytes = []
+  for (let i = 0; i < hexString.length; i += 2) {
+    bytes.push(parseInt(hexString.slice(i, i + 2), 16))
+  }
+  return bytes
+}
+
+export function bigintToNumber(value: bigint): number {
+  return Number(value)
+}
+
+export function assert(truthy: boolean, errorMsg: string): void {
+  if (!truthy) {
+    throw new Error(errorMsg)
+  }
 }
