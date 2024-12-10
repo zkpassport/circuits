@@ -18,12 +18,53 @@ import {
   AsnType,
   AsnTypeTypes,
 } from "@peculiar/asn1-schema"
-import { TBSCertificate as ASNTBSCertificate } from "@peculiar/asn1-x509"
+import { Certificate as ASNCertificate } from "@peculiar/asn1-x509"
 import { createHash } from "crypto"
-import { getECDSAInfo, getRSAInfo } from "./passport-reader"
 import { decodeOID, getOIDName } from "./oids"
+import { getECDSAInfo, getRSAInfo } from "./passport-reader"
 
 const OID_MRTD_SIGNATURE_DATA = "2.23.136.1.1.1"
+
+export interface LDSParams {
+  ldsVersion: number
+  cmsVersion: number
+  dataGroupsHashAlgorithm: OID
+  dataGroups: DataGroup[]
+  eContent: {
+    bytes: Binary
+    hashAlgorithm: OID
+    dataGroups: DataGroup[]
+    ldsVersion: number
+  }
+  signedAttr: {
+    bytes: Binary
+    attributes: [string, Binary][]
+    eContentHash: Binary
+    eContentHashAlgorithm: OID
+    hashAlgorithm: OID
+    signatureAlgorithm: OID
+    signature: Binary
+    hash: Binary
+  }
+  tbs: {
+    bytes: Binary
+    version: number
+    serialNumber: any
+    issuer: [string, string][]
+    rsaPublicKey: { modulus: bigint; exponent: bigint }
+    ecdsaPublicKey: { curve: string; publicKey: Uint8Array }
+    signatureAlgorithm: OID
+    signatureParameters: ArrayBuffer
+    signature: Binary
+  }
+  signerInfo: {
+    hashAlgorithm: OID
+    signatureAlgorithm: OID
+    signature: Binary
+  }
+  sod: Binary
+  dg1: Binary
+}
 
 /**
  * ```asn
@@ -160,7 +201,7 @@ export class LDS {
   // The DG1 data group binary data
   public dg1: Binary
 
-  constructor(dg1: Binary, sod: Binary) {
+  static fromPassportData(dg1: Binary, sod: Binary) {
     // Strip first 4 bytes of SOD if needed
     sod = sod.slice(0, 2).equals(Binary.from([119, 130])) ? sod.slice(4) : sod
 
@@ -174,12 +215,12 @@ export class LDS {
     // ------------------------------------------------------------------------
     const { eContentType } = signedData.encapContentInfo
     if (eContentType !== OID_MRTD_SIGNATURE_DATA) throw new Error("Invalid SOD")
-    const eContent = new EContent(signedData.encapContentInfo.eContent)
+    const eContent = EContent.fromAsn(signedData.encapContentInfo.eContent)
 
     // ------------------------------------------------------------------------
     // Signer Info
     // ------------------------------------------------------------------------
-    const signerInfo = new SignerInfo(signedData.signerInfos[0])
+    const signerInfo = SignerInfo.fromAsn(signedData.signerInfos[0])
     if (signedData.signerInfos.length > 1) console.warn("Warning: Found multiple SignerInfos")
 
     // ------------------------------------------------------------------------
@@ -194,26 +235,70 @@ export class LDS {
         throw new Error("Invalid LDS")
       }
     }
-    const signedAttr = new SignedAttr(signedData.signerInfos[0].signedAttrs, signerInfo)
+    const signedAttr = SignedAttr.fromAsn(signedData.signerInfos[0].signedAttrs, signerInfo)
 
     // ------------------------------------------------------------------------
     // TBS (To Be Signed) (signed by CSC)
     // ------------------------------------------------------------------------
+    const tbs = TBS.fromAsn(signedData.certificates[0].certificate)
+
+    return new LDS(dg1, sod, eContent, signedAttr, tbs, signedData.version)
+  }
+
+  static fromParams(params: LDSParams) {
+    const eContent = new EContent(
+      params.eContent.bytes,
+      params.eContent.hashAlgorithm,
+      params.eContent.dataGroups,
+      params.eContent.ldsVersion,
+    )
+    // const signerInfo = new SignerInfo(
+    //   new OID(params.signerInfo.hashAlgorithm.value),
+    //   new OID(params.signerInfo.signatureAlgorithm.value),
+    //   params.signerInfo.signature,
+    // )
+    const signedAttr = new SignedAttr(
+      params.signedAttr.bytes,
+      params.signedAttr.eContentHash,
+      params.signedAttr.eContentHashAlgorithm,
+      params.signedAttr.hashAlgorithm,
+      params.signedAttr.signatureAlgorithm,
+      params.signedAttr.signature,
+      params.signedAttr.hash,
+    )
     const tbs = new TBS(
-      signedData.certificates[0].certificate.tbsCertificate,
-      Binary.from(signedData.certificates[0].certificate.signatureValue),
-      new OID(signedData.certificates[0].certificate.signatureAlgorithm.algorithm),
+      params.tbs.bytes,
+      params.tbs.version,
+      params.tbs.serialNumber,
+      params.tbs.issuer,
+      params.tbs.rsaPublicKey,
+      params.tbs.ecdsaPublicKey,
+      params.tbs.signatureAlgorithm,
+      params.tbs.signatureParameters,
+      params.tbs.signature,
     )
 
+    const lds = new LDS(params.dg1, params.sod, eContent, signedAttr, tbs, params.cmsVersion)
+    return lds
+  }
+
+  constructor(
+    dg1: Binary,
+    sod: Binary,
+    eContent: EContent,
+    signedAttr: SignedAttr,
+    tbs: TBS,
+    cmsVersion: number,
+  ) {
+    this.dg1 = dg1
     this.sod = sod
     this.eContent = eContent
     this.ldsVersion = eContent.ldsVersion
     this.dataGroups = eContent.dataGroups
     this.dataGroupsHashAlgorithm = eContent.hashAlgorithm
     this.signedAttr = signedAttr
-    this.cmsVersion = signedData.version
+    this.cmsVersion = cmsVersion
     this.tbs = tbs
-    this.dg1 = dg1
   }
 
   idSignatureAlgorithmType(): "RSA" | "ECDSA" | "" {
@@ -256,11 +341,20 @@ export class SignerInfo {
   // The signature of the DSC signer
   public signature: Binary
 
-  public constructor(signerInfo: AsnSignerInfo) {
-    this.hashAlgorithm = new OID(signerInfo.digestAlgorithm.algorithm)
-    this.signatureAlgorithm = new OID(signerInfo.signatureAlgorithm.algorithm)
-    this.signature = Binary.from(signerInfo.signature.buffer)
+  constructor(hashAlgorithm: OID, signatureAlgorithm: OID, signature: Binary) {
+    this.hashAlgorithm = hashAlgorithm
+    this.signatureAlgorithm = signatureAlgorithm
+    this.signature = signature
   }
+
+  static fromAsn(signerInfo: AsnSignerInfo) {
+    return new SignerInfo(
+      new OID(signerInfo.digestAlgorithm.algorithm),
+      new OID(signerInfo.signatureAlgorithm.algorithm),
+      Binary.from(signerInfo.signature.buffer),
+    )
+  }
+
   toString(): string {
     return [
       `Hash Algorithm: ${this.hashAlgorithm.name}`,
@@ -289,12 +383,21 @@ export class EContent {
   // The LDS version (v1 = 0, v2 = 1)
   public ldsVersion: number
 
-  constructor(eContent: ASNEncapsulatedContent) {
-    const parsed = AsnConvert.parse(eContent.single, AsnLDSSecurityObject)
-    this.ldsVersion = parsed.version
-    this.hashAlgorithm = new OID(parsed.hashAlgorithm.algorithm)
-    this.dataGroups = parsed.dataGroups.map((v) => new DataGroup(v.number, Binary.from(v.hash)))
-    this.bytes = Binary.from(eContent.single.buffer)
+  constructor(bytes: Binary, hashAlgorithm: OID, dataGroups: DataGroup[], ldsVersion: number) {
+    this.bytes = bytes
+    this.hashAlgorithm = hashAlgorithm
+    this.dataGroups = dataGroups
+    this.ldsVersion = ldsVersion
+  }
+
+  static fromAsn(asn: ASNEncapsulatedContent) {
+    const parsed = AsnConvert.parse(asn.single, AsnLDSSecurityObject)
+    return new EContent(
+      Binary.from(asn.single.buffer),
+      new OID(parsed.hashAlgorithm.algorithm),
+      parsed.dataGroups.map((v) => new DataGroup(v.number, Binary.from(v.hash))),
+      parsed.version,
+    )
   }
 }
 
@@ -302,7 +405,7 @@ export class SignedAttr {
   // Raw bytes of the SignedAttr region
   public bytes: Binary
   // The signed attributes
-  public attributes: [string, Binary][] = []
+  // public attributes: [string, Binary][] = []
   // The the hash of eContent (aka SignedAttr.messageDigest)
   public eContentHash: Binary
   // The hash algorithm used to hash eContent (same hash algorithm used to hash SignedAttr)
@@ -313,33 +416,64 @@ export class SignedAttr {
   public signatureAlgorithm: OID
   // The signature over the signed attributes by the signing DSC
   public signature: Binary
-  // The signer info (of the signing DSC)
-  public signerInfo: SignerInfo
+  // // The signer info (of the signing DSC)
+  // public signerInfo: SignerInfo
   // The hash of SignedAttr (hashed using hashAlgorithm)
   public hash: Binary
 
-  constructor(asnSignedAttributes: AsnSignedAttributes, signerInfo: SignerInfo) {
+  constructor(
+    bytes: Binary,
+    // attributes: [string, Binary][],
+    eContentHash: Binary,
+    eContentHashAlgorithm: OID,
+    hashAlgorithm: OID,
+    signatureAlgorithm: OID,
+    signature: Binary,
+    // signerInfo: SignerInfo,
+    hash: Binary,
+  ) {
+    this.bytes = bytes
+    // this.attributes = attributes
+    this.eContentHash = eContentHash
+    this.eContentHashAlgorithm = eContentHashAlgorithm
+    this.hashAlgorithm = hashAlgorithm
+    this.signatureAlgorithm = signatureAlgorithm
+    this.signature = signature
+    // this.signerInfo = signerInfo
+    this.hash = hash
+  }
+  static fromAsn(asnSignedAttributes: AsnSignedAttributes, signerInfo: SignerInfo) {
     // TODO: Add support for other attributes, like signingTime
-    this.attributes = asnSignedAttributes.map((v) => [
+    const attributes = asnSignedAttributes.map((v) => [
       getOIDName(v.attrType),
       Binary.from(v.attrValues[0]),
     ])
-    this.eContentHash = this.attributes.find((v) => v[0] === "messageDigest")?.[1]
-    this.eContentHashAlgorithm = signerInfo.hashAlgorithm
-    this.hashAlgorithm = signerInfo.hashAlgorithm
-    this.signatureAlgorithm = signerInfo.signatureAlgorithm
-    this.signature = signerInfo.signature
+    const eContentHash = attributes.find((v) => v[0] === "messageDigest")?.[1] as Binary
+    const eContentHashAlgorithm = signerInfo.hashAlgorithm
+    const hashAlgorithm = signerInfo.hashAlgorithm
+    const signatureAlgorithm = signerInfo.signatureAlgorithm
+    const signature = signerInfo.signature
     // Reconstruct signed attributes using AsnAttributeSet to get the correct bytes that are signed
     const reconstructedAsnSignedAttributes = new AsnAttributeSet(asnSignedAttributes.map((v) => v))
-    this.bytes = Binary.from(AsnSerializer.serialize(reconstructedAsnSignedAttributes))
+    const bytes = Binary.from(AsnSerializer.serialize(reconstructedAsnSignedAttributes))
     // Get hash of SignedAttr ASN bytes depending on the hash specified by signerInfo.hashAlgorithm
-    if (this.hashAlgorithm.name === "sha-256") {
-      this.hash = Binary.from(createHash("sha256").update(this.bytes.toBuffer()).digest())
-    } else if (this.hashAlgorithm.name === "sha-512") {
-      this.hash = Binary.from(createHash("sha512").update(this.bytes.toBuffer()).digest())
+    let hash: Binary
+    if (hashAlgorithm.name === "sha-256") {
+      hash = Binary.from(createHash("sha256").update(bytes.toBuffer()).digest())
+    } else if (hashAlgorithm.name === "sha-512") {
+      hash = Binary.from(createHash("sha512").update(bytes.toBuffer()).digest())
     } else {
-      throw new Error(`Unsupported hash algorithm: ${this.hashAlgorithm}`)
+      throw new Error(`Unsupported hash algorithm: ${hashAlgorithm.name}`)
     }
+    return new SignedAttr(
+      bytes,
+      eContentHash,
+      eContentHashAlgorithm,
+      hashAlgorithm,
+      signatureAlgorithm,
+      signature,
+      hash,
+    )
   }
 
   toString(): string {
@@ -374,29 +508,70 @@ export class TBS {
   public signatureAlgorithmType: "RSA" | "ECDSA" | ""
   // The signature over the TBS by the CSC
   public signature: Binary
-  // The signature algorithm used by the CSC to sign the TBS certificate
-  // public signatureAlgorithm: OID
 
-  // constructor(tbs: ASNTBSCertificate) {
-  constructor(tbs: ASNTBSCertificate, signature: Binary, signatureAlgorithm: OID) {
-    this.bytes = Binary.from(AsnSerializer.serialize(tbs))
-    this.version = tbs.version
-    this.serialNumber = Binary.from(tbs.serialNumber).toString("hex")
-    this.issuer = tbs.issuer.flatMap((i) =>
-      i.map((j): [string, string] => [getOIDName(j.type), j.value.toString()]),
-    )
-    this.signatureAlgorithm = new OID(tbs.subjectPublicKeyInfo.algorithm.algorithm)
-    this.signatureParameters = tbs.subjectPublicKeyInfo.algorithm.parameters
-
+  constructor(
+    bytes: Binary,
+    version: number,
+    serialNumber: any,
+    issuer: [string, string][],
+    rsaPublicKey: { modulus: bigint; exponent: bigint },
+    ecdsaPublicKey: { curve: string; publicKey: Uint8Array },
+    signatureAlgorithm: OID,
+    signatureParameters: ArrayBuffer,
+    signature: Binary,
+  ) {
+    this.bytes = bytes
+    this.version = version
+    this.serialNumber = serialNumber
+    this.issuer = issuer
+    this.rsaPublicKey = rsaPublicKey
+    this.ecdsaPublicKey = ecdsaPublicKey
+    this.signatureAlgorithm = signatureAlgorithm
+    this.signatureParameters = signatureParameters
     this.signature = signature
 
-    if (this.signatureAlgorithm.name.toLowerCase().includes("rsa")) {
+    if (signatureAlgorithm.name.toLowerCase().includes("rsa")) {
       this.signatureAlgorithmType = "RSA"
-      this.rsaPublicKey = getRSAInfo(tbs)
-    } else if (this.signatureAlgorithm.name.toLowerCase().includes("ecdsa")) {
+    } else if (signatureAlgorithm.name.toLowerCase().includes("ecdsa")) {
       this.signatureAlgorithmType = "ECDSA"
-      this.ecdsaPublicKey = getECDSAInfo(tbs)
+    } else {
+      throw new Error(`Unsupported signature algorithm: ${signatureAlgorithm.name}`)
     }
+  }
+
+  static fromAsn(certificate: ASNCertificate) {
+    const tbs = certificate.tbsCertificate
+    const signature = Binary.from(certificate.signatureValue)
+    const bytes = Binary.from(AsnSerializer.serialize(tbs))
+    const version = tbs.version
+    const serialNumber = Binary.from(tbs.serialNumber).toString("hex")
+    const issuer = tbs.issuer.flatMap((i) =>
+      i.map((j): [string, string] => [getOIDName(j.type), j.value.toString()]),
+    )
+    const signatureAlgorithm = new OID(tbs.subjectPublicKeyInfo.algorithm.algorithm)
+    const signatureParameters = tbs.subjectPublicKeyInfo.algorithm.parameters
+
+    let rsaPublicKey: { modulus: bigint; exponent: bigint }
+    let ecdsaPublicKey: { curve: string; publicKey: Uint8Array }
+    if (signatureAlgorithm.name.toLowerCase().includes("rsa")) {
+      rsaPublicKey = getRSAInfo(tbs)
+    } else if (signatureAlgorithm.name.toLowerCase().includes("ecdsa")) {
+      ecdsaPublicKey = getECDSAInfo(tbs)
+    } else {
+      throw new Error(`Unsupported signature algorithm: ${signatureAlgorithm.name}`)
+    }
+
+    return new TBS(
+      bytes,
+      version,
+      serialNumber,
+      issuer,
+      rsaPublicKey,
+      ecdsaPublicKey,
+      signatureAlgorithm,
+      signatureParameters,
+      signature,
+    )
   }
 
   toString(): string {

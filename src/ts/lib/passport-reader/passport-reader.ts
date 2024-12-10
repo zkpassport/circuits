@@ -56,7 +56,7 @@ export class PassportReader {
   }
 
   public loadPassport(dg1: Binary, sod: Binary) {
-    this.lds = new LDS(dg1, sod)
+    this.lds = LDS.fromPassportData(dg1, sod)
   }
 }
 
