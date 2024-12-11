@@ -3714,9 +3714,60 @@ export const oids: OidMapping = {
   "2.23.136.1.1.6.2": { d: "documentTypeList", c: "X.509 extension" },
 }
 
+// TODO: Consider overriding official OID name mapping to use these instead:
+// const OIDS_TO_DESCRIPTION: Record<string, string> = {
+//   "1.2.840.113549.1.1.1": "rsaEncryption",
+//   "1.2.840.10045.2.1": "ecPublicKey",
+//   "1.2.840.113549.1.1.5": "sha1-with-rsa-signature",
+//   "1.2.840.113549.1.1.11": "sha256WithRSAEncryption",
+//   "1.2.840.113549.1.1.12": "sha384WithRSAEncryption",
+//   "1.2.840.113549.1.1.13": "sha512WithRSAEncryption",
+//   "1.2.840.113549.1.1.10": "rsassa-pss",
+//   "1.2.840.10045.4.1": "ecdsa-with-SHA1",
+//   "1.2.840.10045.4.3.2": "ecdsa-with-SHA256",
+//   "1.2.840.10045.4.3.3": "ecdsa-with-SHA384",
+//   "1.2.840.10045.4.3.4": "ecdsa-with-SHA512",
+// }
+
+// const CURVE_OIDS = {
+//   "1.2.840.10045.3.1.7": "P-256",
+//   "1.3.132.0.34": "P-384",
+//   "1.3.132.0.35": "P-521",
+//   "1.3.36.3.3.2.8.1.1.1": "BrainpoolP160r1",
+//   "1.3.36.3.3.2.8.1.1.2": "BrainpoolP160t1",
+//   "1.3.36.3.3.2.8.1.1.3": "BrainpoolP192r1",
+//   "1.3.36.3.3.2.8.1.1.4": "BrainpoolP192t1",
+//   "1.3.36.3.3.2.8.1.1.5": "BrainpoolP224r1",
+//   "1.3.36.3.3.2.8.1.1.6": "BrainpoolP224t1",
+//   "1.3.36.3.3.2.8.1.1.7": "BrainpoolP256r1",
+//   "1.3.36.3.3.2.8.1.1.8": "BrainpoolP256t1",
+//   "1.3.36.3.3.2.8.1.1.9": "BrainpoolP320r1",
+//   "1.3.36.3.3.2.8.1.1.10": "BrainpoolP320t1",
+//   "1.3.36.3.3.2.8.1.1.11": "BrainpoolP384r1",
+//   "1.3.36.3.3.2.8.1.1.12": "BrainpoolP384t1",
+//   "1.3.36.3.3.2.8.1.1.13": "BrainpoolP512r1",
+//   "1.3.36.3.3.2.8.1.1.14": "BrainpoolP512t1",
+// }
+
 export function getOIDName(oid: string): string {
   if (oids[oid]) {
     return oids[oid].d
+  } else {
+    return oid
+  }
+}
+
+export function getHashAlgorithmName(oid: string): string {
+  if (oids[oid]) {
+    return oids[oid].d.replace("-", "").toUpperCase()
+  } else {
+    return oid
+  }
+}
+
+export function getSignatureAlgorithmName(oid: string): string {
+  if (oids[oid]) {
+    return oids[oid].d.replace("-", "")
   } else {
     return oid
   }

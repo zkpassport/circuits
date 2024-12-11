@@ -3,24 +3,25 @@ import { PassportViewModel } from "@/types"
 import { p256 } from "@noble/curves/p256"
 import { p384 } from "@noble/curves/p384"
 import { p521 } from "@noble/curves/p521"
-import { ContentInfo, SignedData } from "@peculiar/asn1-cms"
 import { ECParameters } from "@peculiar/asn1-ecc"
 import { RSAPublicKey } from "@peculiar/asn1-rsa"
 import { AsnParser } from "@peculiar/asn1-schema"
 import { TBSCertificate } from "@peculiar/asn1-x509"
 import { BRAINPOOL_CURVES, CURVE_OIDS, HASH_OIDS, RSA_OIDS } from "./constants"
-import { LDS } from "./lds"
+import { SOD } from "./sod"
+import { ASN } from "./asn"
 
 export class PassportReader {
-  lds: LDS
+  public dg1: Binary
+  public sod: SOD
 
   getPassportViewModel(): PassportViewModel {
     // TODO: Implement the remaining properties
     return {
-      mrz: this.lds.dg1.toString("ascii"),
+      mrz: this.dg1.toString("ascii"),
       name: "",
       dateOfBirth: "",
-      nationality: this.lds.dg1.slice(59, 62).toString("ascii"),
+      nationality: this.dg1.slice(59, 62).toString("ascii"),
       gender: "",
       passportNumber: "",
       passportExpiry: "",
@@ -28,45 +29,54 @@ export class PassportReader {
       lastName: "",
       photo: "",
       originalPhoto: "",
-      LDSVersion: this.lds.ldsVersion.toString(),
-      // TODO: Improve this
-      dataGroups: [
-        {
-          groupNumber: 1,
-          name: "DG1",
-          hash: this.lds.dataGroups[0].hash.toNumberArray(),
-          value: this.lds.dg1.toNumberArray(),
-        },
-      ],
+
       chipAuthSupported: false,
       chipAuthSuccess: false,
       chipAuthFailed: false,
-      sod: this.lds.sod.toNumberArray(),
-      signedAttributes: this.lds.signedAttr.bytes.toNumberArray(),
-      signedAttributesHashAlgorithm: this.lds.signedAttr.hashAlgorithm.name,
-      eContent: this.lds.eContent.bytes.toNumberArray(),
-      eContentHashAlgorithm: this.lds.eContent.hashAlgorithm.name,
-      cmsVersion: this.lds.cmsVersion.toString(),
-      dscSignatureAlgorithm: this.lds.tbs.signatureAlgorithm.name,
-      dscSignature: this.lds.tbs.signature.toNumberArray(),
-      tbsCertificate: this.lds.tbs.bytes.toNumberArray(),
-      sodSignature: this.lds.signedAttr.signature.toNumberArray(),
-      sodSignatureAlgorithm: this.lds.signedAttr.signatureAlgorithm.name,
+
+      LDSVersion: "",
+
+      dataGroups: Object.entries(this.sod.encapContentInfo.eContent.dataGroupHashValues.values).map(
+        ([key, value]) => ({
+          groupNumber: Number(key),
+          name: "DG" + key,
+          hash: value.toNumberArray(),
+          value: key == "1" ? this.dg1.toNumberArray() : [],
+        }),
+      ),
+      dataGroupsHashAlgorithm: this.sod.encapContentInfo.eContent.hashAlgorithm,
+
+      sod: this.sod.bytes.toNumberArray(),
+
+      cmsVersion: this.sod.version.toString(),
+
+      signedAttributes: this.sod.signerInfo.signedAttrs.bytes.toNumberArray(),
+      signedAttributesHashAlgorithm: this.sod.signerInfo.digestAlgorithm,
+      eContent: this.sod.encapContentInfo.eContent.bytes.toNumberArray(),
+      eContentHashAlgorithm: this.sod.signerInfo.digestAlgorithm,
+
+      tbsCertificate: this.sod.certificate.tbs.bytes.toNumberArray(),
+      dscSignatureAlgorithm: this.sod.certificate.signatureAlgorithm.name,
+      dscSignature: this.sod.certificate.signature.toNumberArray(),
+
+      sodSignature: this.sod.signerInfo.signature.toNumberArray(),
+      sodSignatureAlgorithm: this.sod.signerInfo.signatureAlgorithm.name,
     }
   }
 
   public loadPassport(dg1: Binary, sod: Binary) {
-    this.lds = LDS.fromPassportData(dg1, sod)
+    this.sod = SOD.fromBinary(sod)
+    this.dg1 = dg1
   }
 }
 
-function getSODContent(passport: PassportViewModel): SignedData {
+function getSODContent(passport: PassportViewModel): ASN.SignedData {
   const sod =
     passport.sod && passport.sod[0] == 119 && (passport.sod[1] == -126 || passport.sod[1] == 130)
       ? passport.sod.slice(4)
       : passport.sod
-  const cert = AsnParser.parse(new Uint8Array(sod!), ContentInfo)
-  const signedData = AsnParser.parse(cert.content, SignedData)
+  const cert = AsnParser.parse(new Uint8Array(sod!), ASN.ContentInfo)
+  const signedData = AsnParser.parse(cert.content, ASN.SignedData)
   return signedData
 }
 

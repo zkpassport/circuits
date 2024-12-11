@@ -30,11 +30,22 @@ export type PassportViewModel = {
   lastName: string
   photo: string
   originalPhoto: string
-  LDSVersion: string
-  dataGroups: DataGroupInfo[]
+
   chipAuthSupported: boolean
   chipAuthSuccess: boolean
   chipAuthFailed: boolean
+
+  LDSVersion: string
+
+  dataGroups: DataGroupInfo[]
+  dataGroupsHashAlgorithm: string
+
+  // Matches the subject key identifier of the CSC
+  dscAuthorityKeyIdentifier?: string
+  dscDistinguishedName?: string
+  dscCountry?: string
+  dscValidity?: { notBefore: Date; notAfter: Date }
+
   cmsVersion?: string
   signedAttributesHashAlgorithm?: string
   sodSignatureAlgorithm?: string

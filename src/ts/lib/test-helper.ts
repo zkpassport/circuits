@@ -1,5 +1,5 @@
 import { Binary } from "@/lib/binary"
-import { PassportReader } from "@/lib/passport-reader/passport-reader"
+import { PassportReader } from "@/lib/passport-reader"
 import { PassportViewModel, Query } from "@/types"
 import { readFile } from "fs/promises"
 import path from "path"

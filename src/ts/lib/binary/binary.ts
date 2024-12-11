@@ -116,7 +116,7 @@ export class Binary {
     return Array.from(this.bytes)
   }
 
-  toHex(): HexString {
+  toHex(): HexString | string {
     return ("0x" +
       Array.from(this.bytes)
         .map((b) => b.toString(16).padStart(2, "0"))
