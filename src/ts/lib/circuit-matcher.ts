@@ -87,44 +87,50 @@ export function getCSCMasterlist(): CSCMasterlist {
 }
 
 export function getCSCForPassport(passport: PassportViewModel): CSC | null {
-  const tbsCertificate = extractTBS(passport)
   const cscMasterlist = getCSCMasterlist()
-  const extensions = tbsCertificate?.extensions
+  const extensions = passport.sod.certificate.tbs.extensions
 
-  const privateKeyUsagePeriodOID = "2.5.29.16"
-  const privateKeyUsagePeriod = AsnParser.parse(
-    extensions?.find((ext: any) => ext.extnID === privateKeyUsagePeriodOID)
-      ?.extnValue as BufferSource,
-    PrivateKeyUsagePeriod,
-  )
-  const notBefore = (privateKeyUsagePeriod?.notBefore?.getTime() || 0) / 1000
-  const notAfter = (privateKeyUsagePeriod?.notAfter?.getTime() || 0) / 1000
+  let privateKeyUsagePeriod: PrivateKeyUsagePeriod
+  let notBefore: number
+  let notAfter: number
+  try {
+    privateKeyUsagePeriod = AsnParser.parse(
+      extensions.get("privateKeyUsagePeriod").value.toBuffer(),
+      PrivateKeyUsagePeriod,
+    )
+    notBefore = privateKeyUsagePeriod?.notBefore?.getTime() / 1000
+    notAfter = privateKeyUsagePeriod?.notAfter?.getTime() / 1000
+  } catch (e) {}
 
-  // TODO: Get this from TBS certificate instead of DG1
+  let authorityKeyIdentifier: string
+  try {
+    authorityKeyIdentifier = Binary.from(
+      AsnParser.parse(
+        extensions.get("authorityKeyIdentifier").value.toBuffer(),
+        AuthorityKeyIdentifier,
+      ).keyIdentifier.buffer,
+    ).toHex()
+  } catch (e) {}
+
+  // TODO: Get this from TBS certificate instead of DG1?
   const country = passport?.nationality === "D<<" ? "DEU" : passport?.nationality
 
-  const authorityKeyIdentifierOID = "2.5.29.35"
-  const authorityKeyIdentifier = AsnParser.parse(
-    extensions?.find((ext: any) => ext.extnID === authorityKeyIdentifierOID)
-      ?.extnValue as BufferSource,
-    AuthorityKeyIdentifier,
-  )
-  const formattedKeyIdentifier = bytesToHex(
-    new Uint8Array(authorityKeyIdentifier.keyIdentifier?.buffer ?? []),
-  )
+  const checkAgainstAuthorityKeyIdentifier = (cert: CSC) => {
+    return (
+      authorityKeyIdentifier &&
+      cert.subject_key_identifier?.replace("0x", "") === authorityKeyIdentifier
+    )
+  }
 
   const checkAgainstPrivateKeyUsagePeriod = (cert: CSC) => {
     return (
+      privateKeyUsagePeriod &&
       cert.private_key_usage_period &&
       cert.private_key_usage_period?.not_before &&
       cert.private_key_usage_period?.not_after &&
       notBefore >= (cert.private_key_usage_period?.not_before || 0) &&
       notAfter <= (cert.private_key_usage_period?.not_after || 0)
     )
-  }
-
-  const checkAgainstAuthorityKeyIdentifier = (cert: CSC) => {
-    return cert.subject_key_identifier?.replace("0x", "") === formattedKeyIdentifier
   }
 
   const certificate = cscMasterlist.certificates.find((cert) => {
@@ -134,9 +140,7 @@ export function getCSCForPassport(passport: PassportViewModel): CSC | null {
     )
   })
   if (!certificate) {
-    console.warn(
-      `Could not find CSC for DSC. Country: ${country} Key identifier: ${formattedKeyIdentifier}`,
-    )
+    console.warn(`Could not find CSC for DSC`)
   }
   return certificate ?? null
 }

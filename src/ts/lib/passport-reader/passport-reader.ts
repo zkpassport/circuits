@@ -46,7 +46,7 @@ export class PassportReader {
       ),
       dataGroupsHashAlgorithm: this.sod.encapContentInfo.eContent.hashAlgorithm,
 
-      sod: this.sod.bytes.toNumberArray(),
+      sod: this.sod,
 
       cmsVersion: this.sod.version.toString(),
 
@@ -71,11 +71,7 @@ export class PassportReader {
 }
 
 function getSODContent(passport: PassportViewModel): ASN.SignedData {
-  const sod =
-    passport.sod && passport.sod[0] == 119 && (passport.sod[1] == -126 || passport.sod[1] == 130)
-      ? passport.sod.slice(4)
-      : passport.sod
-  const cert = AsnParser.parse(new Uint8Array(sod!), ASN.ContentInfo)
+  const cert = AsnParser.parse(passport.sod.bytes.toBuffer(), ASN.ContentInfo)
   const signedData = AsnParser.parse(cert.content, ASN.SignedData)
   return signedData
 }
