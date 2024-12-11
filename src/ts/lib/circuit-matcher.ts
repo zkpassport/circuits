@@ -130,7 +130,7 @@ export function getCSCForPassport(passport: PassportViewModel): CSC | null {
   const certificate = cscMasterlist.certificates.find((cert) => {
     return (
       cert.country.toLowerCase() === country.toLowerCase() &&
-      (checkAgainstPrivateKeyUsagePeriod(cert) || checkAgainstAuthorityKeyIdentifier(cert))
+      (checkAgainstAuthorityKeyIdentifier(cert) || checkAgainstPrivateKeyUsagePeriod(cert))
     )
   })
   if (!certificate) {
