@@ -135,7 +135,7 @@ export function getCSCForPassport(passport: PassportViewModel): CSC | null {
   })
   if (!certificate) {
     console.warn(
-      `Could not find CSC for ${country} passport with subject_key_identifier=${formattedKeyIdentifier}`,
+      `Could not find CSC for DSC. Country: ${country} Key identifier: ${formattedKeyIdentifier}`,
     )
   }
   return certificate ?? null
