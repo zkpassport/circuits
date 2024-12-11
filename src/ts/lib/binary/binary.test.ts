@@ -8,7 +8,6 @@ describe("Binary", () => {
       const value = BigInt(123456789)
       const binary = new Binary(value)
       expect(binary.toBigInt()).toBe(value)
-      console.log(binary)
     })
 
     it("should create from Uint8Array", () => {

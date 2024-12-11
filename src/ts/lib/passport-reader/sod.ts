@@ -122,11 +122,10 @@ export class SODSignedData {
     }
   }
 
-  // The DSC (Document Signing Certificate) that issigned by the CSC (Country Signing Certificate)
+  // The DSC (Document Signing Certificate) that is signed by the CSC (Country Signing Certificate)
   certificate: {
     // TBS (To-Be-Signed) certificate
-    // This is the DSC (Document Signing Certificate) that is signed by a CSC (Certificate Signing Certificate)
-    // The CSCA (Country Signing Certification Authority) is the entity responsible for issuing the CSCs/DCSs
+    // The region of the DSC signed by the CSC
     tbs: {
       // Version of this TBS certificate
       // Specifies certificate format and types of fields/extensions supported
