@@ -2,7 +2,6 @@ use data_check_integrity::check_integrity_of_data;
 use data_check_expiry::check_expiry;
 use commitment::commit_to_disclosure;
 
-#[recursive]
 fn main(
     current_date: pub str<8>,
     comm_in: pub Field,

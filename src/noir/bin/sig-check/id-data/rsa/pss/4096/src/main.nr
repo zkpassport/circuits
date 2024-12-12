@@ -2,7 +2,6 @@ use sig_check_rsa::verify_signature;
 use commitment::commit_to_id;
 use data_check_tbs_pubkey::verify_rsa_pubkey_in_tbs;
 
-#[recursive]
 fn main(
     comm_in: pub Field,
     salt: Field,

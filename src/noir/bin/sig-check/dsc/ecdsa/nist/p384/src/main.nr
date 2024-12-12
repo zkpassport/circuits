@@ -1,8 +1,7 @@
-use sig_check_ecdsa::verify_signature;
 use commitment::commit_to_dsc;
-use utils::{concat_array, split_array, ECDSA_CURVE_P384};
+use sig_check_ecdsa::verify_p384;
+use utils::{concat_array, ECDSA_CURVE_P384, split_array};
 
-#[recursive]
 fn main(
     certificate_registry_root: pub Field,
     certificate_registry_index: Field,
@@ -17,14 +16,16 @@ fn main(
     tbs_certificate_len: u64,
 ) -> pub Field {
     let (r, s) = split_array(dsc_signature);
-    assert(verify_signature::<_, ECDSA_CURVE_P384, _>(
-        csc_pubkey_x,
-        csc_pubkey_y,
-        r,
-        s,
-        tbs_certificate,
-        tbs_certificate_len,
-    ));
+    assert(
+        verify_p384(
+            csc_pubkey_x,
+            csc_pubkey_y,
+            r,
+            s,
+            tbs_certificate,
+            tbs_certificate_len,
+        ),
+    );
     let comm_out = commit_to_dsc(
         certificate_registry_root,
         certificate_registry_index,

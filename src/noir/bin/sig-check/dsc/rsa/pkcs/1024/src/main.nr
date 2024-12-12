@@ -1,7 +1,6 @@
-use sig_check_rsa::verify_signature;
 use commitment::commit_to_dsc;
+use sig_check_rsa::verify_signature;
 
-#[recursive]
 fn main(
     // Certificate registry merkle root
     certificate_registry_root: pub Field,

@@ -1,7 +1,6 @@
 use disclose::get_disclosed_bytes;
 use commitment::nullify;
 
-#[recursive]
 fn main(
     comm_in: pub Field,
     salt: Field,

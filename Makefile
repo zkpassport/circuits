@@ -39,11 +39,13 @@ package_names := data_check_integrity \
 
 compileAll:
 	for pkg in $(package_names); do \
-		$(CWD)/scripts/info.sh $$pkg; \
+		echo "Compiling $$pkg"; \
+		nargo compile --package $$pkg; \
 	done
 
 proveAll:
 	for pkg in $(package_names); do \
+		echo "Proving $$pkg"; \
 		$(CWD)/scripts/prove-honk.sh $$pkg; \
 	done
 

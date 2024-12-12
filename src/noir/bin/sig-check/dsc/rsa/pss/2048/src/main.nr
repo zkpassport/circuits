@@ -1,7 +1,6 @@
 use sig_check_rsa::verify_signature;
 use commitment::commit_to_dsc;
 
-#[recursive]
 fn main(
     certificate_registry_root: Field,
     certificate_registry_index: Field,
