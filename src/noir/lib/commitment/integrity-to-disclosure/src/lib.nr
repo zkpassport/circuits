@@ -25,7 +25,7 @@ comm_out                `H(salt, dg1, private_nullifier)`
 - Checks that the dg1 hash is present in econtent
 - Checks that the hash of econtent is present in signed_attr
 */
-pub fn commit_to_disclosure<let SIG_SIZE: u32, let SA_SIZE: u32>(
+pub fn commit_to_disclosure<let SA_SIZE: u32>(
     comm_in: Field,
     salt: Field,
     dg1: [u8; 95],

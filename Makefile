@@ -40,7 +40,7 @@ package_names := data_check_integrity \
 compileAll:
 	for pkg in $(package_names); do \
 		echo "Compiling $$pkg"; \
-		nargo compile --package $$pkg; \
+		$(CWD)/scripts/info.sh $$pkg; \
 	done
 
 proveAll:
