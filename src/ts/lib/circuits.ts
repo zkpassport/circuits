@@ -1,9 +1,9 @@
 import { Binary } from "@/lib/binary"
 import { BB_THREADS, CERT_TYPE_CSC, CERTIFICATE_REGISTRY_ID, TBS_MAX_SIZE } from "@/lib/constants"
 import { CSC, ECDSACSCPublicKey, RSACSCPublicKey } from "@/types"
-import { BarretenbergSync, Fr } from "@aztec/bb.js"
-import { BarretenbergBackend, ProofData } from "@noir-lang/backend_barretenberg"
+import { BarretenbergSync, Fr, UltraHonkBackend } from "@aztec/bb.js"
 import { CompiledCircuit, InputMap, Noir } from "@noir-lang/noir_js"
+import { ProofData } from "@noir-lang/types"
 import { readFileSync } from "fs"
 import path from "path"
 
@@ -11,8 +11,8 @@ const bb = await BarretenbergSync.initSingleton()
 
 export class Circuit {
   private manifest: CompiledCircuit
-  public witness: any
-  public backend: BarretenbergBackend
+  public witness: Uint8Array
+  public backend: UltraHonkBackend
   public noir: Noir
 
   constructor(manifest: CompiledCircuit) {
@@ -24,7 +24,9 @@ export class Circuit {
 
   async init() {
     if (this.backend) return
-    this.backend = new BarretenbergBackend(this.manifest, { threads: BB_THREADS })
+    this.backend = new UltraHonkBackend(this.manifest.bytecode, {
+      threads: BB_THREADS,
+    })
     this.noir = new Noir(this.manifest)
   }
 
@@ -45,7 +47,7 @@ export class Circuit {
   async proveRecursiveProof(inputs: InputMap): Promise<{ proof: ProofData; artifacts: any }> {
     const proof = await this.prove(inputs)
     const artifacts = await this.backend.generateRecursiveProofArtifacts(
-      proof,
+      proof.proof,
       proof.publicInputs.length,
     )
     return { proof, artifacts }

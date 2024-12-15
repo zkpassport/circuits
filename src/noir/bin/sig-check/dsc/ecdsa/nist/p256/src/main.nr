@@ -2,7 +2,6 @@ use sig_check_ecdsa::verify_signature;
 use commitment::commit_to_dsc;
 use utils::concat_array;
 
-#[recursive]
 fn main(
     certificate_registry_root: pub Field,
     certificate_registry_index: Field,

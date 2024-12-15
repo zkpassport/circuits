@@ -1,16 +1,15 @@
-use sig_check_ecdsa::verify_signature;
 use commitment::commit_to_id;
 use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
+use sig_check_ecdsa::verify_p521;
 use utils::{ECDSA_CURVE_P521, split_array};
 
-#[recursive]
 fn main(
     comm_in: pub Field,
     salt: Field,
     dg1: [u8; 95],
-    dsc_pubkey_x: [u8; 64],
-    dsc_pubkey_y: [u8; 64],
-    sod_signature: [u8; 128],
+    dsc_pubkey_x: [u8; 66],
+    dsc_pubkey_y: [u8; 66],
+    sod_signature: [u8; 132],
     tbs_certificate: [u8; 1500],
     pubkey_offset_in_tbs: u32,
     signed_attributes: [u8; 200],
@@ -23,7 +22,7 @@ fn main(
         tbs_certificate,
         pubkey_offset_in_tbs,
     );
-    assert(verify_signature::<_, ECDSA_CURVE_P521, _>(
+    assert(verify_p521(
         dsc_pubkey_x,
         dsc_pubkey_y,
         r,

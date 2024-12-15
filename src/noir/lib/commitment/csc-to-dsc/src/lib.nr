@@ -1,4 +1,4 @@
-use common::{calculate_certificate_registry_leaf, hash_salt_country_tbs, CSC_CERT_TYPE};
+use common::{calculate_certificate_registry_leaf, CSC_CERT_TYPE, hash_salt_country_tbs};
 use merkle_tree::merkle::MerkleTree;
 use std::hash::poseidon2::Poseidon2;
 
