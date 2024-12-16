@@ -13,7 +13,7 @@ describe("SOD", () => {
   beforeAll(async () => {
     const sodFile = path.resolve(FIXTURES_PATH, "EF_SOD.bin")
     sodBytes = Binary.from(await readFile(sodFile))
-    sod = SOD.fromBinary(sodBytes)
+    sod = SOD.fromDER(sodBytes)
   })
 
   it("should parse basic SOD properties", () => {

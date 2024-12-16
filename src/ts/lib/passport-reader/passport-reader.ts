@@ -65,7 +65,7 @@ export class PassportReader {
   }
 
   public loadPassport(dg1: Binary, sod: Binary) {
-    this.sod = SOD.fromBinary(sod)
+    this.sod = SOD.fromDER(sod)
     this.dg1 = dg1
   }
 }

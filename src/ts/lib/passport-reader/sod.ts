@@ -210,10 +210,10 @@ export class SOD extends SODSignedData {
     Object.assign(this, sod)
   }
 
-  static fromBinary(sod: Binary): SOD {
-    sod = sod.slice(0, 2).equals(Binary.from([119, 130])) ? sod.slice(4) : sod
+  static fromDER(der: Binary): SOD {
+    der = der.slice(0, 2).equals(Binary.from([119, 130])) ? der.slice(4) : der
 
-    const contentInfo = AsnParser.parse(sod.toUInt8Array(), ASN.ContentInfo)
+    const contentInfo = AsnParser.parse(der.toUInt8Array(), ASN.ContentInfo)
     const signedData = AsnParser.parse(contentInfo.content, ASN.SignedData)
     const eContent = AsnConvert.parse(
       signedData.encapContentInfo.eContent.single,
@@ -240,7 +240,7 @@ export class SOD extends SODSignedData {
     }
 
     return new SOD({
-      bytes: sod,
+      bytes: der,
       version: signedData.version,
 
       digestAlgorithms: signedData.digestAlgorithms.map(
