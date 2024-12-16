@@ -201,10 +201,10 @@ export async function getDSCCircuitInputs(passport: PassportViewModel): Promise<
   const cscMasterlist = getCSCMasterlist()
   const leaves = cscMasterlist.certificates.map((l) => Binary.fromHex(getCertificateLeafHash(l)))
   const index = cscMasterlist.certificates.findIndex((l) => l === csc)
-  // Fill up leaves to CERTIFICATE_PAD_EMPTY_LEAVES
+  // Fill up empty leaves with 0x01 (up to CERTIFICATE_PAD_EMPTY_LEAVES)
   const emptyLeavesNeeded = CERTIFICATE_PAD_EMPTY_LEAVES - leaves.length
   if (emptyLeavesNeeded > 0) {
-    const emptyLeaves = Array(emptyLeavesNeeded).fill(Binary.fromHex("00".repeat(32)))
+    const emptyLeaves = Array(emptyLeavesNeeded).fill(Binary.fromHex("0x01"))
     leaves.push(...emptyLeaves)
   }
   const merkleProof = await computeMerkleProof(CERTIFICATE_REGISTRY_HEIGHT, leaves, index)
