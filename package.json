@@ -2,7 +2,8 @@
   "name": "circuits",
   "type": "module",
   "scripts": {
-    "build:circuits": "src/ts/scripts/build-circuits.sh"
+    "build:circuits": "src/ts/scripts/build-circuits.sh",
+    "typecheck": "tsc --project src/ts/tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/bun": "latest"
