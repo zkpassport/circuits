@@ -90,26 +90,19 @@ export function getCSCForPassport(passport: PassportViewModel): CSC | null {
   const cscMasterlist = getCSCMasterlist()
   const extensions = passport.sod.certificate.tbs.extensions
 
-  let privateKeyUsagePeriod: PrivateKeyUsagePeriod | undefined
   let notBefore: number | undefined
   let notAfter: number | undefined
-  if (extensions?.get("privateKeyUsagePeriod")) {
-    privateKeyUsagePeriod = AsnParser.parse(
-      // @ts-ignore-next-line
-      extensions.get("privateKeyUsagePeriod")?.value.toBuffer(),
-      PrivateKeyUsagePeriod,
-    )
-    notBefore = privateKeyUsagePeriod.notBefore?.getTime() ?? 0 / 1000
-    notAfter = privateKeyUsagePeriod.notAfter?.getTime() ?? 0 / 1000
+  const pkupBuffer = extensions.get("privateKeyUsagePeriod")?.value.toBuffer()
+  if (pkupBuffer) {
+    const pkup = AsnParser.parse(pkupBuffer, PrivateKeyUsagePeriod)
+    notBefore = pkup.notBefore?.getTime() ?? 0 / 1000
+    notAfter = pkup.notAfter?.getTime() ?? 0 / 1000
   }
 
   let authorityKeyIdentifier: string | undefined
-  if (extensions?.get("authorityKeyIdentifier")) {
-    const parsed = AsnParser.parse(
-      // @ts-ignore-next-line
-      extensions.get("authorityKeyIdentifier")?.value.toBuffer(),
-      AuthorityKeyIdentifier,
-    )
+  const akiBuffer = extensions.get("authorityKeyIdentifier")?.value.toBuffer()
+  if (akiBuffer) {
+    const parsed = AsnParser.parse(akiBuffer, AuthorityKeyIdentifier)
     if (parsed?.keyIdentifier?.buffer) {
       authorityKeyIdentifier = Binary.from(parsed.keyIdentifier.buffer).toHex().replace("0x", "")
     }
@@ -126,7 +119,6 @@ export function getCSCForPassport(passport: PassportViewModel): CSC | null {
 
   const checkAgainstPrivateKeyUsagePeriod = (cert: CSC) => {
     return (
-      privateKeyUsagePeriod &&
       cert.private_key_usage_period &&
       cert.private_key_usage_period?.not_before &&
       cert.private_key_usage_period?.not_after &&
