@@ -12,15 +12,34 @@ use ecdsa::ecdsa::{
     verify_secp384r1_ecdsa, verify_secp521r1_ecdsa,
 };
 use ecdsa::secp521r1::params::{Secp521r1Fq, Secp521r1Fr};
+use std::ecdsa_secp256r1;
 use std::hash::sha256;
-use utils::check_zero_padding;
 use utils::{
-    ECDSA_CURVE_BRAINPOOL_B256R1, ECDSA_CURVE_BRAINPOOL_B256T1, ECDSA_CURVE_BRAINPOOL_B384R1,
-    ECDSA_CURVE_BRAINPOOL_B384T1, ECDSA_CURVE_BRAINPOOL_B512R1, ECDSA_CURVE_BRAINPOOL_B512T1,
-    ECDSA_CURVE_P384, ECDSA_CURVE_P521,
+    check_zero_padding, concat_array, ECDSA_CURVE_BRAINPOOL_B256R1, ECDSA_CURVE_BRAINPOOL_B256T1,
+    ECDSA_CURVE_BRAINPOOL_B384R1, ECDSA_CURVE_BRAINPOOL_B384T1, ECDSA_CURVE_BRAINPOOL_B512R1,
+    ECDSA_CURVE_BRAINPOOL_B512T1, ECDSA_CURVE_P384, ECDSA_CURVE_P521,
 };
 
-pub fn verify_p384<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_nist_p256<let DATA_TO_SIGN_LEN: u32>(
+    pubkey_x: [u8; 32],
+    pubkey_y: [u8; 32],
+    signature_r: [u8; 32],
+    signature_s: [u8; 32],
+    data_to_sign: [u8; DATA_TO_SIGN_LEN],
+    data_to_sign_len: u64,
+) -> bool {
+    // Check that the data signed does stop at the specified length
+    // to prevent the prover from using the bytes beyond that point
+    // to manipulate it in their favor
+    check_zero_padding(data_to_sign, data_to_sign_len as u32);
+
+    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
+
+    let signature = concat_array(signature_r, signature_s);
+    ecdsa_secp256r1::verify_signature(pubkey_x, pubkey_y, signature, msg_hash)
+}
+
+pub fn verify_nist_p384<let DATA_TO_SIGN_LEN: u32>(
     pubkey_x: [u8; 48],
     pubkey_y: [u8; 48],
     signature_r: [u8; 48],
@@ -46,7 +65,7 @@ pub fn verify_p384<let DATA_TO_SIGN_LEN: u32>(
     )
 }
 
-pub fn verify_p521<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_nist_p521<let DATA_TO_SIGN_LEN: u32>(
     pubkey_x: [u8; 66],
     pubkey_y: [u8; 66],
     signature_r: [u8; 66],
@@ -72,7 +91,7 @@ pub fn verify_p521<let DATA_TO_SIGN_LEN: u32>(
     )
 }
 
-pub fn verify_brainpool_p256r1<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_brainpool_256r1<let DATA_TO_SIGN_LEN: u32>(
     pubkey_x: [u8; 32],
     pubkey_y: [u8; 32],
     signature_r: [u8; 32],
@@ -98,7 +117,7 @@ pub fn verify_brainpool_p256r1<let DATA_TO_SIGN_LEN: u32>(
     )
 }
 
-pub fn verify_brainpool_p256t1<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_brainpool_256t1<let DATA_TO_SIGN_LEN: u32>(
     pubkey_x: [u8; 32],
     pubkey_y: [u8; 32],
     signature_r: [u8; 32],
@@ -124,7 +143,7 @@ pub fn verify_brainpool_p256t1<let DATA_TO_SIGN_LEN: u32>(
     )
 }
 
-pub fn verify_brainpool_p384r1<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_brainpool_384r1<let DATA_TO_SIGN_LEN: u32>(
     pubkey_x: [u8; 48],
     pubkey_y: [u8; 48],
     signature_r: [u8; 48],
@@ -150,7 +169,7 @@ pub fn verify_brainpool_p384r1<let DATA_TO_SIGN_LEN: u32>(
     )
 }
 
-pub fn verify_brainpool_p384t1<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_brainpool_384t1<let DATA_TO_SIGN_LEN: u32>(
     pubkey_x: [u8; 48],
     pubkey_y: [u8; 48],
     signature_r: [u8; 48],
@@ -176,7 +195,7 @@ pub fn verify_brainpool_p384t1<let DATA_TO_SIGN_LEN: u32>(
     )
 }
 
-pub fn verify_brainpool_p512r1<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_brainpool_512r1<let DATA_TO_SIGN_LEN: u32>(
     pubkey_x: [u8; 64],
     pubkey_y: [u8; 64],
     signature_r: [u8; 64],
@@ -202,7 +221,7 @@ pub fn verify_brainpool_p512r1<let DATA_TO_SIGN_LEN: u32>(
     )
 }
 
-pub fn verify_brainpool_p512t1<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_brainpool_512t1<let DATA_TO_SIGN_LEN: u32>(
     pubkey_x: [u8; 64],
     pubkey_y: [u8; 64],
     signature_r: [u8; 64],

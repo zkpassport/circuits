@@ -1,6 +1,7 @@
-use sig_check_ecdsa::verify_signature;
 use commitment::commit_to_id;
 use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
+use sig_check_ecdsa::verify_nist_p256;
+use utils::split_array;
 
 fn main(
     comm_in: pub Field,
@@ -14,16 +15,18 @@ fn main(
     signed_attributes: [u8; 200],
     signed_attributes_size: u64,
 ) -> pub Field {
+    let (r, s) = split_array(sod_signature);
     verify_ecdsa_pubkey_in_tbs(
         dsc_pubkey_x,
         dsc_pubkey_y,
         tbs_certificate,
         pubkey_offset_in_tbs,
     );
-    assert(verify_signature(
+    assert(verify_nist_p256(
         dsc_pubkey_x,
         dsc_pubkey_y,
-        sod_signature,
+        r,
+        s,
         signed_attributes,
         signed_attributes_size,
     ));

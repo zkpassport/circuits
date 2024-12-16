@@ -1,7 +1,7 @@
 use commitment::commit_to_id;
 use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
-use sig_check_ecdsa::verify_p521;
-use utils::{ECDSA_CURVE_P521, split_array};
+use sig_check_ecdsa::verify_nist_p521;
+use utils::split_array;
 
 fn main(
     comm_in: pub Field,
@@ -22,7 +22,7 @@ fn main(
         tbs_certificate,
         pubkey_offset_in_tbs,
     );
-    assert(verify_p521(
+    assert(verify_nist_p521(
         dsc_pubkey_x,
         dsc_pubkey_y,
         r,

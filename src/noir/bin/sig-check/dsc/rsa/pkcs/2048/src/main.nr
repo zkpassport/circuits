@@ -2,8 +2,7 @@ use sig_check_rsa::verify_signature;
 use commitment::commit_to_dsc;
 
 fn main(
-    // Certificate registry merkle root
-    certificate_registry_root: pub Field,
+    certificate_registry_root: Field,
     certificate_registry_index: Field,
     certificate_registry_hash_path: [Field; 14],
     certificate_registry_id: Field,
@@ -16,17 +15,14 @@ fn main(
     dsc_signature: [u8; 256],
     exponent: u32,
 ) -> pub Field {
-    assert(
-        verify_signature::<256, 0, 1500>(
-            csc_pubkey,
-            dsc_signature,
-            csc_pubkey_redc_param,
-            exponent,
-            tbs_certificate,
-            tbs_certificate_len,
-        ),
-        "Signature verification failed",
-    );
+    assert(verify_signature::<256, 0, 1500>(
+        csc_pubkey,
+        dsc_signature,
+        csc_pubkey_redc_param,
+        exponent,
+        tbs_certificate,
+        tbs_certificate_len,
+    ));
     let comm_out = commit_to_dsc(
         certificate_registry_root,
         certificate_registry_index,

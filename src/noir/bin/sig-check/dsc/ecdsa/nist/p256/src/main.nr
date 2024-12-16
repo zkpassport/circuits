@@ -1,6 +1,6 @@
-use sig_check_ecdsa::verify_signature;
 use commitment::commit_to_dsc;
-use utils::concat_array;
+use sig_check_ecdsa::verify_nist_p256;
+use utils::{concat_array, split_array};
 
 fn main(
     certificate_registry_root: pub Field,
@@ -15,10 +15,12 @@ fn main(
     tbs_certificate: [u8; 1500],
     tbs_certificate_len: u64,
 ) -> pub Field {
-    assert(verify_signature(
+    let (r, s) = split_array(dsc_signature);
+    assert(verify_nist_p256(
         csc_pubkey_x,
         csc_pubkey_y,
-        dsc_signature,
+        r,
+        s,
         tbs_certificate,
         tbs_certificate_len,
     ));
