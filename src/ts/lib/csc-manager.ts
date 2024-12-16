@@ -257,15 +257,15 @@ export function parseCertificate(content: Buffer | string): CSC {
         .algorithm as keyof typeof OIDS_TO_DESCRIPTION
     ] ?? x509.tbsCertificate.subjectPublicKeyInfo.algorithm.algorithm
 
-  if (isRSA) {
+  if (publicKeyType === "rsaEncryption") {
     const rsaInfo = getRSAInfo(x509.tbsCertificate)
     return {
       signature_algorithm: signatureAlgorithm as SignatureAlgorithm,
-      public_key_type: publicKeyType as "rsaEncryption" | "ecPublicKey",
       public_key: {
+        type: publicKeyType,
         modulus: `0x${rsaInfo.modulus.toString(16)}`,
         exponent: Number(rsaInfo.exponent),
-        type: signatureAlgorithm.includes("pss") ? "pss" : "pkcs",
+        scheme: signatureAlgorithm.includes("pss") ? "pss" : "pkcs",
       },
       country: countryCode as Alpha3Code,
       validity: {
@@ -277,12 +277,12 @@ export function parseCertificate(content: Buffer | string): CSC {
       subject_key_identifier: getSubjectKeyId(x509),
       private_key_usage_period: getPrivateKeyUsagePeriod(x509),
     }
-  } else {
+  } else if (publicKeyType === "ecPublicKey") {
     const ecdsaInfo = getECDSAInfo(x509.tbsCertificate)
     return {
       signature_algorithm: signatureAlgorithm as SignatureAlgorithm,
-      public_key_type: publicKeyType as "ecPublicKey",
       public_key: {
+        type: publicKeyType,
         curve: ecdsaInfo.curve,
         // The first byte is 0x04, which is the prefix for uncompressed public keys
         // so we get rid of it
@@ -303,6 +303,8 @@ export function parseCertificate(content: Buffer | string): CSC {
       subject_key_identifier: getSubjectKeyId(x509),
       private_key_usage_period: getPrivateKeyUsagePeriod(x509),
     }
+  } else {
+    throw new Error("Unsupported public key type")
   }
 }
 

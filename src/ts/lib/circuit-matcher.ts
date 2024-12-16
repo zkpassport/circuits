@@ -90,28 +90,30 @@ export function getCSCForPassport(passport: PassportViewModel): CSC | null {
   const cscMasterlist = getCSCMasterlist()
   const extensions = passport.sod.certificate.tbs.extensions
 
-  let privateKeyUsagePeriod: PrivateKeyUsagePeriod
-  let notBefore: number
-  let notAfter: number
-  try {
+  let privateKeyUsagePeriod: PrivateKeyUsagePeriod | undefined
+  let notBefore: number | undefined
+  let notAfter: number | undefined
+  if (extensions?.get("privateKeyUsagePeriod")) {
     privateKeyUsagePeriod = AsnParser.parse(
-      extensions.get("privateKeyUsagePeriod").value.toBuffer(),
+      // @ts-ignore-next-line
+      extensions.get("privateKeyUsagePeriod")?.value.toBuffer(),
       PrivateKeyUsagePeriod,
     )
-    notBefore = privateKeyUsagePeriod?.notBefore?.getTime() / 1000
-    notAfter = privateKeyUsagePeriod?.notAfter?.getTime() / 1000
-  } catch (e) {}
+    notBefore = privateKeyUsagePeriod.notBefore?.getTime() ?? 0 / 1000
+    notAfter = privateKeyUsagePeriod.notAfter?.getTime() ?? 0 / 1000
+  }
 
-  let authorityKeyIdentifier: string
-  try {
-    authorityKeyIdentifier = Binary.from(
-      AsnParser.parse(
-        extensions.get("authorityKeyIdentifier").value.toBuffer(),
-        AuthorityKeyIdentifier,
-      ).keyIdentifier.buffer,
-    ).toHex()
-  } catch (e) {}
-
+  let authorityKeyIdentifier: string | undefined
+  if (extensions?.get("authorityKeyIdentifier")) {
+    const parsed = AsnParser.parse(
+      // @ts-ignore-next-line
+      extensions.get("authorityKeyIdentifier")?.value.toBuffer(),
+      AuthorityKeyIdentifier,
+    )
+    if (parsed?.keyIdentifier?.buffer) {
+      authorityKeyIdentifier = Binary.from(parsed.keyIdentifier.buffer).toHex().replace("0x", "")
+    }
+  }
   // TODO: Get this from TBS certificate instead of DG1?
   const country = passport?.nationality === "D<<" ? "DEU" : passport?.nationality
 
@@ -128,6 +130,8 @@ export function getCSCForPassport(passport: PassportViewModel): CSC | null {
       cert.private_key_usage_period &&
       cert.private_key_usage_period?.not_before &&
       cert.private_key_usage_period?.not_after &&
+      notBefore &&
+      notAfter &&
       notBefore >= (cert.private_key_usage_period?.not_before || 0) &&
       notAfter <= (cert.private_key_usage_period?.not_after || 0)
     )

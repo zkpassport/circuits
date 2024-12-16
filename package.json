@@ -1,5 +1,6 @@
 {
   "name": "circuits",
+  "type": "module",
   "scripts": {
     "build:circuits": "src/ts/scripts/build-circuits.sh"
   },

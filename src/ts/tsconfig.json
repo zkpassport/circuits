@@ -1,19 +1,19 @@
 {
   "compilerOptions": {
     "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": false,
     "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "experimentalDecorators": true,
     "skipLibCheck": true,
-    "target": "ESNext",
-    "module": "ESNext",
+    "target": "esnext",
+    "module": "preserve",
+    "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
-    },
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "experimentalDecorators": true
+      "@/*": ["./*"],
+      "@/types": ["./types/index.d.ts"]
+    }
   },
-  "include": ["**/*.ts"]
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
 }

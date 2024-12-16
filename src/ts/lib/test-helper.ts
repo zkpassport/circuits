@@ -23,14 +23,16 @@ interface CircuitInputs {
 
 export class TestHelper {
   private passportReader = new PassportReader()
-  private passport: PassportViewModel
+  private passport?: PassportViewModel
 
   constructor() {}
 
   async generateCircuitInputs<T extends CircuitType>(circuitType: T): Promise<CircuitInputs[T]> {
+    if (!this.passport) throw new Error("Passport not initialized")
     switch (circuitType) {
       case "dsc": {
         const inputs = await getDSCCircuitInputs(this.passport)
+        if (!inputs) throw new Error("Unable to generate DSC circuit inputs")
         return {
           ...inputs,
           salt: 0,
@@ -38,6 +40,7 @@ export class TestHelper {
       }
       case "id": {
         const inputs = await getIDDataCircuitInputs(this.passport)
+        if (!inputs) throw new Error("Unable to generate ID data circuit inputs")
         return {
           ...inputs,
           salt: 0,
@@ -45,6 +48,7 @@ export class TestHelper {
       }
       case "integrity": {
         const inputs = await getIntegrityCheckCircuitInputs(this.passport)
+        if (!inputs) throw new Error("Unable to generate integrity check circuit inputs")
         return {
           ...inputs,
           salt: 0,
@@ -57,6 +61,7 @@ export class TestHelper {
           birthdate: { disclose: true },
         }
         const inputs = await getDiscloseCircuitInputs(this.passport, query)
+        if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
         return {
           ...inputs,
           salt: 0,

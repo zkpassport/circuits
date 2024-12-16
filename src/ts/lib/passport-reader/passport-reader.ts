@@ -12,12 +12,16 @@ import { SOD } from "./sod"
 import { ASN } from "./asn"
 
 export class PassportReader {
-  public dg1: Binary
-  public sod: SOD
+  public dg1?: Binary
+  public sod?: SOD
 
   getPassportViewModel(): PassportViewModel {
+    if (this.dg1 === undefined || this.sod === undefined) {
+      throw new Error("PassportReader not initialized")
+    }
     // TODO: Implement the remaining properties
     return {
+      appVersion: "",
       mrz: this.dg1.toString("ascii"),
       name: "",
       dateOfBirth: "",
@@ -36,23 +40,25 @@ export class PassportReader {
 
       LDSVersion: "",
 
+      // TODO: Add support for other data groups
       dataGroups: Object.entries(this.sod.encapContentInfo.eContent.dataGroupHashValues.values).map(
         ([key, value]) => ({
           groupNumber: Number(key),
           name: "DG" + key,
           hash: value.toNumberArray(),
-          value: key == "1" ? this.dg1.toNumberArray() : [],
+          value: key === "1" ? this.dg1?.toNumberArray() ?? [] : [],
         }),
       ),
       dataGroupsHashAlgorithm: this.sod.encapContentInfo.eContent.hashAlgorithm,
 
       sod: this.sod,
 
-      cmsVersion: this.sod.version.toString(),
+      sodVersion: this.sod.version.toString(),
 
       signedAttributes: this.sod.signerInfo.signedAttrs.bytes.toNumberArray(),
       signedAttributesHashAlgorithm: this.sod.signerInfo.digestAlgorithm,
       eContent: this.sod.encapContentInfo.eContent.bytes.toNumberArray(),
+      eContentHash: this.sod.signerInfo.signedAttrs.messageDigest.toHex(),
       eContentHashAlgorithm: this.sod.signerInfo.digestAlgorithm,
 
       tbsCertificate: this.sod.certificate.tbs.bytes.toNumberArray(),

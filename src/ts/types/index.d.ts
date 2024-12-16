@@ -1,4 +1,5 @@
-import { Alpha2Code, Alpha3Code } from "i18n-iso-countries"
+import type { Alpha2Code, Alpha3Code, CountryName } from "i18n-iso-countries"
+import type { SOD } from "@/lib/passport-reader"
 
 export type SavedPassport = {
   id: string
@@ -45,21 +46,21 @@ export type PassportViewModel = {
   dscDistinguishedName?: string
   dscCountry?: string
   dscValidity?: { notBefore: Date; notAfter: Date }
-
-  cmsVersion?: string
-  signedAttributesHashAlgorithm?: string
-  sodSignatureAlgorithm?: string
   dscSignatureAlgorithm?: string
   dscPublicKeyAlgorithm?: string
-  sodSignature?: number[]
   dscSignature?: number[]
-  sod?: number[]
-  eContent?: number[]
-  eContentHash?: string
-  eContentHashAlgorithm?: string
-  signedAttributes?: number[]
-  tbsCertificate?: number[]
-  appVersion?: string
+
+  sod: SOD
+  sodSignatureAlgorithm?: string
+  sodSignature: number[]
+  sodVersion: string
+  eContent: number[]
+  eContentHash: string
+  eContentHashAlgorithm: string
+  signedAttributesHashAlgorithm: string
+  signedAttributes: number[]
+  tbsCertificate: number[]
+  appVersion: string
 }
 
 export type RSACertificate = {
@@ -136,9 +137,8 @@ export type DisclosableIDCredential =
 export type NumericalIDCredential = "age" | "birthdate" | "expiry_date"
 
 export type IDCredential = NumericalIDCredential | DisclosableIDCredential
-
 export type IDCredentialValue<T extends IDCredential> = T extends "nationality" | "issuing_country"
-  ? CountryName | Alpha2Code | Alpha3Code
+  ? CountryName<{ select: "all" }> | Alpha2Code | Alpha3Code
   : T extends "gender"
   ? "male" | "female"
   : T extends "document_type"
@@ -317,28 +317,24 @@ export type SignatureAlgorithm =
   | "ecdsa-with-SHA384"
   | "ecdsa-with-SHA512"
 
-export interface ECDSACSCPublicKey {
-  // type: "ecPublicKey"
+export type ECDSACSCPublicKey = {
+  type: "ecPublicKey"
   curve: string
   public_key_x: string
   public_key_y: string
 }
 
-export interface RSACSCPublicKey {
-  // type: "rsaEncryption"
+export type RSACSCPublicKey = {
+  type: "rsaEncryption"
   modulus: string
   exponent: number
-  type: "pkcs" | "pss"
+  scheme: "pkcs" | "pss"
 }
 
 export type CSC = {
   signature_algorithm: SignatureAlgorithm
-  public_key_type: "rsaEncryption" | "ecPublicKey"
-  public_key: public_key_type extends "rsaEncryption"
-    ? RSACSCPublicKey
-    : public_key_type extends "ecPublicKey"
-    ? ECDSACSCPublicKey
-    : never
+  // public_key_type: "rsaEncryption" | "ecPublicKey"
+  public_key: RSACSCPublicKey | ECDSACSCPublicKey
   country: Alpha3Code
   validity: {
     not_before: number

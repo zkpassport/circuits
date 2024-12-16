@@ -71,7 +71,7 @@ describe("SOD", () => {
     expect(tbs.extensions.has("keyUsage")).toBe(true)
     expect(tbs.extensions.has("authorityKeyIdentifier")).toBe(true)
     expect(tbs.extensions.has("subjectKeyIdentifier")).toBe(true)
-    expect(tbs.extensions.get("keyUsage").critical).toBe(true)
+    expect(tbs.extensions.get("keyUsage")?.critical).toBe(true)
   })
 
   it("should parse signature algorithms correctly", () => {
