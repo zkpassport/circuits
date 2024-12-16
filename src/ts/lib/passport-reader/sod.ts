@@ -191,7 +191,7 @@ export class SODSignedData {
   bytes: Binary
 }
 
-function formatRDN(issuer: any[]): string {
+function formatDN(issuer: any[]): string {
   return issuer
     .map((i) =>
       i
@@ -276,7 +276,7 @@ export class SOD extends SODSignedData {
         signature: signerInfo.signature ? Binary.from(signerInfo.signature.buffer) : null,
         sid: {
           issuerAndSerialNumber: {
-            issuer: formatRDN(signerInfo.sid.issuerAndSerialNumber.issuer),
+            issuer: formatDN(signerInfo.sid.issuerAndSerialNumber.issuer),
             serialNumber: signerInfo.sid.issuerAndSerialNumber.serialNumber
               ? Binary.from(signerInfo.sid.issuerAndSerialNumber.serialNumber)
               : null,
@@ -296,12 +296,12 @@ export class SOD extends SODSignedData {
             name: getOIDName(tbs.signature.algorithm) as SignatureAlgorithm,
             parameters: tbs.signature.parameters ? Binary.from(tbs.signature.parameters) : null,
           },
-          issuer: formatRDN(tbs.issuer),
+          issuer: formatDN(tbs.issuer),
           validity: {
             notBefore: tbs.validity.notBefore.utcTime,
             notAfter: tbs.validity.notAfter.utcTime,
           },
-          subject: formatRDN(tbs.subject),
+          subject: formatDN(tbs.subject),
           subjectPublicKeyInfo: {
             signatureAlgorithm: {
               name: getOIDName(tbs.subjectPublicKeyInfo.algorithm.algorithm) as SignatureAlgorithm,
