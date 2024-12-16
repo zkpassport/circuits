@@ -20,7 +20,7 @@ describe("subcircuits", () => {
     circuits.disclose = Circuit.from("disclose_bytes")
     circuits.outer = Circuit.from("outer")
 
-    await helper.loadPassportDataFromFile("mike_dg1.bin", "mike_sod.bin")
+    await helper.loadPassportDataFromFile("dg1.bin", "sod.bin")
   })
 
   it("should generate dsc proof", async () => {
