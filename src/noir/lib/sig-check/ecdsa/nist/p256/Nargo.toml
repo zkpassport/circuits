@@ -1,8 +1,0 @@
-[package]
-name = "sig_check_ecdsa_nist_p256"
-type = "lib"
-authors = ["Theo Madzou"]
-compiler_version = ">=0.35.0"
-
-[dependencies]
-utils = { path = "../../../../utils" }

@@ -6,14 +6,14 @@ fn main(
     comm_in: pub Field,
     salt: Field,
     dg1: [u8; 95],
-    tbs_certificate: [u8; 1500],
     dsc_pubkey: [u8; 128],
     dsc_pubkey_redc_param: [u8; 129],
     sod_signature: [u8; 128],
+    tbs_certificate: [u8; 1500],
+    pubkey_offset_in_tbs: u32,
     signed_attributes: [u8; 200],
     signed_attributes_size: u64,
     exponent: u32,
-    pubkey_offset_in_tbs: u32,
 ) -> pub Field {
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate, pubkey_offset_in_tbs);
     assert(verify_signature::<128, 1, 200>(
