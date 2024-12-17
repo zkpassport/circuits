@@ -1,0 +1,9 @@
+[package]
+name = "inclusion_check_country"
+type = "bin"
+authors = ["Theo Madzou"]
+compiler_version = ">=0.22.0"
+
+[dependencies]
+inclusion_check_country = { path = "../../../lib/inclusion-check/country" }
+utils = { path = "../../../lib/utils" }

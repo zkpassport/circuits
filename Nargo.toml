@@ -39,6 +39,7 @@ members = [
     "src/noir/bin/compare/citizenship",
     "src/noir/bin/compare/age",
     "src/noir/bin/exclusion-check/country",
+    "src/noir/bin/inclusion-check/country",
     "src/noir/bin/disclose/flags",
     "src/noir/bin/disclose/bytes",
     "src/noir/bin/main/outer"
