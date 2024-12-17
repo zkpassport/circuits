@@ -1,6 +1,6 @@
-pub fn verify_rsa_pubkey_in_tbs<let DSC_KEY_SIZE: u32>(
+pub fn verify_rsa_pubkey_in_tbs<let DSC_KEY_SIZE: u32, let TBS_CERT_SIZE: u32>(
     dsc_pubkey: [u8; DSC_KEY_SIZE],
-    tbs_certificate: [u8; 1500],
+    tbs_certificate: [u8; TBS_CERT_SIZE],
     pubkey_offset: u32,
 ) {
     // Check that the public key of the DSC is the same as the one in the TBS certificate.
@@ -12,10 +12,10 @@ pub fn verify_rsa_pubkey_in_tbs<let DSC_KEY_SIZE: u32>(
     }
 }
 
-pub fn verify_ecdsa_pubkey_in_tbs<let DSC_KEY_SIZE: u32>(
+pub fn verify_ecdsa_pubkey_in_tbs<let DSC_KEY_SIZE: u32, let TBS_CERT_SIZE: u32>(
     dsc_pubkey_x: [u8; DSC_KEY_SIZE],
     dsc_pubkey_y: [u8; DSC_KEY_SIZE],
-    tbs_certificate: [u8; 1500],
+    tbs_certificate: [u8; TBS_CERT_SIZE],
     pubkey_offset: u32,
 ) {
     // Check that the public key of the DSC is the same as the one in the TBS certificate.
