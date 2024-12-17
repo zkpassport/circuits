@@ -6,4 +6,4 @@ compiler_version = ">=0.22.0"
 
 [dependencies]
 compare_age = { path = "../../../lib/compare/age" }
-utils = { path = "../../../lib/utils" }
+commitment = { path = "../../../lib/commitment/scoped-nullifier" }
