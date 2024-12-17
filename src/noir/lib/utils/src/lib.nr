@@ -271,10 +271,36 @@ pub fn concat_array<let N: u32>(array_x: [u8; N], array_y: [u8; N]) -> [u8; N * 
     array
 }
 
-pub fn check_bytes_zero_padding<let N: u32>(padded_array: [u8; N], len: u32) {
+pub fn check_zero_padding<let N: u32, T>(padded_array: [T; N], len: u32)
+where
+    T: Eq,
+    T: Default,
+{
     for i in 0..N {
         if i >= len {
-            assert_eq(padded_array[i], 0);
+            assert_eq(padded_array[i], T::default());
         }
     }
+}
+
+pub fn get_nationality_from_mrz(dg1: [u8; 95]) -> [u8; 3] {
+    let mrz = get_mrz_from_dg1(dg1);
+
+    let mut country_bytes: [u8; 3] = [0; 3];
+
+    if is_id_card(dg1) {
+        country_bytes = get_array_slice(
+            mrz,
+            ID_CARD_MRZ_NATIONALITY_INDEX,
+            ID_CARD_MRZ_NATIONALITY_INDEX + 3,
+        );
+    } else {
+        country_bytes = get_array_slice(
+            mrz,
+            PASSPORT_MRZ_NATIONALITY_INDEX,
+            PASSPORT_MRZ_NATIONALITY_INDEX + 3,
+        );
+    }
+
+    country_bytes
 }

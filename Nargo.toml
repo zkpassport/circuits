@@ -38,6 +38,7 @@ members = [
     "src/noir/bin/sig-check/id-data/rsa/pss/4096",
     "src/noir/bin/compare/citizenship",
     "src/noir/bin/compare/age",
+    "src/noir/bin/exclusion-check/country",
     "src/noir/bin/disclose/flags",
     "src/noir/bin/disclose/bytes",
     "src/noir/bin/main/outer"

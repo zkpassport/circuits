@@ -1,0 +1,9 @@
+[package]
+name = "exclusion_check_country"
+type = "bin"
+authors = ["Theo Madzou"]
+compiler_version = ">=0.22.0"
+
+[dependencies]
+exclusion_check_country = { path = "../../../lib/exclusion-check/country" }
+utils = { path = "../../../lib/utils" }
