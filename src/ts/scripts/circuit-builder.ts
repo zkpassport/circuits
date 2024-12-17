@@ -1,16 +1,11 @@
 import * as fs from "fs"
 import * as path from "path"
-import { compileCircuit } from "./utils"
+import { compileCircuit } from "../lib/utils"
 import { exec } from "child_process"
 
 // Function to ensure directory exists
 function ensureDirectoryExistence(filePath: string) {
-  const dirname = path.dirname(filePath)
-  if (fs.existsSync(dirname)) {
-    return true
-  }
-  ensureDirectoryExistence(dirname)
-  fs.mkdirSync(dirname)
+  fs.mkdirSync(path.dirname(filePath), { recursive: true })
 }
 
 const generatedCircuits: {
@@ -253,7 +248,7 @@ function generateDscEcdsaCircuit(
   const folderPath = `./src/noir/bin/sig-check/dsc/tbs_${tbs_max_len}/ecdsa/${curve_family}/${curve_name}`
   const noirFilePath = `${folderPath}/src/main.nr`
   const nargoFilePath = `${folderPath}/Nargo.toml`
-  ensureDirectoryExistence(folderPath)
+  ensureDirectoryExistence(noirFilePath)
   fs.writeFileSync(noirFilePath, noirFile)
   ensureDirectoryExistence(nargoFilePath)
   fs.writeFileSync(nargoFilePath, nargoFile)
@@ -271,9 +266,8 @@ function generateDscRsaCircuit(rsa_type: "pss" | "pkcs", bit_size: number, tbs_m
   const folderPath = `./src/noir/bin/sig-check/dsc/tbs_${tbs_max_len}/rsa/${rsa_type}/${bit_size}`
   const noirFilePath = `${folderPath}/src/main.nr`
   const nargoFilePath = `${folderPath}/Nargo.toml`
-  ensureDirectoryExistence(folderPath)
+  ensureDirectoryExistence(noirFilePath)
   fs.writeFileSync(noirFilePath, noirFile)
-  ensureDirectoryExistence(nargoFilePath)
   fs.writeFileSync(nargoFilePath, nargoFile)
   generatedCircuits.push({ name, path: folderPath })
 }
@@ -295,9 +289,8 @@ function generateIdDataEcdsaCircuit(
   const folderPath = `./src/noir/bin/sig-check/id-data/tbs_${tbs_max_len}/ecdsa/${curve_family}/${curve_name}`
   const noirFilePath = `${folderPath}/src/main.nr`
   const nargoFilePath = `${folderPath}/Nargo.toml`
-  ensureDirectoryExistence(folderPath)
+  ensureDirectoryExistence(noirFilePath)
   fs.writeFileSync(noirFilePath, noirFile)
-  ensureDirectoryExistence(nargoFilePath)
   fs.writeFileSync(nargoFilePath, nargoFile)
   generatedCircuits.push({ name, path: folderPath })
 }
@@ -314,9 +307,8 @@ function generateIdDataRsaCircuit(rsa_type: "pss" | "pkcs", bit_size: number, tb
   const folderPath = `./src/noir/bin/sig-check/id-data/tbs_${tbs_max_len}/rsa/${rsa_type}/${bit_size}`
   const noirFilePath = `${folderPath}/src/main.nr`
   const nargoFilePath = `${folderPath}/Nargo.toml`
-  ensureDirectoryExistence(folderPath)
+  ensureDirectoryExistence(noirFilePath)
   fs.writeFileSync(noirFilePath, noirFile)
-  ensureDirectoryExistence(nargoFilePath)
   fs.writeFileSync(nargoFilePath, nargoFile)
   generatedCircuits.push({ name, path: folderPath })
 }
@@ -349,10 +341,11 @@ const SIGNATURE_ALGORITHMS_SUPPORTED: {
 const TBS_MAX_LENGTHS = [700, 1000, 1200, 1500]
 
 const generateDscCircuits = () => {
+  console.log("Generating DSC circuits...")
   SIGNATURE_ALGORITHMS_SUPPORTED.forEach(({ type, family, curve_name, bit_size }) => {
     TBS_MAX_LENGTHS.forEach((tbs_max_len) => {
       if (type === "ecdsa") {
-        generateDscEcdsaCircuit(family, curve_name, bit_size, tbs_max_len)
+        generateDscEcdsaCircuit(family, curve_name!, bit_size, tbs_max_len)
       } else {
         generateDscRsaCircuit(family as "pss" | "pkcs", bit_size, tbs_max_len)
       }
@@ -361,10 +354,11 @@ const generateDscCircuits = () => {
 }
 
 const generateIdDataCircuits = () => {
+  console.log("Generating ID data circuits...")
   SIGNATURE_ALGORITHMS_SUPPORTED.forEach(({ type, family, curve_name, bit_size }) => {
     TBS_MAX_LENGTHS.forEach((tbs_max_len) => {
       if (type === "ecdsa") {
-        generateIdDataEcdsaCircuit(family, curve_name, bit_size, tbs_max_len)
+        generateIdDataEcdsaCircuit(family, curve_name!, bit_size, tbs_max_len)
       } else {
         generateIdDataRsaCircuit(family as "pss" | "pkcs", bit_size, tbs_max_len)
       }
