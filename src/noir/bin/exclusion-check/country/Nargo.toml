@@ -1,9 +1,10 @@
 [package]
-name = "compare_age"
+name = "exclusion_check_country"
 type = "bin"
 authors = ["Theo Madzou"]
 compiler_version = ">=0.22.0"
 
 [dependencies]
-compare_age = { path = "../../../lib/compare/age" }
+exclusion_check_country = { path = "../../../lib/exclusion-check/country" }
 commitment = { path = "../../../lib/commitment/scoped-nullifier" }
+utils = { path = "../../../lib/utils" }

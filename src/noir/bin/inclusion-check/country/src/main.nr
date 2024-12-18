@@ -1,19 +1,19 @@
 use commitment::nullify;
-use compare_citizenship::compare_citizenship;
+use inclusion_check_country::check_country_inclusion;
 
 fn main(
     comm_in: pub Field,
     salt: Field,
     private_nullifier: Field,
     dg1: [u8; 95],
-    // The country is public so verifiers can check
-    // the country provided to the proof is correct
-    country: pub str<3>,
+    // There are roughly 200 countries in the world
+    // so we can safely pad it to 200
+    country_list: pub [str<3>; 200],
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub Field {
-    // Verify the country of the passport holder
-    compare_citizenship(dg1, country.as_bytes());
+    // Check that nationality of the passport holder is not in the list of countries
+    check_country_inclusion(dg1, country_list);
     let nullifier = nullify(
         comm_in,
         salt,
