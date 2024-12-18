@@ -37,7 +37,9 @@ members = [
     "src/noir/bin/disclose/bytes",
     "src/noir/bin/main/outer",
     "src/noir/bin/data-check/expiry",
-    "src/noir/bin/data-check/integrity",${dependencies
+    "src/noir/bin/data-check/integrity",
+    "src/noir/bin/exclusion-check/country",
+    "src/noir/bin/inclusion-check/country",${dependencies
       .map(
         (path) => `
     "${path.replace("./", "")}"`,
