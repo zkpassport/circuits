@@ -32,7 +32,7 @@ pub fn verify_nist_p256<let DATA_TO_SIGN_LEN: u32>(
     // to prevent the prover from using the bytes beyond that point
     // to manipulate it in their favor
     check_zero_padding(data_to_sign, data_to_sign_len as u32);
-
+    
     let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
 
     let signature = concat_array(signature_r, signature_s);
