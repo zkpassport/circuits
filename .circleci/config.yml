@@ -1,0 +1,88 @@
+# Use the latest 2.1 version of CircleCI pipeline processing engine, see https://circleci.com/docs/2.0/configuration-reference/
+version: 2.1
+
+defaults: &defaults
+  working_directory: ~/repo
+  # https://circleci.com/docs/2.0/circleci-images/#language-image-variants
+  docker:
+    - image: cimg/node:23.4.0
+      environment:
+        TERM: xterm # Enable colors in term
+
+jobs:
+  checkout:
+    <<: *defaults
+    steps:
+      - checkout
+      - run:
+          name: Install Bun
+          command: |
+            curl -sSL https://bun.sh/install | bash
+      - save_cache:
+            paths:
+              - /home/circleci/.bun
+            key: bun-cache
+      - run:
+          name: Install Noir
+          command: |
+            curl -sSL https://raw.githubusercontent.com/noir-lang/noirup/refs/heads/main/install | bash || true
+            /home/circleci/.nargo/bin/noirup -v nightly-2024-12-18 # 1.0.0-beta.0+73ccd45590222fc82642a6a9aa657c2915fc2c58
+      - save_cache:
+            paths:
+              - /home/circleci/.nargo
+            key: nargo-cache
+      - run:
+          name: Install npm dependencies
+          command: |
+            /home/circleci/.bun/bin/bun install
+      - persist_to_workspace:
+          root: ~/repo
+          paths: .
+
+  lint:
+    <<: *defaults
+    steps:
+      - restore_cache:
+            keys:
+              - bun-cache
+      - attach_workspace:
+          at: ~/repo
+      - run: /home/circleci/.bun/bin/bun typecheck
+
+  noir_tests:
+    <<: *defaults
+    steps:
+      - restore_cache:
+            keys:
+              - nargo-cache
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: nargo test
+          command: /home/circleci/.nargo/bin/nargo test
+
+  integration_tests:
+    <<: *defaults
+    steps:
+      - restore_cache:
+            keys:
+              - bun-cache
+      - attach_workspace:
+          at: ~/repo
+      - run: /home/circleci/.bun/bin/bun test binary.test.ts sod.test.ts
+
+workflows:
+  version: 2
+
+  test:
+    jobs:
+      - checkout
+      - lint:
+          requires:
+            - checkout
+      - noir_tests:
+          requires:
+            - lint
+      - integration_tests:
+          requires:
+            - lint
