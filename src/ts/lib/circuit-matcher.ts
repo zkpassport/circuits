@@ -8,7 +8,7 @@ import {
 } from "@/lib/constants"
 import { computeMerkleProof } from "@/lib/merkle-tree"
 import {
-  CSC,
+  Certificate,
   CSCMasterlist,
   ECDSACSCPublicKey,
   ECDSADSCDataInputs,
@@ -19,7 +19,6 @@ import {
   RSACSCPublicKey,
   RSADSCDataInputs,
 } from "@/types"
-import { bytesToHex } from "@noble/hashes/utils"
 import { AsnParser } from "@peculiar/asn1-schema"
 import { AuthorityKeyIdentifier, PrivateKeyUsagePeriod } from "@peculiar/asn1-x509"
 import { format } from "date-fns"
@@ -83,51 +82,47 @@ export function isDocumentDSCSupported(passport: PassportViewModel): boolean {
 }
 
 export function getCSCMasterlist(): CSCMasterlist {
-  return cscMasterlistFile
+  return cscMasterlistFile as CSCMasterlist
 }
 
-export function getCSCForPassport(passport: PassportViewModel): CSC | null {
+export function getCSCForPassport(passport: PassportViewModel): Certificate | null {
   const cscMasterlist = getCSCMasterlist()
   const extensions = passport.sod.certificate.tbs.extensions
 
-  let privateKeyUsagePeriod: PrivateKeyUsagePeriod
-  let notBefore: number
-  let notAfter: number
-  try {
-    privateKeyUsagePeriod = AsnParser.parse(
-      extensions.get("privateKeyUsagePeriod").value.toBuffer(),
-      PrivateKeyUsagePeriod,
-    )
-    notBefore = privateKeyUsagePeriod?.notBefore?.getTime() / 1000
-    notAfter = privateKeyUsagePeriod?.notAfter?.getTime() / 1000
-  } catch (e) {}
+  let notBefore: number | undefined
+  let notAfter: number | undefined
+  const pkupBuffer = extensions.get("privateKeyUsagePeriod")?.value.toBuffer()
+  if (pkupBuffer) {
+    const pkup = AsnParser.parse(pkupBuffer, PrivateKeyUsagePeriod)
+    notBefore = pkup.notBefore?.getTime() ?? 0 / 1000
+    notAfter = pkup.notAfter?.getTime() ?? 0 / 1000
+  }
 
-  let authorityKeyIdentifier: string
-  try {
-    authorityKeyIdentifier = Binary.from(
-      AsnParser.parse(
-        extensions.get("authorityKeyIdentifier").value.toBuffer(),
-        AuthorityKeyIdentifier,
-      ).keyIdentifier.buffer,
-    ).toHex()
-  } catch (e) {}
-
+  let authorityKeyIdentifier: string | undefined
+  const akiBuffer = extensions.get("authorityKeyIdentifier")?.value.toBuffer()
+  if (akiBuffer) {
+    const parsed = AsnParser.parse(akiBuffer, AuthorityKeyIdentifier)
+    if (parsed?.keyIdentifier?.buffer) {
+      authorityKeyIdentifier = Binary.from(parsed.keyIdentifier.buffer).toHex().replace("0x", "")
+    }
+  }
   // TODO: Get this from TBS certificate instead of DG1?
   const country = passport?.nationality === "D<<" ? "DEU" : passport?.nationality
 
-  const checkAgainstAuthorityKeyIdentifier = (cert: CSC) => {
+  const checkAgainstAuthorityKeyIdentifier = (cert: Certificate) => {
     return (
       authorityKeyIdentifier &&
       cert.subject_key_identifier?.replace("0x", "") === authorityKeyIdentifier
     )
   }
 
-  const checkAgainstPrivateKeyUsagePeriod = (cert: CSC) => {
+  const checkAgainstPrivateKeyUsagePeriod = (cert: Certificate) => {
     return (
-      privateKeyUsagePeriod &&
       cert.private_key_usage_period &&
       cert.private_key_usage_period?.not_before &&
       cert.private_key_usage_period?.not_after &&
+      notBefore &&
+      notAfter &&
       notBefore >= (cert.private_key_usage_period?.not_before || 0) &&
       notAfter <= (cert.private_key_usage_period?.not_after || 0)
     )
@@ -201,10 +196,10 @@ export async function getDSCCircuitInputs(passport: PassportViewModel): Promise<
   const cscMasterlist = getCSCMasterlist()
   const leaves = cscMasterlist.certificates.map((l) => Binary.fromHex(getCertificateLeafHash(l)))
   const index = cscMasterlist.certificates.findIndex((l) => l === csc)
-  // Fill up leaves to CERTIFICATE_PAD_EMPTY_LEAVES
+  // Fill up empty leaves with 0x01 (up to CERTIFICATE_PAD_EMPTY_LEAVES)
   const emptyLeavesNeeded = CERTIFICATE_PAD_EMPTY_LEAVES - leaves.length
   if (emptyLeavesNeeded > 0) {
-    const emptyLeaves = Array(emptyLeavesNeeded).fill(Binary.fromHex("00".repeat(32)))
+    const emptyLeaves = Array(emptyLeavesNeeded).fill(Binary.fromHex("0x01"))
     leaves.push(...emptyLeaves)
   }
   const merkleProof = await computeMerkleProof(CERTIFICATE_REGISTRY_HEIGHT, leaves, index)

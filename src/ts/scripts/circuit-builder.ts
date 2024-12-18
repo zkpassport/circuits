@@ -51,12 +51,13 @@ const DSC_ECDSA_TEMPLATE = (
   curve_name: string,
   bit_size: number,
   tbs_max_len: number,
-) => `// This is an auto-generated file, to change the code please edit ./src/ts/lib/circuit-builder.ts
+  unconstrained: boolean = false,
+) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_dsc;
 use sig_check_ecdsa::verify_${curve_family}_${curve_name};
 use utils::{concat_array, split_array};
 
-fn main(
+${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
     certificate_registry_index: Field,
     certificate_registry_hash_path: [Field; 14],
@@ -95,11 +96,12 @@ const DSC_RSA_TEMPLATE = (
   rsa_type: "pss" | "pkcs",
   bit_size: number,
   tbs_max_len: number,
-) => `// This is an auto-generated file, to change the code please edit ./src/ts/lib/circuit-builder.ts
+  unconstrained: boolean = false,
+) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use sig_check_rsa::verify_signature;
 use commitment::commit_to_dsc;
 
-fn main(
+${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: Field,
     certificate_registry_index: Field,
     certificate_registry_hash_path: [Field; 14],
@@ -142,13 +144,14 @@ const ID_DATA_ECDSA_TEMPLATE = (
   curve_name: string,
   bit_size: number,
   tbs_max_len: number,
-) => `// This is an auto-generated file, to change the code please edit ./src/ts/lib/circuit-builder.ts
+  unconstrained: boolean = false,
+) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_id;
 use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
 use sig_check_ecdsa::verify_${curve_family}_${curve_name};
 use utils::split_array;
 
-fn main(
+${unconstrained ? "unconstrained " : ""}fn main(
     comm_in: pub Field,
     salt: Field,
     dg1: [u8; 95],
@@ -192,12 +195,13 @@ const ID_DATA_RSA_TEMPLATE = (
   rsa_type: "pss" | "pkcs",
   bit_size: number,
   tbs_max_len: number,
-) => `// This is an auto-generated file, to change the code please edit ./src/ts/lib/circuit-builder.ts
+  unconstrained: boolean = false,
+) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use sig_check_rsa::verify_signature;
 use data_check_tbs_pubkey::verify_rsa_pubkey_in_tbs;
 use commitment::commit_to_id;
 
-fn main(
+${unconstrained ? "unconstrained " : ""}fn main(
     comm_in: pub Field,
     salt: Field,
     dg1: [u8; 95],
@@ -237,8 +241,15 @@ function generateDscEcdsaCircuit(
   curve_name: string,
   bit_size: number,
   tbs_max_len: number,
+  unconstrained: boolean = false,
 ) {
-  const noirFile = DSC_ECDSA_TEMPLATE(curve_family, curve_name, bit_size, tbs_max_len)
+  const noirFile = DSC_ECDSA_TEMPLATE(
+    curve_family,
+    curve_name,
+    bit_size,
+    tbs_max_len,
+    unconstrained,
+  )
   const name = `sig_check_dsc_tbs_${tbs_max_len}_ecdsa_${curve_family}_${curve_name}`
   const nargoFile = NARGO_TEMPLATE(name, [
     { name: "sig_check_ecdsa", path: "../../../../../../../lib/sig-check/ecdsa" },
@@ -255,8 +266,13 @@ function generateDscEcdsaCircuit(
   generatedCircuits.push({ name, path: folderPath })
 }
 
-function generateDscRsaCircuit(rsa_type: "pss" | "pkcs", bit_size: number, tbs_max_len: number) {
-  const noirFile = DSC_RSA_TEMPLATE(rsa_type, bit_size, tbs_max_len)
+function generateDscRsaCircuit(
+  rsa_type: "pss" | "pkcs",
+  bit_size: number,
+  tbs_max_len: number,
+  unconstrained: boolean = false,
+) {
+  const noirFile = DSC_RSA_TEMPLATE(rsa_type, bit_size, tbs_max_len, unconstrained)
   const name = `sig_check_dsc_tbs_${tbs_max_len}_rsa_${rsa_type}_${bit_size}`
   const nargoFile = NARGO_TEMPLATE(name, [
     { name: "sig_check_rsa", path: "../../../../../../../lib/sig-check/rsa" },
@@ -277,8 +293,15 @@ function generateIdDataEcdsaCircuit(
   curve_name: string,
   bit_size: number,
   tbs_max_len: number,
+  unconstrained: boolean = false,
 ) {
-  const noirFile = ID_DATA_ECDSA_TEMPLATE(curve_family, curve_name, bit_size, tbs_max_len)
+  const noirFile = ID_DATA_ECDSA_TEMPLATE(
+    curve_family,
+    curve_name,
+    bit_size,
+    tbs_max_len,
+    unconstrained,
+  )
   const name = `sig_check_id_data_tbs_${tbs_max_len}_ecdsa_${curve_family}_${curve_name}`
   const nargoFile = NARGO_TEMPLATE(name, [
     { name: "sig_check_ecdsa", path: "../../../../../../../lib/sig-check/ecdsa" },
@@ -295,8 +318,13 @@ function generateIdDataEcdsaCircuit(
   generatedCircuits.push({ name, path: folderPath })
 }
 
-function generateIdDataRsaCircuit(rsa_type: "pss" | "pkcs", bit_size: number, tbs_max_len: number) {
-  const noirFile = ID_DATA_RSA_TEMPLATE(rsa_type, bit_size, tbs_max_len)
+function generateIdDataRsaCircuit(
+  rsa_type: "pss" | "pkcs",
+  bit_size: number,
+  tbs_max_len: number,
+  unconstrained: boolean = false,
+) {
+  const noirFile = ID_DATA_RSA_TEMPLATE(rsa_type, bit_size, tbs_max_len, unconstrained)
   const name = `sig_check_id_data_tbs_${tbs_max_len}_rsa_${rsa_type}_${bit_size}`
   const nargoFile = NARGO_TEMPLATE(name, [
     { name: "sig_check_rsa", path: "../../../../../../../lib/sig-check/rsa" },
@@ -340,27 +368,27 @@ const SIGNATURE_ALGORITHMS_SUPPORTED: {
 
 const TBS_MAX_LENGTHS = [700, 1000, 1200, 1500]
 
-const generateDscCircuits = () => {
+const generateDscCircuits = ({ unconstrained = false }: { unconstrained: boolean }) => {
   console.log("Generating DSC circuits...")
   SIGNATURE_ALGORITHMS_SUPPORTED.forEach(({ type, family, curve_name, bit_size }) => {
     TBS_MAX_LENGTHS.forEach((tbs_max_len) => {
       if (type === "ecdsa") {
-        generateDscEcdsaCircuit(family, curve_name!, bit_size, tbs_max_len)
+        generateDscEcdsaCircuit(family, curve_name!, bit_size, tbs_max_len, unconstrained)
       } else {
-        generateDscRsaCircuit(family as "pss" | "pkcs", bit_size, tbs_max_len)
+        generateDscRsaCircuit(family as "pss" | "pkcs", bit_size, tbs_max_len, unconstrained)
       }
     })
   })
 }
 
-const generateIdDataCircuits = () => {
+const generateIdDataCircuits = ({ unconstrained = false }: { unconstrained: boolean }) => {
   console.log("Generating ID data circuits...")
   SIGNATURE_ALGORITHMS_SUPPORTED.forEach(({ type, family, curve_name, bit_size }) => {
     TBS_MAX_LENGTHS.forEach((tbs_max_len) => {
       if (type === "ecdsa") {
-        generateIdDataEcdsaCircuit(family, curve_name!, bit_size, tbs_max_len)
+        generateIdDataEcdsaCircuit(family, curve_name!, bit_size, tbs_max_len, unconstrained)
       } else {
-        generateIdDataRsaCircuit(family as "pss" | "pkcs", bit_size, tbs_max_len)
+        generateIdDataRsaCircuit(family as "pss" | "pkcs", bit_size, tbs_max_len, unconstrained)
       }
     })
   })
@@ -418,8 +446,11 @@ const compileCircuitsWithNargo = async (getGateCount: boolean = false) => {
   })
 }
 
-generateDscCircuits()
-generateIdDataCircuits()
+const args = process.argv.slice(2)
+const unconstrained = args.includes("unconstrained")
+
+generateDscCircuits({ unconstrained: unconstrained })
+generateIdDataCircuits({ unconstrained: unconstrained })
 generateWorkspaceToml()
 // This works but use at your own risk (this will be very demanding of your machine)
 // compileCircuitsWithNargo()

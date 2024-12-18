@@ -140,7 +140,7 @@ export namespace ASN {
     public dataGroups: DataGroupHash[] = []
 
     @AsnProp({ type: LDSVersionInfo, optional: true })
-    public versionInfo: LDSVersionInfo
+    public versionInfo?: LDSVersionInfo
 
     public constructor(params: Partial<LDSSecurityObject> = {}) {
       Object.assign(this, params)

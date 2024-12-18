@@ -1,4 +1,4 @@
-// This is an auto-generated file, to change the code please edit ./src/ts/lib/circuit-builder.ts
+// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use sig_check_rsa::verify_signature;
 use data_check_tbs_pubkey::verify_rsa_pubkey_in_tbs;
 use commitment::commit_to_id;

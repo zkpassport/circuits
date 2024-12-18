@@ -10,7 +10,7 @@ import { p256 } from "@noble/curves/p256"
 import { p384 } from "@noble/curves/p384"
 import { p521 } from "@noble/curves/p521"
 import { alpha2ToAlpha3, Alpha3Code } from "i18n-iso-countries"
-import { CSC, SignatureAlgorithm } from "@/types"
+import { Certificate, SignatureAlgorithm } from "@/types"
 
 const OIDS_TO_DESCRIPTION: Record<string, string> = {
   "1.2.840.113549.1.1.1": "rsaEncryption",
@@ -205,7 +205,7 @@ export function getRSAInfo(tbsCertificate: TBSCertificate): {
   }
 }
 
-export function parseCertificate(content: Buffer | string): CSC {
+export function parseCertificate(content: Buffer | string): Certificate {
   if (typeof content === "string") {
     // Remove PEM headers and convert to binary
     const b64 = content.replace(/(-----(BEGIN|END) CERTIFICATE-----|[\n\r])/g, "")
@@ -257,15 +257,15 @@ export function parseCertificate(content: Buffer | string): CSC {
         .algorithm as keyof typeof OIDS_TO_DESCRIPTION
     ] ?? x509.tbsCertificate.subjectPublicKeyInfo.algorithm.algorithm
 
-  if (isRSA) {
+  if (publicKeyType === "rsaEncryption") {
     const rsaInfo = getRSAInfo(x509.tbsCertificate)
     return {
       signature_algorithm: signatureAlgorithm as SignatureAlgorithm,
-      public_key_type: publicKeyType as "rsaEncryption" | "ecPublicKey",
       public_key: {
+        type: publicKeyType,
         modulus: `0x${rsaInfo.modulus.toString(16)}`,
         exponent: Number(rsaInfo.exponent),
-        type: signatureAlgorithm.includes("pss") ? "pss" : "pkcs",
+        scheme: signatureAlgorithm.includes("pss") ? "pss" : "pkcs",
       },
       country: countryCode as Alpha3Code,
       validity: {
@@ -277,12 +277,12 @@ export function parseCertificate(content: Buffer | string): CSC {
       subject_key_identifier: getSubjectKeyId(x509),
       private_key_usage_period: getPrivateKeyUsagePeriod(x509),
     }
-  } else {
+  } else if (publicKeyType === "ecPublicKey") {
     const ecdsaInfo = getECDSAInfo(x509.tbsCertificate)
     return {
       signature_algorithm: signatureAlgorithm as SignatureAlgorithm,
-      public_key_type: publicKeyType as "ecPublicKey",
       public_key: {
+        type: publicKeyType,
         curve: ecdsaInfo.curve,
         // The first byte is 0x04, which is the prefix for uncompressed public keys
         // so we get rid of it
@@ -303,11 +303,13 @@ export function parseCertificate(content: Buffer | string): CSC {
       subject_key_identifier: getSubjectKeyId(x509),
       private_key_usage_period: getPrivateKeyUsagePeriod(x509),
     }
+  } else {
+    throw new Error("Unsupported public key type")
   }
 }
 
-export function parseCertificates(pemContent: string): CSC[] {
-  const certificates: CSC[] = []
+export function parseCertificates(pemContent: string): Certificate[] {
+  const certificates: Certificate[] = []
   try {
     // Split the PEM content into individual certificates
     const pemRegex = /(-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----)/g

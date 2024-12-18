@@ -1,6 +1,6 @@
 import { Binary } from "@/lib/binary"
 import { BB_THREADS, CERT_TYPE_CSC, CERTIFICATE_REGISTRY_ID, TBS_MAX_SIZE } from "@/lib/constants"
-import { CSC, ECDSACSCPublicKey, RSACSCPublicKey } from "@/types"
+import { Certificate, ECDSACSCPublicKey, RSACSCPublicKey } from "@/types"
 import { BarretenbergSync, Fr, UltraHonkBackend } from "@aztec/bb.js"
 import { CompiledCircuit, InputMap, Noir } from "@noir-lang/noir_js"
 import { ProofData } from "@noir-lang/types"
@@ -11,15 +11,12 @@ const bb = await BarretenbergSync.initSingleton()
 
 export class Circuit {
   private manifest: CompiledCircuit
-  public witness: Uint8Array
-  public backend: UltraHonkBackend
-  public noir: Noir
+  public witness?: Uint8Array
+  public backend?: UltraHonkBackend
+  public noir?: Noir
 
   constructor(manifest: CompiledCircuit) {
     this.manifest = manifest
-    this.witness = null
-    this.backend = null
-    this.noir = null
   }
 
   async init() {
@@ -33,6 +30,7 @@ export class Circuit {
   async solve(inputs: InputMap) {
     await this.init()
     if (this.witness) return
+    if (!this.noir) throw new Error("Noir not initialized")
     const { witness } = await this.noir.execute(inputs)
     this.witness = witness
   }
@@ -40,12 +38,15 @@ export class Circuit {
   async prove(inputs: InputMap): Promise<ProofData> {
     await this.init()
     if (!this.witness) await this.solve(inputs)
+    if (!this.backend) throw new Error("Backend not initialized")
+    if (!this.witness) throw new Error("Witness not initialized")
     const proof = await this.backend.generateProof(this.witness)
     return proof
   }
 
   async proveRecursiveProof(inputs: InputMap): Promise<{ proof: ProofData; artifacts: any }> {
     const proof = await this.prove(inputs)
+    if (!this.backend) throw new Error("Backend not initialized")
     const artifacts = await this.backend.generateRecursiveProofArtifacts(
       proof.proof,
       proof.publicInputs.length,
@@ -55,11 +56,13 @@ export class Circuit {
 
   async verify(proof: ProofData) {
     await this.init()
+    if (!this.backend) throw new Error("Backend not initialized")
     return await this.backend.verifyProof(proof)
   }
 
   async getVerificationKey() {
     await this.init()
+    if (!this.backend) throw new Error("Backend not initialized")
     return await this.backend.getVerificationKey()
   }
 
@@ -128,16 +131,16 @@ export function hashSaltDg1PrivateNullifier(
 }
 
 export function getCertificateLeafHash(
-  cert: CSC,
+  cert: Certificate,
   options?: { registry_id?: number; cert_type?: number },
 ): string {
   const registryId = options?.registry_id ?? CERTIFICATE_REGISTRY_ID
   const certType = options?.cert_type ?? CERT_TYPE_CSC
 
   let publicKey: Binary
-  if (cert.public_key_type === "rsaEncryption") {
+  if (cert.public_key.type === "rsaEncryption") {
     publicKey = Binary.from((cert.public_key as RSACSCPublicKey).modulus)
-  } else if (cert.public_key_type === "ecPublicKey") {
+  } else if (cert.public_key.type === "ecPublicKey") {
     publicKey = Binary.from((cert.public_key as ECDSACSCPublicKey).public_key_x)
   } else {
     throw new Error("Unsupported signature algorithm")

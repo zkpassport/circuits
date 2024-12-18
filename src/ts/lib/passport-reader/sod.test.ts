@@ -13,7 +13,7 @@ describe("SOD", () => {
   beforeAll(async () => {
     const sodFile = path.resolve(FIXTURES_PATH, "EF_SOD.bin")
     sodBytes = Binary.from(await readFile(sodFile))
-    sod = SOD.fromBinary(sodBytes)
+    sod = SOD.fromDER(sodBytes)
   })
 
   it("should parse basic SOD properties", () => {
@@ -71,7 +71,7 @@ describe("SOD", () => {
     expect(tbs.extensions.has("keyUsage")).toBe(true)
     expect(tbs.extensions.has("authorityKeyIdentifier")).toBe(true)
     expect(tbs.extensions.has("subjectKeyIdentifier")).toBe(true)
-    expect(tbs.extensions.get("keyUsage").critical).toBe(true)
+    expect(tbs.extensions.get("keyUsage")?.critical).toBe(true)
   })
 
   it("should parse signature algorithms correctly", () => {

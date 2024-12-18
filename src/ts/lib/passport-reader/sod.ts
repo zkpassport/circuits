@@ -39,7 +39,7 @@ export class DataGroupHashValues {
 }
 
 // The Document Security Object (SOD) is implemented as a SignedData type as specified in Cryptographic Message Syntax (CMS) [RFC 3369]
-export class SODSignedData {
+export type SODSignedData = {
   // CMS version of the SOD
   // 0=v0, 1=v1, 2=v2, 3=v3, 4=v4, 5=v5
   version: number
@@ -164,7 +164,7 @@ export class SODSignedData {
       // Optional set of extensions providing additional information or capabilities for the TBS certificate
       // e.g. authorityKeyIdentifier, subjectKeyIdentifier, privateKeyUsagePeriod, cRLDistributionPoints, subjectAltName, documentTypeList, keyUsage, issuerAltName
       // extensions?: { id: string; critical?: boolean; value: Binary }[]
-      extensions?: Map<string, { critical?: boolean; value: Binary }>
+      extensions: Map<string, { critical?: boolean; value: Binary }>
 
       // Optional unique identifier for the issuer, used in cases where issuer's name is not unique
       // TODO: Consider removing this field
@@ -191,7 +191,7 @@ export class SODSignedData {
   bytes: Binary
 }
 
-function formatRDN(issuer: any[]): string {
+function formatDN(issuer: any[]): string {
   return issuer
     .map((i) =>
       i
@@ -204,43 +204,122 @@ function formatRDN(issuer: any[]): string {
     .join(", ")
 }
 
-export class SOD extends SODSignedData {
+export class SOD implements SODSignedData {
+  version: number
+  digestAlgorithms: DigestAlgorithm[]
+  encapContentInfo: {
+    eContentType: string
+    eContent: {
+      version: number
+      hashAlgorithm: DigestAlgorithm
+      dataGroupHashValues: DataGroupHashValues
+      bytes: Binary
+    }
+  }
+  signerInfo: {
+    version: number
+    signedAttrs: {
+      contentType: string
+      messageDigest: Binary
+      signingTime?: Date
+      bytes: Binary
+    }
+    digestAlgorithm: DigestAlgorithm
+    signatureAlgorithm: {
+      name: SignatureAlgorithm
+      parameters?: Binary
+    }
+    signature: Binary
+    sid: {
+      issuerAndSerialNumber?: {
+        issuer: string
+        serialNumber: Binary
+      }
+      subjectKeyIdentifier?: string
+    }
+  }
+  certificate: {
+    tbs: {
+      version: number
+      serialNumber: Binary
+      signatureAlgorithm: {
+        name: SignatureAlgorithm
+        parameters?: Binary
+      }
+      issuer: string
+      validity: { notBefore: Date; notAfter: Date }
+      subject: string
+      subjectPublicKeyInfo: {
+        signatureAlgorithm: {
+          name: SignatureAlgorithm
+          parameters?: Binary
+        }
+        subjectPublicKey: Binary
+      }
+      extensions: Map<string, { critical?: boolean; value: Binary }>
+
+      issuerUniqueID?: Binary
+      subjectUniqueID?: Binary
+      bytes: Binary
+    }
+    signatureAlgorithm: {
+      name: SignatureAlgorithm
+      parameters?: Binary
+    }
+    signature: Binary
+  }
+  bytes: Binary
+
   constructor(sod: SODSignedData) {
-    super()
-    Object.assign(this, sod)
+    this.version = sod.version
+    this.digestAlgorithms = sod.digestAlgorithms
+    this.encapContentInfo = sod.encapContentInfo
+    this.signerInfo = sod.signerInfo
+    this.certificate = sod.certificate
+    this.bytes = sod.bytes
+    this.encapContentInfo = sod.encapContentInfo
+    this.signerInfo = sod.signerInfo
+    this.certificate = sod.certificate
   }
 
-  static fromBinary(sod: Binary): SOD {
-    sod = sod.slice(0, 2).equals(Binary.from([119, 130])) ? sod.slice(4) : sod
+  static fromDER(der: Binary): SOD {
+    der = der.slice(0, 2).equals(Binary.from([119, 130])) ? der.slice(4) : der
 
-    const contentInfo = AsnParser.parse(sod.toUInt8Array(), ASN.ContentInfo)
+    const contentInfo = AsnParser.parse(der.toUInt8Array(), ASN.ContentInfo)
     const signedData = AsnParser.parse(contentInfo.content, ASN.SignedData)
+    if (!signedData.encapContentInfo?.eContent?.single) throw new Error("No eContent found")
     const eContent = AsnConvert.parse(
-      signedData.encapContentInfo.eContent.single,
+      signedData.encapContentInfo?.eContent?.single,
       ASN.LDSSecurityObject,
     )
-    const cert = signedData.certificates[0].certificate
-    const tbs = cert.tbsCertificate
+    const cert = signedData.certificates?.[0]?.certificate
+    if (!cert) throw new Error("No DSC certificate found")
+    const tbs = cert?.tbsCertificate
+    if (!tbs) throw new Error("No TBS found in DSC certificate")
     const signerInfo = signedData.signerInfos[0]
     if (signedData.signerInfos.length > 1) console.warn("Warning: Found multiple SignerInfos")
+    if (!signerInfo.signedAttrs) throw new Error("No signedAttrs found")
     const signedAttrsMap = new Map<string, Binary>(
       signerInfo.signedAttrs.map((v) => [getOIDName(v.attrType), Binary.from(v.attrValues[0])]),
     )
     // Reconstruct signed attributes using AttributeSet to get the correct bytes that are signed
     const reconstructedSignedAttrs = new ASN.AttributeSet(signerInfo.signedAttrs.map((v) => v))
+    const messageDigest = signedAttrsMap.get("messageDigest")
+    if (!messageDigest) throw new Error("No signedAttrs.messageDigest found")
+    const signingTime = signedAttrsMap.get("signingTime")
     const signedAttrs = {
       bytes: Binary.from(AsnSerializer.serialize(reconstructedSignedAttrs)),
       contentType: getOIDName(
         decodeOID((signedAttrsMap.get("contentType") as Binary).toNumberArray()),
       ),
-      messageDigest: signedAttrsMap.get("messageDigest"),
-      ...(signedAttrsMap.get("signingTime") && {
-        signingTime: new Date(parseInt(signedAttrsMap.get("signingTime").toBigInt().toString())),
+      messageDigest,
+      ...(signingTime && {
+        signingTime: new Date(parseInt(signingTime.toBigInt().toString())),
       }),
     }
 
     return new SOD({
-      bytes: sod,
+      bytes: der,
       version: signedData.version,
 
       digestAlgorithms: signedData.digestAlgorithms.map(
@@ -271,19 +350,19 @@ export class SOD extends SODSignedData {
           name: getOIDName(signerInfo.signatureAlgorithm.algorithm) as SignatureAlgorithm,
           parameters: signerInfo.signatureAlgorithm.parameters
             ? Binary.from(signerInfo.signatureAlgorithm.parameters)
-            : null,
+            : undefined,
         },
-        signature: signerInfo.signature ? Binary.from(signerInfo.signature.buffer) : null,
+        signature: Binary.from(signerInfo.signature.buffer),
         sid: {
-          issuerAndSerialNumber: {
-            issuer: formatRDN(signerInfo.sid.issuerAndSerialNumber.issuer),
-            serialNumber: signerInfo.sid.issuerAndSerialNumber.serialNumber
-              ? Binary.from(signerInfo.sid.issuerAndSerialNumber.serialNumber)
-              : null,
-          },
+          issuerAndSerialNumber: signerInfo.sid.issuerAndSerialNumber
+            ? {
+                issuer: formatDN(signerInfo.sid.issuerAndSerialNumber.issuer),
+                serialNumber: Binary.from(signerInfo.sid.issuerAndSerialNumber.serialNumber),
+              }
+            : undefined,
           subjectKeyIdentifier: signerInfo.sid.subjectKeyIdentifier
             ? Binary.from(signerInfo.sid.subjectKeyIdentifier.buffer).toString("hex")
-            : null,
+            : undefined,
         },
       },
 
@@ -291,61 +370,75 @@ export class SOD extends SODSignedData {
         tbs: {
           bytes: Binary.from(AsnSerializer.serialize(tbs)),
           version: tbs.version,
-          serialNumber: tbs.serialNumber ? Binary.from(tbs.serialNumber) : null,
+          serialNumber: Binary.from(tbs.serialNumber),
           signatureAlgorithm: {
             name: getOIDName(tbs.signature.algorithm) as SignatureAlgorithm,
-            parameters: tbs.signature.parameters ? Binary.from(tbs.signature.parameters) : null,
+            parameters: tbs.signature.parameters
+              ? Binary.from(tbs.signature.parameters)
+              : undefined,
           },
-          issuer: formatRDN(tbs.issuer),
+          issuer: formatDN(tbs.issuer),
           validity: {
-            notBefore: tbs.validity.notBefore.utcTime,
-            notAfter: tbs.validity.notAfter.utcTime,
+            notBefore: tbs.validity.notBefore.getTime(),
+            notAfter: tbs.validity.notAfter.getTime(),
           },
-          subject: formatRDN(tbs.subject),
+          subject: formatDN(tbs.subject),
           subjectPublicKeyInfo: {
             signatureAlgorithm: {
               name: getOIDName(tbs.subjectPublicKeyInfo.algorithm.algorithm) as SignatureAlgorithm,
               parameters: tbs.subjectPublicKeyInfo.algorithm.parameters
                 ? Binary.from(tbs.subjectPublicKeyInfo.algorithm.parameters)
-                : null,
+                : undefined,
             },
-            subjectPublicKey: tbs.subjectPublicKeyInfo.subjectPublicKey
-              ? Binary.from(tbs.subjectPublicKeyInfo.subjectPublicKey)
-              : null,
+            subjectPublicKey: Binary.from(tbs.subjectPublicKeyInfo.subjectPublicKey),
           },
-          issuerUniqueID: tbs.issuerUniqueID ? Binary.from(tbs.issuerUniqueID) : null,
-          subjectUniqueID: tbs.subjectUniqueID ? Binary.from(tbs.subjectUniqueID) : null,
+          issuerUniqueID: tbs.issuerUniqueID ? Binary.from(tbs.issuerUniqueID) : undefined,
+          subjectUniqueID: tbs.subjectUniqueID ? Binary.from(tbs.subjectUniqueID) : undefined,
           extensions: new Map<string, { critical?: boolean; value: Binary }>(
-            tbs.extensions.map((v) => [
+            tbs.extensions?.map((v) => [
               getOIDName(v.extnID),
               { critical: v.critical, value: Binary.from(v.extnValue.buffer) },
-            ]),
+            ]) ?? [],
           ),
         },
         signatureAlgorithm: {
           name: getOIDName(cert.signatureAlgorithm.algorithm) as SignatureAlgorithm,
           parameters: cert.signatureAlgorithm.parameters
             ? Binary.from(cert.signatureAlgorithm.parameters)
-            : null,
+            : undefined,
         },
-        signature: cert.signatureValue ? Binary.from(cert.signatureValue) : null,
+        signature: Binary.from(cert.signatureValue),
       },
     })
   }
 
   [inspect.custom](): string {
     let sod: SODSignedData = new SOD(this)
-    delete sod.bytes
-    delete sod.encapContentInfo.eContent.bytes
-    delete sod.signerInfo.signedAttrs.bytes
-    delete sod.certificate.tbs.bytes
     return inspect(
       {
         version: sod.version,
         digestAlgorithms: sod.digestAlgorithms,
-        encapContentInfo: sod.encapContentInfo,
-        signerInfo: sod.signerInfo,
-        certificate: sod.certificate,
+        encapContentInfo: {
+          eContentType: sod.encapContentInfo.eContentType,
+          eContent: {
+            ...sod.encapContentInfo.eContent,
+            bytes: "...",
+          },
+        },
+        signerInfo: {
+          ...sod.signerInfo,
+          signedAttrs: {
+            ...sod.signerInfo.signedAttrs,
+            bytes: "...",
+          },
+        },
+        certificate: {
+          ...sod.certificate,
+          tbs: {
+            ...sod.certificate.tbs,
+            bytes: "...",
+          },
+        },
       },
       { depth: null, colors: true },
     )

@@ -1,4 +1,4 @@
-// This is an auto-generated file, to change the code please edit ./src/ts/lib/circuit-builder.ts
+// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_dsc;
 use sig_check_ecdsa::verify_brainpool_384t1;
 use utils::{concat_array, split_array};
