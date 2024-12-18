@@ -1,4 +1,4 @@
-// This is an auto-generated file, to change the code please edit ./src/ts/lib/circuit-builder.ts
+// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use sig_check_rsa::verify_signature;
 use commitment::commit_to_dsc;
 
