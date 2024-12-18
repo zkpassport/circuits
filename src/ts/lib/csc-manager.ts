@@ -10,7 +10,7 @@ import { p256 } from "@noble/curves/p256"
 import { p384 } from "@noble/curves/p384"
 import { p521 } from "@noble/curves/p521"
 import { alpha2ToAlpha3, Alpha3Code } from "i18n-iso-countries"
-import { CSC, SignatureAlgorithm } from "@/types"
+import { Certificate, SignatureAlgorithm } from "@/types"
 
 const OIDS_TO_DESCRIPTION: Record<string, string> = {
   "1.2.840.113549.1.1.1": "rsaEncryption",
@@ -205,7 +205,7 @@ export function getRSAInfo(tbsCertificate: TBSCertificate): {
   }
 }
 
-export function parseCertificate(content: Buffer | string): CSC {
+export function parseCertificate(content: Buffer | string): Certificate {
   if (typeof content === "string") {
     // Remove PEM headers and convert to binary
     const b64 = content.replace(/(-----(BEGIN|END) CERTIFICATE-----|[\n\r])/g, "")
@@ -308,8 +308,8 @@ export function parseCertificate(content: Buffer | string): CSC {
   }
 }
 
-export function parseCertificates(pemContent: string): CSC[] {
-  const certificates: CSC[] = []
+export function parseCertificates(pemContent: string): Certificate[] {
+  const certificates: Certificate[] = []
   try {
     // Split the PEM content into individual certificates
     const pemRegex = /(-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----)/g

@@ -1,6 +1,6 @@
 import { Binary } from "@/lib/binary"
 import { BB_THREADS, CERT_TYPE_CSC, CERTIFICATE_REGISTRY_ID, TBS_MAX_SIZE } from "@/lib/constants"
-import { CSC, ECDSACSCPublicKey, RSACSCPublicKey } from "@/types"
+import { Certificate, ECDSACSCPublicKey, RSACSCPublicKey } from "@/types"
 import { BarretenbergSync, Fr, UltraHonkBackend } from "@aztec/bb.js"
 import { CompiledCircuit, InputMap, Noir } from "@noir-lang/noir_js"
 import { ProofData } from "@noir-lang/types"
@@ -131,7 +131,7 @@ export function hashSaltDg1PrivateNullifier(
 }
 
 export function getCertificateLeafHash(
-  cert: CSC,
+  cert: Certificate,
   options?: { registry_id?: number; cert_type?: number },
 ): string {
   const registryId = options?.registry_id ?? CERTIFICATE_REGISTRY_ID

@@ -1,5 +1,5 @@
 import { parseCertificates } from "@/lib/csc-manager"
-import { CSC } from "@/types"
+import { Certificate } from "@/types"
 import fs from "fs"
 import path from "path"
 
@@ -11,7 +11,7 @@ interface DuplicateStats {
 
 function processCertificateFile(
   filePath: string,
-  allCertificates: CSC[],
+  allCertificates: Certificate[],
   uniquePubkeys: Set<string>,
 ): DuplicateStats {
   const stats: DuplicateStats = {
@@ -47,7 +47,7 @@ function processCertificateFile(
 function main(): void {
   const args = process.argv.slice(2)
   const uniquePubkeys = new Set<string>()
-  const allCertificates: CSC[] = []
+  const allCertificates: Certificate[] = []
   let totalStats: DuplicateStats = {
     totalCertificates: 0,
     duplicatesFound: 0,

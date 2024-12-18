@@ -331,9 +331,8 @@ export type RSACSCPublicKey = {
   scheme: "pkcs" | "pss"
 }
 
-export type CSC = {
+export type Certificate = {
   signature_algorithm: SignatureAlgorithm
-  // public_key_type: "rsaEncryption" | "ecPublicKey"
   public_key: RSACSCPublicKey | ECDSACSCPublicKey
   country: Alpha3Code
   validity: {
@@ -349,98 +348,6 @@ export type CSC = {
   }
 }
 
-// export interface CSC {
-//   signature_algorithm: SignatureAlgorithm
-//   public_key_type: "rsaEncryption" | "ecPublicKey"
-//   // public_key:
-//   //   | {
-//   //       type: "rsaEncryption"
-//   //       modulus: string
-//   //       exponent: number
-//   //     }
-//   //   | {
-//   //       type: "ecPublicKey"
-//   //       public_key_x: string
-//   //       public_key_y: string
-//   //     }
-//   public_key: RSACSCPublicKey | ECDSACSCPublicKey
-//   // public_key:
-//   //   | (public_key_type extends "RSA" ? RSACSCPublicKey : never)
-//   //   | (public_key_type extends "EC" ? ECDSACSCPublicKey : never)
-//   country: Alpha3Code
-//   validity: {
-//     not_before: number
-//     not_after: number
-//   }
-//   key_size: number
-//   authority_key_identifier?: string
-//   subject_key_identifier?: string
-//   private_key_usage_period?: {
-//     not_before?: number
-//     not_after?: number
-//   }
-// }
-
 export type CSCMasterlist = {
   certificates: Certificate[]
 }
-
-// export interface Certificate {
-//   signature_algorithm: SignatureAlgorithm
-//   public_key_type: "rsaEncryption" | "ecPublicKey"
-//   public_key:
-//     | {
-//         type: "RSA"
-//         modulus: string
-//         exponent: number
-//         type: "pkcs" | "pss"
-//       }
-//     | {
-//         type: "EC"
-//         curve: string
-//         public_key_x: string
-//         public_key_y: string
-//       }
-//   country: string
-//   validity: {
-//     not_before: number
-//     not_after: number
-//   }
-//   key_size: number
-//   authority_key_identifier?: string
-//   subject_key_identifier?: string
-//   private_key_usage_period?: {
-//     not_before?: number
-//     not_after?: number
-//   }
-// }
-
-// export interface Certificate {
-//   signature_algorithm: string
-//   public_key_type: string
-//   public_key:
-//     | {
-//         type: "RSA"
-//         modulus: string
-//         exponent: number
-//         type: "pkcs" | "pss"
-//       }
-//     | {
-//         type: "EC"
-//         curve: string
-//         public_key_x: string
-//         public_key_y: string
-//       }
-//   country: string
-//   validity: {
-//     not_before: number
-//     not_after: number
-//   }
-//   key_size: number
-//   authority_key_identifier?: string
-//   subject_key_identifier?: string
-//   private_key_usage_period?: {
-//     not_before?: number
-//     not_after?: number
-//   }
-// }

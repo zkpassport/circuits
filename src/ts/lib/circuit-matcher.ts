@@ -8,7 +8,7 @@ import {
 } from "@/lib/constants"
 import { computeMerkleProof } from "@/lib/merkle-tree"
 import {
-  CSC,
+  Certificate,
   CSCMasterlist,
   ECDSACSCPublicKey,
   ECDSADSCDataInputs,
@@ -19,7 +19,6 @@ import {
   RSACSCPublicKey,
   RSADSCDataInputs,
 } from "@/types"
-import { bytesToHex } from "@noble/hashes/utils"
 import { AsnParser } from "@peculiar/asn1-schema"
 import { AuthorityKeyIdentifier, PrivateKeyUsagePeriod } from "@peculiar/asn1-x509"
 import { format } from "date-fns"
@@ -83,10 +82,10 @@ export function isDocumentDSCSupported(passport: PassportViewModel): boolean {
 }
 
 export function getCSCMasterlist(): CSCMasterlist {
-  return cscMasterlistFile
+  return cscMasterlistFile as CSCMasterlist
 }
 
-export function getCSCForPassport(passport: PassportViewModel): CSC | null {
+export function getCSCForPassport(passport: PassportViewModel): Certificate | null {
   const cscMasterlist = getCSCMasterlist()
   const extensions = passport.sod.certificate.tbs.extensions
 
@@ -110,14 +109,14 @@ export function getCSCForPassport(passport: PassportViewModel): CSC | null {
   // TODO: Get this from TBS certificate instead of DG1?
   const country = passport?.nationality === "D<<" ? "DEU" : passport?.nationality
 
-  const checkAgainstAuthorityKeyIdentifier = (cert: CSC) => {
+  const checkAgainstAuthorityKeyIdentifier = (cert: Certificate) => {
     return (
       authorityKeyIdentifier &&
       cert.subject_key_identifier?.replace("0x", "") === authorityKeyIdentifier
     )
   }
 
-  const checkAgainstPrivateKeyUsagePeriod = (cert: CSC) => {
+  const checkAgainstPrivateKeyUsagePeriod = (cert: Certificate) => {
     return (
       cert.private_key_usage_period &&
       cert.private_key_usage_period?.not_before &&
