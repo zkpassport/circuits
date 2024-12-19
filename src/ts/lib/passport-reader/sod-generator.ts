@@ -123,9 +123,14 @@ export function generateSod(dg1: Binary, certificates: CertificateChoices[] = []
   // Encapsulated Content Info
   const dg1Hash = createHash("sha256").update(dg1.toBuffer()).digest()
   const encapContentInfo = generateEncapContentInfo(dg1Hash)
+  const eContentHash = Binary.from(
+    createHash("sha256")
+      .update(Binary.from(encapContentInfo!.eContent!.single!.buffer).toBuffer())
+      .digest(),
+  )
 
   // Signed Attributes
-  const signedAttrs = generateSignedAttrs()
+  const signedAttrs = generateSignedAttrs(eContentHash)
 
   // Create SignerInfo
   const signerInfo = new SignerInfo({
@@ -160,6 +165,14 @@ export function generateSod(dg1: Binary, certificates: CertificateChoices[] = []
   return { contentInfo, sod }
 }
 
+export function wrapSodInContentInfo(sod: SignedData) {
+  const contentInfo = new ContentInfo({
+    contentType: id_signedData,
+    content: AsnSerializer.serialize(sod),
+  })
+  return contentInfo
+}
+
 export function generateEncapContentInfo(dg1Hash: Uint8Array) {
   // Create LDS Security Object (SOD.encapContentInfo.eContent)
   const ldsSecurityObject = new ASN.LDSSecurityObject()
@@ -192,12 +205,7 @@ export function generateEncapContentInfo(dg1Hash: Uint8Array) {
   return encapContentInfo
 }
 
-export function generateSignedAttrs() {
-  // Create a random message digest
-  const randomMessageDigest = new Uint8Array(32)
-  for (let i = 0; i < randomMessageDigest.length; i++) {
-    randomMessageDigest[i] = Math.floor(Math.random() * 256)
-  }
+export function generateSignedAttrs(eContentHash: Binary) {
   const contentType = new Attribute({
     attrType: "1.2.840.113549.1.9.3", // id_contentType
     attrValues: [
@@ -211,7 +219,7 @@ export function generateSignedAttrs() {
   const messageDigest = new Attribute({
     attrType: "1.2.840.113549.1.9.4", // id_messageDigest
     // @ts-ignore-error
-    attrValues: [AsnConvert.serialize(AsnOctetStringConverter.toASN(randomMessageDigest))],
+    attrValues: [AsnConvert.serialize(AsnOctetStringConverter.toASN(eContentHash.toBuffer()))],
   })
   const signedAttrs: ASN.AttributeSet = new ASN.AttributeSet([
     contentType,
