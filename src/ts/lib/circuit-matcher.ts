@@ -85,8 +85,11 @@ export function getCSCMasterlist(): CSCMasterlist {
   return cscMasterlistFile as CSCMasterlist
 }
 
-export function getCSCForPassport(passport: PassportViewModel): Certificate | null {
-  const cscMasterlist = getCSCMasterlist()
+export function getCSCForPassport(
+  passport: PassportViewModel,
+  masterlist?: CSCMasterlist,
+): Certificate | null {
+  const cscMasterlist = masterlist ?? getCSCMasterlist()
   const extensions = passport.sod.certificate.tbs.extensions
 
   let notBefore: number | undefined
@@ -142,6 +145,7 @@ export function getCSCForPassport(passport: PassportViewModel): Certificate | nu
 
 function getDSCDataInputs(
   passport: PassportViewModel,
+  maxTbsLength: number,
 ): ECDSADSCDataInputs | RSADSCDataInputs | null {
   const signatureAlgorithm = getSodSignatureAlgorithmType(passport)
   const tbsCertificate = extractTBS(passport)
@@ -151,7 +155,7 @@ function getDSCDataInputs(
   if (signatureAlgorithm === "ECDSA") {
     const ecdsaInfo = getECDSAInfo(tbsCertificate)
     return {
-      tbs_certificate: padArrayWithZeros(passport?.tbsCertificate ?? [], 1500),
+      tbs_certificate: padArrayWithZeros(passport?.tbsCertificate ?? [], maxTbsLength),
       pubkey_offset_in_tbs: getOffsetInArray(
         passport?.tbsCertificate ?? [],
         Array.from(ecdsaInfo.publicKey.slice(0, 32)),
@@ -166,7 +170,7 @@ function getDSCDataInputs(
       dsc_pubkey: modulusBytes,
       exponent: bigintToNumber(exponent),
       dsc_pubkey_redc_param: redcLimbsFromBytes(modulusBytes),
-      tbs_certificate: padArrayWithZeros(passport?.tbsCertificate ?? [], 1500),
+      tbs_certificate: padArrayWithZeros(passport?.tbsCertificate ?? [], maxTbsLength),
       pubkey_offset_in_tbs: getOffsetInArray(passport?.tbsCertificate ?? [], modulusBytes),
     }
   }
@@ -189,11 +193,17 @@ function getIDDataInputs(passport: PassportViewModel): IDDataInputs {
   return id_data
 }
 
-export async function getDSCCircuitInputs(passport: PassportViewModel): Promise<any> {
-  const csc = getCSCForPassport(passport)
+export async function getDSCCircuitInputs(
+  passport: PassportViewModel,
+  maxTbsLength: number,
+  masterlist?: CSCMasterlist,
+): Promise<any> {
+  // Get the CSC for this passport's DSC
+  const csc = getCSCForPassport(passport, masterlist)
   if (!csc) return null
 
-  const cscMasterlist = getCSCMasterlist()
+  // Generate the certificate registry merkle proof
+  const cscMasterlist = masterlist ?? getCSCMasterlist()
   const leaves = cscMasterlist.certificates.map((l) => Binary.fromHex(getCertificateLeafHash(l)))
   const index = cscMasterlist.certificates.findIndex((l) => l === csc)
   // Fill up empty leaves with 0x01 (up to CERTIFICATE_PAD_EMPTY_LEAVES)
@@ -223,7 +233,7 @@ export async function getDSCCircuitInputs(passport: PassportViewModel): Promise<
       csc_pubkey_x: Array.from(publicKeyXBytes),
       csc_pubkey_y: Array.from(publicKeyYBytes),
       dsc_signature: passport?.dscSignature ?? [],
-      tbs_certificate: padArrayWithZeros(passport?.tbsCertificate ?? [], 1500),
+      tbs_certificate: padArrayWithZeros(passport?.tbsCertificate ?? [], maxTbsLength),
       tbs_certificate_len: passport?.tbsCertificate?.length,
     }
   } else if (signatureAlgorithm === "RSA") {
@@ -231,7 +241,7 @@ export async function getDSCCircuitInputs(passport: PassportViewModel): Promise<
     const modulusBytes = bigintToBytes(BigInt(cscPublicKey.modulus))
     return {
       ...inputs,
-      tbs_certificate: padArrayWithZeros(passport?.tbsCertificate ?? [], 1500),
+      tbs_certificate: padArrayWithZeros(passport?.tbsCertificate ?? [], maxTbsLength),
       tbs_certificate_len: passport?.tbsCertificate?.length,
       dsc_signature: passport?.dscSignature ?? [],
       csc_pubkey: modulusBytes,
@@ -241,9 +251,9 @@ export async function getDSCCircuitInputs(passport: PassportViewModel): Promise<
   }
 }
 
-export function getIDDataCircuitInputs(passport: PassportViewModel): any {
+export function getIDDataCircuitInputs(passport: PassportViewModel, maxTbsLength: number): any {
   const idData = getIDDataInputs(passport)
-  const dscData = getDSCDataInputs(passport)
+  const dscData = getDSCDataInputs(passport, maxTbsLength)
   if (!dscData || !idData) return null
 
   const commIn = hashSaltCountryTbs(
@@ -289,8 +299,11 @@ export function getIDDataCircuitInputs(passport: PassportViewModel): any {
   }
 }
 
-export function getIntegrityCheckCircuitInputs(passport: PassportViewModel): any {
-  const dscData = getDSCDataInputs(passport)
+export function getIntegrityCheckCircuitInputs(
+  passport: PassportViewModel,
+  maxTbsLength: number,
+): any {
+  const dscData = getDSCDataInputs(passport, maxTbsLength)
   if (!dscData) return null
   const idData = getIDDataInputs(passport)
   if (!idData) return null
