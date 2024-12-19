@@ -69,7 +69,7 @@ jobs:
               - bun-cache
       - attach_workspace:
           at: ~/repo
-      - run: /home/circleci/.bun/bin/bun test binary.test.ts sod.test.ts
+      - run: /home/circleci/.bun/bin/bun test binary.test.ts sod.test.ts sod-generator.test.ts
 
 workflows:
   version: 2
