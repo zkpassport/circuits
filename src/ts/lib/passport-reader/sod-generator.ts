@@ -1,4 +1,6 @@
+import { createHash } from "crypto"
 import { ASN, id_ldsSecurityObject } from "./asn"
+import { Binary } from "@/lib/binary"
 import {
   Attribute,
   CertificateChoices,
@@ -57,6 +59,7 @@ export function generateSampleDSC(): Certificate {
       }),
     ]),
   ])
+
   // Create extensions
   const extensions = new Extensions([
     new Extension({
@@ -70,11 +73,13 @@ export function generateSampleDSC(): Certificate {
       extnValue: new OctetString(AsnConvert.serialize(new KeyUsage(0x03))), // digitalSignature | keyCertSign
     }),
   ])
+
   // Create dummy public key
   const dummyPublicKey = new Uint8Array(256)
   for (let i = 0; i < dummyPublicKey.length; i++) {
     dummyPublicKey[i] = i % 256
   }
+
   // Create certificate
   const tbsCertificate = new TBSCertificate({
     version: Version.v3,
@@ -107,22 +112,27 @@ export function generateSampleDSC(): Certificate {
   return certificate
 }
 
-export function generateSod(certificates: CertificateChoices[] = []) {
+export function generateSod(dg1: Binary, certificates: CertificateChoices[] = []) {
+  // Digest Algorithms
   const digestAlgorithms = new DigestAlgorithmIdentifiers([
     new DigestAlgorithmIdentifier({
       algorithm: id_sha256,
     }),
   ])
-  const encapContentInfo = generateEncapContentInfo()
+
+  // Encapsulated Content Info
+  const dg1Hash = createHash("sha256").update(dg1.toBuffer()).digest()
+  const encapContentInfo = generateEncapContentInfo(dg1Hash)
+
+  // Signed Attributes
   const signedAttrs = generateSignedAttrs()
 
-  const sid = new SignerIdentifier({
-    subjectKeyIdentifier: new SubjectKeyIdentifier(new Uint8Array(32)),
-  })
   // Create SignerInfo
   const signerInfo = new SignerInfo({
     version: 1,
-    sid: sid,
+    sid: new SignerIdentifier({
+      subjectKeyIdentifier: new SubjectKeyIdentifier(new Uint8Array(32)),
+    }),
     digestAlgorithm: new DigestAlgorithmIdentifier({
       algorithm: id_sha256,
     }),
@@ -132,6 +142,7 @@ export function generateSod(certificates: CertificateChoices[] = []) {
     }),
     signature: new OctetString(new Uint8Array(256)),
   })
+
   // Create SOD (SignedData) structure
   const sod = new SignedData({
     version: 3,
@@ -140,34 +151,37 @@ export function generateSod(certificates: CertificateChoices[] = []) {
     signerInfos: new SignerInfos([signerInfo]),
     certificates: new CertificateSet(certificates),
   })
+
   // Create the final ContentInfo wrapper
   const contentInfo = new ContentInfo({
     contentType: id_signedData,
     content: AsnSerializer.serialize(sod),
   })
-  return contentInfo
+  return { contentInfo, sod }
 }
 
-export function generateEncapContentInfo() {
+export function generateEncapContentInfo(dg1Hash: Uint8Array) {
   // Create LDS Security Object (SOD.encapContentInfo.eContent)
   const ldsSecurityObject = new ASN.LDSSecurityObject()
   ldsSecurityObject.version = ASN.LDSSecurityObjectVersion.v0
   ldsSecurityObject.hashAlgorithm = new DigestAlgorithmIdentifier({
     algorithm: id_sha256,
   })
+
   // Add some sample data group hashes
   ldsSecurityObject.dataGroups = [
     new ASN.DataGroupHash({
       number: ASN.DataGroupNumber.dataGroup1,
       // @ts-ignore-error
-      hash: new Uint8Array(32).buffer, // 32-byte zero buffer for testing
+      hash: dg1Hash,
     }),
     new ASN.DataGroupHash({
       number: ASN.DataGroupNumber.dataGroup2,
       // @ts-ignore-error
-      hash: new Uint8Array(32).buffer,
+      hash: new Uint8Array(32).buffer, // 32-byte zero buffer for testing
     }),
   ]
+
   // Create EncapsulatedContentInfo container
   const encapContentInfo = new EncapsulatedContentInfo({
     eContentType: id_ldsSecurityObject,
@@ -179,7 +193,7 @@ export function generateEncapContentInfo() {
 }
 
 export function generateSignedAttrs() {
-  // create a random message digest
+  // Create a random message digest
   const randomMessageDigest = new Uint8Array(32)
   for (let i = 0; i < randomMessageDigest.length; i++) {
     randomMessageDigest[i] = Math.floor(Math.random() * 256)

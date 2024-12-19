@@ -4,10 +4,15 @@ import { Version } from "@peculiar/asn1-x509"
 import { describe, it, expect } from "bun:test"
 import { ASN, id_sha256 } from "./asn"
 import { generateSampleDSC, generateSod } from "./sod-generator"
+import { Binary } from "../binary"
+import { createHash } from "crypto"
 
 describe("SOD", () => {
+  const dg1 = Binary.from(new Uint8Array(32).buffer)
+  const dg1Hash = createHash("sha256").update(dg1.toBuffer()).digest()
+
   it("generate SOD", () => {
-    const contentInfo = generateSod([])
+    const { contentInfo } = generateSod(dg1)
     expect(contentInfo.contentType).toBe(id_signedData)
     // Verify the structure can be parsed back
     const sod = AsnConvert.parse(contentInfo.content, SignedData)
@@ -21,6 +26,7 @@ describe("SOD", () => {
     expect(eContent.dataGroups.length).toBe(2)
     expect(eContent.dataGroups[0].number).toBe(ASN.DataGroupNumber.dataGroup1)
     expect(eContent.dataGroups[1].number).toBe(ASN.DataGroupNumber.dataGroup2)
+    expect(Binary.from(eContent.dataGroups[0].hash)).toEqual(Binary.from(dg1Hash))
     // Verify signer info
     expect(sod.signerInfos.length).toBe(1)
     const decodedSignerInfo = sod.signerInfos[0]
@@ -33,7 +39,7 @@ describe("SOD", () => {
 
   it("generate SOD with sample DSC", () => {
     const sampleDSC = generateSampleDSC()
-    const contentInfo = generateSod([new CertificateChoices({ certificate: sampleDSC })])
+    const { contentInfo } = generateSod(dg1, [new CertificateChoices({ certificate: sampleDSC })])
     // Verify the structure can be parsed back
     const sod = AsnConvert.parse(contentInfo.content, SignedData)
     // Verify certificates
