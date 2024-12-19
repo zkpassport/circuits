@@ -26,7 +26,9 @@ jobs:
           name: Install Noir
           command: |
             curl -sSL https://raw.githubusercontent.com/noir-lang/noirup/refs/heads/main/install | bash || true
-            /home/circleci/.nargo/bin/noirup -v nightly-2024-12-18 # 1.0.0-beta.0+73ccd45590222fc82642a6a9aa657c2915fc2c58
+            echo 'export PATH="/home/circleci/.nargo/bin:$PATH"' >> $BASH_ENV
+            source $BASH_ENV
+            noirup -v nightly-2024-12-18 # 1.0.0-beta.0+73ccd45590222fc82642a6a9aa657c2915fc2c58
       - save_cache:
             paths:
               - /home/circleci/.nargo
@@ -61,7 +63,7 @@ jobs:
           name: nargo test
           command: /home/circleci/.nargo/bin/nargo test
 
-  integration_tests:
+  lib_tests:
     <<: *defaults
     steps:
       - restore_cache:
@@ -69,7 +71,25 @@ jobs:
               - bun-cache
       - attach_workspace:
           at: ~/repo
-      - run: /home/circleci/.bun/bin/bun test binary.test.ts sod.test.ts sod-generator.test.ts
+      - run:
+          name: Test libs
+          command: /home/circleci/.bun/bin/bun test binary.test.ts sod.test.ts sod-generator.test.ts
+
+  circuit_tests:
+    <<: *defaults
+    steps:
+      - restore_cache:
+            keys:
+              - bun-cache
+              - nargo-cache
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: Build circuits
+          command: ~/repo/src/ts/scripts/build-circuits.sh
+      - run:
+          name: Test circuits
+          command: /home/circleci/.bun/bin/bun test circuits.test.ts --timeout 100000
 
 workflows:
   version: 2
@@ -83,6 +103,6 @@ workflows:
       - noir_tests:
           requires:
             - lint
-      - integration_tests:
+      - circuit_tests:
           requires:
             - lint
