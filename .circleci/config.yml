@@ -19,9 +19,9 @@ jobs:
           command: |
             curl -sSL https://bun.sh/install | bash
       - save_cache:
-            paths:
-              - /home/circleci/.bun
-            key: bun-cache
+          paths:
+            - /home/circleci/.bun
+          key: bun-cache
       - run:
           name: Install Noir
           command: |
@@ -30,9 +30,9 @@ jobs:
             source $BASH_ENV
             noirup -v nightly-2024-12-18 # 1.0.0-beta.0+73ccd45590222fc82642a6a9aa657c2915fc2c58
       - save_cache:
-            paths:
-              - /home/circleci/.nargo
-            key: nargo-cache
+          paths:
+            - /home/circleci/.nargo
+          key: nargo-cache
       - run:
           name: Install npm dependencies
           command: |
@@ -55,40 +55,46 @@ jobs:
     <<: *defaults
     steps:
       - restore_cache:
-            keys:
-              - nargo-cache
+          keys:
+            - nargo-cache
       - attach_workspace:
           at: ~/repo
       - run:
           name: nargo test
           command: /home/circleci/.nargo/bin/nargo test
 
-  lib_tests:
+  test_libs:
     <<: *defaults
     steps:
       - restore_cache:
-            keys:
-              - bun-cache
+          keys:
+            - bun-cache
       - attach_workspace:
           at: ~/repo
       - run:
           name: Test libs
           command: /home/circleci/.bun/bin/bun test binary.test.ts sod.test.ts sod-generator.test.ts
 
-  circuit_tests:
+  test_circuits:
     <<: *defaults
     steps:
       - restore_cache:
-            keys:
-              - bun-cache
-              - nargo-cache
+          keys:
+            - nargo-cache
       - attach_workspace:
           at: ~/repo
       - run:
           name: Build circuits
-          command: ~/repo/src/ts/scripts/build-circuits.sh
+          command: |
+            NARGO_PATH=/home/circleci/.nargo/bin/nargo ~/repo/src/ts/scripts/build-circuits.sh
+      - restore_cache:
+          keys:
+            - bun-cache
       - run:
-          name: Test circuits
+          name: Nargo tests
+          command: /home/circleci/.nargo/bin/nargo test
+      - run:
+          name: Integration tests
           command: /home/circleci/.bun/bin/bun test circuits.test.ts --timeout 100000
 
 workflows:
@@ -100,9 +106,9 @@ workflows:
       - lint:
           requires:
             - checkout
-      - noir_tests:
+      - test_libs:
           requires:
             - lint
-      - circuit_tests:
+      - test_circuits:
           requires:
             - lint
