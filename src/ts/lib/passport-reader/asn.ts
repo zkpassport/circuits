@@ -51,7 +51,7 @@ export namespace ASN {
    *  dataGroupHashValue OCTET STRING }
    * ```
    */
-  class DataGroupHash {
+  export class DataGroupHash {
     @AsnProp({ type: AsnPropTypes.Integer })
     public number: DataGroupNumber = DataGroupNumber.dataGroup1
 
@@ -118,6 +118,26 @@ export namespace ASN {
   }
 
   /**
+   * ```asn
+   * LDSSecurityObjectIdentifier ::= OBJECT IDENTIFIER
+   * ```
+   */
+  @AsnType({ type: AsnTypeTypes.Choice })
+  export class LDSSecurityObjectIdentifier {
+    @AsnProp({ type: AsnPropTypes.ObjectIdentifier })
+    public value: string = ""
+
+    constructor(value?: string) {
+      if (value) {
+        if (typeof value === "string") {
+          this.value = value
+        } else {
+          Object.assign(this, value)
+        }
+      }
+    }
+  }
+  /**
    * This is for parsing the ASN of signedData.encapContentInfo.eContent
    *
    * ```asn
@@ -147,3 +167,6 @@ export namespace ASN {
     }
   }
 }
+
+export const id_ldsSecurityObject = "2.23.136.1.1.1"
+export const id_sha256 = "2.16.840.1.101.3.4.2.1"
