@@ -137,6 +137,7 @@ export namespace ASN {
       }
     }
   }
+
   /**
    * This is for parsing the ASN of signedData.encapContentInfo.eContent
    *
