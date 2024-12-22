@@ -26,6 +26,7 @@ pub fn get_disclosed_data(dg1: [u8; 95], flags: DiscloseFlags) -> DisclosedData 
         document_number: [0 as u8; 9],
         date_of_expiry: [0 as u8; 6],
         document_type: [0 as u8; 2],
+        gender: [0 as u8; 1],
     };
 
     if is_id_card(dg1) {
@@ -75,6 +76,13 @@ pub fn get_disclosed_data(dg1: [u8; 95], flags: DiscloseFlags) -> DisclosedData 
                 ID_CARD_MRZ_DOCUMENT_TYPE_INDEX + 2,
             );
         }
+        if flags.gender {
+            disclosed_data.gender = get_array_slice(
+                mrz,
+                PASSPORT_MRZ_GENDER_INDEX,
+                PASSPORT_MRZ_GENDER_INDEX + 1,
+            );
+        }
     } else {
         if flags.issuing_country {
             disclosed_data.issuing_country = get_array_slice(
@@ -120,6 +128,13 @@ pub fn get_disclosed_data(dg1: [u8; 95], flags: DiscloseFlags) -> DisclosedData 
                 mrz,
                 PASSPORT_MRZ_DOCUMENT_TYPE_INDEX,
                 PASSPORT_MRZ_DOCUMENT_TYPE_INDEX + 2,
+            );
+        }
+        if flags.gender {
+            disclosed_data.gender = get_array_slice(
+                mrz,
+                PASSPORT_MRZ_GENDER_INDEX,
+                PASSPORT_MRZ_GENDER_INDEX + 1,
             );
         }
     }

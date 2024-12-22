@@ -6,4 +6,5 @@ compiler_version = ">=0.32.0"
 
 [dependencies]
 disclose = { path = "../../../lib/disclose" }
+commitment = { path = "../../../lib/commitment/scoped-nullifier" }
 utils = { path = "../../../lib/utils" }

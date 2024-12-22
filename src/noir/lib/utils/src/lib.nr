@@ -1,6 +1,6 @@
 /**
 * The standards for passports and any other travel documents, electronic or not,
-* are defined in the ICAO (International Civil Aviation Organization) 9303 document available here: 
+* are defined in the ICAO (International Civil Aviation Organization) 9303 document available here:
 * https://www.icao.int/publications/pages/publication.aspx?docnum=9303
 */
 
@@ -149,6 +149,7 @@ pub struct DisclosedData {
     pub date_of_expiry: [u8; 6],
     pub date_of_birth: [u8; 6],
     pub name: [u8; 39],
+    pub gender: [u8; 1],
 }
 
 pub fn get_array_slice<let N: u32, let M: u32>(arr: [u8; N], start: u32, end: u32) -> [u8; M] {
