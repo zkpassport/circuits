@@ -49,7 +49,7 @@ describe("subcircuits", () => {
   })
 
   describe("dsc", () => {
-    test("generate dsc proof", async () => {
+    test("rsa pkcs 4096", async () => {
       const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096`)
       const inputs = await helper.generateCircuitInputs("dsc")
       const proof = await circuit.prove(inputs)
@@ -58,7 +58,7 @@ describe("subcircuits", () => {
   })
 
   describe("id", () => {
-    test("generate id proof", async () => {
+    test("rsa pkcs 2048", async () => {
       const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_2048`)
       const inputs = await helper.generateCircuitInputs("id")
       const proof = await circuit.prove(inputs)
@@ -67,7 +67,7 @@ describe("subcircuits", () => {
   })
 
   describe("integrity", () => {
-    test("generate integrity proof", async () => {
+    test("data integrity check", async () => {
       const circuit = Circuit.from("data_check_integrity")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs)
@@ -76,8 +76,9 @@ describe("subcircuits", () => {
   })
 
   describe("disclose", () => {
-    test("generate disclose flags proof", async () => {
-      const circuit = Circuit.from("disclose_flags")
+    const circuit = Circuit.from("disclose_flags")
+
+    test("disclose all flags", async () => {
       const query: Query = {
         issuing_country: { disclose: true },
         nationality: { disclose: true },
@@ -93,11 +94,9 @@ describe("subcircuits", () => {
       inputs = { ...inputs, salt: 0 }
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
       expect(proof).toBeDefined()
-
       // Verify the disclosed data
       const disclosedData = DisclosedData.fromProof(proof)
       const nullifier = proof.publicInputs.slice(-1)[0]
-
       expect(disclosedData.issuingCountry).toBe("AUS")
       expect(disclosedData.nationality).toBe("AUS")
       expect(disclosedData.documentType).toBe("P")
@@ -106,7 +105,30 @@ describe("subcircuits", () => {
       expect(disclosedData.dateOfBirth).toEqual(new Date(1988, 10, 12))
       expect(disclosedData.dateOfExpiry).toEqual(new Date(2030, 0, 1))
       expect(disclosedData.gender).toBe("M")
-
+      expect(nullifier).toEqual(
+        "0x215282c6b81a6062e0af454d9615c4582c5a35acff60d3a6cdfd5acee286dbf9",
+      )
+    })
+    test("disclose some flags", async () => {
+      const query: Query = {
+        nationality: { disclose: true },
+      }
+      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport, query)
+      if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
+      inputs = { ...inputs, salt: 0 }
+      const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
+      expect(proof).toBeDefined()
+      // Verify the disclosed data
+      const disclosedData = DisclosedData.fromProof(proof)
+      const nullifier = proof.publicInputs.slice(-1)[0]
+      expect(disclosedData.issuingCountry).toBeEmpty()
+      expect(disclosedData.nationality).toBe("AUS")
+      expect(disclosedData.documentType).toBeEmpty()
+      expect(disclosedData.documentNumber).toBeEmpty()
+      expect(disclosedData.name).toBeEmpty()
+      expect(disclosedData.dateOfBirth).toBeEmpty()
+      expect(disclosedData.dateOfExpiry).toBeEmpty()
+      expect(disclosedData.gender).toBeEmpty()
       expect(nullifier).toEqual(
         "0x215282c6b81a6062e0af454d9615c4582c5a35acff60d3a6cdfd5acee286dbf9",
       )
