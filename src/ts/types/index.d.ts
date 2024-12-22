@@ -159,6 +159,17 @@ export type IDCredentialConfig = {
   disclose?: boolean
 }
 
+export type DiscloseFlags = {
+  issuing_country: boolean
+  nationality: boolean
+  document_type: boolean
+  document_number: boolean
+  date_of_expiry: boolean
+  date_of_birth: boolean
+  gender: boolean
+  name: boolean
+}
+
 export type QueryResultValue = {
   eq?: {
     expected: any

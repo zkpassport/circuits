@@ -100,7 +100,7 @@ jobs:
           command: /home/circleci/.nargo/bin/nargo test
       - run:
           name: Integration tests
-          command: /home/circleci/.bun/bin/bun test circuits.test.ts --timeout 100000
+          command: /home/circleci/.bun/bin/bun test circuits.test.ts --timeout 120000
 
 workflows:
   version: 2

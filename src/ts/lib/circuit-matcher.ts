@@ -10,6 +10,7 @@ import { computeMerkleProof } from "@/lib/merkle-tree"
 import {
   Certificate,
   CSCMasterlist,
+  DiscloseFlags,
   ECDSACSCPublicKey,
   ECDSADSCDataInputs,
   IDCredential,
@@ -454,6 +455,40 @@ export function getDiscloseCircuitInputs(passport: PassportViewModel, query: Que
   return {
     dg1: idData.dg1,
     disclose_mask: discloseMask,
+    comm_in: commIn.toHex(),
+    private_nullifier: privateNullifier.toHex(),
+    service_scope: 0,
+    service_subscope: 0,
+  }
+}
+
+export function getDiscloseFlagsCircuitInputs(passport: PassportViewModel, query: Query): any {
+  const idData = getIDDataInputs(passport)
+  if (!idData) return null
+  const privateNullifier = calculatePrivateNullifier(
+    Binary.from(idData.dg1).padEnd(DG1_INPUT_SIZE),
+    Binary.from(passport.sodSignature),
+  )
+  const commIn = hashSaltDg1PrivateNullifier(
+    0n,
+    Binary.from(idData.dg1).padEnd(DG1_INPUT_SIZE),
+    privateNullifier.toBigInt(),
+  )
+
+  const discloseFlags: DiscloseFlags = {
+    issuing_country: query.issuing_country?.disclose ?? false,
+    nationality: query.nationality?.disclose ?? false,
+    document_type: query.document_type?.disclose ?? false,
+    document_number: query.document_number?.disclose ?? false,
+    date_of_expiry: query.expiry_date?.disclose ?? false,
+    date_of_birth: query.birthdate?.disclose ?? false,
+    gender: query.gender?.disclose ?? false,
+    name: query.fullname?.disclose ?? false,
+  }
+
+  return {
+    dg1: idData.dg1,
+    disclose_flags: discloseFlags,
     comm_in: commIn.toHex(),
     private_nullifier: privateNullifier.toHex(),
     service_scope: 0,

@@ -15,7 +15,7 @@ type CircuitType = "dsc" | "id" | "integrity" | "disclose"
 
 export class TestHelper {
   private passportReader = new PassportReader()
-  private passport!: PassportViewModel
+  public passport!: PassportViewModel
   private masterlist!: CSCMasterlist
   private maxTbsLength!: number
 
