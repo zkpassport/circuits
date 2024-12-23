@@ -79,8 +79,8 @@ pub fn get_disclosed_data(dg1: [u8; 95], flags: DiscloseFlags) -> DisclosedData 
         if flags.gender {
             disclosed_data.gender = get_array_slice(
                 mrz,
-                PASSPORT_MRZ_GENDER_INDEX,
-                PASSPORT_MRZ_GENDER_INDEX + 1,
+                ID_CARD_MRZ_GENDER_INDEX,
+                ID_CARD_MRZ_GENDER_INDEX + 1,
             );
         }
     } else {
