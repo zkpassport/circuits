@@ -8,32 +8,22 @@ import {
 } from "@/lib/passport-reader/passport-generator"
 import { generateSod, wrapSodInContentInfo } from "@/lib/passport-reader/sod-generator"
 import { TestHelper } from "@/lib/test-helper"
-import { CSCMasterlist } from "@/types"
+import { CSCMasterlist, Query } from "@/types"
 import { CertificateChoices } from "@peculiar/asn1-cms"
 import { AsnSerializer } from "@peculiar/asn1-schema"
-import { beforeAll, describe, expect, it } from "bun:test"
+import { beforeAll, describe, expect, test } from "bun:test"
 import * as path from "path"
+import { getDiscloseCircuitInputs, getDiscloseFlagsCircuitInputs } from "@/lib/circuit-matcher"
+import { DisclosedData } from "@/lib/circuits/disclose"
 
 describe("subcircuits", () => {
   const helper = new TestHelper()
-  const circuits: {
-    dsc: Circuit
-    id: Circuit
-    integrity: Circuit
-    disclose: Circuit
-  } = {} as any
-
   const masterlist: CSCMasterlist = { certificates: [] }
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair.json")
   const MAX_TBS_LENGTH = 1500
 
   beforeAll(async () => {
-    circuits.dsc = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096`)
-    circuits.id = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_2048`)
-    circuits.integrity = Circuit.from("data_check_integrity")
-    circuits.disclose = Circuit.from("disclose_bytes")
-
     // Johnny Silverhand's MRZ
     const mrz =
       "P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<__"
@@ -58,40 +48,90 @@ describe("subcircuits", () => {
     helper.setMaxTbsLength(MAX_TBS_LENGTH)
   })
 
-  it("generate dsc proof", async () => {
-    const inputs = await helper.generateCircuitInputs("dsc")
-    const proof = await circuits.dsc.prove(inputs)
-    expect(proof).toBeDefined()
+  describe("dsc", () => {
+    test("rsa pkcs 4096", async () => {
+      const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096`)
+      const inputs = await helper.generateCircuitInputs("dsc")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+    })
   })
 
-  it("generate id proof", async () => {
-    const inputs = await helper.generateCircuitInputs("id")
-    const proof = await circuits.id.prove(inputs)
-    expect(proof).toBeDefined()
+  describe("id", () => {
+    test("rsa pkcs 2048", async () => {
+      const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_2048`)
+      const inputs = await helper.generateCircuitInputs("id")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+    })
   })
 
-  it("generate integrity proof", async () => {
-    const inputs = await helper.generateCircuitInputs("integrity")
-    const proof = await circuits.integrity.prove(inputs)
-    expect(proof).toBeDefined()
+  describe("integrity", () => {
+    test("data integrity check", async () => {
+      const circuit = Circuit.from("data_check_integrity")
+      const inputs = await helper.generateCircuitInputs("integrity")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+    })
   })
 
-  it("generate disclose proof", async () => {
-    const inputs = await helper.generateCircuitInputs("disclose")
-    const proof = await circuits.disclose.prove(inputs)
-    expect(proof).toBeDefined()
+  describe("disclose", () => {
+    const circuit = Circuit.from("disclose_flags")
 
-    const nullifier = proof.publicInputs.slice(-1)[0]
-    const disclosed_bytes = Binary.from(
-      proof.publicInputs
-        .slice(-91, -1)
-        .map((hex) => parseInt(hex, 16))
-        .map((byte) => (byte === 0 ? " ".charCodeAt(0) : byte)),
-    )
-    expect(nullifier).toEqual("0x215282c6b81a6062e0af454d9615c4582c5a35acff60d3a6cdfd5acee286dbf9")
-    expect(disclosed_bytes.toString("ascii").trim().split(" ").filter(Boolean)).toEqual([
-      "SILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<",
-      "AUS881112",
-    ])
+    test("disclose all flags", async () => {
+      const query: Query = {
+        issuing_country: { disclose: true },
+        nationality: { disclose: true },
+        document_type: { disclose: true },
+        document_number: { disclose: true },
+        fullname: { disclose: true },
+        birthdate: { disclose: true },
+        expiry_date: { disclose: true },
+        gender: { disclose: true },
+      }
+      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport, query)
+      if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
+      inputs = { ...inputs, salt: 0 }
+      const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
+      expect(proof).toBeDefined()
+      // Verify the disclosed data
+      const disclosedData = DisclosedData.fromProof(proof)
+      const nullifier = proof.publicInputs.slice(-1)[0]
+      expect(disclosedData.issuingCountry).toBe("AUS")
+      expect(disclosedData.nationality).toBe("AUS")
+      expect(disclosedData.documentType).toBe("P")
+      expect(disclosedData.documentNumber).toBe("PA1234567")
+      expect(disclosedData.name).toBe("SILVERHAND  JOHNNY")
+      expect(disclosedData.dateOfBirth).toEqual(new Date(1988, 10, 12))
+      expect(disclosedData.dateOfExpiry).toEqual(new Date(2030, 0, 1))
+      expect(disclosedData.gender).toBe("M")
+      expect(nullifier).toEqual(
+        "0x215282c6b81a6062e0af454d9615c4582c5a35acff60d3a6cdfd5acee286dbf9",
+      )
+    })
+    test("disclose some flags", async () => {
+      const query: Query = {
+        nationality: { disclose: true },
+      }
+      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport, query)
+      if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
+      inputs = { ...inputs, salt: 0 }
+      const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
+      expect(proof).toBeDefined()
+      // Verify the disclosed data
+      const disclosedData = DisclosedData.fromProof(proof)
+      const nullifier = proof.publicInputs.slice(-1)[0]
+      expect(disclosedData.issuingCountry).toBeEmpty()
+      expect(disclosedData.nationality).toBe("AUS")
+      expect(disclosedData.documentType).toBeEmpty()
+      expect(disclosedData.documentNumber).toBeEmpty()
+      expect(disclosedData.name).toBeEmpty()
+      expect(disclosedData.dateOfBirth).toBeEmpty()
+      expect(disclosedData.dateOfExpiry).toBeEmpty()
+      expect(disclosedData.gender).toBeEmpty()
+      expect(nullifier).toEqual(
+        "0x215282c6b81a6062e0af454d9615c4582c5a35acff60d3a6cdfd5acee286dbf9",
+      )
+    })
   })
 })

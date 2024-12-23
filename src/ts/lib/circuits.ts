@@ -11,36 +11,39 @@ const bb = await BarretenbergSync.initSingleton()
 
 export class Circuit {
   private manifest: CompiledCircuit
-  public witness?: Uint8Array
+  private name: string
   public backend?: UltraHonkBackend
   public noir?: Noir
 
-  constructor(manifest: CompiledCircuit) {
+  constructor(manifest: CompiledCircuit, name: string) {
     this.manifest = manifest
+    this.name = name
   }
 
   async init() {
-    if (this.backend) return
-    this.backend = new UltraHonkBackend(this.manifest.bytecode, {
-      threads: BB_THREADS,
-    })
-    this.noir = new Noir(this.manifest)
+    if (!this.backend) {
+      this.backend = new UltraHonkBackend(this.manifest.bytecode, {
+        threads: BB_THREADS,
+      })
+      if (!this.backend) throw new Error("Error initializing backend")
+    }
+    if (!this.noir) {
+      this.noir = new Noir(this.manifest)
+      if (!this.noir) throw new Error("Error initializing noir")
+    }
   }
 
-  async solve(inputs: InputMap) {
+  async solve(inputs: InputMap): Promise<Uint8Array> {
     await this.init()
-    if (this.witness) return
-    if (!this.noir) throw new Error("Noir not initialized")
-    const { witness } = await this.noir.execute(inputs)
-    this.witness = witness
+    const { witness } = await this.noir!.execute(inputs)
+    if (!witness) throw new Error("Error solving witness")
+    return witness
   }
 
-  async prove(inputs: InputMap): Promise<ProofData> {
+  async prove(inputs: InputMap, options?: { witness?: Uint8Array }): Promise<ProofData> {
     await this.init()
-    if (!this.witness) await this.solve(inputs)
-    if (!this.backend) throw new Error("Backend not initialized")
-    if (!this.witness) throw new Error("Witness not initialized")
-    const proof = await this.backend.generateProof(this.witness)
+    const witness = options?.witness ?? (await this.solve(inputs))
+    const proof = await this.backend!.generateProof(witness)
     return proof
   }
 
@@ -71,13 +74,18 @@ export class Circuit {
     const circuitPath = isFullPath ? fileName : path.resolve(`target/${fileName}.json`)
     try {
       const manifest = JSON.parse(readFileSync(circuitPath, "utf-8"))
-      return new Circuit(manifest)
+      const name = path.basename(fileName, ".json")
+      return new Circuit(manifest, name)
     } catch (error) {
       if (error instanceof Error && error.name === "ENOENT") {
         throw new Error(`No such file: target/${fileName}.json`)
       }
       throw error
     }
+  }
+
+  getName(): string {
+    return this.name
   }
 }
 

@@ -11,7 +11,7 @@ fn main(
     service_subscope: pub Field,
 ) -> pub ([u8; 90], Field) {
     let disclosed_bytes = get_disclosed_bytes(dg1, disclose_mask);
-    let nullifier = nullify(
+    let scoped_nullifier = nullify(
         comm_in,
         salt,
         dg1,
@@ -19,5 +19,5 @@ fn main(
         service_scope,
         service_subscope,
     );
-    (disclosed_bytes, nullifier)
+    (disclosed_bytes, scoped_nullifier)
 }
