@@ -1,20 +1,22 @@
-import { Binary } from "@/lib/binary"
-import { Circuit } from "@/lib/circuits"
-import { parseCertificate } from "@/lib/csc-manager"
+import { Binary } from "zkpassport-utils/binary"
+import { parseCertificate } from "zkpassport-utils/csc-manager"
 import {
   generateSigningCertificates,
   loadDscKeypairFromFile,
   signSodWithRsaKey,
-} from "@/lib/passport-reader/passport-generator"
-import { generateSod, wrapSodInContentInfo } from "@/lib/passport-reader/sod-generator"
-import { TestHelper } from "@/lib/test-helper"
-import { CSCMasterlist, Query } from "@/types"
-import { CertificateChoices } from "@peculiar/asn1-cms"
-import { AsnSerializer } from "@peculiar/asn1-schema"
+  generateSod,
+  wrapSodInContentInfo,
+} from "zkpassport-utils/passport-reader"
+import { TestHelper } from "zkpassport-utils/test-helper"
+import type { CSCMasterlist, Query } from "zkpassport-utils/types"
 import { beforeAll, describe, expect, test } from "bun:test"
 import * as path from "path"
-import { getDiscloseCircuitInputs, getDiscloseFlagsCircuitInputs } from "@/lib/circuit-matcher"
-import { DisclosedData } from "@/lib/circuits/disclose"
+import {
+  getDiscloseCircuitInputs,
+  getDiscloseFlagsCircuitInputs,
+} from "zkpassport-utils/circuit-matcher"
+import { DisclosedData, Circuit } from "zkpassport-utils/circuits"
+import { serializeAsn } from "zkpassport-utils/utils"
 
 describe("subcircuits", () => {
   const helper = new TestHelper()
@@ -37,12 +39,12 @@ describe("subcircuits", () => {
       dscKeypair,
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = generateSod(dg1, [new CertificateChoices({ certificate: dsc })])
+    const { sod } = generateSod(dg1, [dsc])
     const { sod: signedSod } = signSodWithRsaKey(sod, dscKeypair.privateKey)
     // Add newly generated CSC to masterlist
     masterlist.certificates.push(parseCertificate(cscPem))
     // Load passport data into helper
-    const contentInfoWrappedSod = AsnSerializer.serialize(wrapSodInContentInfo(signedSod))
+    const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
     helper.setMasterlist(masterlist)
     helper.setMaxTbsLength(MAX_TBS_LENGTH)
