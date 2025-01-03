@@ -1,22 +1,22 @@
-import { Binary } from "zkpassport-utils/binary"
-import { parseCertificate } from "zkpassport-utils/csc-manager"
+import { Binary } from "@zkpassport/utils/binary"
+import { parseCertificate } from "@zkpassport/utils/csc-manager"
 import {
   generateSigningCertificates,
   loadDscKeypairFromFile,
   signSodWithRsaKey,
   generateSod,
   wrapSodInContentInfo,
-} from "zkpassport-utils/passport-reader"
-import { TestHelper } from "zkpassport-utils/test-helper"
-import type { CSCMasterlist, Query } from "zkpassport-utils/types"
+} from "@zkpassport/utils/passport-reader"
+import { TestHelper } from "@zkpassport/utils/test-helper"
+import type { CSCMasterlist, Query } from "@zkpassport/utils/types"
 import { beforeAll, describe, expect, test } from "bun:test"
 import * as path from "path"
 import {
   getDiscloseCircuitInputs,
   getDiscloseFlagsCircuitInputs,
-} from "zkpassport-utils/circuit-matcher"
-import { DisclosedData, Circuit } from "zkpassport-utils/circuits"
-import { serializeAsn } from "zkpassport-utils/utils"
+} from "@zkpassport/utils/circuit-matcher"
+import { DisclosedData, Circuit } from "@zkpassport/utils/circuits"
+import { serializeAsn } from "@zkpassport/utils/utils"
 
 describe("subcircuits", () => {
   const helper = new TestHelper()
