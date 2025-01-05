@@ -6,7 +6,7 @@
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "target": "esnext",
-    "module": "preserve",
+    "module": "ESNext",
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {

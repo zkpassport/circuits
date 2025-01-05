@@ -4,19 +4,16 @@ import {
   generateSigningCertificates,
   loadDscKeypairFromFile,
   signSodWithRsaKey,
-  generateSod,
-  wrapSodInContentInfo,
-} from "@zkpassport/utils/passport-reader"
-import { TestHelper } from "@zkpassport/utils/test-helper"
+} from "@zkpassport/test-utils/passport-generator"
+import { generateSod, wrapSodInContentInfo } from "@zkpassport/test-utils/sod-generator"
+import { TestHelper } from "@zkpassport/test-utils/test-helper"
 import type { CSCMasterlist, Query } from "@zkpassport/utils/types"
 import { beforeAll, describe, expect, test } from "bun:test"
 import * as path from "path"
-import {
-  getDiscloseCircuitInputs,
-  getDiscloseFlagsCircuitInputs,
-} from "@zkpassport/utils/circuit-matcher"
-import { DisclosedData, Circuit } from "@zkpassport/utils/circuits"
-import { serializeAsn } from "@zkpassport/utils/utils"
+import { getDiscloseFlagsCircuitInputs } from "@zkpassport/utils/circuit-matcher"
+import { DisclosedData } from "@zkpassport/utils/circuits"
+import { Circuit } from "@zkpassport/test-utils/circuits"
+import { serializeAsn } from "@zkpassport/test-utils/utils"
 
 describe("subcircuits", () => {
   const helper = new TestHelper()
@@ -91,7 +88,7 @@ describe("subcircuits", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport, query)
+      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport as any, query)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       inputs = { ...inputs, salt: 0 }
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
@@ -115,7 +112,7 @@ describe("subcircuits", () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport, query)
+      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport as any, query)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       inputs = { ...inputs, salt: 0 }
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })

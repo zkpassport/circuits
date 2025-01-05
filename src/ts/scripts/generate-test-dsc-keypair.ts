@@ -1,6 +1,6 @@
 import forge from "node-forge"
 import * as path from "path"
-import { saveDscKeypairToFile } from "@zkpassport/utils/passport-reader"
+import { saveDscKeypairToFile } from "@zkpassport/test-utils/passport-generator"
 
 // Generate a new DSC keypair
 console.log("Generating DSC keypair...")
