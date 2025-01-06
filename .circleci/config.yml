@@ -77,9 +77,9 @@ jobs:
       - attach_workspace:
           at: ~/repo
       - run:
-          name: Build circuits
+          name: Compile circuits
           command: |
-            NARGO_PATH=/home/circleci/.nargo/bin/nargo ~/repo/src/ts/scripts/build-circuits.sh
+            NARGO_PATH=/home/circleci/.nargo/bin/nargo ~/repo/scripts/ci-compile-circuits.sh
       - restore_cache:
           keys:
             - bun-cache
