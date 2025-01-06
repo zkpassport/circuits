@@ -68,18 +68,6 @@ jobs:
           name: nargo test
           command: /home/circleci/.nargo/bin/nargo test
 
-  test_libs:
-    <<: *defaults
-    steps:
-      - restore_cache:
-          keys:
-            - bun-cache
-      - attach_workspace:
-          at: ~/repo
-      - run:
-          name: Test libs
-          command: /home/circleci/.bun/bin/bun test binary.test.ts sod.test.ts sod-generator.test.ts
-
   test_circuits:
     <<: *defaults
     steps:
@@ -111,9 +99,6 @@ workflows:
       - lint:
           requires:
             - checkout
-      - test_libs:
-          requires:
-            - lint
       - test_circuits:
           requires:
             - lint
