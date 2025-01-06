@@ -430,29 +430,56 @@ const generateWorkspaceToml = () => {
   fs.writeFileSync("./Nargo.toml", workspaceToml)
 }
 
-const compileCircuitsWithNargo = async (getGateCount: boolean = false) => {
+const compileCircuitsWithNargo = async (
+  forceCompilation: boolean = false,
+  getGateCount: boolean = false,
+) => {
   const command = getGateCount ? "bash scripts/info.sh" : "nargo compile --force --package"
-  generatedCircuits.forEach(async ({ name }) => {
-    console.log(`Compiling ${name}`)
-    exec(`${command} ${name}`, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing script: ${error.message}`)
-        return
-      }
-      if (stderr) {
-        console.error(`Script error output: ${stderr}`)
-        return
-      }
-      console.log(`Script output: ${stdout}`)
+
+  // Helper function to promisify exec
+  const execPromise = (cmd: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+          reject(error)
+          return
+        }
+        if (stderr) {
+          console.error(`Script error output: ${stderr}`)
+        }
+        resolve(stdout)
+      })
     })
-  })
+  }
+
+  // Process circuits sequentially
+  for (const { name } of generatedCircuits) {
+    // Check if compilation output already exists
+    const outputPath = path.join("target", `${name}.json`)
+    if (fs.existsSync(outputPath) && !forceCompilation) {
+      console.log(`Skipping ${name} - compilation output already exists`)
+      continue
+    }
+
+    try {
+      console.log(`Compiling ${name}`)
+      const stdout = await execPromise(`${command} ${name}`)
+      console.log(`Script output: ${stdout}`)
+    } catch (error: any) {
+      console.error(`Error executing script for ${name}: ${error.message}`)
+    }
+  }
 }
 
 const args = process.argv.slice(2)
 const unconstrained = args.includes("unconstrained")
+const compile = args.includes("compile")
+const forceCompilation = args.includes("force-compilation")
 
 generateDscCircuits({ unconstrained: unconstrained })
 generateIdDataCircuits({ unconstrained: unconstrained })
 generateWorkspaceToml()
-// This works but use at your own risk (this will be very demanding of your machine)
-// compileCircuitsWithNargo()
+if (compile) {
+  // This works but use at your own risk (this will be very demanding of your machine)
+  compileCircuitsWithNargo(forceCompilation)
+}
