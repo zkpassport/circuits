@@ -1,5 +1,5 @@
-import { parseCertificates } from "@/lib/csc-manager"
-import { Certificate } from "@/types"
+import { parseCertificates } from "@zkpassport/utils/csc-manager"
+import { Certificate } from "@zkpassport/utils/types"
 import fs from "fs"
 import path from "path"
 

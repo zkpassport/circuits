@@ -1,20 +1,19 @@
-import { Binary } from "@/lib/binary"
-import { Circuit } from "@/lib/circuits"
-import { parseCertificate } from "@/lib/csc-manager"
+import { Binary } from "@zkpassport/utils/binary"
+import { parseCertificate } from "@zkpassport/utils/csc-manager"
 import {
   generateSigningCertificates,
   loadDscKeypairFromFile,
   signSodWithRsaKey,
-} from "@/lib/passport-reader/passport-generator"
-import { generateSod, wrapSodInContentInfo } from "@/lib/passport-reader/sod-generator"
-import { TestHelper } from "@/lib/test-helper"
-import { CSCMasterlist, Query } from "@/types"
-import { CertificateChoices } from "@peculiar/asn1-cms"
-import { AsnSerializer } from "@peculiar/asn1-schema"
+} from "@zkpassport/test-utils/passport-generator"
+import { generateSod, wrapSodInContentInfo } from "@zkpassport/test-utils/sod-generator"
+import { TestHelper } from "@zkpassport/test-utils/test-helper"
+import type { CSCMasterlist, Query } from "@zkpassport/utils/types"
 import { beforeAll, describe, expect, test } from "bun:test"
 import * as path from "path"
-import { getDiscloseCircuitInputs, getDiscloseFlagsCircuitInputs } from "@/lib/circuit-matcher"
-import { DisclosedData } from "@/lib/circuits/disclose"
+import { getDiscloseFlagsCircuitInputs } from "@zkpassport/utils/circuit-matcher"
+import { DisclosedData } from "@zkpassport/utils/circuits"
+import { Circuit } from "@zkpassport/test-utils/circuits"
+import { serializeAsn } from "@zkpassport/test-utils/utils"
 
 describe("subcircuits", () => {
   const helper = new TestHelper()
@@ -37,12 +36,12 @@ describe("subcircuits", () => {
       dscKeypair,
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = generateSod(dg1, [new CertificateChoices({ certificate: dsc })])
+    const { sod } = generateSod(dg1, [dsc])
     const { sod: signedSod } = signSodWithRsaKey(sod, dscKeypair.privateKey)
     // Add newly generated CSC to masterlist
     masterlist.certificates.push(parseCertificate(cscPem))
     // Load passport data into helper
-    const contentInfoWrappedSod = AsnSerializer.serialize(wrapSodInContentInfo(signedSod))
+    const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
     helper.setMasterlist(masterlist)
     helper.setMaxTbsLength(MAX_TBS_LENGTH)
@@ -89,7 +88,7 @@ describe("subcircuits", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport, query)
+      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport as any, query)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       inputs = { ...inputs, salt: 0 }
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
@@ -113,7 +112,7 @@ describe("subcircuits", () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport, query)
+      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport as any, query)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       inputs = { ...inputs, salt: 0 }
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
