@@ -31,7 +31,6 @@ pub fn check_country_exclusion<let N: u32>(dg1: [u8; 95], country_list: [u32; N]
     // Since the list is assumed to be sorted in ascending order, we can get the index to check against
     // from an unconstrained function
     let closest_index = unsafe { get_closest_index(country_list, nationality_sum) };
-    println(f"closest_index: {closest_index}");
     // Assert that either the index is the first element of the list or the previous element is less than the nationality sum
     if closest_index == 0 {
         // Assert that the country at the index is greater than the nationality sum
