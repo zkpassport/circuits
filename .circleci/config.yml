@@ -20,6 +20,14 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install Bun
+          command: |
+            curl -sSL https://bun.sh/install | bash
+      - save_cache:
+          paths:
+            - /home/circleci/.bun
+          key: bun-cache
+      - run:
           name: Install Noir
           command: |
             curl -sSL https://raw.githubusercontent.com/noir-lang/noirup/refs/heads/main/install | bash || true
@@ -63,12 +71,15 @@ jobs:
       - restore_cache:
           keys:
             - nargo-cache
+      - restore_cache:
+          keys:
+            - bun-cache
       - attach_workspace:
           at: ~/repo
       - run:
           name: Compile circuits
           command: |
-            NARGO_BIN=/home/circleci/.nargo/bin/nargo ~/repo/scripts/ci-compile-circuits.sh
+            NARGO_BIN=/home/circleci/.nargo/bin/nargo BUN_BIN=/home/circleci/.bun/bin/bun ~/repo/scripts/ci-compile-circuits.sh
       - run:
           name: Nargo tests
           command: /home/circleci/.nargo/bin/nargo test

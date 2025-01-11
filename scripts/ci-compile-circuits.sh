@@ -5,10 +5,11 @@
 set -euo pipefail
 
 : ${NARGO_BIN:=nargo}
+: ${BUN_BIN:=bun}
 
 # Update the circuits to be unconstrained, so that we can test the logic
 # of the circuit for given inputs without doing fully constrained proving.
-npm run src/ts/scripts/circuit-builder.ts unconstrained
+$BUN_BIN run src/ts/scripts/circuit-builder.ts unconstrained
 
 # Circuits to compile
 CIRCUITS=(
