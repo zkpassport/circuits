@@ -1,12 +1,14 @@
 use utils::get_nationality_from_mrz;
 
 unconstrained fn get_closest_index<let N: u32>(sorted_list: [u32; N], value: u32) -> u32 {
+    let mut index: u32 = 0;
     for i in 0..N {
         if sorted_list[i] > value {
-            i
+            index = i;
+            break;
         }
     }
-    0
+    index
 }
 
 /// Check if the nationality from the MRZ is not in the country list

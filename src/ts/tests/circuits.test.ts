@@ -10,8 +10,21 @@ import { TestHelper } from "@zkpassport/test-utils/test-helper"
 import type { CSCMasterlist, Query } from "@zkpassport/utils/types"
 import { beforeAll, describe, expect, test } from "bun:test"
 import * as path from "path"
-import { getDiscloseFlagsCircuitInputs } from "@zkpassport/utils/circuit-matcher"
-import { DisclosedData } from "@zkpassport/utils/circuits"
+import {
+  getDiscloseFlagsCircuitInputs,
+  getCountryInclusionCircuitInputs,
+  getCountryExclusionCircuitInputs,
+  getAgeCircuitInputs,
+  calculateAge,
+} from "@zkpassport/utils/circuit-matcher"
+import {
+  DisclosedData,
+  getCountryListFromInclusionProof,
+  getCountryListFromExclusionProof,
+  getMinAgeFromProof,
+  getMaxAgeFromProof,
+  getNullifierFromDisclosureProof,
+} from "@zkpassport/utils/circuits"
 import { Circuit } from "@zkpassport/test-utils/circuits"
 import { serializeAsn } from "@zkpassport/test-utils/utils"
 
@@ -20,7 +33,7 @@ describe("subcircuits", () => {
   const masterlist: CSCMasterlist = { certificates: [] }
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair.json")
-  const MAX_TBS_LENGTH = 1500
+  const MAX_TBS_LENGTH = 700
 
   beforeAll(async () => {
     // Johnny Silverhand's MRZ
@@ -44,7 +57,7 @@ describe("subcircuits", () => {
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
     helper.setMasterlist(masterlist)
-    helper.setMaxTbsLength(MAX_TBS_LENGTH)
+    helper.passport.dateOfBirth = "881112"
   })
 
   describe("dsc", () => {
@@ -88,14 +101,13 @@ describe("subcircuits", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport as any, query)
+      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport as any, query, 0n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
-      inputs = { ...inputs, salt: 0 }
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
       expect(proof).toBeDefined()
       // Verify the disclosed data
       const disclosedData = DisclosedData.fromProof(proof)
-      const nullifier = proof.publicInputs.slice(-1)[0]
+      const nullifier = getNullifierFromDisclosureProof(proof)
       expect(disclosedData.issuingCountry).toBe("AUS")
       expect(disclosedData.nationality).toBe("AUS")
       expect(disclosedData.documentType).toBe("P")
@@ -105,16 +117,15 @@ describe("subcircuits", () => {
       expect(disclosedData.dateOfExpiry).toEqual(new Date(2030, 0, 1))
       expect(disclosedData.gender).toBe("M")
       expect(nullifier).toEqual(
-        "0x215282c6b81a6062e0af454d9615c4582c5a35acff60d3a6cdfd5acee286dbf9",
+        BigInt("0x215282c6b81a6062e0af454d9615c4582c5a35acff60d3a6cdfd5acee286dbf9"),
       )
     })
     test("disclose some flags", async () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport as any, query)
+      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport as any, query, 0n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
-      inputs = { ...inputs, salt: 0 }
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
       expect(proof).toBeDefined()
       // Verify the disclosed data
@@ -131,6 +142,133 @@ describe("subcircuits", () => {
       expect(nullifier).toEqual(
         "0x215282c6b81a6062e0af454d9615c4582c5a35acff60d3a6cdfd5acee286dbf9",
       )
+    })
+  })
+
+  describe("inclusion-check", () => {
+    test("country", async () => {
+      const circuit = Circuit.from("inclusion_check_country")
+      const query: Query = {
+        nationality: { in: ["AUS", "FRA", "USA", "GBR"] },
+      }
+      const inputs = await getCountryInclusionCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const countryList = getCountryListFromInclusionProof(proof)
+      expect(countryList).toEqual(["AUS", "FRA", "USA", "GBR"])
+    })
+  })
+
+  describe("exclusion-check", () => {
+    test("country", async () => {
+      const circuit = Circuit.from("exclusion_check_country")
+      const query: Query = {
+        nationality: { out: ["FRA", "USA", "GBR"] },
+      }
+      const inputs = await getCountryExclusionCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const countryList = getCountryListFromExclusionProof(proof)
+      expect(countryList).toEqual(["FRA", "GBR", "USA"])
+    })
+  })
+
+  describe("compare-age", () => {
+    test("greater than", async () => {
+      const circuit = Circuit.from("compare_age")
+      const query: Query = {
+        age: { gte: 18 },
+      }
+      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate compare-age greater than circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const minAge = getMinAgeFromProof(proof)
+      const maxAge = getMaxAgeFromProof(proof)
+      expect(minAge).toBe(18)
+      expect(maxAge).toBe(0)
+    })
+
+    test("less than", async () => {
+      const circuit = Circuit.from("compare_age")
+      const age = calculateAge(helper.passport)
+      const query: Query = {
+        age: { lt: age + 1 },
+      }
+      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate compare-age less than circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const minAge = getMinAgeFromProof(proof)
+      const maxAge = getMaxAgeFromProof(proof)
+      expect(minAge).toBe(0)
+      expect(maxAge).toBe(age + 1)
+    })
+
+    test("between", async () => {
+      const circuit = Circuit.from("compare_age")
+      const age = calculateAge(helper.passport)
+      const query: Query = {
+        age: { gte: age, lt: age + 2 },
+      }
+      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate compare-age between circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const minAge = getMinAgeFromProof(proof)
+      const maxAge = getMaxAgeFromProof(proof)
+      expect(minAge).toBe(age)
+      expect(maxAge).toBe(age + 2)
+    })
+
+    test("equal", async () => {
+      const circuit = Circuit.from("compare_age")
+      const age = calculateAge(helper.passport)
+      const query: Query = {
+        age: { eq: age },
+      }
+      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate compare-age equal circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const minAge = getMinAgeFromProof(proof)
+      const maxAge = getMaxAgeFromProof(proof)
+      expect(minAge).toBe(age)
+      expect(maxAge).toBe(age)
+    })
+
+    test("disclose", async () => {
+      const circuit = Circuit.from("compare_age")
+      const query: Query = {
+        age: { disclose: true },
+      }
+      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate compare-age equal circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const age = calculateAge(helper.passport)
+      const minAge = getMinAgeFromProof(proof)
+      const maxAge = getMaxAgeFromProof(proof)
+      expect(minAge).toBe(age)
+      expect(maxAge).toBe(age)
+    })
+
+    test("range", async () => {
+      const circuit = Circuit.from("compare_age")
+      const age = calculateAge(helper.passport)
+      const query: Query = {
+        age: { range: [age - 5, age + 5] },
+      }
+      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate compare-age range circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const minAge = getMinAgeFromProof(proof)
+      const maxAge = getMaxAgeFromProof(proof)
+      expect(minAge).toBe(age - 5)
+      expect(maxAge).toBe(age + 5)
     })
   })
 })
