@@ -61,36 +61,45 @@ describe("subcircuits", () => {
   })
 
   describe("dsc", () => {
-    it("rsa pkcs 4096", async () => {
+    test("rsa pkcs 4096", async () => {
       const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096`)
       const inputs = await helper.generateCircuitInputs("dsc")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      await circuit.backend!.destroy()
     }, 30000)
   })
 
   describe("id", () => {
-    it("rsa pkcs 2048", async () => {
+    test("rsa pkcs 2048", async () => {
       const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_2048`)
       const inputs = await helper.generateCircuitInputs("id")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      await circuit.backend!.destroy()
     }, 30000)
   })
 
   describe("integrity", () => {
-    it("data integrity check", async () => {
+    test("data integrity check", async () => {
       const circuit = Circuit.from("data_check_integrity")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      await circuit.backend!.destroy()
     })
   })
 
   describe("disclose", () => {
-    const circuit = Circuit.from("disclose_flags")
+    let circuit: Circuit
+    beforeAll(async () => {
+      circuit = Circuit.from("disclose_flags")
+    })
+    afterAll(async () => {
+      await circuit.backend!.destroy()
+    })
 
-    it("disclose all flags", async () => {
+    test("disclose all flags", async () => {
       const query: Query = {
         issuing_country: { disclose: true },
         nationality: { disclose: true },
@@ -116,10 +125,12 @@ describe("subcircuits", () => {
       expect(disclosedData.dateOfBirth).toEqual(new Date(1988, 10, 12))
       expect(disclosedData.dateOfExpiry).toEqual(new Date(2030, 0, 1))
       expect(disclosedData.gender).toBe("M")
-      expect(nullifier).toEqual(0x08270df6a2f1e90cd6dfe164834a6b0f552981c432515faba5218b541592ccf4n)
+      expect(nullifier).toEqual(
+        15389760513748885229157575867520679581734293836624949747504938619050732009454n,
+      )
     })
 
-    it("disclose some flags", async () => {
+    test("disclose some flags", async () => {
       const query: Query = {
         nationality: { disclose: true },
       }
@@ -138,12 +149,14 @@ describe("subcircuits", () => {
       expect(isNaN(disclosedData.dateOfBirth.getTime())).toBe(true)
       expect(isNaN(disclosedData.dateOfExpiry.getTime())).toBe(true)
       expect(disclosedData.gender).toBe("")
-      expect(nullifier).toEqual(0x08270df6a2f1e90cd6dfe164834a6b0f552981c432515faba5218b541592ccf4n)
+      expect(nullifier).toEqual(
+        15389760513748885229157575867520679581734293836624949747504938619050732009454n,
+      )
     })
   })
 
   describe("inclusion-check", () => {
-    it("country", async () => {
+    test("country", async () => {
       const circuit = Circuit.from("inclusion_check_country")
       const query: Query = {
         nationality: { in: ["AUS", "FRA", "USA", "GBR"] },
@@ -154,11 +167,12 @@ describe("subcircuits", () => {
       expect(proof).toBeDefined()
       const countryList = getCountryListFromInclusionProof(proof)
       expect(countryList).toEqual(["AUS", "FRA", "USA", "GBR"])
+      await circuit.backend!.destroy()
     })
   })
 
   describe("exclusion-check", () => {
-    it("country", async () => {
+    test("country", async () => {
       const circuit = Circuit.from("exclusion_check_country")
       const query: Query = {
         nationality: { out: ["FRA", "USA", "GBR"] },
@@ -169,11 +183,12 @@ describe("subcircuits", () => {
       expect(proof).toBeDefined()
       const countryList = getCountryListFromExclusionProof(proof)
       expect(countryList).toEqual(["FRA", "GBR", "USA"])
+      await circuit.backend!.destroy()
     })
   })
 
   describe("compare-age", () => {
-    it("greater than", async () => {
+    test("greater than", async () => {
       const circuit = Circuit.from("compare_age")
       const query: Query = {
         age: { gte: 18 },
@@ -186,9 +201,10 @@ describe("subcircuits", () => {
       const maxAge = getMaxAgeFromProof(proof)
       expect(minAge).toBe(18)
       expect(maxAge).toBe(0)
+      await circuit.backend!.destroy()
     })
 
-    it("less than", async () => {
+    test("less than", async () => {
       const circuit = Circuit.from("compare_age")
       const age = calculateAge(helper.passport)
       const query: Query = {
@@ -202,9 +218,10 @@ describe("subcircuits", () => {
       const maxAge = getMaxAgeFromProof(proof)
       expect(minAge).toBe(0)
       expect(maxAge).toBe(age + 1)
+      await circuit.backend!.destroy()
     })
 
-    it("between", async () => {
+    test("between", async () => {
       const circuit = Circuit.from("compare_age")
       const age = calculateAge(helper.passport)
       const query: Query = {
@@ -218,9 +235,10 @@ describe("subcircuits", () => {
       const maxAge = getMaxAgeFromProof(proof)
       expect(minAge).toBe(age)
       expect(maxAge).toBe(age + 2)
+      await circuit.backend!.destroy()
     })
 
-    it("equal", async () => {
+    test("equal", async () => {
       const circuit = Circuit.from("compare_age")
       const age = calculateAge(helper.passport)
       const query: Query = {
@@ -234,9 +252,10 @@ describe("subcircuits", () => {
       const maxAge = getMaxAgeFromProof(proof)
       expect(minAge).toBe(age)
       expect(maxAge).toBe(age)
+      await circuit.backend!.destroy()
     })
 
-    it("disclose", async () => {
+    test("disclose", async () => {
       const circuit = Circuit.from("compare_age")
       const query: Query = {
         age: { disclose: true },
@@ -250,9 +269,10 @@ describe("subcircuits", () => {
       const maxAge = getMaxAgeFromProof(proof)
       expect(minAge).toBe(age)
       expect(maxAge).toBe(age)
+      await circuit.backend!.destroy()
     })
 
-    it("range", async () => {
+    test("range", async () => {
       const circuit = Circuit.from("compare_age")
       const age = calculateAge(helper.passport)
       const query: Query = {
@@ -266,6 +286,7 @@ describe("subcircuits", () => {
       const maxAge = getMaxAgeFromProof(proof)
       expect(minAge).toBe(age - 5)
       expect(maxAge).toBe(age + 5)
+      await circuit.backend!.destroy()
     })
   })
 })
