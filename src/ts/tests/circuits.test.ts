@@ -48,6 +48,7 @@ describe("subcircuits", () => {
       cscKeySize: 4096,
       dscKeypair,
     })
+    console.log("DSC public key", dscKeypair.publicKey.n.toString(16))
     // Generate SOD and sign it with DSC keypair
     const { sod } = generateSod(dg1, [dsc])
     const { sod: signedSod } = signSodWithRsaKey(sod, dscKeypair.privateKey)
@@ -58,6 +59,7 @@ describe("subcircuits", () => {
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
     helper.setMasterlist(masterlist)
     helper.passport.dateOfBirth = "881112"
+    console.log("Signed Attributes", JSON.stringify(helper.passport.signedAttributes))
   })
 
   describe("dsc", () => {
@@ -87,7 +89,7 @@ describe("subcircuits", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       await circuit.backend!.destroy()
-    })
+    }, 30000)
   })
 
   describe("disclose", () => {
@@ -117,6 +119,7 @@ describe("subcircuits", () => {
       // Verify the disclosed data
       const disclosedData = DisclosedData.fromProof(proof)
       const nullifier = getNullifierFromDisclosureProof(proof)
+      console.log("Nullifier", nullifier.toString(16))
       expect(disclosedData.issuingCountry).toBe("AUS")
       expect(disclosedData.nationality).toBe("AUS")
       expect(disclosedData.documentType).toBe("P")
