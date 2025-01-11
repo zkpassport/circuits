@@ -129,7 +129,7 @@ describe("subcircuits", () => {
       expect(disclosedData.dateOfExpiry).toEqual(new Date(2030, 0, 1))
       expect(disclosedData.gender).toBe("M")
       expect(nullifier).toEqual(
-        15389760513748885229157575867520679581734293836624949747504938619050732009454n,
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
     })
 
@@ -153,7 +153,7 @@ describe("subcircuits", () => {
       expect(isNaN(disclosedData.dateOfExpiry.getTime())).toBe(true)
       expect(disclosedData.gender).toBe("")
       expect(nullifier).toEqual(
-        15389760513748885229157575867520679581734293836624949747504938619050732009454n,
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
     })
   })
