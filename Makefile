@@ -4,7 +4,9 @@ package_names := data_check_integrity \
 				disclose_bytes \
 				disclose_flags \
 				exclusion_check_country \
-				inclusion_check_country
+				inclusion_check_country \
+				compare_birthdate \
+				compare_expiry
 
 compileAll:
 	for pkg in $(package_names); do \

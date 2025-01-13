@@ -1,0 +1,9 @@
+[package]
+name = "compare_expiry"
+type = "bin"
+authors = ["Theo Madzou"]
+compiler_version = ">=0.22.0"
+
+[dependencies]
+compare_date_lib = { path = "../../../lib/compare/date" }
+commitment = { path = "../../../lib/commitment/scoped-nullifier" }

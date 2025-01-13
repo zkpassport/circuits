@@ -1,8 +1,8 @@
-use utils::{
-    get_array_slice, PASSPORT_MRZ_EXPIRY_DATE_INDEX, ID_CARD_MRZ_EXPIRY_DATE_INDEX, is_id_card,
-    get_mrz_from_dg1,
-};
 use date::Date;
+use utils::{
+    get_array_slice, get_mrz_from_dg1, ID_CARD_MRZ_EXPIRY_DATE_INDEX, is_id_card,
+    PASSPORT_MRZ_EXPIRY_DATE_INDEX,
+};
 
 pub fn check_expiry(dg1: [u8; 95], current_date_bytes: [u8; 8]) {
     let mrz = get_mrz_from_dg1(dg1);
