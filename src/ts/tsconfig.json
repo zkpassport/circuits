@@ -7,11 +7,10 @@
     "skipLibCheck": true,
     "target": "esnext",
     "module": "ESNext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@/types": ["./types/index.d.ts"]
+      "@/*": ["./*"]
     }
   },
   "include": ["**/*.ts"],

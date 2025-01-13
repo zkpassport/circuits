@@ -41,7 +41,7 @@ jobs:
       - run:
           name: Install npm dependencies
           command: |
-            /home/circleci/.bun/bin/bun install
+            npm i
       - persist_to_workspace:
           root: ~/repo
           paths: .
@@ -49,12 +49,9 @@ jobs:
   lint:
     <<: *defaults
     steps:
-      - restore_cache:
-            keys:
-              - bun-cache
       - attach_workspace:
           at: ~/repo
-      - run: /home/circleci/.bun/bin/bun typecheck
+      - run: npm run typecheck
 
   noir_tests:
     <<: *defaults
@@ -88,7 +85,7 @@ jobs:
           command: /home/circleci/.nargo/bin/nargo test
       - run:
           name: Integration tests
-          command: /home/circleci/.bun/bin/bun test circuits.test.ts --timeout 120000
+          command: npm test circuits.test.ts --timeout 120000
 
 workflows:
   version: 2

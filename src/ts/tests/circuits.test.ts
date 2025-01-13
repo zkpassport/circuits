@@ -1,32 +1,31 @@
-import { Binary } from "@zkpassport/utils/binary"
-import { parseCertificate } from "@zkpassport/utils/csc-manager"
 import {
-  generateSigningCertificates,
-  loadDscKeypairFromFile,
-  signSodWithRsaKey,
-} from "@zkpassport/test-utils/passport-generator"
-import { generateSod, wrapSodInContentInfo } from "@zkpassport/test-utils/sod-generator"
-import { TestHelper } from "@zkpassport/test-utils/test-helper"
-import type { CSCMasterlist, Query } from "@zkpassport/utils/types"
-import { beforeAll, describe, expect, test } from "bun:test"
-import * as path from "path"
-import {
+  Binary,
+  parseCertificate,
   getDiscloseFlagsCircuitInputs,
   getCountryInclusionCircuitInputs,
   getCountryExclusionCircuitInputs,
   getAgeCircuitInputs,
   calculateAge,
-} from "@zkpassport/utils/circuit-matcher"
-import {
   DisclosedData,
   getCountryListFromInclusionProof,
   getCountryListFromExclusionProof,
   getMinAgeFromProof,
   getMaxAgeFromProof,
   getNullifierFromDisclosureProof,
-} from "@zkpassport/utils/circuits"
-import { Circuit } from "@zkpassport/test-utils/circuits"
-import { serializeAsn } from "@zkpassport/test-utils/utils"
+} from "@zkpassport/utils"
+import {
+  generateSigningCertificates,
+  loadDscKeypairFromFile,
+  signSodWithRsaKey,
+  generateSod,
+  wrapSodInContentInfo,
+  TestHelper,
+  Circuit,
+  serializeAsn,
+} from "@zkpassport/test-utils"
+import type { CSCMasterlist, Query } from "@zkpassport/utils"
+import { beforeAll, describe, expect, test } from "@jest/globals"
+import * as path from "path"
 
 describe("subcircuits", () => {
   const helper = new TestHelper()
@@ -42,12 +41,14 @@ describe("subcircuits", () => {
     const dg1 = Binary.fromHex("615B5F1F58").concat(Binary.from(mrz))
     // Load DSC keypair
     const dscKeypair = loadDscKeypairFromFile(DSC_KEYPAIR_PATH)
+
     // Generate CSC and DSC signing certificates
     const { cscPem, dsc } = generateSigningCertificates({
       cscSigningHashAlgorithm: "sha256",
       cscKeySize: 4096,
       dscKeypair,
     })
+    console.log("DSC public key", dscKeypair.publicKey.n.toString(16))
     // Generate SOD and sign it with DSC keypair
     const { sod } = generateSod(dg1, [dsc])
     const { sod: signedSod } = signSodWithRsaKey(sod, dscKeypair.privateKey)
@@ -58,6 +59,7 @@ describe("subcircuits", () => {
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
     helper.setMasterlist(masterlist)
     helper.passport.dateOfBirth = "881112"
+    console.log("Signed Attributes", JSON.stringify(helper.passport.signedAttributes))
   })
 
   describe("dsc", () => {
@@ -66,7 +68,8 @@ describe("subcircuits", () => {
       const inputs = await helper.generateCircuitInputs("dsc")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
-    })
+      await circuit.backend!.destroy()
+    }, 30000)
   })
 
   describe("id", () => {
@@ -75,7 +78,8 @@ describe("subcircuits", () => {
       const inputs = await helper.generateCircuitInputs("id")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
-    })
+      await circuit.backend!.destroy()
+    }, 30000)
   })
 
   describe("integrity", () => {
@@ -84,11 +88,18 @@ describe("subcircuits", () => {
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
-    })
+      await circuit.backend!.destroy()
+    }, 30000)
   })
 
   describe("disclose", () => {
-    const circuit = Circuit.from("disclose_flags")
+    let circuit: Circuit
+    beforeAll(async () => {
+      circuit = Circuit.from("disclose_flags")
+    })
+    afterAll(async () => {
+      await circuit.backend!.destroy()
+    })
 
     test("disclose all flags", async () => {
       const query: Query = {
@@ -108,6 +119,7 @@ describe("subcircuits", () => {
       // Verify the disclosed data
       const disclosedData = DisclosedData.fromProof(proof)
       const nullifier = getNullifierFromDisclosureProof(proof)
+      console.log("Nullifier", nullifier.toString(16))
       expect(disclosedData.issuingCountry).toBe("AUS")
       expect(disclosedData.nationality).toBe("AUS")
       expect(disclosedData.documentType).toBe("P")
@@ -117,9 +129,10 @@ describe("subcircuits", () => {
       expect(disclosedData.dateOfExpiry).toEqual(new Date(2030, 0, 1))
       expect(disclosedData.gender).toBe("M")
       expect(nullifier).toEqual(
-        BigInt("0x215282c6b81a6062e0af454d9615c4582c5a35acff60d3a6cdfd5acee286dbf9"),
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
     })
+
     test("disclose some flags", async () => {
       const query: Query = {
         nationality: { disclose: true },
@@ -130,17 +143,17 @@ describe("subcircuits", () => {
       expect(proof).toBeDefined()
       // Verify the disclosed data
       const disclosedData = DisclosedData.fromProof(proof)
-      const nullifier = proof.publicInputs.slice(-1)[0]
-      expect(disclosedData.issuingCountry).toBeEmpty()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(disclosedData.issuingCountry).toBe("")
       expect(disclosedData.nationality).toBe("AUS")
-      expect(disclosedData.documentType).toBeEmpty()
-      expect(disclosedData.documentNumber).toBeEmpty()
-      expect(disclosedData.name).toBeEmpty()
-      expect(disclosedData.dateOfBirth).toBeEmpty()
-      expect(disclosedData.dateOfExpiry).toBeEmpty()
-      expect(disclosedData.gender).toBeEmpty()
+      expect(disclosedData.documentType).toBe("")
+      expect(disclosedData.documentNumber).toBe("")
+      expect(disclosedData.name).toBe("")
+      expect(isNaN(disclosedData.dateOfBirth.getTime())).toBe(true)
+      expect(isNaN(disclosedData.dateOfExpiry.getTime())).toBe(true)
+      expect(disclosedData.gender).toBe("")
       expect(nullifier).toEqual(
-        "0x215282c6b81a6062e0af454d9615c4582c5a35acff60d3a6cdfd5acee286dbf9",
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
     })
   })
@@ -157,6 +170,7 @@ describe("subcircuits", () => {
       expect(proof).toBeDefined()
       const countryList = getCountryListFromInclusionProof(proof)
       expect(countryList).toEqual(["AUS", "FRA", "USA", "GBR"])
+      await circuit.backend!.destroy()
     })
   })
 
@@ -172,6 +186,7 @@ describe("subcircuits", () => {
       expect(proof).toBeDefined()
       const countryList = getCountryListFromExclusionProof(proof)
       expect(countryList).toEqual(["FRA", "GBR", "USA"])
+      await circuit.backend!.destroy()
     })
   })
 
@@ -189,6 +204,7 @@ describe("subcircuits", () => {
       const maxAge = getMaxAgeFromProof(proof)
       expect(minAge).toBe(18)
       expect(maxAge).toBe(0)
+      await circuit.backend!.destroy()
     })
 
     test("less than", async () => {
@@ -205,6 +221,7 @@ describe("subcircuits", () => {
       const maxAge = getMaxAgeFromProof(proof)
       expect(minAge).toBe(0)
       expect(maxAge).toBe(age + 1)
+      await circuit.backend!.destroy()
     })
 
     test("between", async () => {
@@ -221,6 +238,7 @@ describe("subcircuits", () => {
       const maxAge = getMaxAgeFromProof(proof)
       expect(minAge).toBe(age)
       expect(maxAge).toBe(age + 2)
+      await circuit.backend!.destroy()
     })
 
     test("equal", async () => {
@@ -237,6 +255,7 @@ describe("subcircuits", () => {
       const maxAge = getMaxAgeFromProof(proof)
       expect(minAge).toBe(age)
       expect(maxAge).toBe(age)
+      await circuit.backend!.destroy()
     })
 
     test("disclose", async () => {
@@ -253,6 +272,7 @@ describe("subcircuits", () => {
       const maxAge = getMaxAgeFromProof(proof)
       expect(minAge).toBe(age)
       expect(maxAge).toBe(age)
+      await circuit.backend!.destroy()
     })
 
     test("range", async () => {
@@ -269,6 +289,7 @@ describe("subcircuits", () => {
       const maxAge = getMaxAgeFromProof(proof)
       expect(minAge).toBe(age - 5)
       expect(maxAge).toBe(age + 5)
+      await circuit.backend!.destroy()
     })
   })
 })
