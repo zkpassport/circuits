@@ -22,6 +22,8 @@ CIRCUITS=(
     "inclusion_check_country"
     "exclusion_check_country"
     "compare_age"
+    "compare_expiry"
+    "compare_birthdate"
 )
 
 for circuit in "${CIRCUITS[@]}"; do
