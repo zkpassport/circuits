@@ -33,6 +33,8 @@ const WORKSPACE_NARGO_TEMPLATE = (dependencies: string[]) => `[workspace]
 members = [
     "src/noir/bin/compare/citizenship",
     "src/noir/bin/compare/age",
+    "src/noir/bin/compare/expiry",
+    "src/noir/bin/compare/birthdate",
     "src/noir/bin/disclose/flags",
     "src/noir/bin/disclose/bytes",
     "src/noir/bin/main/outer",

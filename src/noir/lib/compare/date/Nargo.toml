@@ -1,5 +1,5 @@
 [package]
-name = "data_check_expiry_lib"
+name = "compare_date_lib"
 type = "lib"
 authors = ["Theo Madzou"]
 compiler_version = ">=0.22.0"

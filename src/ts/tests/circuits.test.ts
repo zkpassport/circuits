@@ -5,6 +5,7 @@ import {
   getCountryInclusionCircuitInputs,
   getCountryExclusionCircuitInputs,
   getAgeCircuitInputs,
+  getBirthdateCircuitInputs,
   calculateAge,
   DisclosedData,
   getCountryListFromInclusionProof,
@@ -12,6 +13,9 @@ import {
   getMinAgeFromProof,
   getMaxAgeFromProof,
   getNullifierFromDisclosureProof,
+  getExpiryDateCircuitInputs,
+  getMinDateFromProof,
+  getMaxDateFromProof,
 } from "@zkpassport/utils"
 import {
   generateSigningCertificates,
@@ -48,7 +52,6 @@ describe("subcircuits", () => {
       cscKeySize: 4096,
       dscKeypair,
     })
-    console.log("DSC public key", dscKeypair.publicKey.n.toString(16))
     // Generate SOD and sign it with DSC keypair
     const { sod } = generateSod(dg1, [dsc])
     const { sod: signedSod } = signSodWithRsaKey(sod, dscKeypair.privateKey)
@@ -58,8 +61,6 @@ describe("subcircuits", () => {
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
     helper.setMasterlist(masterlist)
-    helper.passport.dateOfBirth = "881112"
-    console.log("Signed Attributes", JSON.stringify(helper.passport.signedAttributes))
   })
 
   describe("dsc", () => {
@@ -119,7 +120,6 @@ describe("subcircuits", () => {
       // Verify the disclosed data
       const disclosedData = DisclosedData.fromProof(proof)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      console.log("Nullifier", nullifier.toString(16))
       expect(disclosedData.issuingCountry).toBe("AUS")
       expect(disclosedData.nationality).toBe("AUS")
       expect(disclosedData.documentType).toBe("P")
@@ -169,7 +169,11 @@ describe("subcircuits", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const countryList = getCountryListFromInclusionProof(proof)
+      const nullifier = getNullifierFromDisclosureProof(proof)
       expect(countryList).toEqual(["AUS", "FRA", "USA", "GBR"])
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
   })
@@ -185,7 +189,15 @@ describe("subcircuits", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const countryList = getCountryListFromExclusionProof(proof)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      // Note that the order is in ascending order
+      // while the original query was not
+      // getCountryExclusionCircuitInputs makes sure the order is ascending
+      // as it is required by the circuit
       expect(countryList).toEqual(["FRA", "GBR", "USA"])
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
   })
@@ -202,8 +214,12 @@ describe("subcircuits", () => {
       expect(proof).toBeDefined()
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
+      const nullifier = getNullifierFromDisclosureProof(proof)
       expect(minAge).toBe(18)
       expect(maxAge).toBe(0)
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -219,8 +235,12 @@ describe("subcircuits", () => {
       expect(proof).toBeDefined()
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
+      const nullifier = getNullifierFromDisclosureProof(proof)
       expect(minAge).toBe(0)
       expect(maxAge).toBe(age + 1)
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -236,8 +256,12 @@ describe("subcircuits", () => {
       expect(proof).toBeDefined()
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
+      const nullifier = getNullifierFromDisclosureProof(proof)
       expect(minAge).toBe(age)
       expect(maxAge).toBe(age + 2)
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -253,8 +277,12 @@ describe("subcircuits", () => {
       expect(proof).toBeDefined()
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
+      const nullifier = getNullifierFromDisclosureProof(proof)
       expect(minAge).toBe(age)
       expect(maxAge).toBe(age)
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -267,11 +295,15 @@ describe("subcircuits", () => {
       if (!inputs) throw new Error("Unable to generate compare-age equal circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
       const age = calculateAge(helper.passport)
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
       expect(minAge).toBe(age)
       expect(maxAge).toBe(age)
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -285,10 +317,263 @@ describe("subcircuits", () => {
       if (!inputs) throw new Error("Unable to generate compare-age range circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
       expect(minAge).toBe(age - 5)
       expect(maxAge).toBe(age + 5)
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
+      await circuit.backend!.destroy()
+    })
+  })
+
+  describe("compare-birthdate", () => {
+    test("equal", async () => {
+      const circuit = Circuit.from("compare_birthdate")
+      const query: Query = {
+        // Remember months start at 0 so 10 is November
+        birthdate: { eq: new Date(1988, 10, 12) },
+      }
+      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate compare-birthdate equal circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(1988, 10, 12))
+      expect(maxDate).toEqual(new Date(1988, 10, 12))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
+      await circuit.backend!.destroy()
+    })
+
+    test("range", async () => {
+      const circuit = Circuit.from("compare_birthdate")
+      const query: Query = {
+        birthdate: { range: [new Date(1988, 10, 11), new Date(1988, 10, 13)] },
+      }
+      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate compare-birthdate range circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(1988, 10, 11))
+      expect(maxDate).toEqual(new Date(1988, 10, 13))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
+      await circuit.backend!.destroy()
+    })
+
+    test("disclose", async () => {
+      const circuit = Circuit.from("compare_birthdate")
+      const query: Query = {
+        birthdate: { disclose: true },
+      }
+      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate compare-birthdate disclose circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(1988, 10, 12))
+      expect(maxDate).toEqual(new Date(1988, 10, 12))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
+      await circuit.backend!.destroy()
+    })
+
+    test("greater than", async () => {
+      const circuit = Circuit.from("compare_birthdate")
+      const query: Query = {
+        birthdate: { gte: new Date(1988, 10, 11) },
+      }
+      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs)
+        throw new Error("Unable to generate compare-birthdate greater than circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(1988, 10, 11))
+      // 11/11/1111 is considered the zero date in the circuit
+      // as 00/00/0000 would throw an error
+      expect(maxDate).toEqual(new Date(1111, 10, 11))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
+      await circuit.backend!.destroy()
+    })
+
+    test("less than", async () => {
+      const circuit = Circuit.from("compare_birthdate")
+      const query: Query = {
+        birthdate: { lte: new Date(1988, 10, 15) },
+      }
+      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate compare-birthdate less than circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(1111, 10, 11))
+      expect(maxDate).toEqual(new Date(1988, 10, 15))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
+      await circuit.backend!.destroy()
+    })
+
+    test("between", async () => {
+      const circuit = Circuit.from("compare_birthdate")
+      const query: Query = {
+        birthdate: { gte: new Date(1988, 10, 11), lte: new Date(1988, 10, 15) },
+      }
+      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate compare-birthdate between circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(1988, 10, 11))
+      expect(maxDate).toEqual(new Date(1988, 10, 15))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
+      await circuit.backend!.destroy()
+    })
+  })
+
+  describe("compare-expiry", () => {
+    test("equal", async () => {
+      const circuit = Circuit.from("compare_expiry")
+      const query: Query = {
+        expiry_date: { eq: new Date(2030, 0, 1) },
+      }
+      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate compare-expirydate equal circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(2030, 0, 1))
+      expect(maxDate).toEqual(new Date(2030, 0, 1))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
+      await circuit.backend!.destroy()
+    })
+
+    test("range", async () => {
+      const circuit = Circuit.from("compare_expiry")
+      const query: Query = {
+        expiry_date: { range: [new Date(2025, 0, 1), new Date(2035, 0, 1)] },
+      }
+      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate compare-expirydate range circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(2025, 0, 1))
+      expect(maxDate).toEqual(new Date(2035, 0, 1))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
+      await circuit.backend!.destroy()
+    })
+
+    test("disclose", async () => {
+      const circuit = Circuit.from("compare_expiry")
+      const query: Query = {
+        expiry_date: { disclose: true },
+      }
+      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate compare-expirydate disclose circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(2030, 0, 1))
+      expect(maxDate).toEqual(new Date(2030, 0, 1))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
+      await circuit.backend!.destroy()
+    })
+
+    test("greater than", async () => {
+      const circuit = Circuit.from("compare_expiry")
+      const query: Query = {
+        expiry_date: { gte: new Date(2025, 0, 1) },
+      }
+      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs)
+        throw new Error("Unable to generate compare-expirydate greater than circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(2025, 0, 1))
+      expect(maxDate).toEqual(new Date(1111, 10, 11))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
+      await circuit.backend!.destroy()
+    })
+
+    test("less than", async () => {
+      const circuit = Circuit.from("compare_expiry")
+      const query: Query = {
+        expiry_date: { lte: new Date(2035, 0, 1) },
+      }
+      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate compare-expirydate less than circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(1111, 10, 11))
+      expect(maxDate).toEqual(new Date(2035, 0, 1))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
+      await circuit.backend!.destroy()
+    })
+
+    test("between", async () => {
+      const circuit = Circuit.from("compare_expiry")
+      const query: Query = {
+        expiry_date: { gte: new Date(2025, 0, 1), lte: new Date(2035, 0, 1) },
+      }
+      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate compare-expirydate between circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(2025, 0, 1))
+      expect(maxDate).toEqual(new Date(2035, 0, 1))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
   })

@@ -9,6 +9,8 @@ members = [
     "src/noir/bin/data-check/integrity",
     "src/noir/bin/exclusion-check/country",
     "src/noir/bin/inclusion-check/country",
+    "src/noir/bin/compare/birthdate",
+    "src/noir/bin/compare/expiry",
     "src/noir/bin/sig-check/dsc/tbs_700/ecdsa/nist/p256",
     "src/noir/bin/sig-check/dsc/tbs_1000/ecdsa/nist/p256",
     "src/noir/bin/sig-check/dsc/tbs_1200/ecdsa/nist/p256",
