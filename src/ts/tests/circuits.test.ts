@@ -14,6 +14,8 @@ import {
   getMaxAgeFromProof,
   getNullifierFromDisclosureProof,
   getExpiryDateCircuitInputs,
+  getMinDateFromProof,
+  getMaxDateFromProof,
 } from "@zkpassport/utils"
 import {
   generateSigningCertificates,
@@ -167,7 +169,11 @@ describe("subcircuits", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const countryList = getCountryListFromInclusionProof(proof)
+      const nullifier = getNullifierFromDisclosureProof(proof)
       expect(countryList).toEqual(["AUS", "FRA", "USA", "GBR"])
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
   })
@@ -183,7 +189,15 @@ describe("subcircuits", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const countryList = getCountryListFromExclusionProof(proof)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      // Note that the order is in ascending order
+      // while the original query was not
+      // getCountryExclusionCircuitInputs makes sure the order is ascending
+      // as it is required by the circuit
       expect(countryList).toEqual(["FRA", "GBR", "USA"])
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
   })
@@ -200,8 +214,12 @@ describe("subcircuits", () => {
       expect(proof).toBeDefined()
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
+      const nullifier = getNullifierFromDisclosureProof(proof)
       expect(minAge).toBe(18)
       expect(maxAge).toBe(0)
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -217,8 +235,12 @@ describe("subcircuits", () => {
       expect(proof).toBeDefined()
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
+      const nullifier = getNullifierFromDisclosureProof(proof)
       expect(minAge).toBe(0)
       expect(maxAge).toBe(age + 1)
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -234,8 +256,12 @@ describe("subcircuits", () => {
       expect(proof).toBeDefined()
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
+      const nullifier = getNullifierFromDisclosureProof(proof)
       expect(minAge).toBe(age)
       expect(maxAge).toBe(age + 2)
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -251,8 +277,12 @@ describe("subcircuits", () => {
       expect(proof).toBeDefined()
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
+      const nullifier = getNullifierFromDisclosureProof(proof)
       expect(minAge).toBe(age)
       expect(maxAge).toBe(age)
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -265,11 +295,15 @@ describe("subcircuits", () => {
       if (!inputs) throw new Error("Unable to generate compare-age equal circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
       const age = calculateAge(helper.passport)
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
       expect(minAge).toBe(age)
       expect(maxAge).toBe(age)
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -283,10 +317,14 @@ describe("subcircuits", () => {
       if (!inputs) throw new Error("Unable to generate compare-age range circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
       expect(minAge).toBe(age - 5)
       expect(maxAge).toBe(age + 5)
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
   })
@@ -302,6 +340,14 @@ describe("subcircuits", () => {
       if (!inputs) throw new Error("Unable to generate compare-birthdate equal circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(1988, 10, 12))
+      expect(maxDate).toEqual(new Date(1988, 10, 12))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -314,6 +360,14 @@ describe("subcircuits", () => {
       if (!inputs) throw new Error("Unable to generate compare-birthdate range circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(1988, 10, 11))
+      expect(maxDate).toEqual(new Date(1988, 10, 13))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -326,6 +380,14 @@ describe("subcircuits", () => {
       if (!inputs) throw new Error("Unable to generate compare-birthdate disclose circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(1988, 10, 12))
+      expect(maxDate).toEqual(new Date(1988, 10, 12))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -339,6 +401,16 @@ describe("subcircuits", () => {
         throw new Error("Unable to generate compare-birthdate greater than circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(1988, 10, 11))
+      // 11/11/1111 is considered the zero date in the circuit
+      // as 00/00/0000 would throw an error
+      expect(maxDate).toEqual(new Date(1111, 10, 11))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -351,6 +423,14 @@ describe("subcircuits", () => {
       if (!inputs) throw new Error("Unable to generate compare-birthdate less than circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(1111, 10, 11))
+      expect(maxDate).toEqual(new Date(1988, 10, 15))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -363,6 +443,14 @@ describe("subcircuits", () => {
       if (!inputs) throw new Error("Unable to generate compare-birthdate between circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(1988, 10, 11))
+      expect(maxDate).toEqual(new Date(1988, 10, 15))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
   })
@@ -377,6 +465,14 @@ describe("subcircuits", () => {
       if (!inputs) throw new Error("Unable to generate compare-expirydate equal circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(2030, 0, 1))
+      expect(maxDate).toEqual(new Date(2030, 0, 1))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -389,6 +485,14 @@ describe("subcircuits", () => {
       if (!inputs) throw new Error("Unable to generate compare-expirydate range circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(2025, 0, 1))
+      expect(maxDate).toEqual(new Date(2035, 0, 1))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -401,6 +505,14 @@ describe("subcircuits", () => {
       if (!inputs) throw new Error("Unable to generate compare-expirydate disclose circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(2030, 0, 1))
+      expect(maxDate).toEqual(new Date(2030, 0, 1))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -414,6 +526,14 @@ describe("subcircuits", () => {
         throw new Error("Unable to generate compare-expirydate greater than circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(2025, 0, 1))
+      expect(maxDate).toEqual(new Date(1111, 10, 11))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -426,6 +546,14 @@ describe("subcircuits", () => {
       if (!inputs) throw new Error("Unable to generate compare-expirydate less than circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(1111, 10, 11))
+      expect(maxDate).toEqual(new Date(2035, 0, 1))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
 
@@ -438,6 +566,14 @@ describe("subcircuits", () => {
       if (!inputs) throw new Error("Unable to generate compare-expirydate between circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const minDate = getMinDateFromProof(proof)
+      const maxDate = getMaxDateFromProof(proof)
+      expect(minDate).toEqual(new Date(2025, 0, 1))
+      expect(maxDate).toEqual(new Date(2035, 0, 1))
+      expect(nullifier).toEqual(
+        16652021840048125612615553625990984639928437369819616382716847893828959509797n,
+      )
       await circuit.backend!.destroy()
     })
   })

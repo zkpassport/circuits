@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@zkpassport/test-utils": "^0.1.7",
-    "@zkpassport/utils": "^0.1.17",
+    "@zkpassport/utils": "^0.1.18",
     "node-forge": "^1.3.1"
   },
   "peerDependencies": {
