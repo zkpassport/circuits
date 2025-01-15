@@ -2,7 +2,7 @@
 name = "sig_check_dsc_tbs_1200_rsa_pss_3072"
 type = "bin"
 authors = ["Theo Madzou", "Michael Elliot"]
-compiler_version = ">=0.36.0"
+compiler_version = ">=1.0.0"
 
 [dependencies]
 sig_check_rsa = { path = "../../../../../../../lib/sig-check/rsa" }

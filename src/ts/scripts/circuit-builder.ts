@@ -23,7 +23,7 @@ const NARGO_TEMPLATE = (
 name = "${name}"
 type = "bin"
 authors = ["Theo Madzou", "Michael Elliot"]
-compiler_version = ">=0.36.0"
+compiler_version = ">=1.0.0"
 
 [dependencies]
 ${dependencies.map(({ name, path }) => `${name} = { path = "${path}" }`).join("\n")}
