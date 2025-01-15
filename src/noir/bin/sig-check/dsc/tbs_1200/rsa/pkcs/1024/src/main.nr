@@ -3,7 +3,7 @@ use sig_check_rsa::verify_signature;
 use commitment::commit_to_dsc;
 
 fn main(
-    certificate_registry_root: Field,
+    certificate_registry_root: pub Field,
     certificate_registry_index: Field,
     certificate_registry_hash_path: [Field; 14],
     certificate_registry_id: Field,

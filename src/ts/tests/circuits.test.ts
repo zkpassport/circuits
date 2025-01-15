@@ -16,6 +16,16 @@ import {
   getExpiryDateCircuitInputs,
   getMinDateFromProof,
   getMaxDateFromProof,
+  getMerkleRootFromDSCProof,
+  getCommitmentFromDSCProof,
+  getCommitmentInFromIDDataProof,
+  getCommitmentOutFromIDDataProof,
+  getCommitmentInFromIntegrityProof,
+  getCommitmentOutFromIntegrityProof,
+  getCommitmentInFromDisclosureProof,
+  getCurrentDateFromIntegrityProof,
+  getCurrentDateFromAgeProof,
+  getCurrentDateFromDateProof,
 } from "@zkpassport/utils"
 import {
   generateSigningCertificates,
@@ -37,6 +47,18 @@ describe("subcircuits", () => {
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair.json")
   const MAX_TBS_LENGTH = 700
+  let dscCommitment: bigint
+  let idDataCommitment: bigint
+  let integrityCheckCommitment: bigint
+  const globalCurrentDate = new Date(
+    new Date().getFullYear(),
+    new Date().getMonth(),
+    new Date().getDate(),
+    0,
+    0,
+    0,
+    0,
+  )
 
   beforeAll(async () => {
     // Johnny Silverhand's MRZ
@@ -69,6 +91,10 @@ describe("subcircuits", () => {
       const inputs = await helper.generateCircuitInputs("dsc")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const merkleRoot = getMerkleRootFromDSCProof(proof)
+      dscCommitment = getCommitmentFromDSCProof(proof)
+      expect(merkleRoot).toBeDefined()
+      expect(proof.publicInputs.length).toEqual(2)
       await circuit.backend!.destroy()
     }, 30000)
   })
@@ -79,6 +105,9 @@ describe("subcircuits", () => {
       const inputs = await helper.generateCircuitInputs("id")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const commitmentIn = getCommitmentInFromIDDataProof(proof)
+      idDataCommitment = getCommitmentOutFromIDDataProof(proof)
+      expect(commitmentIn).toEqual(dscCommitment)
       await circuit.backend!.destroy()
     }, 30000)
   })
@@ -89,6 +118,11 @@ describe("subcircuits", () => {
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
+      const commitmentIn = getCommitmentInFromIntegrityProof(proof)
+      integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
+      const currentDate = getCurrentDateFromIntegrityProof(proof)
+      expect(commitmentIn).toEqual(idDataCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     }, 30000)
   })
@@ -131,6 +165,8 @@ describe("subcircuits", () => {
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
 
     test("disclose some flags", async () => {
@@ -155,6 +191,8 @@ describe("subcircuits", () => {
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
   })
 
@@ -174,6 +212,8 @@ describe("subcircuits", () => {
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.backend!.destroy()
     })
   })
@@ -198,6 +238,8 @@ describe("subcircuits", () => {
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.backend!.destroy()
     })
   })
@@ -215,11 +257,15 @@ describe("subcircuits", () => {
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
       const nullifier = getNullifierFromDisclosureProof(proof)
+      const currentDate = getCurrentDateFromAgeProof(proof)
       expect(minAge).toBe(18)
       expect(maxAge).toBe(0)
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
 
@@ -236,11 +282,15 @@ describe("subcircuits", () => {
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
       const nullifier = getNullifierFromDisclosureProof(proof)
+      const currentDate = getCurrentDateFromAgeProof(proof)
       expect(minAge).toBe(0)
       expect(maxAge).toBe(age + 1)
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
 
@@ -257,11 +307,15 @@ describe("subcircuits", () => {
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
       const nullifier = getNullifierFromDisclosureProof(proof)
+      const currentDate = getCurrentDateFromAgeProof(proof)
       expect(minAge).toBe(age)
       expect(maxAge).toBe(age + 2)
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
 
@@ -278,11 +332,15 @@ describe("subcircuits", () => {
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
       const nullifier = getNullifierFromDisclosureProof(proof)
+      const currentDate = getCurrentDateFromAgeProof(proof)
       expect(minAge).toBe(age)
       expect(maxAge).toBe(age)
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
 
@@ -299,11 +357,15 @@ describe("subcircuits", () => {
       const age = calculateAge(helper.passport)
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
+      const currentDate = getCurrentDateFromAgeProof(proof)
       expect(minAge).toBe(age)
       expect(maxAge).toBe(age)
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
 
@@ -320,11 +382,15 @@ describe("subcircuits", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const minAge = getMinAgeFromProof(proof)
       const maxAge = getMaxAgeFromProof(proof)
+      const currentDate = getCurrentDateFromAgeProof(proof)
       expect(minAge).toBe(age - 5)
       expect(maxAge).toBe(age + 5)
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
   })
@@ -343,11 +409,15 @@ describe("subcircuits", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const minDate = getMinDateFromProof(proof)
       const maxDate = getMaxDateFromProof(proof)
+      const currentDate = getCurrentDateFromDateProof(proof)
       expect(minDate).toEqual(new Date(1988, 10, 12))
       expect(maxDate).toEqual(new Date(1988, 10, 12))
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
 
@@ -363,11 +433,15 @@ describe("subcircuits", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const minDate = getMinDateFromProof(proof)
       const maxDate = getMaxDateFromProof(proof)
+      const currentDate = getCurrentDateFromDateProof(proof)
       expect(minDate).toEqual(new Date(1988, 10, 11))
       expect(maxDate).toEqual(new Date(1988, 10, 13))
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
 
@@ -383,11 +457,15 @@ describe("subcircuits", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const minDate = getMinDateFromProof(proof)
       const maxDate = getMaxDateFromProof(proof)
+      const currentDate = getCurrentDateFromDateProof(proof)
       expect(minDate).toEqual(new Date(1988, 10, 12))
       expect(maxDate).toEqual(new Date(1988, 10, 12))
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
 
@@ -404,6 +482,7 @@ describe("subcircuits", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const minDate = getMinDateFromProof(proof)
       const maxDate = getMaxDateFromProof(proof)
+      const currentDate = getCurrentDateFromDateProof(proof)
       expect(minDate).toEqual(new Date(1988, 10, 11))
       // 11/11/1111 is considered the zero date in the circuit
       // as 00/00/0000 would throw an error
@@ -411,6 +490,9 @@ describe("subcircuits", () => {
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
 
@@ -426,11 +508,15 @@ describe("subcircuits", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const minDate = getMinDateFromProof(proof)
       const maxDate = getMaxDateFromProof(proof)
+      const currentDate = getCurrentDateFromDateProof(proof)
       expect(minDate).toEqual(new Date(1111, 10, 11))
       expect(maxDate).toEqual(new Date(1988, 10, 15))
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
 
@@ -446,11 +532,15 @@ describe("subcircuits", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const minDate = getMinDateFromProof(proof)
       const maxDate = getMaxDateFromProof(proof)
+      const currentDate = getCurrentDateFromDateProof(proof)
       expect(minDate).toEqual(new Date(1988, 10, 11))
       expect(maxDate).toEqual(new Date(1988, 10, 15))
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
   })
@@ -468,11 +558,15 @@ describe("subcircuits", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const minDate = getMinDateFromProof(proof)
       const maxDate = getMaxDateFromProof(proof)
+      const currentDate = getCurrentDateFromDateProof(proof)
       expect(minDate).toEqual(new Date(2030, 0, 1))
       expect(maxDate).toEqual(new Date(2030, 0, 1))
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
 
@@ -488,11 +582,15 @@ describe("subcircuits", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const minDate = getMinDateFromProof(proof)
       const maxDate = getMaxDateFromProof(proof)
+      const currentDate = getCurrentDateFromDateProof(proof)
       expect(minDate).toEqual(new Date(2025, 0, 1))
       expect(maxDate).toEqual(new Date(2035, 0, 1))
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
 
@@ -508,11 +606,15 @@ describe("subcircuits", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const minDate = getMinDateFromProof(proof)
       const maxDate = getMaxDateFromProof(proof)
+      const currentDate = getCurrentDateFromDateProof(proof)
       expect(minDate).toEqual(new Date(2030, 0, 1))
       expect(maxDate).toEqual(new Date(2030, 0, 1))
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
 
@@ -529,11 +631,15 @@ describe("subcircuits", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const minDate = getMinDateFromProof(proof)
       const maxDate = getMaxDateFromProof(proof)
+      const currentDate = getCurrentDateFromDateProof(proof)
       expect(minDate).toEqual(new Date(2025, 0, 1))
       expect(maxDate).toEqual(new Date(1111, 10, 11))
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
 
@@ -549,11 +655,15 @@ describe("subcircuits", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const minDate = getMinDateFromProof(proof)
       const maxDate = getMaxDateFromProof(proof)
+      const currentDate = getCurrentDateFromDateProof(proof)
       expect(minDate).toEqual(new Date(1111, 10, 11))
       expect(maxDate).toEqual(new Date(2035, 0, 1))
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
 
@@ -569,11 +679,15 @@ describe("subcircuits", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const minDate = getMinDateFromProof(proof)
       const maxDate = getMaxDateFromProof(proof)
+      const currentDate = getCurrentDateFromDateProof(proof)
       expect(minDate).toEqual(new Date(2025, 0, 1))
       expect(maxDate).toEqual(new Date(2035, 0, 1))
       expect(nullifier).toEqual(
         16652021840048125612615553625990984639928437369819616382716847893828959509797n,
       )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
       await circuit.backend!.destroy()
     })
   })
