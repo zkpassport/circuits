@@ -91,11 +91,11 @@ describe("subcircuits", () => {
       const inputs = await helper.generateCircuitInputs("dsc")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
-      const merkleRoot = getMerkleRootFromDSCProof(proof)
-      dscCommitment = getCommitmentFromDSCProof(proof)
-      expect(merkleRoot).toBeDefined()
       expect(proof.publicInputs.length).toEqual(2)
-      await circuit.backend!.destroy()
+      const merkleRoot = getMerkleRootFromDSCProof(proof)
+      expect(merkleRoot).toBeDefined()
+      dscCommitment = getCommitmentFromDSCProof(proof)
+      await circuit.destroy()
     }, 30000)
   })
 
@@ -108,7 +108,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromIDDataProof(proof)
       idDataCommitment = getCommitmentOutFromIDDataProof(proof)
       expect(commitmentIn).toEqual(dscCommitment)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     }, 30000)
   })
 
@@ -123,7 +123,7 @@ describe("subcircuits", () => {
       const currentDate = getCurrentDateFromIntegrityProof(proof)
       expect(commitmentIn).toEqual(idDataCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     }, 30000)
   })
 
@@ -133,7 +133,7 @@ describe("subcircuits", () => {
       circuit = Circuit.from("disclose_flags")
     })
     afterAll(async () => {
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
 
     test("disclose all flags", async () => {
@@ -214,7 +214,7 @@ describe("subcircuits", () => {
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
   })
 
@@ -240,7 +240,7 @@ describe("subcircuits", () => {
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
   })
 
@@ -266,7 +266,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
 
     test("less than", async () => {
@@ -291,7 +291,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
 
     test("between", async () => {
@@ -316,7 +316,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
 
     test("equal", async () => {
@@ -341,7 +341,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
 
     test("disclose", async () => {
@@ -366,7 +366,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
 
     test("range", async () => {
@@ -391,7 +391,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
   })
 
@@ -418,7 +418,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
 
     test("range", async () => {
@@ -442,7 +442,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
 
     test("disclose", async () => {
@@ -466,7 +466,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
 
     test("greater than", async () => {
@@ -493,7 +493,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
 
     test("less than", async () => {
@@ -517,7 +517,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
 
     test("between", async () => {
@@ -541,7 +541,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
   })
 
@@ -567,7 +567,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
 
     test("range", async () => {
@@ -591,7 +591,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
 
     test("disclose", async () => {
@@ -615,7 +615,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
 
     test("greater than", async () => {
@@ -640,7 +640,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
 
     test("less than", async () => {
@@ -664,7 +664,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
 
     test("between", async () => {
@@ -688,7 +688,7 @@ describe("subcircuits", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.backend!.destroy()
+      await circuit.destroy()
     })
   })
 })
