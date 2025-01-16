@@ -432,29 +432,83 @@ const generateWorkspaceToml = () => {
   fs.writeFileSync("./Nargo.toml", workspaceToml)
 }
 
-const compileCircuitsWithNargo = async (
-  forceCompilation: boolean = false,
-  getGateCount: boolean = false,
-) => {
+// Maximum number of concurrent circuit compilations via `nargo compile`
+const MAX_CONCURRENT_COMPILATIONS = 10
+
+// Promise pool for controlled concurrency
+class PromisePool {
+  private queue: (() => Promise<void>)[] = []
+  private activePromises = 0
+
+  constructor(private maxConcurrent: number) {}
+
+  async add(fn: () => Promise<void>) {
+    if (this.activePromises >= this.maxConcurrent) {
+      // Queue the task if we're at max concurrency
+      await new Promise<void>((resolve) => {
+        this.queue.push(async () => {
+          await fn()
+          resolve()
+        })
+      })
+    } else {
+      // Execute immediately if under the concurrency limit
+      this.activePromises++
+      try {
+        await fn()
+      } finally {
+        this.activePromises--
+        // Process next queued task if any
+        if (this.queue.length > 0) {
+          const next = this.queue.shift()!
+          this.add(next)
+        }
+      }
+    }
+  }
+}
+
+const compileCircuitsWithNargo = async ({
+  forceCompilation = false,
+  getGateCount = false,
+  printStdErr = false,
+}: {
+  forceCompilation?: boolean
+  getGateCount?: boolean
+  printStdErr?: boolean
+} = {}) => {
+  const startTime = Date.now()
   const command = getGateCount ? "bash scripts/info.sh" : "nargo compile --force --package"
 
   // Helper function to promisify exec
-  const execPromise = (cmd: string): Promise<string> => {
+  const execPromise = (name: string, cmd: string): Promise<string> => {
     return new Promise((resolve, reject) => {
-      exec(cmd, (error, stdout, stderr) => {
+      exec(cmd, { maxBuffer: 100 * 1024 * 1024 }, (error, stdout, stderr) => {
         if (error) {
           reject(error)
           return
         }
-        if (stderr) {
+        if (stderr && printStdErr) {
           console.error(`Script error output: ${stderr}`)
         }
+        let statsString = ""
+        if (stderr) {
+          const warnings = (stderr.match(/warning: /gi) || []).length
+          const bugs = (stderr.match(/bug: /gi) || []).length
+          if (warnings > 0 || bugs > 0) {
+            statsString = ` [noir warnings: ${warnings}, noir bugs: ${bugs}]`
+          }
+        }
+        console.log(`Successfully compiled ${name}${statsString}`)
         resolve(stdout)
       })
     })
   }
 
-  // Process circuits sequentially
+  const pool = new PromisePool(MAX_CONCURRENT_COMPILATIONS)
+  const promises: Promise<void>[] = []
+
+  // Process circuits with controlled concurrency
   for (const { name } of generatedCircuits) {
     // Check if compilation output already exists
     const outputPath = path.join("target", `${name}.json`)
@@ -463,13 +517,28 @@ const compileCircuitsWithNargo = async (
       continue
     }
 
-    try {
-      console.log(`Compiling ${name}`)
-      const stdout = await execPromise(`${command} ${name}`)
-      console.log(`Script output: ${stdout}`)
-    } catch (error: any) {
-      console.error(`Error executing script for ${name}: ${error.message}`)
-    }
+    const promise = pool.add(async () => {
+      try {
+        console.log(`Compiling ${name}...`)
+        await execPromise(name, `${command} ${name}`)
+      } catch (error: any) {
+        console.error(`Error executing script for ${name}: ${error.message}`)
+      }
+    })
+    promises.push(promise)
+  }
+
+  // Wait for all compilations to complete
+  await Promise.all(promises)
+
+  const duration = (Date.now() - startTime) / 1000 // convert to seconds
+  const minutes = Math.floor(duration / 60)
+  const seconds = Math.floor(duration % 60)
+
+  if (minutes > 0) {
+    console.log(`Total time taken: ${minutes}m ${seconds}s`)
+  } else if (seconds > 0) {
+    console.log(`Total time taken: ${seconds}s`)
   }
 }
 
@@ -477,11 +546,12 @@ const args = process.argv.slice(2)
 const unconstrained = args.includes("unconstrained")
 const compile = args.includes("compile")
 const forceCompilation = args.includes("force-compilation")
+const printStdErr = args.includes("print-stderr")
 
-generateDscCircuits({ unconstrained: unconstrained })
-generateIdDataCircuits({ unconstrained: unconstrained })
+generateDscCircuits({ unconstrained })
+generateIdDataCircuits({ unconstrained })
 generateWorkspaceToml()
 if (compile) {
   // This works but use at your own risk (this will be very demanding of your machine)
-  compileCircuitsWithNargo(forceCompilation)
+  compileCircuitsWithNargo({ forceCompilation, printStdErr })
 }
