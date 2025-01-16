@@ -85,7 +85,7 @@ jobs:
           command: /home/circleci/.nargo/bin/nargo test
       - run:
           name: Integration tests
-          command: npm test circuits.test.ts --timeout 120000
+          command: npm test circuits.test.ts
 
 workflows:
   version: 2
