@@ -24,9 +24,7 @@ pub fn verify_ecdsa_pubkey_in_tbs<let DSC_KEY_SIZE: u32, let TBS_CERT_SIZE: u32>
     // root certificate of the issuing State (i.e. CSCA certificate) by verifying the signature below
     for i in 0..DSC_KEY_SIZE {
         assert(tbs_certificate[i + pubkey_offset] == dsc_pubkey_x[i]);
-        // There are 2 bytes of padding between the x and y coordinates of the public key
-        // in the TBS certificate.
-        assert(tbs_certificate[i + pubkey_offset + DSC_KEY_SIZE + 2] == dsc_pubkey_y[i]);
+        assert(tbs_certificate[i + pubkey_offset + DSC_KEY_SIZE] == dsc_pubkey_y[i]);
     }
 }
 

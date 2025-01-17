@@ -1,3 +1,4 @@
+use bigcurve::curves::secp256r1::{Secp256r1_Params, Secp256r1Fq, Secp256r1Fr};
 use bigcurve::curves::secp384r1::{Secp384r1_Params, Secp384r1Fq, Secp384r1Fr};
 use bignum::bignum::BigNum;
 use ecdsa::brainpoolP256r1::params::{BrainpoolP256r1Fq, BrainpoolP256r1Fr};
@@ -9,7 +10,7 @@ use ecdsa::brainpoolP512t1::params::{BrainpoolP512t1Fq, BrainpoolP512t1Fr};
 use ecdsa::ecdsa::{
     verify_brainpoolp256r1_ecdsa, verify_brainpoolp256t1_ecdsa, verify_brainpoolp384r1_ecdsa,
     verify_brainpoolp384t1_ecdsa, verify_brainpoolp512r1_ecdsa, verify_brainpoolp512t1_ecdsa,
-    verify_secp384r1_ecdsa, verify_secp521r1_ecdsa,
+    verify_secp256r1_ecdsa, verify_secp384r1_ecdsa, verify_secp521r1_ecdsa,
 };
 use ecdsa::secp521r1::params::{Secp521r1Fq, Secp521r1Fr};
 use std::ecdsa_secp256r1;
@@ -19,6 +20,25 @@ use utils::{
     ECDSA_CURVE_BRAINPOOL_B384R1, ECDSA_CURVE_BRAINPOOL_B384T1, ECDSA_CURVE_BRAINPOOL_B512R1,
     ECDSA_CURVE_BRAINPOOL_B512T1, ECDSA_CURVE_P384, ECDSA_CURVE_P521,
 };
+
+pub fn verify_nist_p256_blackbox<let DATA_TO_SIGN_LEN: u32>(
+    pubkey_x: [u8; 32],
+    pubkey_y: [u8; 32],
+    signature_r: [u8; 32],
+    signature_s: [u8; 32],
+    data_to_sign: [u8; DATA_TO_SIGN_LEN],
+    data_to_sign_len: u64,
+) -> bool {
+    // Check that the data signed does stop at the specified length
+    // to prevent the prover from using the bytes beyond that point
+    // to manipulate it in their favor
+    check_zero_padding(data_to_sign, data_to_sign_len as u32);
+
+    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
+
+    let signature = concat_array(signature_r, signature_s);
+    ecdsa_secp256r1::verify_signature(pubkey_x, pubkey_y, signature, msg_hash)
+}
 
 pub fn verify_nist_p256<let DATA_TO_SIGN_LEN: u32>(
     pubkey_x: [u8; 32],
@@ -32,11 +52,18 @@ pub fn verify_nist_p256<let DATA_TO_SIGN_LEN: u32>(
     // to prevent the prover from using the bytes beyond that point
     // to manipulate it in their favor
     check_zero_padding(data_to_sign, data_to_sign_len as u32);
-    
-    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
 
-    let signature = concat_array(signature_r, signature_s);
-    ecdsa_secp256r1::verify_signature(pubkey_x, pubkey_y, signature, msg_hash)
+    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
+    let pubkey_x_bignum: Secp256r1Fq = BigNum::from_be_bytes(pubkey_x);
+    let pubkey_y_bignum: Secp256r1Fq = BigNum::from_be_bytes(pubkey_y);
+    let signature_r_bignum: Secp256r1Fr = BigNum::from_be_bytes(signature_r);
+    let signature_s_bignum: Secp256r1Fr = BigNum::from_be_bytes(signature_s);
+    verify_secp256r1_ecdsa(
+        pubkey_x_bignum,
+        pubkey_y_bignum,
+        msg_hash,
+        (signature_r_bignum, signature_s_bignum),
+    )
 }
 
 pub fn verify_nist_p384<let DATA_TO_SIGN_LEN: u32>(
