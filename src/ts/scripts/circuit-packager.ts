@@ -5,7 +5,7 @@ import { promisify } from "util"
 
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
-const KEEP_KEYS = ["noir_version", "abi", "bytecode"]
+const KEEP_KEYS = ["noir_version", "abi", "bytecode", "hash"]
 const MAX_CONCURRENT_PROCESSES = 10
 
 // Promise pool for controlled concurrency
