@@ -81,9 +81,14 @@ const processFiles = async () => {
         const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
 
         // Create new object with only keys we're keeping
-        const filteredContent = Object.fromEntries(
-          Object.entries(jsonContent).filter(([key]) => KEEP_KEYS.includes(key)),
-        )
+        const filteredContent: {
+          [key: string]: unknown
+        } = {
+          name: file.replace(".json", ""),
+          ...Object.fromEntries(
+            Object.entries(jsonContent).filter(([key]) => KEEP_KEYS.includes(key)),
+          ),
+        }
 
         // Read vkey file as binary and convert to base64
         const vkeyData = fs.readFileSync(vkeyPath)
