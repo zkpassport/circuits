@@ -5,7 +5,6 @@ import { promisify } from "util"
 
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
-const KEEP_KEYS = ["noir_version", "abi", "bytecode", "hash"]
 const MAX_CONCURRENT_PROCESSES = 10
 
 // Promise pool for controlled concurrency
@@ -71,35 +70,35 @@ const processFiles = async () => {
           return
         }
 
-        // Run bb command to generate vkey file
+        // Run bb command to get bb version and generate circuit vkey
+        const bbVersion = (await execPromise("bb --version")).stdout.trim()
         console.log(`Generating vkey for ${file}...`)
         await execPromise(
           `bb write_vk_ultra_honk -v -b "${inputPath}" -o "${vkeyPath}" --recursive`,
         )
+        const vkey = Buffer.from(fs.readFileSync(vkeyPath)).toString("base64")
+        // Clean up vkey file
+        fs.unlinkSync(vkeyPath)
 
         // Read and parse the input file
         const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
 
-        // Create new object with only keys we're keeping
-        const filteredContent: {
+        // Create packaged circuit object
+        const packagedCircuit: {
           [key: string]: unknown
         } = {
           name: file.replace(".json", ""),
-          ...Object.fromEntries(
-            Object.entries(jsonContent).filter(([key]) => KEEP_KEYS.includes(key)),
-          ),
+          noir_version: jsonContent.noir_version,
+          bb_version: bbVersion,
+          abi: jsonContent.abi,
+          bytecode: jsonContent.bytecode,
+          vkey: vkey,
+          hash: jsonContent.hash,
         }
 
-        // Read vkey file as binary and convert to base64
-        const vkeyData = fs.readFileSync(vkeyPath)
-        filteredContent.vkey = Buffer.from(vkeyData).toString("base64")
-
-        // Write the filtered content to the output file
-        fs.writeFileSync(outputPath, JSON.stringify(filteredContent, null, 2))
-        console.log(`Successfully processed ${inputPath} -> ${outputPath}`)
-
-        // Clean up vkey file
-        fs.unlinkSync(vkeyPath)
+        // Write the packaged circuit file
+        fs.writeFileSync(outputPath, JSON.stringify(packagedCircuit, null, 2))
+        console.log(`Saved packaged circuit: ${outputPath}`)
       } catch (error: any) {
         if (error?.status !== undefined && error.status !== 0) {
           console.error(
