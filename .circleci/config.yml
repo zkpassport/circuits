@@ -83,7 +83,9 @@ jobs:
             NARGO_BIN=/home/circleci/.nargo/bin/nargo BUN_BIN=/home/circleci/.bun/bin/bun ~/repo/scripts/ci-compile-circuits.sh
       - run:
           name: Integration tests
-          command: npm test circuits.test.ts
+          command: |
+            cat target/sig_check_dsc_tbs_700_ecdsa_nist_p384.json
+            npm test circuits.test.ts
 
 workflows:
   version: 2
