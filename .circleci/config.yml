@@ -37,7 +37,7 @@ jobs:
       - save_cache:
           paths:
             - /home/circleci/.nargo
-          key: nargo-cache
+          key: nargo-cache-<< pipeline.parameters.noir_version >>
       - run:
           name: Install npm dependencies
           command: |
@@ -58,7 +58,7 @@ jobs:
     steps:
       - restore_cache:
           keys:
-            - nargo-cache
+            - nargo-cache-<< pipeline.parameters.noir_version >>
       - attach_workspace:
           at: ~/repo
       - run:
@@ -70,7 +70,7 @@ jobs:
     steps:
       - restore_cache:
           keys:
-            - nargo-cache
+            - nargo-cache-<< pipeline.parameters.noir_version >>
       - restore_cache:
           keys:
             - bun-cache
