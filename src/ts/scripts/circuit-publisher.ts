@@ -79,6 +79,20 @@ class CircuitPublisher {
     )
   }
 
+  private async createHashSymlink(hash: string, circuitName: string): Promise<void> {
+    const hashKey = `hashes/${hash}.json.gz`
+    await this.s3.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: hashKey,
+        WebsiteRedirectLocation: `/artifacts/${circuitName}_${hash}.json.gz`,
+        Body: Buffer.from(""),
+        ContentType: "application/json",
+        ContentEncoding: "gzip",
+      }),
+    )
+  }
+
   private async invalidateCache(version: string): Promise<void> {
     await this.cloudfront.send(
       new CreateInvalidationCommand({
@@ -109,13 +123,13 @@ class CircuitPublisher {
       if (!json.vkey_hash) {
         throw new Error(`No vkey_hash found in ${filePath}`)
       }
-      const hash = json.vkey_hash.replace("0x", "").substring(0, 16)
+      const hash = json.vkey_hash.replace("0x", "")
       if (!json.name) {
         throw new Error(`No name found in ${filePath}`)
       }
 
       // Upload to artifacts folder if not exists
-      await this.uploadIfNotExists(filePath, json.name, hash)
+      await this.uploadIfNotExists(filePath, json.name, hash.substring(0, 16))
 
       artifacts.push({
         name: json.name,
@@ -127,7 +141,8 @@ class CircuitPublisher {
     // Create version symlinks
     console.log(`Creating version ${version} symlinks...`)
     for (const artifact of artifacts) {
-      await this.createVersionSymlink(version, artifact.name, artifact.hash)
+      await this.createVersionSymlink(version, artifact.name, artifact.hash.substring(0, 16))
+      await this.createHashSymlink(artifact.hash, artifact.name)
     }
 
     // Invalidate CloudFront cache for the version

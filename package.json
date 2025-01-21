@@ -1,6 +1,6 @@
 {
   "name": "circuits",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "config": {
     "noir_version": "1.0.0-beta.1",
     "bb_version": "0.67.1"
