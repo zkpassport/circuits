@@ -5,7 +5,9 @@ import { exec } from "child_process"
 
 // Function to ensure directory exists
 function ensureDirectoryExistence(filePath: string) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true })
+  try {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+  } catch (e) {}
 }
 
 const generatedCircuits: {

@@ -1,5 +1,10 @@
 {
   "name": "circuits",
+  "version": "0.0.1",
+  "config": {
+    "noir_version": "1.0.0-beta.1",
+    "bb_version": "0.67.1"
+  },
   "type": "module",
   "scripts": {
     "build:circuits": "src/ts/scripts/build-circuits.sh",
@@ -18,8 +23,9 @@
     "ts-jest": "^29.1.2"
   },
   "dependencies": {
-    "@zkpassport/test-utils": "^0.2.0",
-    "@zkpassport/utils": "^0.2.0",
+    "@zkpassport/poseidon2": "^0.5.3",
+    "@zkpassport/test-utils": "^0.2.2",
+    "@zkpassport/utils": "^0.2.4",
     "node-forge": "^1.3.1"
   },
   "peerDependencies": {

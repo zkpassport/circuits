@@ -1,13 +1,17 @@
 import forge from "node-forge"
 import * as path from "path"
-import { saveDscKeypairToFile } from "@zkpassport/test-utils"
+import { saveKeypairToFile, generateRsaKeyPair, generateEcdsaKeyPair } from "@zkpassport/test-utils"
 
 // Generate a new DSC keypair
 console.log("Generating DSC keypair...")
-const dscKeys = forge.pki.rsa.generateKeyPair({ bits: 2048 })
+const rsaDscKeys = await generateRsaKeyPair(2048)
+const ecdsaDscKeys = await generateEcdsaKeyPair("P-256")
 
 // Save to fixtures directory
-const fixturesDir = path.join(__dirname, "../../../fixtures")
-const keypairPath = path.join(fixturesDir, "test-dsc-keypair.json")
-saveDscKeypairToFile(dscKeys, keypairPath)
-console.log(`DSC keypair saved to ${keypairPath}`)
+const fixturesDir = path.join(__dirname, "../tests/fixtures")
+const rsaKeypairPath = path.join(fixturesDir, "dsc-keypair-rsa.json")
+const ecdsaKeypairPath = path.join(fixturesDir, "dsc-keypair-ecdsa.json")
+saveKeypairToFile(rsaDscKeys, rsaKeypairPath)
+saveKeypairToFile(ecdsaDscKeys, ecdsaKeypairPath)
+console.log(`DSC keypair saved to ${rsaKeypairPath}`)
+console.log(`DSC keypair saved to ${ecdsaKeypairPath}`)
