@@ -2,10 +2,10 @@ import fs from "fs"
 import path from "path"
 import { exec } from "child_process"
 import { promisify } from "util"
+import { hashToFieldBN254 as poseidon2Hash } from "@zkpassport/poseidon2"
 
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
-const KEEP_KEYS = ["noir_version", "abi", "bytecode"]
 const MAX_CONCURRENT_PROCESSES = 10
 
 // Promise pool for controlled concurrency
@@ -47,7 +47,9 @@ if (!fs.existsSync(PACKAGED_DIR)) {
 }
 
 // Get all JSON files from target directory
-const files = fs.readdirSync(TARGET_DIR).filter((file) => file.endsWith(".json"))
+const files = fs
+  .readdirSync(TARGET_DIR)
+  .filter((file) => !file.endsWith(".vkey.json") && file.endsWith(".json"))
 
 // Promisify exec
 const execPromise = promisify(exec)
@@ -62,6 +64,7 @@ const processFiles = async () => {
     const inputPath = path.join(TARGET_DIR, file)
     const outputPath = path.join(PACKAGED_DIR, file)
     const vkeyPath = path.join(TARGET_DIR, file.replace(".json", ".vkey"))
+    const vkeyJsonPath = path.join(TARGET_DIR, file.replace(".json", ".vkey.json"))
 
     const promise = pool.add(async () => {
       try {
@@ -71,30 +74,42 @@ const processFiles = async () => {
           return
         }
 
-        // Run bb command to generate vkey file
+        // Run bb command to get bb version and generate circuit vkey
+        const bbVersion = (await execPromise("bb --version")).stdout.trim()
         console.log(`Generating vkey for ${file}...`)
+        await execPromise(`bb write_vk_ultra_honk -b "${inputPath}" -o "${vkeyPath}" --recursive`)
         await execPromise(
-          `bb write_vk_ultra_honk -v -b "${inputPath}" -o "${vkeyPath}" --recursive`,
+          `bb vk_as_fields_ultra_honk -k "${vkeyPath}" -o "${vkeyJsonPath}" --recursive`,
         )
+        // Get Poseidon2 hash of vkey
+        const vkeyAsFieldsJson = JSON.parse(fs.readFileSync(vkeyJsonPath, "utf-8"))
+        const vkeyAsFields = vkeyAsFieldsJson.map((v: any) => BigInt(v))
+        const vkeyHash = `0x${poseidon2Hash(vkeyAsFields).toString(16)}`
+        const vkey = Buffer.from(fs.readFileSync(vkeyPath)).toString("base64")
+        // Clean up vkey files
+        fs.unlinkSync(vkeyPath)
+        fs.unlinkSync(vkeyJsonPath)
 
         // Read and parse the input file
         const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
 
-        // Create new object with only keys we're keeping
-        const filteredContent = Object.fromEntries(
-          Object.entries(jsonContent).filter(([key]) => KEEP_KEYS.includes(key)),
-        )
+        // Create packaged circuit object
+        const packagedCircuit: {
+          [key: string]: unknown
+        } = {
+          name: file.replace(".json", ""),
+          noir_version: jsonContent.noir_version,
+          bb_version: bbVersion,
+          abi: jsonContent.abi,
+          bytecode: jsonContent.bytecode,
+          vkey: vkey,
+          vkey_hash: vkeyHash,
+          hash: jsonContent.hash,
+        }
 
-        // Read vkey file as binary and convert to base64
-        const vkeyData = fs.readFileSync(vkeyPath)
-        filteredContent.vkey = Buffer.from(vkeyData).toString("base64")
-
-        // Write the filtered content to the output file
-        fs.writeFileSync(outputPath, JSON.stringify(filteredContent, null, 2))
-        console.log(`Successfully processed ${inputPath} -> ${outputPath}`)
-
-        // Clean up vkey file
-        fs.unlinkSync(vkeyPath)
+        // Write the packaged circuit file
+        fs.writeFileSync(outputPath, JSON.stringify(packagedCircuit, null, 2))
+        console.log(`Saved packaged circuit: ${outputPath}`)
       } catch (error: any) {
         if (error?.status !== undefined && error.status !== 0) {
           console.error(
