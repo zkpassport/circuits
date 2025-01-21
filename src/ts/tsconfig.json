@@ -6,7 +6,8 @@
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "target": "esnext",
-    "module": "ESNext",
+    "module": "commonjs",
+    "lib": ["esnext"],
     "moduleResolution": "node",
     "baseUrl": ".",
     "paths": {
