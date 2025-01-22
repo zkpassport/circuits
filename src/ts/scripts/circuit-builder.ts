@@ -1,7 +1,7 @@
 import * as fs from "fs"
 import * as path from "path"
-import { compileCircuit } from "@zkpassport/test-utils"
 import { exec } from "child_process"
+import { compileCircuit } from "../utils"
 
 // Function to ensure directory exists
 function ensureDirectoryExistence(filePath: string) {

@@ -28,19 +28,16 @@ import {
   getCurrentDateFromDateProof,
   getDiscloseCircuitInputs,
 } from "@zkpassport/utils"
-import {
-  generateSigningCertificates,
-  loadKeypairFromFile,
-  signSod,
-  generateSod,
-  wrapSodInContentInfo,
-  TestHelper,
-  Circuit,
-  serializeAsn,
-} from "@zkpassport/test-utils"
 import type { CSCMasterlist, Query } from "@zkpassport/utils"
 import { beforeAll, describe, expect, test } from "@jest/globals"
 import * as path from "path"
+import { TestHelper } from "../test-helper"
+import { generateSigningCertificates, signSod } from "../passport-generator"
+import { loadKeypairFromFile } from "../passport-generator"
+import { wrapSodInContentInfo } from "../sod-generator"
+import { generateSod } from "../sod-generator"
+import { serializeAsn } from "../utils"
+import { Circuit } from "../circuits"
 
 describe("subcircuits - RSA PKCS", () => {
   const helper = new TestHelper()
