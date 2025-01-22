@@ -28,7 +28,7 @@
     "jest": "^29.7.0",
     "ts-jest": "^29.1.2",
     "@zkpassport/test-utils": "^0.2.2",
-    "@zkpassport/utils": "^0.2.4"
+    "@zkpassport/utils": "^0.2.9"
   },
   "dependencies": {
     "@zkpassport/poseidon2": "^0.5.3",
