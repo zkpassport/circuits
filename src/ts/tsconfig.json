@@ -7,6 +7,7 @@
     "skipLibCheck": true,
     "target": "esnext",
     "module": "ESNext",
+    "lib": ["esnext"],
     "moduleResolution": "node",
     "baseUrl": ".",
     "paths": {
