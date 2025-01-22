@@ -1,6 +1,5 @@
-import forge from "node-forge"
 import * as path from "path"
-import { saveKeypairToFile, generateRsaKeyPair, generateEcdsaKeyPair } from "@zkpassport/test-utils"
+import { generateRsaKeyPair, generateEcdsaKeyPair, saveKeypairToFile } from "../passport-generator"
 
 // Generate a new DSC keypair
 console.log("Generating DSC keypair...")
