@@ -27,6 +27,7 @@ import {
   getCurrentDateFromAgeProof,
   getCurrentDateFromDateProof,
   getDiscloseCircuitInputs,
+  getHostedPackagedCircuitByName,
 } from "@zkpassport/utils"
 import type { CSCMasterlist, Query } from "@zkpassport/utils"
 import { beforeAll, describe, expect, test } from "@jest/globals"
@@ -38,6 +39,59 @@ import { wrapSodInContentInfo } from "../sod-generator"
 import { generateSod } from "../sod-generator"
 import { serializeAsn } from "../utils"
 import { Circuit } from "../circuits"
+import { BarretenbergVerifier } from "@aztec/bb.js"
+
+describe("test recursive proof verification", () => {
+  const helper = new TestHelper()
+  const masterlist: CSCMasterlist = { certificates: [] }
+  const FIXTURES_PATH = path.join(__dirname, "fixtures")
+  const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-rsa.json")
+
+  beforeAll(async () => {
+    // Johnny Silverhand's MRZ
+    const mrz =
+      "P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<\0\0"
+    const dg1 = Binary.fromHex("615B5F1F58").concat(Binary.from(mrz))
+    // Load DSC keypair
+    const dscKeypair = await loadKeypairFromFile(DSC_KEYPAIR_PATH)
+    // Generate CSC and DSC signing certificates
+    const { cscPem, dsc, dscKeys } = await generateSigningCertificates({
+      cscSigningHashAlgorithm: "SHA-256",
+      cscKeyType: "RSA",
+      cscKeySize: 4096,
+      dscSigningHashAlgorithm: "SHA-256",
+      dscKeyType: "RSA",
+      dscKeySize: 2048,
+      dscKeypair,
+    })
+    // Generate SOD and sign it with DSC keypair
+    const { sod } = await generateSod(dg1, [dsc])
+    const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
+    // Add newly generated CSC to masterlist
+    masterlist.certificates.push(parseCertificate(cscPem))
+    // Load passport data into helper
+    const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
+    await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
+    helper.setMasterlist(masterlist)
+  })
+
+  test("rsa pkcs 4096", async () => {
+    const circuitName = `sig_check_dsc_tbs_700_rsa_pkcs_4096`
+    const packagedCircuit = await getHostedPackagedCircuitByName("0.0.5", circuitName)
+    const circuit = Circuit.from(circuitName, { recursive: true })
+    const inputs = await helper.generateCircuitInputs("dsc")
+    const proof = await circuit.prove(inputs)
+    console.log("proof:", Buffer.from(proof.proof).toString("base64"))
+    console.log("vkey:", packagedCircuit.vkey)
+    const verifier = new BarretenbergVerifier()
+    const verified = await verifier.verifyUltraHonkProof(
+      proof,
+      Buffer.from(packagedCircuit.vkey, "base64"),
+    )
+    console.log("verified?", verified)
+    await circuit.destroy()
+  }, 30000)
+})
 
 describe("subcircuits - RSA PKCS", () => {
   const helper = new TestHelper()
