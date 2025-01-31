@@ -19,6 +19,8 @@ CIRCUITS=(
     "sig_check_id_data_tbs_700_rsa_pkcs_2048"
     "sig_check_id_data_tbs_1500_rsa_pkcs_2048"
     "sig_check_id_data_tbs_700_ecdsa_nist_p256"
+    "sig_check_dsc_tbs_700_ecdsa_nist_p521"
+    "sig_check_id_data_tbs_700_ecdsa_nist_p384"
     "data_check_integrity"
     "disclose_flags"
     "disclose_bytes"

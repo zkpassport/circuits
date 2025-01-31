@@ -158,7 +158,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(disclosedData.issuingCountry).toBe("AUS")
       expect(disclosedData.nationality).toBe("AUS")
-      expect(disclosedData.documentType).toBe("P")
+      expect(disclosedData.documentType).toBe("passport")
       expect(disclosedData.documentNumber).toBe("PA1234567")
       expect(disclosedData.name).toBe("SILVERHAND JOHNNY")
       expect(disclosedData.firstName).toBe("JOHNNY")
@@ -186,7 +186,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(disclosedData.issuingCountry).toBe("")
       expect(disclosedData.nationality).toBe("AUS")
-      expect(disclosedData.documentType).toBe("")
+      expect(disclosedData.documentType).toBe("other")
       expect(disclosedData.documentNumber).toBe("")
       expect(disclosedData.name).toBe("")
       expect(disclosedData.firstName).toBe("")
@@ -822,7 +822,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
       globalNullifier = getNullifierFromDisclosureProof(proof)
       expect(disclosedData.issuingCountry).toBe("AUS")
       expect(disclosedData.nationality).toBe("AUS")
-      expect(disclosedData.documentType).toBe("P")
+      expect(disclosedData.documentType).toBe("passport")
       expect(disclosedData.documentNumber).toBe("PA1234567")
       expect(disclosedData.name).toBe("SILVERHAND JOHNNY")
       expect(disclosedData.firstName).toBe("JOHNNY")
@@ -848,7 +848,166 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(disclosedData.issuingCountry).toBe("")
       expect(disclosedData.nationality).toBe("AUS")
-      expect(disclosedData.documentType).toBe("")
+      expect(disclosedData.documentType).toBe("other")
+      expect(disclosedData.documentNumber).toBe("")
+      expect(disclosedData.name).toBe("")
+      expect(disclosedData.firstName).toBe("")
+      expect(disclosedData.lastName).toBe("")
+      expect(isNaN(disclosedData.dateOfBirth.getTime())).toBe(true)
+      expect(isNaN(disclosedData.dateOfExpiry.getTime())).toBe(true)
+      expect(disclosedData.gender).toBe("")
+      expect(nullifier).toEqual(globalNullifier)
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+    })
+  })
+})
+
+describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
+  const helper = new TestHelper()
+  const masterlist: CSCMasterlist = { certificates: [] }
+  const MAX_TBS_LENGTH = 700
+  let dscCommitment: bigint
+  let idDataCommitment: bigint
+  let integrityCheckCommitment: bigint
+  const globalCurrentDate = new Date(
+    new Date().getFullYear(),
+    new Date().getMonth(),
+    new Date().getDate(),
+    0,
+    0,
+    0,
+    0,
+  )
+  // We need to store the nullifier
+  // as we cannot compare to a constant value
+  // since ECDSA signatures are not deterministic
+  let globalNullifier: bigint
+
+  beforeAll(async () => {
+    // Johnny Silverhand's MRZ
+    const mrz =
+      "P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<\0\0"
+    const dg1 = Binary.fromHex("615B5F1F58").concat(Binary.from(mrz))
+
+    // Generate CSC and DSC signing certificates
+    const { cscPem, dsc, dscKeys } = await generateSigningCertificates({
+      cscSigningHashAlgorithm: "SHA-256",
+      cscKeyType: "ECDSA",
+      cscCurve: "P-521",
+      dscSigningHashAlgorithm: "SHA-256",
+      dscKeyType: "ECDSA",
+      dscCurve: "P-384",
+    })
+    // Generate SOD and sign it with DSC keypair
+    const { sod } = await generateSod(dg1, [dsc])
+    const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
+    // Add newly generated CSC to masterlist
+    masterlist.certificates.push(parseCertificate(cscPem))
+    // Load passport data into helper
+    const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
+    await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
+    helper.setMasterlist(masterlist)
+  })
+
+  describe("dsc", () => {
+    test("ecdsa nist p-521", async () => {
+      const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p521`)
+      const inputs = await helper.generateCircuitInputs("dsc")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      expect(proof.publicInputs.length).toEqual(2)
+      const merkleRoot = getMerkleRootFromDSCProof(proof)
+      expect(merkleRoot).toBeDefined()
+      dscCommitment = getCommitmentFromDSCProof(proof)
+      await circuit.destroy()
+    }, 60000)
+  })
+
+  describe("id", () => {
+    test("ecdsa nist p-384", async () => {
+      const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p384`)
+      const inputs = await helper.generateCircuitInputs("id")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const commitmentIn = getCommitmentInFromIDDataProof(proof)
+      idDataCommitment = getCommitmentOutFromIDDataProof(proof)
+      expect(commitmentIn).toEqual(dscCommitment)
+      await circuit.destroy()
+    }, 30000)
+  })
+
+  describe("integrity", () => {
+    test("data integrity check", async () => {
+      const circuit = Circuit.from("data_check_integrity")
+      const inputs = await helper.generateCircuitInputs("integrity")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const commitmentIn = getCommitmentInFromIntegrityProof(proof)
+      integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
+      const currentDate = getCurrentDateFromIntegrityProof(proof)
+      expect(commitmentIn).toEqual(idDataCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
+      await circuit.destroy()
+    }, 30000)
+  })
+
+  describe("disclose", () => {
+    let circuit: Circuit
+    beforeAll(async () => {
+      circuit = Circuit.from("disclose_bytes")
+    })
+    afterAll(async () => {
+      await circuit.destroy()
+    })
+
+    test("disclose all bytes", async () => {
+      const query: Query = {
+        issuing_country: { disclose: true },
+        nationality: { disclose: true },
+        document_type: { disclose: true },
+        document_number: { disclose: true },
+        fullname: { disclose: true },
+        birthdate: { disclose: true },
+        expiry_date: { disclose: true },
+        gender: { disclose: true },
+      }
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
+      const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
+      expect(proof).toBeDefined()
+      // Verify the disclosed data
+      const disclosedData = DisclosedData.fromBytesProof(proof, "passport")
+      globalNullifier = getNullifierFromDisclosureProof(proof)
+      expect(disclosedData.issuingCountry).toBe("AUS")
+      expect(disclosedData.nationality).toBe("AUS")
+      expect(disclosedData.documentType).toBe("passport")
+      expect(disclosedData.documentNumber).toBe("PA1234567")
+      expect(disclosedData.name).toBe("SILVERHAND JOHNNY")
+      expect(disclosedData.firstName).toBe("JOHNNY")
+      expect(disclosedData.lastName).toBe("SILVERHAND")
+      expect(disclosedData.dateOfBirth).toEqual(new Date(1988, 10, 12))
+      expect(disclosedData.dateOfExpiry).toEqual(new Date(2030, 0, 1))
+      expect(disclosedData.gender).toBe("M")
+      expect(globalNullifier).toBeDefined()
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+    })
+
+    test("disclose some bytes", async () => {
+      const query: Query = {
+        nationality: { disclose: true },
+      }
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
+      const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
+      expect(proof).toBeDefined()
+      // Verify the disclosed data
+      const disclosedData = DisclosedData.fromBytesProof(proof, "passport")
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(disclosedData.issuingCountry).toBe("")
+      expect(disclosedData.nationality).toBe("AUS")
+      expect(disclosedData.documentType).toBe("other")
       expect(disclosedData.documentNumber).toBe("")
       expect(disclosedData.name).toBe("")
       expect(disclosedData.firstName).toBe("")
