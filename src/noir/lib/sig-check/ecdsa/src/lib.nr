@@ -1,18 +1,30 @@
+use bigcurve::curves::brainpoolP256r1::{
+    BrainpoolP256r1_Params, BrainpoolP256r1Fq, BrainpoolP256r1Fr,
+};
+use bigcurve::curves::brainpoolP256t1::{
+    BrainpoolP256t1_Params, BrainpoolP256t1Fq, BrainpoolP256t1Fr,
+};
+use bigcurve::curves::brainpoolP384r1::{
+    BrainpoolP384r1_Params, BrainpoolP384r1Fq, BrainpoolP384r1Fr,
+};
+use bigcurve::curves::brainpoolP384t1::{
+    BrainpoolP384t1_Params, BrainpoolP384t1Fq, BrainpoolP384t1Fr,
+};
+use bigcurve::curves::brainpoolP512r1::{
+    BrainpoolP512r1_Params, BrainpoolP512r1Fq, BrainpoolP512r1Fr,
+};
+use bigcurve::curves::brainpoolP512t1::{
+    BrainpoolP512t1_Params, BrainpoolP512t1Fq, BrainpoolP512t1Fr,
+};
 use bigcurve::curves::secp256r1::{Secp256r1_Params, Secp256r1Fq, Secp256r1Fr};
 use bigcurve::curves::secp384r1::{Secp384r1_Params, Secp384r1Fq, Secp384r1Fr};
+use bigcurve::curves::secp521r1::{Secp521r1_Params, Secp521r1Fq, Secp521r1Fr};
 use bignum::bignum::BigNum;
-use ecdsa::brainpoolP256r1::params::{BrainpoolP256r1Fq, BrainpoolP256r1Fr};
-use ecdsa::brainpoolP256t1::params::{BrainpoolP256t1Fq, BrainpoolP256t1Fr};
-use ecdsa::brainpoolP384r1::params::{BrainpoolP384r1Fq, BrainpoolP384r1Fr};
-use ecdsa::brainpoolP384t1::params::{BrainpoolP384t1Fq, BrainpoolP384t1Fr};
-use ecdsa::brainpoolP512r1::params::{BrainpoolP512r1Fq, BrainpoolP512r1Fr};
-use ecdsa::brainpoolP512t1::params::{BrainpoolP512t1Fq, BrainpoolP512t1Fr};
 use ecdsa::ecdsa::{
     verify_brainpoolp256r1_ecdsa, verify_brainpoolp256t1_ecdsa, verify_brainpoolp384r1_ecdsa,
     verify_brainpoolp384t1_ecdsa, verify_brainpoolp512r1_ecdsa, verify_brainpoolp512t1_ecdsa,
     verify_secp256r1_ecdsa, verify_secp384r1_ecdsa, verify_secp521r1_ecdsa,
 };
-use ecdsa::secp521r1::params::{Secp521r1Fq, Secp521r1Fr};
 use std::ecdsa_secp256r1;
 use std::hash::sha256;
 use utils::{
