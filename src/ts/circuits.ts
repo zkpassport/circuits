@@ -9,19 +9,23 @@ const BB_THREADS = 8
 export class Circuit {
   private manifest: CompiledCircuit
   private name: string
+  private recursive: boolean
   public backend?: UltraHonkBackend
   public noir?: Noir
 
-  constructor(manifest: CompiledCircuit, name: string) {
+  constructor(manifest: CompiledCircuit, name: string, options: { recursive?: boolean } = {}) {
     this.manifest = manifest
     this.name = name
+    this.recursive = options.recursive ?? false
   }
 
   async init() {
     if (!this.backend) {
-      this.backend = new UltraHonkBackend(this.manifest.bytecode, {
-        threads: BB_THREADS,
-      })
+      this.backend = new UltraHonkBackend(
+        this.manifest.bytecode,
+        { threads: BB_THREADS },
+        { recursive: this.recursive },
+      )
       if (!this.backend) throw new Error("Error initializing backend")
     }
     if (!this.noir) {
@@ -66,13 +70,13 @@ export class Circuit {
     return await this.backend.verifyProof(proof)
   }
 
-  async getVerificationKey() {
+  async vkey() {
     await this.init()
     if (!this.backend) throw new Error("Backend not initialized")
     return await this.backend.getVerificationKey()
   }
 
-  static from(fileName: string): Circuit {
+  static from(fileName: string, options: { recursive?: boolean } = {}): Circuit {
     if (!path) throw new Error("Path is not available in this environment")
     const isFullPath = path.isAbsolute(fileName) || fileName.includes("/")
     const circuitPath = isFullPath ? fileName : path.resolve(`target/${fileName}.json`)
@@ -80,7 +84,7 @@ export class Circuit {
       if (!fs) throw new Error("Read file sync is not available in this environment")
       const manifest = JSON.parse(fs.readFileSync(circuitPath, "utf-8"))
       const name = path.basename(fileName, ".json")
-      return new Circuit(manifest, name)
+      return new Circuit(manifest, name, options)
     } catch (error) {
       if (error instanceof Error && error.name === "ENOENT") {
         throw new Error(`No such file: target/${fileName}.json`)
