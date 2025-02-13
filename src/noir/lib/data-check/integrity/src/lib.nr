@@ -1,5 +1,4 @@
 use utils::is_id_card;
-use std::sha256;
 
 /**
 * Computes the hash of the MRZ (Data Group 1) and checks it is the same as the one
