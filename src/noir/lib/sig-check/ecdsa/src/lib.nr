@@ -26,7 +26,6 @@ use ecdsa::ecdsa::{
     verify_secp256r1_ecdsa, verify_secp384r1_ecdsa, verify_secp521r1_ecdsa,
 };
 use std::ecdsa_secp256r1;
-use std::hash::sha256;
 use utils::{
     check_zero_padding, concat_array, ECDSA_CURVE_BRAINPOOL_B256R1, ECDSA_CURVE_BRAINPOOL_B256T1,
     ECDSA_CURVE_BRAINPOOL_B384R1, ECDSA_CURVE_BRAINPOOL_B384T1, ECDSA_CURVE_BRAINPOOL_B512R1,
