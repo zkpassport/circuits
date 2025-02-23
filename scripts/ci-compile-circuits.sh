@@ -21,7 +21,7 @@ CIRCUITS=(
     "sig_check_id_data_tbs_700_ecdsa_nist_p256"
     "sig_check_dsc_tbs_700_ecdsa_nist_p521"
     "sig_check_id_data_tbs_700_ecdsa_nist_p384"
-    "data_check_integrity"
+    "data_check_integrity_sha256"
     "disclose_flags"
     "disclose_bytes"
     "inclusion_check_country"

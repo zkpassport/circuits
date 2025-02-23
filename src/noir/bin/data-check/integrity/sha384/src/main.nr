@@ -1,6 +1,7 @@
+// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_disclosure;
 use data_check_expiry::check_expiry;
-use data_check_integrity::check_integrity_of_data;
+use data_check_integrity::check_integrity_of_data_sha384;
 
 fn main(
     current_date: pub str<8>,
@@ -17,7 +18,7 @@ fn main(
     // Check the ID is not expired first
     check_expiry(dg1, current_date.as_bytes());
     // Check the integrity of the data
-    check_integrity_of_data(
+    check_integrity_of_data_sha384(
         dg1,
         signed_attributes,
         signed_attributes_size,

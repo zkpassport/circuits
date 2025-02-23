@@ -41,7 +41,6 @@ members = [
     "src/noir/bin/disclose/bytes",
     "src/noir/bin/main/outer",
     "src/noir/bin/data-check/expiry",
-    "src/noir/bin/data-check/integrity",
     "src/noir/bin/exclusion-check/country",
     "src/noir/bin/inclusion-check/country",${dependencies
       .map(
@@ -242,6 +241,49 @@ ${unconstrained ? "unconstrained " : ""}fn main(
 }
 `
 
+const DATA_INTEGRITY_CHECK_TEMPLATE = (
+  hash_algorithm: "sha256" | "sha384" | "sha512",
+  unconstrained: boolean = false,
+) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
+use commitment::commit_to_disclosure;
+use data_check_expiry::check_expiry;
+use data_check_integrity::check_integrity_of_data_${hash_algorithm};
+
+${unconstrained ? "unconstrained " : ""}fn main(
+    current_date: pub str<8>,
+    comm_in: pub Field,
+    salt: Field,
+    dg1: [u8; 95],
+    signed_attributes: [u8; 200],
+    signed_attributes_size: u32,
+    e_content: [u8; 700],
+    e_content_size: u32,
+    dg1_offset_in_e_content: u32,
+    private_nullifier: Field,
+) -> pub Field {
+    // Check the ID is not expired first
+    check_expiry(dg1, current_date.as_bytes());
+    // Check the integrity of the data
+    check_integrity_of_data_${hash_algorithm}(
+        dg1,
+        signed_attributes,
+        signed_attributes_size,
+        e_content,
+        e_content_size,
+        dg1_offset_in_e_content,
+    );
+    let comm_out = commit_to_disclosure(
+        comm_in,
+        salt,
+        dg1,
+        signed_attributes,
+        signed_attributes_size as Field,
+        private_nullifier,
+    );
+    comm_out
+}
+`
+
 function generateDscEcdsaCircuit(
   curve_family: string,
   curve_name: string,
@@ -347,6 +389,27 @@ function generateIdDataRsaCircuit(
   generatedCircuits.push({ name, path: folderPath })
 }
 
+function generateDataIntegrityCheckCircuit(
+  hash_algorithm: "sha256" | "sha384" | "sha512",
+  unconstrained: boolean = false,
+) {
+  const noirFile = DATA_INTEGRITY_CHECK_TEMPLATE(hash_algorithm, unconstrained)
+  const name = `data_check_integrity_${hash_algorithm}`
+  const nargoFile = NARGO_TEMPLATE(name, [
+    { name: "data_check_integrity", path: "../../../../lib/data-check/integrity" },
+    { name: "data_check_expiry", path: "../../../../lib/data-check/expiry" },
+    { name: "commitment", path: "../../../../lib/commitment/integrity-to-disclosure" },
+  ])
+  const folderPath = `./src/noir/bin/data-check/integrity/${hash_algorithm}`
+  const noirFilePath = `${folderPath}/src/main.nr`
+  const nargoFilePath = `${folderPath}/Nargo.toml`
+  ensureDirectoryExistence(noirFilePath)
+  fs.writeFileSync(noirFilePath, noirFile)
+  ensureDirectoryExistence(nargoFilePath)
+  fs.writeFileSync(nargoFilePath, nargoFile)
+  generatedCircuits.push({ name, path: folderPath })
+}
+
 const SIGNATURE_ALGORITHMS_SUPPORTED: {
   type: "ecdsa" | "rsa"
   family: "brainpool" | "nist" | "pss" | "pkcs"
@@ -374,6 +437,8 @@ const SIGNATURE_ALGORITHMS_SUPPORTED: {
 
 const TBS_MAX_LENGTHS = [700, 1000, 1200, 1500]
 
+const DATA_INTEGRITY_CHECK_ALGORITHMS_SUPPORTED = ["sha256", "sha384", "sha512"]
+
 const generateDscCircuits = ({ unconstrained = false }: { unconstrained: boolean }) => {
   console.log("Generating DSC circuits...")
   SIGNATURE_ALGORITHMS_SUPPORTED.forEach(({ type, family, curve_name, bit_size }) => {
@@ -397,6 +462,20 @@ const generateIdDataCircuits = ({ unconstrained = false }: { unconstrained: bool
         generateIdDataRsaCircuit(family as "pss" | "pkcs", bit_size, tbs_max_len, unconstrained)
       }
     })
+  })
+}
+
+const generateDataIntegrityCheckCircuits = ({
+  unconstrained = false,
+}: {
+  unconstrained: boolean
+}) => {
+  console.log("Generating data integrity check circuits...")
+  DATA_INTEGRITY_CHECK_ALGORITHMS_SUPPORTED.forEach((hash_algorithm) => {
+    generateDataIntegrityCheckCircuit(
+      hash_algorithm as "sha256" | "sha384" | "sha512",
+      unconstrained,
+    )
   })
 }
 
@@ -552,6 +631,7 @@ const printStdErr = args.includes("print-stderr")
 
 generateDscCircuits({ unconstrained })
 generateIdDataCircuits({ unconstrained })
+generateDataIntegrityCheckCircuits({ unconstrained })
 generateWorkspaceToml()
 if (compile) {
   // This works but use at your own risk (this will be very demanding of your machine)

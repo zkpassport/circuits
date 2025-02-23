@@ -116,7 +116,7 @@ describe("subcircuits - RSA PKCS", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity")
+      const circuit = Circuit.from("data_check_integrity_sha256")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -780,7 +780,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity")
+      const circuit = Circuit.from("data_check_integrity_sha256")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -939,7 +939,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity")
+      const circuit = Circuit.from("data_check_integrity_sha256")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
