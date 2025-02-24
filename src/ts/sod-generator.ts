@@ -23,7 +23,7 @@ import {
   BitString,
   OctetString,
 } from "@peculiar/asn1-schema"
-import { id_sha256 } from "@peculiar/asn1-rsa"
+import { id_sha256, id_sha384, id_sha512 } from "@peculiar/asn1-rsa"
 import {
   AlgorithmIdentifier,
   AttributeTypeAndValue,
@@ -43,6 +43,19 @@ import {
 } from "@peculiar/asn1-x509"
 import { createHash } from "crypto"
 import { HashAlgorithm } from "./passport-generator"
+
+function getHashAlgorithmIdentifier(hashAlgorithm: HashAlgorithm) {
+  switch (hashAlgorithm) {
+    case "SHA-256":
+      return id_sha256
+    case "SHA-384":
+      return id_sha384
+    case "SHA-512":
+      return id_sha512
+    default:
+      throw new Error(`Unsupported hash algorithm: ${hashAlgorithm}`)
+  }
+}
 
 export function generateSampleDSC(): Certificate {
   // Create subject and issuer names
@@ -121,7 +134,7 @@ export function generateSod(
   // Digest Algorithms
   const digestAlgorithms = new DigestAlgorithmIdentifiers([
     new DigestAlgorithmIdentifier({
-      algorithm: id_sha256,
+      algorithm: getHashAlgorithmIdentifier(hashAlgorithm),
     }),
   ])
 
@@ -129,7 +142,7 @@ export function generateSod(
 
   // Encapsulated Content Info
   const dg1Hash = createHash(parsedHashAlgorithm).update(dg1.toBuffer()).digest()
-  const encapContentInfo = generateEncapContentInfo(dg1Hash)
+  const encapContentInfo = generateEncapContentInfo(dg1Hash, hashAlgorithm)
   const eContentHash = Binary.from(
     createHash(parsedHashAlgorithm)
       .update(Binary.from(encapContentInfo!.eContent!.single!.buffer).toBuffer())
@@ -146,7 +159,7 @@ export function generateSod(
       subjectKeyIdentifier: new SubjectKeyIdentifier(new Uint8Array(32)),
     }),
     digestAlgorithm: new DigestAlgorithmIdentifier({
-      algorithm: id_sha256,
+      algorithm: getHashAlgorithmIdentifier(hashAlgorithm),
     }),
     signedAttrs: signedAttrs,
     signatureAlgorithm: new AlgorithmIdentifier({
@@ -187,12 +200,12 @@ export function wrapSodInContentInfo(sod: SignedData) {
   return contentInfo
 }
 
-export function generateEncapContentInfo(dg1Hash: Uint8Array) {
+export function generateEncapContentInfo(dg1Hash: Uint8Array, hashAlgorithm: HashAlgorithm) {
   // Create LDS Security Object (SOD.encapContentInfo.eContent)
   const ldsSecurityObject = new ASN.LDSSecurityObject()
   ldsSecurityObject.version = ASN.LDSSecurityObjectVersion.v0
   ldsSecurityObject.hashAlgorithm = new DigestAlgorithmIdentifier({
-    algorithm: id_sha256,
+    algorithm: getHashAlgorithmIdentifier(hashAlgorithm),
   })
 
   // Add some sample data group hashes

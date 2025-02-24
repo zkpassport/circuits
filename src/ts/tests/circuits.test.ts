@@ -732,7 +732,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
 
     // Generate CSC and DSC signing certificates
     const { cscPem, dsc, dscKeys } = await generateSigningCertificates({
-      cscSigningHashAlgorithm: "SHA-256",
+      cscSigningHashAlgorithm: "SHA-384",
       cscKeyType: "ECDSA",
       cscCurve: "P-384",
       dscSigningHashAlgorithm: "SHA-256",
@@ -753,7 +753,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
 
   describe("dsc", () => {
     test("ecdsa nist p-384", async () => {
-      const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p384`)
+      const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p384_sha384`)
       const inputs = await helper.generateCircuitInputs("dsc")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -767,7 +767,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
 
   describe("id", () => {
     test("ecdsa nist p-256", async () => {
-      const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p256`)
+      const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p256_sha256`)
       const inputs = await helper.generateCircuitInputs("id")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -892,16 +892,16 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
 
     // Generate CSC and DSC signing certificates
     const { cscPem, dsc, dscKeys } = await generateSigningCertificates({
-      cscSigningHashAlgorithm: "SHA-256",
+      cscSigningHashAlgorithm: "SHA-512",
       cscKeyType: "ECDSA",
       cscCurve: "P-521",
-      dscSigningHashAlgorithm: "SHA-256",
+      dscSigningHashAlgorithm: "SHA-384",
       dscKeyType: "ECDSA",
       dscCurve: "P-384",
     })
     // Generate SOD and sign it with DSC keypair
     const { sod } = await generateSod(dg1, [dsc], "SHA-512")
-    const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
+    const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-384")
     // Add newly generated CSC to masterlist
     masterlist.certificates.push(parseCertificate(cscPem))
     // Load passport data into helper
@@ -912,7 +912,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
 
   describe("dsc", () => {
     test("ecdsa nist p-521", async () => {
-      const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p521`)
+      const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p521_sha512`)
       const inputs = await helper.generateCircuitInputs("dsc")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -926,7 +926,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
 
   describe("id", () => {
     test("ecdsa nist p-384", async () => {
-      const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p384`)
+      const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p384_sha384`)
       const inputs = await helper.generateCircuitInputs("id")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()

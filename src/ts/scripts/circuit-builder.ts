@@ -56,11 +56,13 @@ const DSC_ECDSA_TEMPLATE = (
   curve_name: string,
   bit_size: number,
   tbs_max_len: number,
+  hash_algorithm: "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_dsc;
 use sig_check_ecdsa::verify_${curve_family}_${curve_name};
 use utils::{concat_array, split_array};
+use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
@@ -76,13 +78,13 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     tbs_certificate_len: u64,
 ) -> pub Field {
     let (r, s) = split_array(dsc_signature);
+    let msg_hash = ${hash_algorithm}_and_check_data_to_sign(tbs_certificate, tbs_certificate_len);
     assert(verify_${curve_family}_${curve_name}(
         csc_pubkey_x,
         csc_pubkey_y,
         r,
         s,
-        tbs_certificate,
-        tbs_certificate_len,
+        msg_hash,
     ));
     let comm_out = commit_to_dsc(
         certificate_registry_root,
@@ -149,12 +151,14 @@ const ID_DATA_ECDSA_TEMPLATE = (
   curve_name: string,
   bit_size: number,
   tbs_max_len: number,
+  hash_algorithm: "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_id;
 use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
 use sig_check_ecdsa::verify_${curve_family}_${curve_name};
 use utils::split_array;
+use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     comm_in: pub Field,
@@ -169,6 +173,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     signed_attributes_size: u64,
 ) -> pub Field {
     let (r, s) = split_array(sod_signature);
+    let msg_hash = ${hash_algorithm}_and_check_data_to_sign(signed_attributes, signed_attributes_size);
     verify_ecdsa_pubkey_in_tbs(
         dsc_pubkey_x,
         dsc_pubkey_y,
@@ -180,8 +185,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         dsc_pubkey_y,
         r,
         s,
-        signed_attributes,
-        signed_attributes_size,
+        msg_hash,
     ));
     let comm_out = commit_to_id(
         comm_in,
@@ -289,6 +293,7 @@ function generateDscEcdsaCircuit(
   curve_name: string,
   bit_size: number,
   tbs_max_len: number,
+  hash_algorithm: "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) {
   const noirFile = DSC_ECDSA_TEMPLATE(
@@ -296,15 +301,17 @@ function generateDscEcdsaCircuit(
     curve_name,
     bit_size,
     tbs_max_len,
+    hash_algorithm,
     unconstrained,
   )
-  const name = `sig_check_dsc_tbs_${tbs_max_len}_ecdsa_${curve_family}_${curve_name}`
+  const name = `sig_check_dsc_tbs_${tbs_max_len}_ecdsa_${curve_family}_${curve_name}_${hash_algorithm}`
   const nargoFile = NARGO_TEMPLATE(name, [
-    { name: "sig_check_ecdsa", path: "../../../../../../../lib/sig-check/ecdsa" },
-    { name: "utils", path: "../../../../../../../lib/utils" },
-    { name: "commitment", path: "../../../../../../../lib/commitment/csc-to-dsc" },
+    { name: "sig_check_ecdsa", path: "../../../../../../../../lib/sig-check/ecdsa" },
+    { name: "utils", path: "../../../../../../../../lib/utils" },
+    { name: "commitment", path: "../../../../../../../../lib/commitment/csc-to-dsc" },
+    { name: "sig_check_common", path: "../../../../../../../../lib/sig-check/common" },
   ])
-  const folderPath = `./src/noir/bin/sig-check/dsc/tbs_${tbs_max_len}/ecdsa/${curve_family}/${curve_name}`
+  const folderPath = `./src/noir/bin/sig-check/dsc/tbs_${tbs_max_len}/ecdsa/${curve_family}/${curve_name}/${hash_algorithm}`
   const noirFilePath = `${folderPath}/src/main.nr`
   const nargoFilePath = `${folderPath}/Nargo.toml`
   ensureDirectoryExistence(noirFilePath)
@@ -341,6 +348,7 @@ function generateIdDataEcdsaCircuit(
   curve_name: string,
   bit_size: number,
   tbs_max_len: number,
+  hash_algorithm: "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) {
   const noirFile = ID_DATA_ECDSA_TEMPLATE(
@@ -348,16 +356,18 @@ function generateIdDataEcdsaCircuit(
     curve_name,
     bit_size,
     tbs_max_len,
+    hash_algorithm,
     unconstrained,
   )
-  const name = `sig_check_id_data_tbs_${tbs_max_len}_ecdsa_${curve_family}_${curve_name}`
+  const name = `sig_check_id_data_tbs_${tbs_max_len}_ecdsa_${curve_family}_${curve_name}_${hash_algorithm}`
   const nargoFile = NARGO_TEMPLATE(name, [
-    { name: "sig_check_ecdsa", path: "../../../../../../../lib/sig-check/ecdsa" },
-    { name: "utils", path: "../../../../../../../lib/utils" },
-    { name: "data_check_tbs_pubkey", path: "../../../../../../../lib/data-check/tbs-pubkey" },
-    { name: "commitment", path: "../../../../../../../lib/commitment/dsc-to-id" },
+    { name: "sig_check_ecdsa", path: "../../../../../../../../lib/sig-check/ecdsa" },
+    { name: "utils", path: "../../../../../../../../lib/utils" },
+    { name: "data_check_tbs_pubkey", path: "../../../../../../../../lib/data-check/tbs-pubkey" },
+    { name: "commitment", path: "../../../../../../../../lib/commitment/dsc-to-id" },
+    { name: "sig_check_common", path: "../../../../../../../../lib/sig-check/common" },
   ])
-  const folderPath = `./src/noir/bin/sig-check/id-data/tbs_${tbs_max_len}/ecdsa/${curve_family}/${curve_name}`
+  const folderPath = `./src/noir/bin/sig-check/id-data/tbs_${tbs_max_len}/ecdsa/${curve_family}/${curve_name}/${hash_algorithm}`
   const noirFilePath = `${folderPath}/src/main.nr`
   const nargoFilePath = `${folderPath}/Nargo.toml`
   ensureDirectoryExistence(noirFilePath)
@@ -437,14 +447,23 @@ const SIGNATURE_ALGORITHMS_SUPPORTED: {
 
 const TBS_MAX_LENGTHS = [700, 1000, 1200, 1500]
 
-const DATA_INTEGRITY_CHECK_ALGORITHMS_SUPPORTED = ["sha256", "sha384", "sha512"]
+const HASH_ALGORITHMS_SUPPORTED = ["sha256", "sha384", "sha512"]
 
 const generateDscCircuits = ({ unconstrained = false }: { unconstrained: boolean }) => {
   console.log("Generating DSC circuits...")
   SIGNATURE_ALGORITHMS_SUPPORTED.forEach(({ type, family, curve_name, bit_size }) => {
     TBS_MAX_LENGTHS.forEach((tbs_max_len) => {
       if (type === "ecdsa") {
-        generateDscEcdsaCircuit(family, curve_name!, bit_size, tbs_max_len, unconstrained)
+        HASH_ALGORITHMS_SUPPORTED.forEach((hash_algorithm) => {
+          generateDscEcdsaCircuit(
+            family,
+            curve_name!,
+            bit_size,
+            tbs_max_len,
+            hash_algorithm as "sha256" | "sha384" | "sha512",
+            unconstrained,
+          )
+        })
       } else {
         generateDscRsaCircuit(family as "pss" | "pkcs", bit_size, tbs_max_len, unconstrained)
       }
@@ -457,7 +476,16 @@ const generateIdDataCircuits = ({ unconstrained = false }: { unconstrained: bool
   SIGNATURE_ALGORITHMS_SUPPORTED.forEach(({ type, family, curve_name, bit_size }) => {
     TBS_MAX_LENGTHS.forEach((tbs_max_len) => {
       if (type === "ecdsa") {
-        generateIdDataEcdsaCircuit(family, curve_name!, bit_size, tbs_max_len, unconstrained)
+        HASH_ALGORITHMS_SUPPORTED.forEach((hash_algorithm) => {
+          generateIdDataEcdsaCircuit(
+            family,
+            curve_name!,
+            bit_size,
+            tbs_max_len,
+            hash_algorithm as "sha256" | "sha384" | "sha512",
+            unconstrained,
+          )
+        })
       } else {
         generateIdDataRsaCircuit(family as "pss" | "pkcs", bit_size, tbs_max_len, unconstrained)
       }
@@ -471,7 +499,7 @@ const generateDataIntegrityCheckCircuits = ({
   unconstrained: boolean
 }) => {
   console.log("Generating data integrity check circuits...")
-  DATA_INTEGRITY_CHECK_ALGORITHMS_SUPPORTED.forEach((hash_algorithm) => {
+  HASH_ALGORITHMS_SUPPORTED.forEach((hash_algorithm) => {
     generateDataIntegrityCheckCircuit(
       hash_algorithm as "sha256" | "sha384" | "sha512",
       unconstrained,
