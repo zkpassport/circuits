@@ -42,6 +42,7 @@ import {
   Version,
 } from "@peculiar/asn1-x509"
 import { createHash } from "crypto"
+import { HashAlgorithm } from "./passport-generator"
 
 export function generateSampleDSC(): Certificate {
   // Create subject and issuer names
@@ -112,7 +113,11 @@ export function generateSampleDSC(): Certificate {
   return certificate
 }
 
-export function generateSod(dg1: Binary, certificates: Certificate[] = []) {
+export function generateSod(
+  dg1: Binary,
+  certificates: Certificate[] = [],
+  hashAlgorithm: HashAlgorithm = "SHA-256",
+) {
   // Digest Algorithms
   const digestAlgorithms = new DigestAlgorithmIdentifiers([
     new DigestAlgorithmIdentifier({
@@ -120,11 +125,13 @@ export function generateSod(dg1: Binary, certificates: Certificate[] = []) {
     }),
   ])
 
+  const parsedHashAlgorithm = hashAlgorithm.toLowerCase().replace("-", "")
+
   // Encapsulated Content Info
-  const dg1Hash = createHash("sha256").update(dg1.toBuffer()).digest()
+  const dg1Hash = createHash(parsedHashAlgorithm).update(dg1.toBuffer()).digest()
   const encapContentInfo = generateEncapContentInfo(dg1Hash)
   const eContentHash = Binary.from(
-    createHash("sha256")
+    createHash(parsedHashAlgorithm)
       .update(Binary.from(encapContentInfo!.eContent!.single!.buffer).toBuffer())
       .digest(),
   )

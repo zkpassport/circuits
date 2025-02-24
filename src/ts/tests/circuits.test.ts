@@ -741,7 +741,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
       dscKeypair: dscKeypair,
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc])
+    const { sod } = await generateSod(dg1, [dsc], "SHA-384")
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
     masterlist.certificates.push(parseCertificate(cscPem))
@@ -780,7 +780,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity_sha256")
+      const circuit = Circuit.from("data_check_integrity_sha384")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -900,7 +900,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
       dscCurve: "P-384",
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc])
+    const { sod } = await generateSod(dg1, [dsc], "SHA-512")
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
     masterlist.certificates.push(parseCertificate(cscPem))
@@ -939,7 +939,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity_sha256")
+      const circuit = Circuit.from("data_check_integrity_sha512")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()

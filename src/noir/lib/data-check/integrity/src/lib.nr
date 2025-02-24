@@ -1,3 +1,4 @@
+use sha256;
 use sha512::{sha384, sha512};
 use utils::is_id_card;
 
@@ -61,10 +62,7 @@ pub fn check_integrity_of_data_sha384(
         dg1_size = 95;
     }
 
-    let mut dg1_bounded_vec: BoundedVec<u8, 95> = BoundedVec::new();
-    for i in 0..95 {
-        dg1_bounded_vec.push(dg1[i]);
-    }
+    let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size as u32);
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
     let dg1_hash = sha384::sha384_var(dg1_bounded_vec);
@@ -74,10 +72,7 @@ pub fn check_integrity_of_data_sha384(
         assert(dg1_hash[i] == e_content[dg1_offset_in_e_content + i]);
     }
 
-    let mut e_content_bounded_vec: BoundedVec<u8, 700> = BoundedVec::new();
-    for i in 0..700 {
-        e_content_bounded_vec.push(e_content[i]);
-    }
+    let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size as u32);
 
     let computed_final_hash = sha384::sha384_var(e_content_bounded_vec);
 
@@ -105,10 +100,7 @@ pub fn check_integrity_of_data_sha512(
         dg1_size = 95;
     }
 
-    let mut dg1_bounded_vec: BoundedVec<u8, 95> = BoundedVec::new();
-    for i in 0..95 {
-        dg1_bounded_vec.push(dg1[i]);
-    }
+    let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size as u32);
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
     let dg1_hash = sha512::sha512_var(dg1_bounded_vec);
@@ -118,10 +110,7 @@ pub fn check_integrity_of_data_sha512(
         assert(dg1_hash[i] == e_content[dg1_offset_in_e_content + i]);
     }
 
-    let mut e_content_bounded_vec: BoundedVec<u8, 700> = BoundedVec::new();
-    for i in 0..700 {
-        e_content_bounded_vec.push(e_content[i]);
-    }
+    let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size as u32);
 
     let computed_final_hash = sha512::sha512_var(e_content_bounded_vec);
 
