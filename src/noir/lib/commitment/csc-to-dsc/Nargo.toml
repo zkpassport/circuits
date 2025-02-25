@@ -7,4 +7,3 @@ compiler_version = ">=0.22.0"
 [dependencies]
 utils = { path = "../../utils" }
 common = { path = "../common" }
-merkle_tree = { git = "https://github.com/privacy-scaling-explorations/zk-kit.noir", tag = "main", directory = "packages/merkle-trees" }

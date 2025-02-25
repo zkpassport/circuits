@@ -2,8 +2,8 @@ import {
   Binary,
   parseCertificate,
   getDiscloseFlagsCircuitInputs,
-  getCountryInclusionCircuitInputs,
-  getCountryExclusionCircuitInputs,
+  getNationalityInclusionCircuitInputs,
+  getNationalityExclusionCircuitInputs,
   getAgeCircuitInputs,
   getBirthdateCircuitInputs,
   calculateAge,
@@ -27,6 +27,8 @@ import {
   getCurrentDateFromAgeProof,
   getCurrentDateFromDateProof,
   getDiscloseCircuitInputs,
+  getIssuingCountryExclusionCircuitInputs,
+  getIssuingCountryInclusionCircuitInputs,
 } from "@zkpassport/utils"
 import type { CSCMasterlist, Query } from "@zkpassport/utils"
 import { beforeAll, describe, expect, test } from "@jest/globals"
@@ -68,7 +70,7 @@ describe("subcircuits - RSA PKCS", () => {
 
     // Generate CSC and DSC signing certificates
     const { cscPem, dsc, dscKeys } = await generateSigningCertificates({
-      cscSigningHashAlgorithm: "SHA-256",
+      cscSigningHashAlgorithm: "SHA-512",
       cscKeyType: "RSA",
       cscKeySize: 4096,
       dscSigningHashAlgorithm: "SHA-256",
@@ -77,7 +79,7 @@ describe("subcircuits - RSA PKCS", () => {
       dscKeypair,
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc])
+    const { sod } = await generateSod(dg1, [dsc], "SHA-256")
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
     masterlist.certificates.push(parseCertificate(cscPem))
@@ -89,7 +91,7 @@ describe("subcircuits - RSA PKCS", () => {
 
   describe("dsc", () => {
     test("rsa pkcs 4096", async () => {
-      const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096`)
+      const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096_sha512`)
       const inputs = await helper.generateCircuitInputs("dsc")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -103,7 +105,7 @@ describe("subcircuits - RSA PKCS", () => {
 
   describe("id", () => {
     test("rsa pkcs 2048", async () => {
-      const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_2048`)
+      const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_2048_sha256`)
       const inputs = await helper.generateCircuitInputs("id")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -116,7 +118,7 @@ describe("subcircuits - RSA PKCS", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity")
+      const circuit = Circuit.from("data_check_integrity_sha256")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -203,12 +205,36 @@ describe("subcircuits - RSA PKCS", () => {
   })
 
   describe("inclusion-check", () => {
-    test("country", async () => {
-      const circuit = Circuit.from("inclusion_check_country")
+    test("nationality", async () => {
+      const circuit = Circuit.from("inclusion_check_nationality")
       const query: Query = {
         nationality: { in: ["AUS", "FRA", "USA", "GBR"] },
       }
-      const inputs = await getCountryInclusionCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const countryList = getCountryListFromInclusionProof(proof)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(countryList).toEqual(["AUS", "FRA", "USA", "GBR"])
+      expect(nullifier).toEqual(
+        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+      )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      await circuit.destroy()
+    })
+
+    test("issuing country", async () => {
+      const circuit = Circuit.from("inclusion_check_issuing_country")
+      const query: Query = {
+        issuing_country: { in: ["AUS", "FRA", "USA", "GBR"] },
+      }
+      const inputs = await getIssuingCountryInclusionCircuitInputs(
+        helper.passport as any,
+        query,
+        0n,
+      )
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -225,12 +251,40 @@ describe("subcircuits - RSA PKCS", () => {
   })
 
   describe("exclusion-check", () => {
-    test("country", async () => {
-      const circuit = Circuit.from("exclusion_check_country")
+    test("nationality", async () => {
+      const circuit = Circuit.from("exclusion_check_nationality")
       const query: Query = {
         nationality: { out: ["FRA", "USA", "GBR"] },
       }
-      const inputs = await getCountryExclusionCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const countryList = getCountryListFromExclusionProof(proof)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      // Note that the order is in ascending order
+      // while the original query was not
+      // getCountryExclusionCircuitInputs makes sure the order is ascending
+      // as it is required by the circuit
+      expect(countryList).toEqual(["FRA", "GBR", "USA"])
+      expect(nullifier).toEqual(
+        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+      )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      await circuit.destroy()
+    })
+
+    test("issuing country", async () => {
+      const circuit = Circuit.from("exclusion_check_issuing_country")
+      const query: Query = {
+        issuing_country: { out: ["FRA", "USA", "GBR"] },
+      }
+      const inputs = await getIssuingCountryExclusionCircuitInputs(
+        helper.passport as any,
+        query,
+        0n,
+      )
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -732,7 +786,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
 
     // Generate CSC and DSC signing certificates
     const { cscPem, dsc, dscKeys } = await generateSigningCertificates({
-      cscSigningHashAlgorithm: "SHA-256",
+      cscSigningHashAlgorithm: "SHA-384",
       cscKeyType: "ECDSA",
       cscCurve: "P-384",
       dscSigningHashAlgorithm: "SHA-256",
@@ -741,7 +795,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
       dscKeypair: dscKeypair,
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc])
+    const { sod } = await generateSod(dg1, [dsc], "SHA-384")
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
     masterlist.certificates.push(parseCertificate(cscPem))
@@ -753,7 +807,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
 
   describe("dsc", () => {
     test("ecdsa nist p-384", async () => {
-      const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p384`)
+      const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p384_sha384`)
       const inputs = await helper.generateCircuitInputs("dsc")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -767,7 +821,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
 
   describe("id", () => {
     test("ecdsa nist p-256", async () => {
-      const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p256`)
+      const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p256_sha256`)
       const inputs = await helper.generateCircuitInputs("id")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -780,7 +834,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity")
+      const circuit = Circuit.from("data_check_integrity_sha384")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -892,16 +946,16 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
 
     // Generate CSC and DSC signing certificates
     const { cscPem, dsc, dscKeys } = await generateSigningCertificates({
-      cscSigningHashAlgorithm: "SHA-256",
+      cscSigningHashAlgorithm: "SHA-512",
       cscKeyType: "ECDSA",
       cscCurve: "P-521",
-      dscSigningHashAlgorithm: "SHA-256",
+      dscSigningHashAlgorithm: "SHA-384",
       dscKeyType: "ECDSA",
       dscCurve: "P-384",
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc])
-    const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
+    const { sod } = await generateSod(dg1, [dsc], "SHA-512")
+    const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-384")
     // Add newly generated CSC to masterlist
     masterlist.certificates.push(parseCertificate(cscPem))
     // Load passport data into helper
@@ -912,7 +966,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
 
   describe("dsc", () => {
     test("ecdsa nist p-521", async () => {
-      const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p521`)
+      const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p521_sha512`)
       const inputs = await helper.generateCircuitInputs("dsc")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -926,7 +980,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
 
   describe("id", () => {
     test("ecdsa nist p-384", async () => {
-      const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p384`)
+      const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p384_sha384`)
       const inputs = await helper.generateCircuitInputs("id")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -939,7 +993,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity")
+      const circuit = Circuit.from("data_check_integrity_sha512")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()

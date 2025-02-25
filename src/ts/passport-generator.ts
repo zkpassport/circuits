@@ -62,11 +62,15 @@ export async function generateRsaKeyPair(
   }
 }
 
-export async function generateEcdsaKeyPair(curve: EcdsaCurve): Promise<KeyPair> {
+export async function generateEcdsaKeyPair(
+  curve: EcdsaCurve,
+  hashAlgorithm: HashAlgorithm = "SHA-256",
+): Promise<KeyPair> {
   const keyPair = await crypto.subtle.generateKey(
     {
       name: "ECDSA",
       namedCurve: curve,
+      hash: hashAlgorithm,
     },
     true,
     ["sign", "verify"],
@@ -111,14 +115,14 @@ export async function generateSigningCertificates({
   // Generate or use provided key pairs
   const cscKeys =
     cscKeyType === "RSA"
-      ? await generateRsaKeyPair(cscKeySize)
-      : await generateEcdsaKeyPair(cscCurve)
+      ? await generateRsaKeyPair(cscKeySize, cscSigningHashAlgorithm)
+      : await generateEcdsaKeyPair(cscCurve, cscSigningHashAlgorithm)
 
   const dscKeys =
     dscKeypair ||
     (dscKeyType === "RSA"
-      ? await generateRsaKeyPair(dscKeySize)
-      : await generateEcdsaKeyPair(dscCurve))
+      ? await generateRsaKeyPair(dscKeySize, dscSigningHashAlgorithm)
+      : await generateEcdsaKeyPair(dscCurve, dscSigningHashAlgorithm))
 
   const cscSubjectKeyIdentifier = await crypto.subtle.digest("SHA-256", cscKeys.publicKey)
   const dscSubjectKeyIdentifier = await crypto.subtle.digest("SHA-256", dscKeys.publicKey)
@@ -139,6 +143,7 @@ export async function generateSigningCertificates({
     validityYears: 10,
     serialNumber: new Uint8Array([0x01]),
     subjectKeyIdentifier: new Uint8Array(cscSubjectKeyIdentifier),
+    hashAlgorithm: cscSigningHashAlgorithm,
   })
 
   // Create the DSC
@@ -155,6 +160,7 @@ export async function generateSigningCertificates({
     serialNumber: new Uint8Array([0x02]),
     subjectKeyIdentifier: new Uint8Array(dscSubjectKeyIdentifier),
     authorityKeyIdentifier: new Uint8Array(cscSubjectKeyIdentifier),
+    hashAlgorithm: dscSigningHashAlgorithm,
   })
 
   // Convert to PEM format
@@ -181,6 +187,7 @@ interface CertificateParams {
   serialNumber?: Uint8Array
   subjectKeyIdentifier?: Uint8Array
   authorityKeyIdentifier?: Uint8Array
+  hashAlgorithm?: HashAlgorithm
 }
 
 export async function generateCertificate(params: CertificateParams): Promise<Certificate> {
@@ -223,6 +230,7 @@ export async function generateCertificate(params: CertificateParams): Promise<Ce
       : []),
   ]
 
+  // Create the certificate with explicit algorithm
   const x509Certificate = await X509CertificateGenerator.create(
     {
       serialNumber: params.serialNumber ? Buffer.from(params.serialNumber).toString("hex") : "1",
