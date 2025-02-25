@@ -1,5 +1,5 @@
 use commitment::nullify;
-use exclusion_check_country::check_country_exclusion;
+use inclusion_check_country::check_nationality_inclusion;
 
 fn main(
     comm_in: pub Field,
@@ -8,16 +8,12 @@ fn main(
     dg1: [u8; 95],
     // There are roughly 200 countries in the world
     // so we can safely pad it to 200
-    // The list must be sorted in ascending order
-    // For efficieny, no sorting is done in the circuit
-    // since the fact that the list is already sorted can checked
-    // by any verifier passing the public inputs to verify the proof
-    country_list: pub [u32; 200],
+    country_list: pub [str<3>; 200],
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub Field {
-    // Check that nationality of the passport holder is not in the list of countries
-    check_country_exclusion(dg1, country_list);
+    // Check that the nationality of the passport holder is in the list of countries
+    check_nationality_inclusion(dg1, country_list);
     let nullifier = nullify(
         comm_in,
         salt,

@@ -41,23 +41,42 @@ compiler_version = ">=1.0.0"
 ${dependencies.map(({ name, path }) => `${name} = { path = "${path}" }`).join("\n")}
 `
 
+const STATIC_CIRCUITS = [
+  { name: "compare_citizenship", path: "./src/noir/bin/compare/citizenship" },
+  { name: "compare_age", path: "./src/noir/bin/compare/age" },
+  { name: "compare_expiry", path: "./src/noir/bin/compare/expiry" },
+  { name: "compare_birthdate", path: "./src/noir/bin/compare/birthdate" },
+  { name: "disclose_flags", path: "./src/noir/bin/disclose/flags" },
+  { name: "disclose_bytes", path: "./src/noir/bin/disclose/bytes" },
+  { name: "data_check_expiry", path: "./src/noir/bin/data-check/expiry" },
+  {
+    name: "exclusion_check_issuing_country",
+    path: "./src/noir/bin/exclusion-check/issuing-country",
+  },
+  {
+    name: "inclusion_check_issuing_country",
+    path: "./src/noir/bin/inclusion-check/issuing-country",
+  },
+  {
+    name: "exclusion_check_nationality",
+    path: "./src/noir/bin/exclusion-check/nationality",
+  },
+  {
+    name: "inclusion_check_nationality",
+    path: "./src/noir/bin/inclusion-check/nationality",
+  },
+]
+
 const WORKSPACE_NARGO_TEMPLATE = (dependencies: string[]) => `[workspace]
-members = [
-    "src/noir/bin/compare/citizenship",
-    "src/noir/bin/compare/age",
-    "src/noir/bin/compare/expiry",
-    "src/noir/bin/compare/birthdate",
-    "src/noir/bin/disclose/flags",
-    "src/noir/bin/disclose/bytes",
-    "src/noir/bin/main/outer",
-    "src/noir/bin/data-check/expiry",
-    "src/noir/bin/exclusion-check/country",
-    "src/noir/bin/inclusion-check/country",${dependencies
-      .map(
-        (path) => `
+members = [${STATIC_CIRCUITS.map(
+  ({ path }) => `
     "${path.replace("./", "")}"`,
-      )
-      .join(",")}
+).join(",")},${dependencies
+  .map(
+    (path) => `
+    "${path.replace("./", "")}"`,
+  )
+  .join(",")}
 ]
 `
 
@@ -660,7 +679,7 @@ const compileCircuitsWithNargo = async ({
   const promises: Promise<void>[] = []
 
   // Process circuits with controlled concurrency
-  for (const { name } of generatedCircuits) {
+  for (const { name } of [...STATIC_CIRCUITS, ...generatedCircuits]) {
     // Check if compilation output already exists
     const outputPath = path.join("target", `${name}.json`)
     if (fs.existsSync(outputPath) && !forceCompilation) {

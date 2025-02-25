@@ -2,8 +2,8 @@ import {
   Binary,
   parseCertificate,
   getDiscloseFlagsCircuitInputs,
-  getCountryInclusionCircuitInputs,
-  getCountryExclusionCircuitInputs,
+  getNationalityInclusionCircuitInputs,
+  getNationalityExclusionCircuitInputs,
   getAgeCircuitInputs,
   getBirthdateCircuitInputs,
   calculateAge,
@@ -27,6 +27,8 @@ import {
   getCurrentDateFromAgeProof,
   getCurrentDateFromDateProof,
   getDiscloseCircuitInputs,
+  getIssuingCountryExclusionCircuitInputs,
+  getIssuingCountryInclusionCircuitInputs,
 } from "@zkpassport/utils"
 import type { CSCMasterlist, Query } from "@zkpassport/utils"
 import { beforeAll, describe, expect, test } from "@jest/globals"
@@ -203,12 +205,36 @@ describe("subcircuits - RSA PKCS", () => {
   })
 
   describe("inclusion-check", () => {
-    test("country", async () => {
-      const circuit = Circuit.from("inclusion_check_country")
+    test("nationality", async () => {
+      const circuit = Circuit.from("inclusion_check_nationality")
       const query: Query = {
         nationality: { in: ["AUS", "FRA", "USA", "GBR"] },
       }
-      const inputs = await getCountryInclusionCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const countryList = getCountryListFromInclusionProof(proof)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(countryList).toEqual(["AUS", "FRA", "USA", "GBR"])
+      expect(nullifier).toEqual(
+        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+      )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      await circuit.destroy()
+    })
+
+    test("issuing country", async () => {
+      const circuit = Circuit.from("inclusion_check_issuing_country")
+      const query: Query = {
+        issuing_country: { in: ["AUS", "FRA", "USA", "GBR"] },
+      }
+      const inputs = await getIssuingCountryInclusionCircuitInputs(
+        helper.passport as any,
+        query,
+        0n,
+      )
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -225,12 +251,40 @@ describe("subcircuits - RSA PKCS", () => {
   })
 
   describe("exclusion-check", () => {
-    test("country", async () => {
-      const circuit = Circuit.from("exclusion_check_country")
+    test("nationality", async () => {
+      const circuit = Circuit.from("exclusion_check_nationality")
       const query: Query = {
         nationality: { out: ["FRA", "USA", "GBR"] },
       }
-      const inputs = await getCountryExclusionCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, 0n)
+      if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
+      const proof = await circuit.prove(inputs)
+      expect(proof).toBeDefined()
+      const countryList = getCountryListFromExclusionProof(proof)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      // Note that the order is in ascending order
+      // while the original query was not
+      // getCountryExclusionCircuitInputs makes sure the order is ascending
+      // as it is required by the circuit
+      expect(countryList).toEqual(["FRA", "GBR", "USA"])
+      expect(nullifier).toEqual(
+        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+      )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      await circuit.destroy()
+    })
+
+    test("issuing country", async () => {
+      const circuit = Circuit.from("exclusion_check_issuing_country")
+      const query: Query = {
+        issuing_country: { out: ["FRA", "USA", "GBR"] },
+      }
+      const inputs = await getIssuingCountryExclusionCircuitInputs(
+        helper.passport as any,
+        query,
+        0n,
+      )
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
