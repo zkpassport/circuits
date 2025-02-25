@@ -68,7 +68,7 @@ describe("subcircuits - RSA PKCS", () => {
 
     // Generate CSC and DSC signing certificates
     const { cscPem, dsc, dscKeys } = await generateSigningCertificates({
-      cscSigningHashAlgorithm: "SHA-256",
+      cscSigningHashAlgorithm: "SHA-512",
       cscKeyType: "RSA",
       cscKeySize: 4096,
       dscSigningHashAlgorithm: "SHA-256",
@@ -77,7 +77,7 @@ describe("subcircuits - RSA PKCS", () => {
       dscKeypair,
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc])
+    const { sod } = await generateSod(dg1, [dsc], "SHA-256")
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
     masterlist.certificates.push(parseCertificate(cscPem))
@@ -89,7 +89,7 @@ describe("subcircuits - RSA PKCS", () => {
 
   describe("dsc", () => {
     test("rsa pkcs 4096", async () => {
-      const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096`)
+      const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096_sha512`)
       const inputs = await helper.generateCircuitInputs("dsc")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -103,7 +103,7 @@ describe("subcircuits - RSA PKCS", () => {
 
   describe("id", () => {
     test("rsa pkcs 2048", async () => {
-      const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_2048`)
+      const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_2048_sha256`)
       const inputs = await helper.generateCircuitInputs("id")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()

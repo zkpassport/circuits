@@ -15,6 +15,16 @@ const generatedCircuits: {
   path: string
 }[] = []
 
+function getHashAlgorithmByteSize(hash_algorithm: "sha256" | "sha384" | "sha512") {
+  if (hash_algorithm === "sha256") {
+    return 32
+  } else if (hash_algorithm === "sha384") {
+    return 48
+  } else if (hash_algorithm === "sha512") {
+    return 64
+  }
+}
+
 const NARGO_TEMPLATE = (
   name: string,
   dependencies: {
@@ -103,6 +113,7 @@ const DSC_RSA_TEMPLATE = (
   rsa_type: "pss" | "pkcs",
   bit_size: number,
   tbs_max_len: number,
+  hash_algorithm: "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use sig_check_rsa::verify_signature;
@@ -124,7 +135,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
 ) -> pub Field {
     assert(verify_signature::<${Math.ceil(bit_size / 8)}, ${
   rsa_type === "pss" ? 1 : 0
-}, ${tbs_max_len}>(
+}, ${tbs_max_len}, ${getHashAlgorithmByteSize(hash_algorithm)}>(
         csc_pubkey,
         dsc_signature,
         csc_pubkey_redc_param,
@@ -204,6 +215,7 @@ const ID_DATA_RSA_TEMPLATE = (
   rsa_type: "pss" | "pkcs",
   bit_size: number,
   tbs_max_len: number,
+  hash_algorithm: "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use sig_check_rsa::verify_signature;
@@ -224,7 +236,9 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     exponent: u32,
 ) -> pub Field {
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate, pubkey_offset_in_tbs);
-    assert(verify_signature::<${Math.ceil(bit_size / 8)}, ${rsa_type === "pss" ? 1 : 0}, 200>(
+    assert(verify_signature::<${Math.ceil(bit_size / 8)}, ${
+  rsa_type === "pss" ? 1 : 0
+}, 200, ${getHashAlgorithmByteSize(hash_algorithm)}>(
         dsc_pubkey,
         sod_signature,
         dsc_pubkey_redc_param,
@@ -325,16 +339,17 @@ function generateDscRsaCircuit(
   rsa_type: "pss" | "pkcs",
   bit_size: number,
   tbs_max_len: number,
+  hash_algorithm: "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) {
-  const noirFile = DSC_RSA_TEMPLATE(rsa_type, bit_size, tbs_max_len, unconstrained)
-  const name = `sig_check_dsc_tbs_${tbs_max_len}_rsa_${rsa_type}_${bit_size}`
+  const noirFile = DSC_RSA_TEMPLATE(rsa_type, bit_size, tbs_max_len, hash_algorithm, unconstrained)
+  const name = `sig_check_dsc_tbs_${tbs_max_len}_rsa_${rsa_type}_${bit_size}_${hash_algorithm}`
   const nargoFile = NARGO_TEMPLATE(name, [
-    { name: "sig_check_rsa", path: "../../../../../../../lib/sig-check/rsa" },
-    { name: "utils", path: "../../../../../../../lib/utils" },
-    { name: "commitment", path: "../../../../../../../lib/commitment/csc-to-dsc" },
+    { name: "sig_check_rsa", path: "../../../../../../../../lib/sig-check/rsa" },
+    { name: "utils", path: "../../../../../../../../lib/utils" },
+    { name: "commitment", path: "../../../../../../../../lib/commitment/csc-to-dsc" },
   ])
-  const folderPath = `./src/noir/bin/sig-check/dsc/tbs_${tbs_max_len}/rsa/${rsa_type}/${bit_size}`
+  const folderPath = `./src/noir/bin/sig-check/dsc/tbs_${tbs_max_len}/rsa/${rsa_type}/${bit_size}/${hash_algorithm}`
   const noirFilePath = `${folderPath}/src/main.nr`
   const nargoFilePath = `${folderPath}/Nargo.toml`
   ensureDirectoryExistence(noirFilePath)
@@ -380,17 +395,24 @@ function generateIdDataRsaCircuit(
   rsa_type: "pss" | "pkcs",
   bit_size: number,
   tbs_max_len: number,
+  hash_algorithm: "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) {
-  const noirFile = ID_DATA_RSA_TEMPLATE(rsa_type, bit_size, tbs_max_len, unconstrained)
-  const name = `sig_check_id_data_tbs_${tbs_max_len}_rsa_${rsa_type}_${bit_size}`
+  const noirFile = ID_DATA_RSA_TEMPLATE(
+    rsa_type,
+    bit_size,
+    tbs_max_len,
+    hash_algorithm,
+    unconstrained,
+  )
+  const name = `sig_check_id_data_tbs_${tbs_max_len}_rsa_${rsa_type}_${bit_size}_${hash_algorithm}`
   const nargoFile = NARGO_TEMPLATE(name, [
-    { name: "sig_check_rsa", path: "../../../../../../../lib/sig-check/rsa" },
-    { name: "utils", path: "../../../../../../../lib/utils" },
-    { name: "data_check_tbs_pubkey", path: "../../../../../../../lib/data-check/tbs-pubkey" },
-    { name: "commitment", path: "../../../../../../../lib/commitment/dsc-to-id" },
+    { name: "sig_check_rsa", path: "../../../../../../../../lib/sig-check/rsa" },
+    { name: "utils", path: "../../../../../../../../lib/utils" },
+    { name: "data_check_tbs_pubkey", path: "../../../../../../../../lib/data-check/tbs-pubkey" },
+    { name: "commitment", path: "../../../../../../../../lib/commitment/dsc-to-id" },
   ])
-  const folderPath = `./src/noir/bin/sig-check/id-data/tbs_${tbs_max_len}/rsa/${rsa_type}/${bit_size}`
+  const folderPath = `./src/noir/bin/sig-check/id-data/tbs_${tbs_max_len}/rsa/${rsa_type}/${bit_size}/${hash_algorithm}`
   const noirFilePath = `${folderPath}/src/main.nr`
   const nargoFilePath = `${folderPath}/Nargo.toml`
   ensureDirectoryExistence(noirFilePath)
@@ -453,8 +475,8 @@ const generateDscCircuits = ({ unconstrained = false }: { unconstrained: boolean
   console.log("Generating DSC circuits...")
   SIGNATURE_ALGORITHMS_SUPPORTED.forEach(({ type, family, curve_name, bit_size }) => {
     TBS_MAX_LENGTHS.forEach((tbs_max_len) => {
-      if (type === "ecdsa") {
-        HASH_ALGORITHMS_SUPPORTED.forEach((hash_algorithm) => {
+      HASH_ALGORITHMS_SUPPORTED.forEach((hash_algorithm) => {
+        if (type === "ecdsa") {
           generateDscEcdsaCircuit(
             family,
             curve_name!,
@@ -463,10 +485,20 @@ const generateDscCircuits = ({ unconstrained = false }: { unconstrained: boolean
             hash_algorithm as "sha256" | "sha384" | "sha512",
             unconstrained,
           )
-        })
-      } else {
-        generateDscRsaCircuit(family as "pss" | "pkcs", bit_size, tbs_max_len, unconstrained)
-      }
+        } else {
+          if (hash_algorithm === "sha512" && bit_size === 1024) {
+            // A sha512 64 bytes hash cannot fit in a 128 bytes (1024 bits) RSA signature`,
+            return
+          }
+          generateDscRsaCircuit(
+            family as "pss" | "pkcs",
+            bit_size,
+            tbs_max_len,
+            hash_algorithm as "sha256" | "sha384" | "sha512",
+            unconstrained,
+          )
+        }
+      })
     })
   })
 }
@@ -475,8 +507,8 @@ const generateIdDataCircuits = ({ unconstrained = false }: { unconstrained: bool
   console.log("Generating ID data circuits...")
   SIGNATURE_ALGORITHMS_SUPPORTED.forEach(({ type, family, curve_name, bit_size }) => {
     TBS_MAX_LENGTHS.forEach((tbs_max_len) => {
-      if (type === "ecdsa") {
-        HASH_ALGORITHMS_SUPPORTED.forEach((hash_algorithm) => {
+      HASH_ALGORITHMS_SUPPORTED.forEach((hash_algorithm) => {
+        if (type === "ecdsa") {
           generateIdDataEcdsaCircuit(
             family,
             curve_name!,
@@ -485,10 +517,20 @@ const generateIdDataCircuits = ({ unconstrained = false }: { unconstrained: bool
             hash_algorithm as "sha256" | "sha384" | "sha512",
             unconstrained,
           )
-        })
-      } else {
-        generateIdDataRsaCircuit(family as "pss" | "pkcs", bit_size, tbs_max_len, unconstrained)
-      }
+        } else {
+          if (hash_algorithm === "sha512" && bit_size === 1024) {
+            // A sha512 64 bytes hash cannot fit in a 128 bytes (1024 bits) RSA signature`,
+            return
+          }
+          generateIdDataRsaCircuit(
+            family as "pss" | "pkcs",
+            bit_size,
+            tbs_max_len,
+            hash_algorithm as "sha256" | "sha384" | "sha512",
+            unconstrained,
+          )
+        }
+      })
     })
   })
 }
