@@ -305,8 +305,15 @@ describe("subcircuits - RSA PKCS", () => {
   })
 
   describe("compare-age", () => {
+    let circuit: Circuit
+    beforeAll(async () => {
+      circuit = Circuit.from("compare_age")
+    })
+    afterAll(async () => {
+      await circuit.destroy()
+    })
+
     test("greater than", async () => {
-      const circuit = Circuit.from("compare_age")
       const query: Query = {
         age: { gte: 18 },
       }
@@ -326,11 +333,9 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
 
     test("less than", async () => {
-      const circuit = Circuit.from("compare_age")
       const age = calculateAge(helper.passport)
       const query: Query = {
         age: { lt: age + 1 },
@@ -351,11 +356,9 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
 
     test("between", async () => {
-      const circuit = Circuit.from("compare_age")
       const age = calculateAge(helper.passport)
       const query: Query = {
         age: { gte: age, lt: age + 2 },
@@ -376,11 +379,9 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
 
     test("equal", async () => {
-      const circuit = Circuit.from("compare_age")
       const age = calculateAge(helper.passport)
       const query: Query = {
         age: { eq: age },
@@ -401,11 +402,9 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
 
     test("disclose", async () => {
-      const circuit = Circuit.from("compare_age")
       const query: Query = {
         age: { disclose: true },
       }
@@ -426,11 +425,9 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
 
     test("range", async () => {
-      const circuit = Circuit.from("compare_age")
       const age = calculateAge(helper.passport)
       const query: Query = {
         age: { range: [age - 5, age + 5] },
@@ -451,13 +448,19 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
   })
 
   describe("compare-birthdate", () => {
+    let circuit: Circuit
+    beforeAll(async () => {
+      circuit = Circuit.from("compare_birthdate")
+    })
+    afterAll(async () => {
+      await circuit.destroy()
+    })
+
     test("equal", async () => {
-      const circuit = Circuit.from("compare_birthdate")
       const query: Query = {
         // Remember months start at 0 so 10 is November
         birthdate: { eq: new Date(1988, 10, 12) },
@@ -478,11 +481,9 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
 
     test("range", async () => {
-      const circuit = Circuit.from("compare_birthdate")
       const query: Query = {
         birthdate: { range: [new Date(1988, 10, 11), new Date(1988, 10, 13)] },
       }
@@ -502,11 +503,9 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
 
     test("disclose", async () => {
-      const circuit = Circuit.from("compare_birthdate")
       const query: Query = {
         birthdate: { disclose: true },
       }
@@ -526,11 +525,9 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
 
     test("greater than", async () => {
-      const circuit = Circuit.from("compare_birthdate")
       const query: Query = {
         birthdate: { gte: new Date(1988, 10, 11) },
       }
@@ -553,11 +550,9 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
 
     test("less than", async () => {
-      const circuit = Circuit.from("compare_birthdate")
       const query: Query = {
         birthdate: { lte: new Date(1988, 10, 15) },
       }
@@ -577,11 +572,9 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
 
     test("between", async () => {
-      const circuit = Circuit.from("compare_birthdate")
       const query: Query = {
         birthdate: { gte: new Date(1988, 10, 11), lte: new Date(1988, 10, 15) },
       }
@@ -601,13 +594,19 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
   })
 
   describe("compare-expiry", () => {
+    let circuit: Circuit
+    beforeAll(async () => {
+      circuit = Circuit.from("compare_expiry")
+    })
+    afterAll(async () => {
+      await circuit.destroy()
+    })
+
     test("equal", async () => {
-      const circuit = Circuit.from("compare_expiry")
       const query: Query = {
         expiry_date: { eq: new Date(2030, 0, 1) },
       }
@@ -627,11 +626,9 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
 
     test("range", async () => {
-      const circuit = Circuit.from("compare_expiry")
       const query: Query = {
         expiry_date: { range: [new Date(2025, 0, 1), new Date(2035, 0, 1)] },
       }
@@ -651,11 +648,9 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
 
     test("disclose", async () => {
-      const circuit = Circuit.from("compare_expiry")
       const query: Query = {
         expiry_date: { disclose: true },
       }
@@ -675,11 +670,9 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
 
     test("greater than", async () => {
-      const circuit = Circuit.from("compare_expiry")
       const query: Query = {
         expiry_date: { gte: new Date(2025, 0, 1) },
       }
@@ -700,11 +693,9 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
 
     test("less than", async () => {
-      const circuit = Circuit.from("compare_expiry")
       const query: Query = {
         expiry_date: { lte: new Date(2035, 0, 1) },
       }
@@ -724,11 +715,9 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
 
     test("between", async () => {
-      const circuit = Circuit.from("compare_expiry")
       const query: Query = {
         expiry_date: { gte: new Date(2025, 0, 1), lte: new Date(2035, 0, 1) },
       }
@@ -748,7 +737,6 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      await circuit.destroy()
     })
   })
 })
