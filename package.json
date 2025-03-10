@@ -1,6 +1,6 @@
 {
   "name": "circuits",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "config": {
     "noir_version": "1.0.0-beta.3",
     "bb_version": "0.76.4"
@@ -36,7 +36,7 @@
     "@types/jest": "^29.5.12",
     "@types/node": "^22.10.1",
     "@types/node-forge": "^1.3.11",
-    "@zkpassport/utils": "^0.2.20",
+    "@zkpassport/utils": "^0.2.25",
     "aws-cdk": "^2.176.0",
     "aws-cdk-lib": "^2.176.0",
     "babel-jest": "^29.7.0",
