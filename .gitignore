@@ -10,3 +10,4 @@ package-lock.json
 flamegraphs
 res
 src/ts/assets/circuits
+.env

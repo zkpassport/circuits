@@ -162,7 +162,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(disclosedData.nationality).toBe("AUS")
       expect(disclosedData.documentType).toBe("passport")
       expect(disclosedData.documentNumber).toBe("PA1234567")
-      expect(disclosedData.name).toBe("SILVERHAND JOHNNY")
+      expect(disclosedData.name).toBe("JOHNNY SILVERHAND")
       expect(disclosedData.firstName).toBe("JOHNNY")
       expect(disclosedData.lastName).toBe("SILVERHAND")
       expect(disclosedData.dateOfBirth).toEqual(new Date(1988, 10, 12))
@@ -767,7 +767,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
   beforeAll(async () => {
     // Johnny Silverhand's MRZ
     const mrz =
-      "P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<\0\0"
+      "P<AUSSILVERHAND<<JOHNNY<MATTHEW<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<\0\0"
     const dg1 = Binary.fromHex("615B5F1F58").concat(Binary.from(mrz))
     // Load DSC keypair
     const dscKeypair = await loadKeypairFromFile(DSC_KEYPAIR_PATH)
@@ -866,8 +866,8 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
       expect(disclosedData.nationality).toBe("AUS")
       expect(disclosedData.documentType).toBe("passport")
       expect(disclosedData.documentNumber).toBe("PA1234567")
-      expect(disclosedData.name).toBe("SILVERHAND JOHNNY")
-      expect(disclosedData.firstName).toBe("JOHNNY")
+      expect(disclosedData.name).toBe("JOHNNY MATTHEW SILVERHAND")
+      expect(disclosedData.firstName).toBe("JOHNNY MATTHEW")
       expect(disclosedData.lastName).toBe("SILVERHAND")
       expect(disclosedData.dateOfBirth).toEqual(new Date(1988, 10, 12))
       expect(disclosedData.dateOfExpiry).toEqual(new Date(2030, 0, 1))
@@ -880,6 +880,8 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
     test("disclose some bytes", async () => {
       const query: Query = {
         nationality: { disclose: true },
+        firstname: { disclose: true },
+        lastname: { disclose: true },
       }
       let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 0n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
@@ -892,9 +894,9 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
       expect(disclosedData.nationality).toBe("AUS")
       expect(disclosedData.documentType).toBe("other")
       expect(disclosedData.documentNumber).toBe("")
-      expect(disclosedData.name).toBe("")
-      expect(disclosedData.firstName).toBe("")
-      expect(disclosedData.lastName).toBe("")
+      expect(disclosedData.name).toBe("JOHNNY SILVERHAND")
+      expect(disclosedData.firstName).toBe("JOHNNY")
+      expect(disclosedData.lastName).toBe("SILVERHAND")
       expect(isNaN(disclosedData.dateOfBirth.getTime())).toBe(true)
       expect(isNaN(disclosedData.dateOfExpiry.getTime())).toBe(true)
       expect(disclosedData.gender).toBe("")
@@ -908,6 +910,8 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
 describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
   const helper = new TestHelper()
   const masterlist: CSCMasterlist = { certificates: [] }
+  const FIXTURES_PATH = path.join(__dirname, "fixtures")
+  const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-ecdsa.json")
   const MAX_TBS_LENGTH = 700
   let dscCommitment: bigint
   let idDataCommitment: bigint
@@ -1025,7 +1029,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
       expect(disclosedData.nationality).toBe("AUS")
       expect(disclosedData.documentType).toBe("passport")
       expect(disclosedData.documentNumber).toBe("PA1234567")
-      expect(disclosedData.name).toBe("SILVERHAND JOHNNY")
+      expect(disclosedData.name).toBe("JOHNNY SILVERHAND")
       expect(disclosedData.firstName).toBe("JOHNNY")
       expect(disclosedData.lastName).toBe("SILVERHAND")
       expect(disclosedData.dateOfBirth).toEqual(new Date(1988, 10, 12))
