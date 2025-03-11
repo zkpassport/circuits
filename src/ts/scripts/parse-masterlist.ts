@@ -1,4 +1,4 @@
-import { parseCertificates } from "@zkpassport/utils"
+import { Binary, getCertificateLeafHash, parseCertificates } from "@zkpassport/utils"
 import type { Certificate } from "@zkpassport/utils"
 import fs from "fs"
 import path from "path"
@@ -44,7 +44,7 @@ function processCertificateFile(
   return stats
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const args = process.argv.slice(2)
   const uniquePubkeys = new Set<string>()
   const allCertificates: Certificate[] = []
@@ -89,13 +89,24 @@ function main(): void {
     certificates: allCertificates,
   }
 
-  fs.writeFileSync("csc-masterlist-foo.json", JSON.stringify(output, null, 2))
+  fs.writeFileSync("csc-masterlist.json", JSON.stringify(output, null, 2))
 
   console.log("\nProcessing Summary:")
   console.log(`Total certificates processed: ${totalStats.totalCertificates}`)
   console.log(`Unique public keys: ${totalStats.uniqueCertificates}`)
   console.log(`Duplicate keys detected: ${totalStats.duplicatesFound}`)
   console.log("\nResults have been written to csc-masterlist.json")
+
+  const leaves = await Promise.all(
+    allCertificates.map(async (cert) => {
+      const hash = await getCertificateLeafHash(cert)
+      return Binary.fromHex(hash)
+    }),
+  )
+
+  console.log("Generating merkle tree leaves")
+  const leavesHex = leaves.map((leaf) => leaf.toHex())
+  fs.writeFileSync("csc-masterlist-leaves.json", JSON.stringify(leavesHex, null, 2))
 }
 
-main()
+await main()
