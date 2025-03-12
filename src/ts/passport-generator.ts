@@ -13,7 +13,7 @@ import { cryptoProvider, PemConverter, X509CertificateGenerator, Extension } fro
 import { ASN } from "./asn"
 import { wrapSodInContentInfo } from "./sod-generator"
 import fs from "fs"
-import { Crypto } from "@peculiar/webcrypto"
+import { Crypto, CryptoKey } from "@peculiar/webcrypto"
 
 const crypto = new Crypto()
 cryptoProvider.set(crypto as any)
