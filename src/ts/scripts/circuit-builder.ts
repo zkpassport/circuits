@@ -589,19 +589,23 @@ function checkNargoVersion() {
   }
 }
 
-const args = process.argv.slice(2)
-const unconstrained = args.includes("unconstrained")
-const compile = args.includes("compile")
-const forceCompilation = args.includes("force-compilation")
-const printStdErr = args.includes("print-stderr")
+// Ensure this script is being run directly
+if (require.main === module) {
+  const args = process.argv.slice(2)
+  const compile = args.includes("compile")
+  const generate = args.includes("generate")
 
-checkNargoVersion()
+  if (generate) {
+    const unconstrained = args.includes("unconstrained")
+    generateDscCircuits({ unconstrained })
+    generateIdDataCircuits({ unconstrained })
+    generateWorkspaceToml()
+  }
 
-generateDscCircuits({ unconstrained })
-generateIdDataCircuits({ unconstrained })
-generateWorkspaceToml()
-
-if (compile) {
-  // This works but use at your own risk (this will be very demanding of your machine)
-  compileCircuitsWithNargo({ forceCompilation, printStdErr })
+  if (compile) {
+    const forceCompilation = args.includes("force-compilation")
+    const printStdErr = args.includes("print-stderr")
+    checkNargoVersion()
+    compileCircuitsWithNargo({ forceCompilation, printStdErr })
+  }
 }

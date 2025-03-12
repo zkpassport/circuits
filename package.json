@@ -5,8 +5,8 @@
   "scripts": {
     "typecheck": "tsc --project src/ts/tsconfig.json --noEmit",
     "test": "jest",
-    "build": "tsx src/ts/scripts/circuit-builder.ts",
-    "compile": "tsx src/ts/scripts/circuit-builder.ts compile"
+    "generate": "tsx src/ts/scripts/circuit-builder.ts generate",
+    "compile": "tsx src/ts/scripts/circuit-builder.ts generate compile"
   },
   "dependencies": {
     "@aws-sdk/client-cloudfront": "^3.730.0",
