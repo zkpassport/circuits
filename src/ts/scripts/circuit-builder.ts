@@ -15,6 +15,17 @@ const generatedCircuits: {
   path: string
 }[] = []
 
+const nonGeneratedCircuits = [
+  { name: "compare_age", path: "./src/noir/bin/compare/age" },
+  { name: "compare_birthdate", path: "./src/noir/bin/compare/birthdate" },
+  { name: "compare_expiry", path: "./src/noir/bin/compare/expiry" },
+  { name: "data_check_integrity", path: "./src/noir/bin/data-check/integrity" },
+  { name: "disclose_bytes", path: "./src/noir/bin/disclose/bytes" },
+  { name: "disclose_flags", path: "./src/noir/bin/disclose/flags" },
+  { name: "exclusion_check_country", path: "./src/noir/bin/exclusion-check/country" },
+  { name: "inclusion_check_country", path: "./src/noir/bin/inclusion-check/country" },
+]
+
 const NARGO_TEMPLATE = (
   name: string,
   dependencies: {
@@ -479,6 +490,7 @@ const compileCircuitsWithNargo = async ({
   getGateCount?: boolean
   printStdErr?: boolean
 } = {}) => {
+  const circuitsToCompile = [...generatedCircuits, ...nonGeneratedCircuits]
   const startTime = Date.now()
   const command = getGateCount ? "bash scripts/info.sh" : "nargo compile --force --package"
 
@@ -511,7 +523,7 @@ const compileCircuitsWithNargo = async ({
   const promises: Promise<void>[] = []
 
   // Process circuits with controlled concurrency
-  for (const { name } of generatedCircuits) {
+  for (const { name } of circuitsToCompile) {
     // Check if compilation output already exists
     const outputPath = path.join("target", `${name}.json`)
     if (fs.existsSync(outputPath) && !forceCompilation) {
