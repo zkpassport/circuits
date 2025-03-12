@@ -8,3 +8,4 @@ info
 node_modules
 flamegraphs
 res
+.env

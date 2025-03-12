@@ -1,11 +1,11 @@
 CWD := $(abspath $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST))))))
 
-package_names := data_check_integrity \
-				disclose_bytes \
+package_names := disclose_bytes \
 				disclose_flags \
 				exclusion_check_country \
 				inclusion_check_country \
 				compare_birthdate \
+				compare_age \
 				compare_expiry
 
 compileAll:

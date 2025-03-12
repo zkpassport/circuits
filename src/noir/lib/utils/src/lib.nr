@@ -305,3 +305,14 @@ pub fn get_nationality_from_mrz(dg1: [u8; 95]) -> [u8; 3] {
 
     country_bytes
 }
+
+pub fn get_issuing_country_from_mrz(dg1: [u8; 95]) -> [u8; 3] {
+    let mrz = get_mrz_from_dg1(dg1);
+    // No need to check if it's an ID card since the issuing country
+    // is always at the same index for both passports and ID cards
+    get_array_slice(
+        mrz,
+        PASSPORT_MRZ_COUNTRY_INDEX,
+        PASSPORT_MRZ_COUNTRY_INDEX + 3,
+    )
+}

@@ -26,46 +26,30 @@ use ecdsa::ecdsa::{
     verify_secp256r1_ecdsa, verify_secp384r1_ecdsa, verify_secp521r1_ecdsa,
 };
 use std::ecdsa_secp256r1;
-use std::hash::sha256;
 use utils::{
     check_zero_padding, concat_array, ECDSA_CURVE_BRAINPOOL_B256R1, ECDSA_CURVE_BRAINPOOL_B256T1,
     ECDSA_CURVE_BRAINPOOL_B384R1, ECDSA_CURVE_BRAINPOOL_B384T1, ECDSA_CURVE_BRAINPOOL_B512R1,
     ECDSA_CURVE_BRAINPOOL_B512T1, ECDSA_CURVE_P384, ECDSA_CURVE_P521,
 };
 
-pub fn verify_nist_p256_blackbox<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_nist_p256_blackbox<let DATA_TO_SIGN_LEN: u32, let HASH_BYTE_SIZE: u32>(
     pubkey_x: [u8; 32],
     pubkey_y: [u8; 32],
     signature_r: [u8; 32],
     signature_s: [u8; 32],
-    data_to_sign: [u8; DATA_TO_SIGN_LEN],
-    data_to_sign_len: u64,
+    msg_hash: [u8; HASH_BYTE_SIZE],
 ) -> bool {
-    // Check that the data signed does stop at the specified length
-    // to prevent the prover from using the bytes beyond that point
-    // to manipulate it in their favor
-    check_zero_padding(data_to_sign, data_to_sign_len as u32);
-
-    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
-
     let signature = concat_array(signature_r, signature_s);
     ecdsa_secp256r1::verify_signature(pubkey_x, pubkey_y, signature, msg_hash)
 }
 
-pub fn verify_nist_p256<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_nist_p256<let DATA_TO_SIGN_LEN: u32, let HASH_BYTE_SIZE: u32>(
     pubkey_x: [u8; 32],
     pubkey_y: [u8; 32],
     signature_r: [u8; 32],
     signature_s: [u8; 32],
-    data_to_sign: [u8; DATA_TO_SIGN_LEN],
-    data_to_sign_len: u64,
+    msg_hash: [u8; HASH_BYTE_SIZE],
 ) -> bool {
-    // Check that the data signed does stop at the specified length
-    // to prevent the prover from using the bytes beyond that point
-    // to manipulate it in their favor
-    check_zero_padding(data_to_sign, data_to_sign_len as u32);
-
-    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
     let pubkey_x_bignum: Secp256r1Fq = BigNum::from_be_bytes(pubkey_x);
     let pubkey_y_bignum: Secp256r1Fq = BigNum::from_be_bytes(pubkey_y);
     let signature_r_bignum: Secp256r1Fr = BigNum::from_be_bytes(signature_r);
@@ -78,20 +62,13 @@ pub fn verify_nist_p256<let DATA_TO_SIGN_LEN: u32>(
     )
 }
 
-pub fn verify_nist_p384<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_nist_p384<let DATA_TO_SIGN_LEN: u32, let HASH_BYTE_SIZE: u32>(
     pubkey_x: [u8; 48],
     pubkey_y: [u8; 48],
     signature_r: [u8; 48],
     signature_s: [u8; 48],
-    data_to_sign: [u8; DATA_TO_SIGN_LEN],
-    data_to_sign_len: u64,
+    msg_hash: [u8; HASH_BYTE_SIZE],
 ) -> bool {
-    // Check that the data signed does stop at the specified length
-    // to prevent the prover from using the bytes beyond that point
-    // to manipulate it in their favor
-    check_zero_padding(data_to_sign, data_to_sign_len as u32);
-
-    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
     let pubkey_x_bignum: Secp384r1Fq = BigNum::from_be_bytes(pubkey_x);
     let pubkey_y_bignum: Secp384r1Fq = BigNum::from_be_bytes(pubkey_y);
     let signature_r_bignum: Secp384r1Fr = BigNum::from_be_bytes(signature_r);
@@ -104,20 +81,13 @@ pub fn verify_nist_p384<let DATA_TO_SIGN_LEN: u32>(
     )
 }
 
-pub fn verify_nist_p521<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_nist_p521<let DATA_TO_SIGN_LEN: u32, let HASH_BYTE_SIZE: u32>(
     pubkey_x: [u8; 66],
     pubkey_y: [u8; 66],
     signature_r: [u8; 66],
     signature_s: [u8; 66],
-    data_to_sign: [u8; DATA_TO_SIGN_LEN],
-    data_to_sign_len: u64,
+    msg_hash: [u8; HASH_BYTE_SIZE],
 ) -> bool {
-    // Check that the data signed does stop at the specified length
-    // to prevent the prover from using the bytes beyond that point
-    // to manipulate it in their favor
-    check_zero_padding(data_to_sign, data_to_sign_len as u32);
-
-    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
     let pubkey_x_bignum: Secp521r1Fq = BigNum::from_be_bytes(pubkey_x);
     let pubkey_y_bignum: Secp521r1Fq = BigNum::from_be_bytes(pubkey_y);
     let signature_r_bignum: Secp521r1Fr = BigNum::from_be_bytes(signature_r);
@@ -130,20 +100,13 @@ pub fn verify_nist_p521<let DATA_TO_SIGN_LEN: u32>(
     )
 }
 
-pub fn verify_brainpool_256r1<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_brainpool_256r1<let DATA_TO_SIGN_LEN: u32, let HASH_BYTE_SIZE: u32>(
     pubkey_x: [u8; 32],
     pubkey_y: [u8; 32],
     signature_r: [u8; 32],
     signature_s: [u8; 32],
-    data_to_sign: [u8; DATA_TO_SIGN_LEN],
-    data_to_sign_len: u64,
+    msg_hash: [u8; HASH_BYTE_SIZE],
 ) -> bool {
-    // Check that the data signed does stop at the specified length
-    // to prevent the prover from using the bytes beyond that point
-    // to manipulate it in their favor
-    check_zero_padding(data_to_sign, data_to_sign_len as u32);
-
-    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
     let pubkey_x_bignum: BrainpoolP256r1Fq = BigNum::from_be_bytes(pubkey_x);
     let pubkey_y_bignum: BrainpoolP256r1Fq = BigNum::from_be_bytes(pubkey_y);
     let signature_r_bignum: BrainpoolP256r1Fr = BigNum::from_be_bytes(signature_r);
@@ -156,20 +119,13 @@ pub fn verify_brainpool_256r1<let DATA_TO_SIGN_LEN: u32>(
     )
 }
 
-pub fn verify_brainpool_256t1<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_brainpool_256t1<let DATA_TO_SIGN_LEN: u32, let HASH_BYTE_SIZE: u32>(
     pubkey_x: [u8; 32],
     pubkey_y: [u8; 32],
     signature_r: [u8; 32],
     signature_s: [u8; 32],
-    data_to_sign: [u8; DATA_TO_SIGN_LEN],
-    data_to_sign_len: u64,
+    msg_hash: [u8; HASH_BYTE_SIZE],
 ) -> bool {
-    // Check that the data signed does stop at the specified length
-    // to prevent the prover from using the bytes beyond that point
-    // to manipulate it in their favor
-    check_zero_padding(data_to_sign, data_to_sign_len as u32);
-
-    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
     let pubkey_x_bignum: BrainpoolP256t1Fq = BigNum::from_be_bytes(pubkey_x);
     let pubkey_y_bignum: BrainpoolP256t1Fq = BigNum::from_be_bytes(pubkey_y);
     let signature_r_bignum: BrainpoolP256t1Fr = BigNum::from_be_bytes(signature_r);
@@ -182,20 +138,13 @@ pub fn verify_brainpool_256t1<let DATA_TO_SIGN_LEN: u32>(
     )
 }
 
-pub fn verify_brainpool_384r1<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_brainpool_384r1<let DATA_TO_SIGN_LEN: u32, let HASH_BYTE_SIZE: u32>(
     pubkey_x: [u8; 48],
     pubkey_y: [u8; 48],
     signature_r: [u8; 48],
     signature_s: [u8; 48],
-    data_to_sign: [u8; DATA_TO_SIGN_LEN],
-    data_to_sign_len: u64,
+    msg_hash: [u8; HASH_BYTE_SIZE],
 ) -> bool {
-    // Check that the data signed does stop at the specified length
-    // to prevent the prover from using the bytes beyond that point
-    // to manipulate it in their favor
-    check_zero_padding(data_to_sign, data_to_sign_len as u32);
-
-    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
     let pubkey_x_bignum: BrainpoolP384r1Fq = BigNum::from_be_bytes(pubkey_x);
     let pubkey_y_bignum: BrainpoolP384r1Fq = BigNum::from_be_bytes(pubkey_y);
     let signature_r_bignum: BrainpoolP384r1Fr = BigNum::from_be_bytes(signature_r);
@@ -208,20 +157,13 @@ pub fn verify_brainpool_384r1<let DATA_TO_SIGN_LEN: u32>(
     )
 }
 
-pub fn verify_brainpool_384t1<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_brainpool_384t1<let DATA_TO_SIGN_LEN: u32, let HASH_BYTE_SIZE: u32>(
     pubkey_x: [u8; 48],
     pubkey_y: [u8; 48],
     signature_r: [u8; 48],
     signature_s: [u8; 48],
-    data_to_sign: [u8; DATA_TO_SIGN_LEN],
-    data_to_sign_len: u64,
+    msg_hash: [u8; HASH_BYTE_SIZE],
 ) -> bool {
-    // Check that the data signed does stop at the specified length
-    // to prevent the prover from using the bytes beyond that point
-    // to manipulate it in their favor
-    check_zero_padding(data_to_sign, data_to_sign_len as u32);
-
-    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
     let pubkey_x_bignum: BrainpoolP384t1Fq = BigNum::from_be_bytes(pubkey_x);
     let pubkey_y_bignum: BrainpoolP384t1Fq = BigNum::from_be_bytes(pubkey_y);
     let signature_r_bignum: BrainpoolP384t1Fr = BigNum::from_be_bytes(signature_r);
@@ -234,20 +176,13 @@ pub fn verify_brainpool_384t1<let DATA_TO_SIGN_LEN: u32>(
     )
 }
 
-pub fn verify_brainpool_512r1<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_brainpool_512r1<let DATA_TO_SIGN_LEN: u32, let HASH_BYTE_SIZE: u32>(
     pubkey_x: [u8; 64],
     pubkey_y: [u8; 64],
     signature_r: [u8; 64],
     signature_s: [u8; 64],
-    data_to_sign: [u8; DATA_TO_SIGN_LEN],
-    data_to_sign_len: u64,
+    msg_hash: [u8; HASH_BYTE_SIZE],
 ) -> bool {
-    // Check that the data signed does stop at the specified length
-    // to prevent the prover from using the bytes beyond that point
-    // to manipulate it in their favor
-    check_zero_padding(data_to_sign, data_to_sign_len as u32);
-
-    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
     let pubkey_x_bignum: BrainpoolP512r1Fq = BigNum::from_be_bytes(pubkey_x);
     let pubkey_y_bignum: BrainpoolP512r1Fq = BigNum::from_be_bytes(pubkey_y);
     let signature_r_bignum: BrainpoolP512r1Fr = BigNum::from_be_bytes(signature_r);
@@ -260,20 +195,13 @@ pub fn verify_brainpool_512r1<let DATA_TO_SIGN_LEN: u32>(
     )
 }
 
-pub fn verify_brainpool_512t1<let DATA_TO_SIGN_LEN: u32>(
+pub fn verify_brainpool_512t1<let DATA_TO_SIGN_LEN: u32, let HASH_BYTE_SIZE: u32>(
     pubkey_x: [u8; 64],
     pubkey_y: [u8; 64],
     signature_r: [u8; 64],
     signature_s: [u8; 64],
-    data_to_sign: [u8; DATA_TO_SIGN_LEN],
-    data_to_sign_len: u64,
+    msg_hash: [u8; HASH_BYTE_SIZE],
 ) -> bool {
-    // Check that the data signed does stop at the specified length
-    // to prevent the prover from using the bytes beyond that point
-    // to manipulate it in their favor
-    check_zero_padding(data_to_sign, data_to_sign_len as u32);
-
-    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
     let pubkey_x_bignum: BrainpoolP512t1Fq = BigNum::from_be_bytes(pubkey_x);
     let pubkey_y_bignum: BrainpoolP512t1Fq = BigNum::from_be_bytes(pubkey_y);
     let signature_r_bignum: BrainpoolP512t1Fr = BigNum::from_be_bytes(signature_r);
@@ -291,20 +219,13 @@ pub fn verify_brainpool_512t1<let DATA_TO_SIGN_LEN: u32>(
 Arithmetic generics simplification failed: `((8: numeric u32) - (((NBytes : u32)'53600 -> (66: numeric u32) * (8: numeric u32)) - (MOD_BITS : u32)'53599 -> (384: numeric u32)))` != `((8: numeric u32) - (((NBytes : u32)'53600 -> (66: numeric u32) * (8: numeric u32)) - (MOD_BITS : u32)'53599 -> (384: numeric u32)))`
  most_significant_byte.assert_max_bit_size::<8 - (NBytes * 8 - MOD_BITS)>();
 */
-pub fn verify_signature<let DATA_TO_SIGN_LEN: u32, let CURVE: u32, let PUBKEY_BYTE_LEN: u32>(
+pub fn verify_signature<let DATA_TO_SIGN_LEN: u32, let CURVE: u32, let PUBKEY_BYTE_LEN: u32, let HASH_BYTE_SIZE: u32>(
     pubkey_x: [u8; PUBKEY_BYTE_LEN],
     pubkey_y: [u8; PUBKEY_BYTE_LEN],
     signature_r: [u8; PUBKEY_BYTE_LEN],
     signature_s: [u8; PUBKEY_BYTE_LEN],
-    data_to_sign: [u8; DATA_TO_SIGN_LEN],
-    data_to_sign_len: u64,
+    msg_hash: [u8; HASH_BYTE_SIZE],
 ) -> bool {
-    // Check that the data signed does stop at the specified length
-    // to prevent the prover from using the bytes beyond that point
-    // to manipulate it in their favor
-    check_zero_padding(data_to_sign, data_to_sign_len as u32);
-
-    let msg_hash = sha256::sha256_var(data_to_sign, data_to_sign_len);
     if CURVE == ECDSA_CURVE_P384 {
         let pubkey_x_bignum: Secp384r1Fq = BigNum::from_be_bytes(pubkey_x);
         let pubkey_y_bignum: Secp384r1Fq = BigNum::from_be_bytes(pubkey_y);

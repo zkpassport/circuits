@@ -2,7 +2,7 @@ import fs from "fs"
 import path from "path"
 import { exec } from "child_process"
 import { promisify } from "util"
-import { hashToFieldBN254 as poseidon2Hash } from "@zkpassport/poseidon2"
+import { poseidon2Hash } from "@zkpassport/poseidon2"
 
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
