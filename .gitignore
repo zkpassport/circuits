@@ -6,8 +6,6 @@ Verifier.toml
 info
 .DS_Store
 node_modules
-package-lock.json
 flamegraphs
 res
-src/ts/assets/circuits
 .env
