@@ -31,10 +31,18 @@ jobs:
           paths:
             - /home/circleci/.nargo
           key: nargo-cache-<< pipeline.parameters.noir_version >>
+      - restore_cache:
+          keys:
+            - node-deps-{{ checksum "package-lock.json" }}
+            - node-deps-
       - run:
           name: Install npm dependencies
           command: |
             npm ci
+      - save_cache:
+          paths:
+            - node_modules
+          key: node-deps-{{ checksum "package-lock.json" }}
       - persist_to_workspace:
           root: ~/repo
           paths: .
