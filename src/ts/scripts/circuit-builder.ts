@@ -1,6 +1,6 @@
 import * as fs from "fs"
 import * as path from "path"
-import { exec } from "child_process"
+import { exec, execSync } from "child_process"
 import { compileCircuit } from "../utils"
 
 // Function to ensure directory exists
@@ -544,15 +544,51 @@ const compileCircuitsWithNargo = async ({
   }
 }
 
+function checkNargoVersion() {
+  try {
+    // Read package.json to get expected nargo version
+    const packageJsonPath = path.resolve(__dirname, "../../../package.json")
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
+    const expectedNoirVersion = packageJson.dependencies["@noir-lang/noir_js"]
+    if (!expectedNoirVersion) {
+      throw new Error("Couldn't find noir version in package.json")
+    }
+    // Get installed version numbers for comparison
+    const nargoVersionOutput = execSync("nargo -V").toString().trim()
+    const versionMatch = nargoVersionOutput.match(/nargo version = ([^\s\n]+)/)
+    const installedNargoVersion = versionMatch ? versionMatch[1] : null
+    if (!installedNargoVersion) {
+      throw new Error(`Failed to parse nargo version output: ${nargoVersionOutput}`)
+    }
+    if (installedNargoVersion !== expectedNoirVersion) {
+      throw new Error(
+        `nargo version mismatch. Expected ${expectedNoirVersion} but found ${installedNargoVersion}. Please switch nargo versions using noirup.`,
+      )
+    }
+  } catch (error: any) {
+    if (error.message.includes("command not found")) {
+      console.error(
+        "Error: nargo is not installed. Visit https://noir-lang.org for installation instructions.",
+      )
+    } else {
+      console.error("Error:", error.message)
+    }
+    process.exit(1)
+  }
+}
+
 const args = process.argv.slice(2)
 const unconstrained = args.includes("unconstrained")
 const compile = args.includes("compile")
 const forceCompilation = args.includes("force-compilation")
 const printStdErr = args.includes("print-stderr")
 
+checkNargoVersion()
+
 generateDscCircuits({ unconstrained })
 generateIdDataCircuits({ unconstrained })
 generateWorkspaceToml()
+
 if (compile) {
   // This works but use at your own risk (this will be very demanding of your machine)
   compileCircuitsWithNargo({ forceCompilation, printStdErr })
