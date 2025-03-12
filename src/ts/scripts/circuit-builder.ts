@@ -745,24 +745,21 @@ function checkNargoVersion() {
   }
 }
 
-// Ensure this script is being run directly
-if (require.main === module) {
-  const args = process.argv.slice(2)
-  const compile = args.includes("compile")
-  const generate = args.includes("generate")
+const args = process.argv.slice(2)
+const compile = args.includes("compile")
+const generate = args.includes("generate")
 
-  if (generate) {
-    const unconstrained = args.includes("unconstrained")
-    generateDscCircuits({ unconstrained })
-    generateIdDataCircuits({ unconstrained })
-    generateDataIntegrityCheckCircuits({ unconstrained })
-    generateWorkspaceToml()
-  }
+if (generate) {
+  const unconstrained = args.includes("unconstrained")
+  generateDscCircuits({ unconstrained })
+  generateIdDataCircuits({ unconstrained })
+  generateDataIntegrityCheckCircuits({ unconstrained })
+  generateWorkspaceToml()
+}
 
-  if (compile) {
-    const forceCompilation = args.includes("force-compilation")
-    const printStdErr = args.includes("print-stderr")
-    checkNargoVersion()
-    compileCircuitsWithNargo({ forceCompilation, printStdErr })
-  }
+if (compile) {
+  const forceCompilation = args.includes("force-compilation")
+  const printStdErr = args.includes("print-stderr")
+  checkNargoVersion()
+  compileCircuitsWithNargo({ forceCompilation, printStdErr })
 }

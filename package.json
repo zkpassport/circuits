@@ -1,7 +1,6 @@
 {
   "name": "circuits",
   "version": "0.0.7",
-  "type": "module",
   "scripts": {
     "typecheck": "tsc --project src/ts/tsconfig.json --noEmit",
     "test": "jest",
