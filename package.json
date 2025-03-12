@@ -5,7 +5,6 @@
     "lint": "tsc --project src/ts/tsconfig.json --noEmit",
     "test": "jest",
     "generate": "tsx src/ts/scripts/circuit-builder.ts generate",
-    "generate:unconstrained": "tsx src/ts/scripts/circuit-builder.ts generate unconstrained",
     "compile": "tsx src/ts/scripts/circuit-builder.ts generate compile"
   },
   "dependencies": {

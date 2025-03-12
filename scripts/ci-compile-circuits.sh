@@ -6,7 +6,7 @@ set -euo pipefail
 
 # Generate unconstrained circuits, so that we can test the circuit logic
 # for given inputs without doing fully constrained proving
-npm run generate:unconstrained
+./node_modules/.bin/tsx src/ts/scripts/circuit-builder.ts generate unconstrained
 
 # Circuits to compile for integration tests
 CIRCUITS=(
