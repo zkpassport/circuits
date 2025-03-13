@@ -65,6 +65,7 @@ const processFiles = async () => {
     const outputPath = path.join(PACKAGED_DIR, file)
     const vkeyPath = path.join(TARGET_DIR, file.replace(".json", ".vkey"))
     const vkeyJsonPath = path.join(TARGET_DIR, file.replace(".json", ".vkey.json"))
+    const gateCountPath = path.join(TARGET_DIR, file.replace(".json", ".size.json"))
 
     const promise = pool.add(async () => {
       try {
@@ -81,6 +82,8 @@ const processFiles = async () => {
         await execPromise(
           `bb vk_as_fields_ultra_honk -k "${vkeyPath}" -o "${vkeyJsonPath}" --recursive`,
         )
+        await execPromise(`bb gates -b "${inputPath}" > "${gateCountPath}"`)
+
         // Get Poseidon2 hash of vkey
         const vkeyAsFieldsJson = JSON.parse(fs.readFileSync(vkeyJsonPath, "utf-8"))
         const vkeyAsFields = vkeyAsFieldsJson.map((v: any) => BigInt(v))
@@ -93,6 +96,10 @@ const processFiles = async () => {
         // Read and parse the input file
         const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
 
+        const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
+        const gateCount = gateCountFileContent.functions[0].circuit_size
+        fs.unlinkSync(gateCountPath)
+
         // Create packaged circuit object
         const packagedCircuit: {
           [key: string]: unknown
@@ -100,6 +107,7 @@ const processFiles = async () => {
           name: file.replace(".json", ""),
           noir_version: jsonContent.noir_version,
           bb_version: bbVersion,
+          size: gateCount,
           abi: jsonContent.abi,
           bytecode: jsonContent.bytecode,
           vkey: vkey,
