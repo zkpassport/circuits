@@ -82,7 +82,7 @@ const processFiles = async () => {
         await execPromise(
           `bb vk_as_fields_ultra_honk -k "${vkeyPath}" -o "${vkeyJsonPath}" --recursive`,
         )
-        await execPromise(`bb gates -b "${inputPath}" > "${gateCountPath}"`)
+        await execPromise(`bb gates -b "${inputPath}" --recursive > "${gateCountPath}"`)
 
         // Get Poseidon2 hash of vkey
         const vkeyAsFieldsJson = JSON.parse(fs.readFileSync(vkeyJsonPath, "utf-8"))
