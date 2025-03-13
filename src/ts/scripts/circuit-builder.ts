@@ -638,6 +638,8 @@ class PromisePool {
   }
 }
 
+const ignoreStdErrs = ["Waiting for lock on git dependencies cache..."]
+
 const compileCircuitsWithNargo = async ({
   forceCompilation = false,
   getGateCount = false,
@@ -651,14 +653,19 @@ const compileCircuitsWithNargo = async ({
   const command = getGateCount ? "bash scripts/info.sh" : "nargo compile --force --package"
 
   // Helper function to promisify exec
-  const execPromise = (name: string, cmd: string): Promise<string> => {
+  const execPromise = (
+    name: string,
+    cmd: string,
+    current: number,
+    total: number,
+  ): Promise<string> => {
     return new Promise((resolve, reject) => {
       exec(cmd, { maxBuffer: 100 * 1024 * 1024 }, (error, stdout, stderr) => {
         if (error) {
           reject(error)
           return
         }
-        if (stderr && printStdErr) {
+        if (stderr && printStdErr && !ignoreStdErrs.includes(stderr.trim())) {
           console.error(`Script error output: ${stderr}`)
         }
         let statsString = ""
@@ -669,7 +676,7 @@ const compileCircuitsWithNargo = async ({
             statsString = ` [noir warnings: ${warnings}, noir bugs: ${bugs}]`
           }
         }
-        console.log(`Successfully compiled ${name}${statsString}`)
+        console.log(`Successfully compiled ${name}${statsString} (${current}/${total})`)
         resolve(stdout)
       })
     })
@@ -678,37 +685,53 @@ const compileCircuitsWithNargo = async ({
   const pool = new PromisePool(MAX_CONCURRENT_COMPILATIONS)
   const promises: Promise<void>[] = []
 
-  // Process circuits with controlled concurrency
-  for (const { name } of [...STATIC_CIRCUITS, ...generatedCircuits]) {
-    // Check if compilation output already exists
-    const outputPath = path.join("target", `${name}.json`)
-    if (fs.existsSync(outputPath) && !forceCompilation) {
-      console.log(`Skipping ${name} - compilation output already exists`)
-      continue
-    }
+  // Get all circuits that need to be compiled
+  const allCircuits = [...STATIC_CIRCUITS, ...generatedCircuits]
+  const circuitsToCompile = forceCompilation
+    ? allCircuits
+    : allCircuits.filter(({ name }) => {
+        const outputPath = path.join("target", `${name}.json`)
+        return !fs.existsSync(outputPath)
+      })
 
-    const promise = pool.add(async () => {
-      try {
-        console.log(`Compiling ${name}...`)
-        await execPromise(name, `${command} ${name}`)
-      } catch (error: any) {
-        console.error(`Error executing script for ${name}: ${error.message}`)
-      }
-    })
-    promises.push(promise)
+  // Process circuits with controlled concurrency
+  const totalCount = circuitsToCompile.length
+  let processedCount = 0
+  for (const { name } of circuitsToCompile) {
+    processedCount++
+
+    const promise = (name: string, counter: number) =>
+      pool.add(async () => {
+        try {
+          console.log(`Compiling ${name}... (${counter}/${totalCount})`)
+          await execPromise(name, `${command} ${name}`, counter, totalCount)
+        } catch (error: any) {
+          console.error(`Error executing script for ${name}: ${error.message}`)
+        }
+      })
+    promises.push(promise(name, processedCount))
   }
 
   // Wait for all compilations to complete
   await Promise.all(promises)
 
-  const duration = (Date.now() - startTime) / 1000 // convert to seconds
-  const minutes = Math.floor(duration / 60)
-  const seconds = Math.floor(duration % 60)
+  if (processedCount > 0) {
+    const duration = (Date.now() - startTime) / 1000 // convert to seconds
+    const minutes = Math.floor(duration / 60)
+    const seconds = Math.floor(duration % 60)
 
-  if (minutes > 0) {
-    console.log(`Total time taken: ${minutes}m ${seconds}s`)
-  } else if (seconds > 0) {
-    console.log(`Total time taken: ${seconds}s`)
+    const skippedCount = allCircuits.length - circuitsToCompile.length
+    console.log(`Total circuits: ${allCircuits.length}`)
+    console.log(`Circuits compiled: ${processedCount}`)
+    if (skippedCount > 0) console.log(`Circuits skipped: ${skippedCount} (already compiled)`)
+
+    if (minutes > 0) {
+      console.log(`Total time taken: ${minutes}m ${seconds}s`)
+    } else if (seconds > 0) {
+      console.log(`Total time taken: ${seconds}s`)
+    }
+  } else {
+    console.log("No circuits to compile")
   }
 }
 
@@ -758,8 +781,8 @@ if (generate) {
 }
 
 if (compile) {
-  const forceCompilation = args.includes("force-compilation")
-  const printStdErr = args.includes("print-stderr")
+  const forceCompilation = args.includes("force")
+  const printStdErr = args.includes("verbose")
   checkNargoVersion()
   compileCircuitsWithNargo({ forceCompilation, printStdErr })
 }
