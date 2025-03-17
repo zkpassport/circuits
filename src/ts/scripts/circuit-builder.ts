@@ -1,6 +1,6 @@
 import * as fs from "fs"
 import * as path from "path"
-import { exec } from "child_process"
+import { exec, execSync } from "child_process"
 import { compileCircuit } from "../utils"
 
 // Function to ensure directory exists
@@ -603,17 +603,18 @@ const generateWorkspaceToml = () => {
 }
 
 // Maximum number of concurrent circuit compilations via `nargo compile`
-const MAX_CONCURRENT_COMPILATIONS = 10
+// Default value that can be overridden via CLI using --concurrency=x
+const DEFAULT_CONCURRENCY = 10
 
 // Promise pool for controlled concurrency
 class PromisePool {
   private queue: (() => Promise<void>)[] = []
   private activePromises = 0
 
-  constructor(private maxConcurrent: number) {}
+  constructor(private concurrency: number) {}
 
   async add(fn: () => Promise<void>) {
-    if (this.activePromises >= this.maxConcurrent) {
+    if (this.activePromises >= this.concurrency) {
       // Queue the task if we're at max concurrency
       await new Promise<void>((resolve) => {
         this.queue.push(async () => {
@@ -638,27 +639,38 @@ class PromisePool {
   }
 }
 
+const ignoreStdErrs = ["Waiting for lock on git dependencies cache..."]
+
 const compileCircuitsWithNargo = async ({
   forceCompilation = false,
   getGateCount = false,
   printStdErr = false,
+  concurrency = DEFAULT_CONCURRENCY,
 }: {
   forceCompilation?: boolean
   getGateCount?: boolean
   printStdErr?: boolean
+  concurrency?: number
 } = {}) => {
   const startTime = Date.now()
   const command = getGateCount ? "bash scripts/info.sh" : "nargo compile --force --package"
-
+  if (concurrency != DEFAULT_CONCURRENCY) {
+    console.warn(`Using concurrency: ${concurrency}`)
+  }
   // Helper function to promisify exec
-  const execPromise = (name: string, cmd: string): Promise<string> => {
+  const execPromise = (
+    name: string,
+    cmd: string,
+    current: number,
+    total: number,
+  ): Promise<string> => {
     return new Promise((resolve, reject) => {
       exec(cmd, { maxBuffer: 100 * 1024 * 1024 }, (error, stdout, stderr) => {
         if (error) {
           reject(error)
           return
         }
-        if (stderr && printStdErr) {
+        if (stderr && printStdErr && !ignoreStdErrs.includes(stderr.trim())) {
           console.error(`Script error output: ${stderr}`)
         }
         let statsString = ""
@@ -669,60 +681,123 @@ const compileCircuitsWithNargo = async ({
             statsString = ` [noir warnings: ${warnings}, noir bugs: ${bugs}]`
           }
         }
-        console.log(`Successfully compiled ${name}${statsString}`)
+        console.log(`Successfully compiled ${name}${statsString} (${current}/${total})`)
         resolve(stdout)
       })
     })
   }
 
-  const pool = new PromisePool(MAX_CONCURRENT_COMPILATIONS)
+  const pool = new PromisePool(concurrency)
   const promises: Promise<void>[] = []
 
-  // Process circuits with controlled concurrency
-  for (const { name } of [...STATIC_CIRCUITS, ...generatedCircuits]) {
-    // Check if compilation output already exists
-    const outputPath = path.join("target", `${name}.json`)
-    if (fs.existsSync(outputPath) && !forceCompilation) {
-      console.log(`Skipping ${name} - compilation output already exists`)
-      continue
-    }
+  // Get all circuits that need to be compiled
+  const allCircuits = [...STATIC_CIRCUITS, ...generatedCircuits]
+  const circuitsToCompile = forceCompilation
+    ? allCircuits
+    : allCircuits.filter(({ name }) => {
+        const outputPath = path.join("target", `${name}.json`)
+        return !fs.existsSync(outputPath)
+      })
 
-    const promise = pool.add(async () => {
-      try {
-        console.log(`Compiling ${name}...`)
-        await execPromise(name, `${command} ${name}`)
-      } catch (error: any) {
-        console.error(`Error executing script for ${name}: ${error.message}`)
-      }
-    })
-    promises.push(promise)
+  // Process circuits with controlled concurrency
+  const totalCount = circuitsToCompile.length
+  let processedCount = 0
+  for (const { name } of circuitsToCompile) {
+    processedCount++
+
+    const promise = (name: string, counter: number) =>
+      pool.add(async () => {
+        try {
+          console.log(`Compiling ${name}... (${counter}/${totalCount})`)
+          await execPromise(name, `${command} ${name}`, counter, totalCount)
+        } catch (error: any) {
+          console.error(`Error executing script for ${name}: ${error.message}`)
+        }
+      })
+    promises.push(promise(name, processedCount))
   }
 
   // Wait for all compilations to complete
   await Promise.all(promises)
 
-  const duration = (Date.now() - startTime) / 1000 // convert to seconds
-  const minutes = Math.floor(duration / 60)
-  const seconds = Math.floor(duration % 60)
+  if (processedCount > 0) {
+    const duration = (Date.now() - startTime) / 1000 // convert to seconds
+    const minutes = Math.floor(duration / 60)
+    const seconds = Math.floor(duration % 60)
 
-  if (minutes > 0) {
-    console.log(`Total time taken: ${minutes}m ${seconds}s`)
-  } else if (seconds > 0) {
-    console.log(`Total time taken: ${seconds}s`)
+    const skippedCount = allCircuits.length - circuitsToCompile.length
+    console.log(`Total circuits: ${allCircuits.length}`)
+    console.log(`Circuits compiled: ${processedCount}`)
+    if (skippedCount > 0) console.log(`Circuits skipped: ${skippedCount} (already compiled)`)
+
+    if (minutes > 0) {
+      console.log(`Total time taken: ${minutes}m ${seconds}s`)
+    } else if (seconds > 0) {
+      console.log(`Total time taken: ${seconds}s`)
+    }
+  } else {
+    console.log("No circuits to compile")
+  }
+}
+
+function checkNargoVersion() {
+  try {
+    // Read package.json to get expected nargo version
+    const packageJsonPath = path.resolve(__dirname, "../../../package.json")
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
+    const expectedNoirVersion = packageJson.dependencies["@noir-lang/noir_js"]
+    if (!expectedNoirVersion) {
+      throw new Error("Couldn't find noir version in package.json")
+    }
+    // Get installed version numbers for comparison
+    const nargoVersionOutput = execSync("nargo -V").toString().trim()
+    const versionMatch = nargoVersionOutput.match(/nargo version = ([^\s\n]+)/)
+    const installedNargoVersion = versionMatch ? versionMatch[1] : null
+    if (!installedNargoVersion) {
+      throw new Error(`Failed to parse nargo version output: ${nargoVersionOutput}`)
+    }
+    if (installedNargoVersion !== expectedNoirVersion) {
+      throw new Error(
+        `nargo version mismatch. Expected ${expectedNoirVersion} but found ${installedNargoVersion}. Please switch nargo versions using noirup.`,
+      )
+    }
+  } catch (error: any) {
+    if (error.message.includes("command not found")) {
+      console.error(
+        "Error: nargo is not installed. Visit https://noir-lang.org for installation instructions.",
+      )
+    } else {
+      console.error("Error:", error.message)
+    }
+    process.exit(1)
   }
 }
 
 const args = process.argv.slice(2)
-const unconstrained = args.includes("unconstrained")
-const compile = args.includes("compile")
-const forceCompilation = args.includes("force-compilation")
-const printStdErr = args.includes("print-stderr")
 
-generateDscCircuits({ unconstrained })
-generateIdDataCircuits({ unconstrained })
-generateDataIntegrityCheckCircuits({ unconstrained })
-generateWorkspaceToml()
-if (compile) {
-  // This works but use at your own risk (this will be very demanding of your machine)
-  compileCircuitsWithNargo({ forceCompilation, printStdErr })
+if (args.includes("generate")) {
+  const unconstrained = args.includes("unconstrained")
+  generateDscCircuits({ unconstrained })
+  generateIdDataCircuits({ unconstrained })
+  generateDataIntegrityCheckCircuits({ unconstrained })
+  generateWorkspaceToml()
+}
+
+if (args.includes("compile")) {
+  // Parse --concurrency argument if provided
+  let concurrency = DEFAULT_CONCURRENCY
+  const concurrencyArg = args.find((arg) => arg.startsWith("--concurrency="))
+  if (concurrencyArg) {
+    const value = concurrencyArg.split("=")[1]
+    const parsed = parseInt(value, 10)
+    if (!isNaN(parsed) && parsed > 0) {
+      concurrency = parsed
+    } else {
+      console.warn(`Invalid --concurrency value. Using default: ${DEFAULT_CONCURRENCY}`)
+    }
+  }
+  const forceCompilation = args.includes("force")
+  const printStdErr = args.includes("verbose")
+  checkNargoVersion()
+  compileCircuitsWithNargo({ forceCompilation, printStdErr, concurrency })
 }

@@ -20,14 +20,6 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install Bun
-          command: |
-            curl -sSL https://bun.sh/install | bash
-      - save_cache:
-          paths:
-            - /home/circleci/.bun
-          key: bun-cache
-      - run:
           name: Install Noir
           command: |
             curl -sSL https://raw.githubusercontent.com/noir-lang/noirup/refs/heads/main/install | bash || true
@@ -39,10 +31,18 @@ jobs:
           paths:
             - /home/circleci/.nargo
           key: nargo-cache-<< pipeline.parameters.noir_version >>
+      - restore_cache:
+          keys:
+            - node-deps-{{ checksum "package-lock.json" }}
+            - node-deps-
       - run:
           name: Install npm dependencies
           command: |
-            npm i
+            npm ci
+      - save_cache:
+          paths:
+            - node_modules
+          key: node-deps-{{ checksum "package-lock.json" }}
       - persist_to_workspace:
           root: ~/repo
           paths: .
@@ -52,7 +52,7 @@ jobs:
     steps:
       - attach_workspace:
           at: ~/repo
-      - run: npm run typecheck
+      - run: npm run lint
 
   noir_tests:
     <<: *defaults
@@ -72,19 +72,15 @@ jobs:
       - restore_cache:
           keys:
             - nargo-cache-<< pipeline.parameters.noir_version >>
-      - restore_cache:
-          keys:
-            - bun-cache
       - attach_workspace:
           at: ~/repo
       - run:
           name: Compile circuits
           command: |
-            NARGO_BIN=/home/circleci/.nargo/bin/nargo BUN_BIN=/home/circleci/.bun/bin/bun ~/repo/scripts/ci-compile-circuits.sh
+            PATH=/home/circleci/.nargo/bin:$PATH ~/repo/scripts/ci-compile-circuits.sh
       - run:
           name: Integration tests
           command: |
-            cat target/sig_check_dsc_tbs_700_ecdsa_nist_p384_sha384.json
             npm test circuits.test.ts
 
 workflows:

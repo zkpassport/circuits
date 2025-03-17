@@ -4,14 +4,11 @@
 
 set -euo pipefail
 
-: ${NARGO_BIN:=nargo}
-: ${BUN_BIN:=bun}
+# Generate unconstrained circuits, so that we can test the circuit logic
+# for given inputs without doing fully constrained proving
+./node_modules/.bin/tsx src/ts/scripts/circuit-builder.ts generate unconstrained
 
-# Update the circuits to be unconstrained, so that we can test the logic
-# of the circuit for given inputs without doing fully constrained proving.
-$BUN_BIN run src/ts/scripts/circuit-builder.ts unconstrained
-
-# Circuits to compile
+# Circuits to compile for integration tests
 CIRCUITS=(
     "sig_check_dsc_tbs_700_rsa_pkcs_4096_sha512"
     "sig_check_dsc_tbs_1500_rsa_pkcs_4096_sha512"
@@ -36,5 +33,5 @@ CIRCUITS=(
 )
 
 for circuit in "${CIRCUITS[@]}"; do
-    $NARGO_BIN compile --force --package "$circuit"
+    nargo compile --force --package "$circuit"
 done
