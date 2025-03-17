@@ -603,17 +603,18 @@ const generateWorkspaceToml = () => {
 }
 
 // Maximum number of concurrent circuit compilations via `nargo compile`
-const MAX_CONCURRENT_COMPILATIONS = 10
+// Default value that can be overridden via CLI using --concurrency=x
+const DEFAULT_CONCURRENCY = 10
 
 // Promise pool for controlled concurrency
 class PromisePool {
   private queue: (() => Promise<void>)[] = []
   private activePromises = 0
 
-  constructor(private maxConcurrent: number) {}
+  constructor(private concurrency: number) {}
 
   async add(fn: () => Promise<void>) {
-    if (this.activePromises >= this.maxConcurrent) {
+    if (this.activePromises >= this.concurrency) {
       // Queue the task if we're at max concurrency
       await new Promise<void>((resolve) => {
         this.queue.push(async () => {
@@ -644,14 +645,18 @@ const compileCircuitsWithNargo = async ({
   forceCompilation = false,
   getGateCount = false,
   printStdErr = false,
+  concurrency = DEFAULT_CONCURRENCY,
 }: {
   forceCompilation?: boolean
   getGateCount?: boolean
   printStdErr?: boolean
+  concurrency?: number
 } = {}) => {
   const startTime = Date.now()
   const command = getGateCount ? "bash scripts/info.sh" : "nargo compile --force --package"
-
+  if (concurrency != DEFAULT_CONCURRENCY) {
+    console.warn(`Using concurrency: ${concurrency}`)
+  }
   // Helper function to promisify exec
   const execPromise = (
     name: string,
@@ -682,7 +687,7 @@ const compileCircuitsWithNargo = async ({
     })
   }
 
-  const pool = new PromisePool(MAX_CONCURRENT_COMPILATIONS)
+  const pool = new PromisePool(concurrency)
   const promises: Promise<void>[] = []
 
   // Get all circuits that need to be compiled
@@ -769,10 +774,8 @@ function checkNargoVersion() {
 }
 
 const args = process.argv.slice(2)
-const compile = args.includes("compile")
-const generate = args.includes("generate")
 
-if (generate) {
+if (args.includes("generate")) {
   const unconstrained = args.includes("unconstrained")
   generateDscCircuits({ unconstrained })
   generateIdDataCircuits({ unconstrained })
@@ -780,9 +783,21 @@ if (generate) {
   generateWorkspaceToml()
 }
 
-if (compile) {
+if (args.includes("compile")) {
+  // Parse --concurrency argument if provided
+  let concurrency = DEFAULT_CONCURRENCY
+  const concurrencyArg = args.find((arg) => arg.startsWith("--concurrency="))
+  if (concurrencyArg) {
+    const value = concurrencyArg.split("=")[1]
+    const parsed = parseInt(value, 10)
+    if (!isNaN(parsed) && parsed > 0) {
+      concurrency = parsed
+    } else {
+      console.warn(`Invalid --concurrency value. Using default: ${DEFAULT_CONCURRENCY}`)
+    }
+  }
   const forceCompilation = args.includes("force")
   const printStdErr = args.includes("verbose")
   checkNargoVersion()
-  compileCircuitsWithNargo({ forceCompilation, printStdErr })
+  compileCircuitsWithNargo({ forceCompilation, printStdErr, concurrency })
 }
