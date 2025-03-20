@@ -38,7 +38,7 @@ import { generateSigningCertificates, signSod } from "../passport-generator"
 import { loadKeypairFromFile } from "../passport-generator"
 import { wrapSodInContentInfo } from "../sod-generator"
 import { generateSod } from "../sod-generator"
-import { serializeAsn } from "../utils"
+import { serializeAsn, createUTCDate } from "../utils"
 import { Circuit } from "../circuits"
 
 describe("subcircuits - RSA PKCS", () => {
@@ -165,8 +165,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(disclosedData.name).toBe("JOHNNY SILVERHAND")
       expect(disclosedData.firstName).toBe("JOHNNY")
       expect(disclosedData.lastName).toBe("SILVERHAND")
-      expect(disclosedData.dateOfBirth).toEqual(new Date(1988, 10, 12))
-      expect(disclosedData.dateOfExpiry).toEqual(new Date(2030, 0, 1))
+      expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1988, 10, 12))
+      expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2030, 0, 1))
       expect(disclosedData.gender).toBe("M")
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
@@ -869,8 +869,8 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
       expect(disclosedData.name).toBe("JOHNNY MATTHEW SILVERHAND")
       expect(disclosedData.firstName).toBe("JOHNNY MATTHEW")
       expect(disclosedData.lastName).toBe("SILVERHAND")
-      expect(disclosedData.dateOfBirth).toEqual(new Date(1988, 10, 12))
-      expect(disclosedData.dateOfExpiry).toEqual(new Date(2030, 0, 1))
+      expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1988, 10, 12))
+      expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2030, 0, 1))
       expect(disclosedData.gender).toBe("M")
       expect(globalNullifier).toBeDefined()
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
@@ -1032,8 +1032,8 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
       expect(disclosedData.name).toBe("JOHNNY SILVERHAND")
       expect(disclosedData.firstName).toBe("JOHNNY")
       expect(disclosedData.lastName).toBe("SILVERHAND")
-      expect(disclosedData.dateOfBirth).toEqual(new Date(1988, 10, 12))
-      expect(disclosedData.dateOfExpiry).toEqual(new Date(2030, 0, 1))
+      expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1988, 10, 12))
+      expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2030, 0, 1))
       expect(disclosedData.gender).toBe("M")
       expect(globalNullifier).toBeDefined()
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)

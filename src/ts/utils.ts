@@ -30,3 +30,7 @@ export async function compileCircuit(path: string): Promise<CompiledCircuit> {
 export function serializeAsn(obj: any): ArrayBuffer {
   return AsnSerializer.serialize(obj)
 }
+
+export function createUTCDate(year: number, month: number, day: number): Date {
+  return new Date(Date.UTC(year, month, day))
+}
