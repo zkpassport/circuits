@@ -63,8 +63,7 @@ const processFiles = async () => {
   for (const file of files) {
     const inputPath = path.join(TARGET_DIR, file)
     const outputPath = path.join(PACKAGED_DIR, file)
-    const vkeyPath = path.join(TARGET_DIR, file.replace(".json", ".vkey"))
-    const vkeyJsonPath = path.join(TARGET_DIR, file.replace(".json", ".vkey.json"))
+    const vkeyPath = path.join(TARGET_DIR, file.replace(".json", ""))
     const gateCountPath = path.join(TARGET_DIR, file.replace(".json", ".size.json"))
 
     const promise = pool.add(async () => {
@@ -78,20 +77,19 @@ const processFiles = async () => {
         // Run bb command to get bb version and generate circuit vkey
         const bbVersion = (await execPromise("bb --version")).stdout.trim()
         console.log(`Generating vkey for ${file}...`)
-        await execPromise(`bb write_vk_ultra_honk -b "${inputPath}" -o "${vkeyPath}" --recursive`)
+        await execPromise(`mkdir -p ${vkeyPath}`)
         await execPromise(
-          `bb vk_as_fields_ultra_honk -k "${vkeyPath}" -o "${vkeyJsonPath}" --recursive`,
+          `bb write_vk --scheme ultra_honk --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}" --recursive`,
         )
-        await execPromise(`bb gates -b "${inputPath}" --recursive > "${gateCountPath}"`)
+        await execPromise(`bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`)
 
         // Get Poseidon2 hash of vkey
-        const vkeyAsFieldsJson = JSON.parse(fs.readFileSync(vkeyJsonPath, "utf-8"))
+        const vkeyAsFieldsJson = JSON.parse(fs.readFileSync(`${vkeyPath}/vk_fields.json`, "utf-8"))
         const vkeyAsFields = vkeyAsFieldsJson.map((v: any) => BigInt(v))
         const vkeyHash = `0x${poseidon2Hash(vkeyAsFields).toString(16)}`
-        const vkey = Buffer.from(fs.readFileSync(vkeyPath)).toString("base64")
+        const vkey = Buffer.from(fs.readFileSync(`${vkeyPath}/vk`)).toString("base64")
         // Clean up vkey files
-        fs.unlinkSync(vkeyPath)
-        fs.unlinkSync(vkeyJsonPath)
+        await execPromise(`rm -rf ${vkeyPath}`)
 
         // Read and parse the input file
         const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
