@@ -20,6 +20,7 @@ use bigcurve::curves::secp256r1::{Secp256r1_Params, Secp256r1Fq, Secp256r1Fr};
 use bigcurve::curves::secp384r1::{Secp384r1_Params, Secp384r1Fq, Secp384r1Fr};
 use bigcurve::curves::secp521r1::{Secp521r1_Params, Secp521r1Fq, Secp521r1Fr};
 use bignum::bignum::BigNum;
+use bignum::bignum::BigNumTrait;
 use ecdsa::ecdsa::{
     verify_brainpoolp256r1_ecdsa, verify_brainpoolp256t1_ecdsa, verify_brainpoolp384r1_ecdsa,
     verify_brainpoolp384t1_ecdsa, verify_brainpoolp512r1_ecdsa, verify_brainpoolp512t1_ecdsa,
