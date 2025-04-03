@@ -79,7 +79,7 @@ const processFiles = async () => {
         console.log(`Generating vkey for ${file}...`)
         await execPromise(`mkdir -p ${vkeyPath}`)
         await execPromise(
-          `bb write_vk --scheme ultra_honk --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}" --recursive`,
+          `bb write_vk --scheme ultra_honk --recursive --honk_recursion 1 --init_kzg_accumulator --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
         )
         await execPromise(`bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`)
 

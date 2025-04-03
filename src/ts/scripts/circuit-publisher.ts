@@ -13,6 +13,39 @@ interface CircuitArtifact {
   path: string
 }
 
+// Promise pool for controlled concurrency
+class PromisePool {
+  private queue: (() => Promise<void>)[] = []
+  private activePromises = 0
+
+  constructor(private concurrency: number) {}
+
+  async add(fn: () => Promise<void>) {
+    if (this.activePromises >= this.concurrency) {
+      // Queue the task if we're at max concurrency
+      await new Promise<void>((resolve) => {
+        this.queue.push(async () => {
+          await fn()
+          resolve()
+        })
+      })
+    } else {
+      // Execute immediately if under the concurrency limit
+      this.activePromises++
+      try {
+        await fn()
+      } finally {
+        this.activePromises--
+        // Process next queued task if any
+        if (this.queue.length > 0) {
+          const next = this.queue.shift()!
+          this.add(next)
+        }
+      }
+    }
+  }
+}
+
 class CircuitPublisher {
   private s3: S3Client
   private cloudfront: CloudFrontClient
@@ -108,13 +141,25 @@ class CircuitPublisher {
     )
   }
 
-  async publishCircuits(version: string, circuitDir: string = "target/packaged"): Promise<void> {
+  async publishCircuits(
+    version: string,
+    circuitDir: string = "target/packaged",
+    concurrency: number = 10,
+  ): Promise<void> {
+    const startTime = Date.now()
     const artifacts: CircuitArtifact[] = []
+
+    if (concurrency !== 10) {
+      console.log(`Using concurrency: ${concurrency}`)
+    }
 
     // Process each circuit
     const files = await fs.readdir(circuitDir)
-    for (const file of files) {
-      if (!file.endsWith(".json")) continue
+    const jsonFiles = files.filter((file) => file.endsWith(".json"))
+    console.log(`Found ${jsonFiles.length} JSON files to process`)
+
+    // First, read and prepare all files
+    for (const file of jsonFiles) {
       const fileName = path.basename(file)
       console.log(`Processing ${fileName}`)
       const filePath = path.join(circuitDir, file)
@@ -128,9 +173,6 @@ class CircuitPublisher {
         throw new Error(`No name found in ${filePath}`)
       }
 
-      // Upload to artifacts folder if not exists
-      await this.uploadIfNotExists(filePath, json.name, hash.substring(0, 16))
-
       artifacts.push({
         name: json.name,
         hash,
@@ -138,24 +180,105 @@ class CircuitPublisher {
       })
     }
 
+    // Create promise pool for concurrent uploads
+    const pool = new PromisePool(concurrency)
+    const uploadPromises: Promise<void>[] = []
+
+    // Upload artifacts concurrently with controlled concurrency
+    console.log(`Uploading artifacts with concurrency ${concurrency}...`)
+    let processedCount = 0
+    const totalCount = artifacts.length
+
+    for (const artifact of artifacts) {
+      const currentCount = ++processedCount
+      const shortHash = artifact.hash.substring(0, 16)
+
+      uploadPromises.push(
+        pool.add(async () => {
+          try {
+            console.log(`Uploading artifact ${artifact.name} (${currentCount}/${totalCount})...`)
+            await this.uploadIfNotExists(artifact.path, artifact.name, shortHash)
+          } catch (error) {
+            console.error(`Error uploading ${artifact.name}: ${error}`)
+          }
+        }),
+      )
+    }
+
+    // Wait for all uploads to complete
+    await Promise.all(uploadPromises)
+
     // Create version symlinks
     console.log(`Creating version ${version} symlinks...`)
+    const symlinkPromises: Promise<void>[] = []
+
+    // Reset for symlink creation
+    processedCount = 0
+
     for (const artifact of artifacts) {
-      await this.createVersionSymlink(version, artifact.name, artifact.hash.substring(0, 16))
-      await this.createHashSymlink(artifact.hash, artifact.name)
+      const currentCount = ++processedCount
+      const shortHash = artifact.hash.substring(0, 16)
+
+      symlinkPromises.push(
+        pool.add(async () => {
+          try {
+            console.log(`Creating symlinks for ${artifact.name} (${currentCount}/${totalCount})...`)
+            await this.createVersionSymlink(version, artifact.name, shortHash)
+            await this.createHashSymlink(artifact.hash, artifact.name)
+          } catch (error) {
+            console.error(`Error creating symlinks for ${artifact.name}: ${error}`)
+          }
+        }),
+      )
     }
+
+    // Wait for all symlink creations to complete
+    await Promise.all(symlinkPromises)
 
     // Invalidate CloudFront cache for the version
     console.log("Invalidating CloudFront cache...")
     await this.invalidateCache(version)
 
+    const duration = (Date.now() - startTime) / 1000 // convert to seconds
+    const minutes = Math.floor(duration / 60)
+    const seconds = Math.floor(duration % 60)
+
+    if (minutes > 0) {
+      console.log(`Total time taken: ${minutes}m ${seconds}s`)
+    } else if (seconds > 0) {
+      console.log(`Total time taken: ${seconds}s`)
+    }
+
     console.log("Circuit publishing complete!")
   }
 }
 
+// Default concurrency value
+const DEFAULT_CONCURRENCY = 10
+
 // CLI entrypoint
 if (require.main === module) {
-  let version = process.argv[2]
+  // Parse arguments
+  const args = process.argv.slice(2)
+
+  // Extract version if provided
+  let versionArg = args.find((arg) => !arg.startsWith("--"))
+  let version = versionArg
+
+  // Parse --concurrency argument if provided
+  let concurrency = DEFAULT_CONCURRENCY
+  const concurrencyArg = args.find((arg) => arg.startsWith("--concurrency="))
+  if (concurrencyArg) {
+    const value = concurrencyArg.split("=")[1]
+    const parsed = parseInt(value, 10)
+    if (!isNaN(parsed) && parsed > 0) {
+      concurrency = parsed
+    } else {
+      console.warn(`Invalid --concurrency value. Using default: ${DEFAULT_CONCURRENCY}`)
+    }
+  }
+
+  // If no version provided as a direct argument, try package.json
   if (!version) {
     // Use version from package.json if not provided as argument
     const packageJson = JSON.parse(fsSync.readFileSync("package.json", "utf-8"))
@@ -187,5 +310,5 @@ if (require.main === module) {
   const region = process.env.AWS_REGION
 
   const publisher = new CircuitPublisher(bucket, distributionId, region)
-  publisher.publishCircuits(version).catch(console.error)
+  publisher.publishCircuits(version, "target/packaged", concurrency).catch(console.error)
 }
