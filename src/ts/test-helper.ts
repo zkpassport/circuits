@@ -29,7 +29,7 @@ export class TestHelper {
       case "dsc": {
         const inputs = await getDSCCircuitInputs(
           this.passport as any,
-          0n,
+          1n,
           undefined,
           this.masterlist,
         )
@@ -37,12 +37,12 @@ export class TestHelper {
         return inputs
       }
       case "id": {
-        const inputs = await getIDDataCircuitInputs(this.passport as any, 0n)
+        const inputs = await getIDDataCircuitInputs(this.passport as any, 1n, 2n)
         if (!inputs) throw new Error("Unable to generate ID data circuit inputs")
         return inputs
       }
       case "integrity": {
-        const inputs = await getIntegrityCheckCircuitInputs(this.passport as any, 0n)
+        const inputs = await getIntegrityCheckCircuitInputs(this.passport as any, 2n, 3n)
         if (!inputs) throw new Error("Unable to generate integrity check circuit inputs")
         return inputs
       }
@@ -52,7 +52,7 @@ export class TestHelper {
           nationality: { disclose: true },
           birthdate: { disclose: true },
         }
-        const inputs = await getDiscloseCircuitInputs(this.passport as any, query, 0n)
+        const inputs = await getDiscloseCircuitInputs(this.passport as any, query, 3n)
         if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
         return inputs
       }

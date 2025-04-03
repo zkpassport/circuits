@@ -5,7 +5,8 @@ use commitment::commit_to_id;
 
 fn main(
     comm_in: pub Field,
-    salt: Field,
+    salt_in: Field,
+    salt_out: Field,
     dg1: [u8; 95],
     dsc_pubkey: [u8; 128],
     dsc_pubkey_redc_param: [u8; 129],
@@ -27,7 +28,8 @@ fn main(
     ));
     let comm_out = commit_to_id(
         comm_in,
-        salt,
+        salt_in,
+        salt_out,
         dg1,
         tbs_certificate,
         sod_signature,

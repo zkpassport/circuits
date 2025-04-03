@@ -27,7 +27,8 @@ comm_out                `H(salt, dg1, private_nullifier)`
 */
 pub fn commit_to_disclosure<let SA_SIZE: u32>(
     comm_in: Field,
-    salt: Field,
+    salt_in: Field,
+    salt_out: Field,
     dg1: [u8; 95],
     signed_attributes: [u8; SA_SIZE],
     signed_attributes_size: Field,
@@ -37,7 +38,7 @@ pub fn commit_to_disclosure<let SA_SIZE: u32>(
     assert(
         comm_in
             == hash_salt_country_signed_attr_dg1_private_nullifier(
-                salt,
+                salt_in,
                 country,
                 signed_attributes,
                 signed_attributes_size,
@@ -47,7 +48,7 @@ pub fn commit_to_disclosure<let SA_SIZE: u32>(
     );
     // println(f"comm_in: {comm_in}");
     // println(f"private_nullifier: {private_nullifier}");
-    let comm_out = hash_salt_dg1_private_nullifier(salt, dg1, private_nullifier);
+    let comm_out = hash_salt_dg1_private_nullifier(salt_out, dg1, private_nullifier);
     // println(f"comm_out: {comm_out}");
     comm_out
 }

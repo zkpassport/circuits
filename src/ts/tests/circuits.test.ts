@@ -151,7 +151,7 @@ describe("subcircuits - RSA PKCS", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport as any, query, 0n)
+      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
       expect(proof).toBeDefined()
@@ -179,7 +179,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport as any, query, 0n)
+      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
       expect(proof).toBeDefined()
@@ -210,7 +210,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         nationality: { in: ["AUS", "FRA", "USA", "GBR"] },
       }
-      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -233,7 +233,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getIssuingCountryInclusionCircuitInputs(
         helper.passport as any,
         query,
-        0n,
+        3n,
       )
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs)
@@ -256,7 +256,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         nationality: { out: ["FRA", "USA", "GBR"] },
       }
-      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -283,7 +283,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getIssuingCountryExclusionCircuitInputs(
         helper.passport as any,
         query,
-        0n,
+        3n,
       )
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs)
@@ -317,7 +317,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         age: { gte: 18 },
       }
-      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-age greater than circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -340,7 +340,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         age: { lt: age + 1 },
       }
-      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-age less than circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -363,7 +363,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         age: { gte: age, lt: age + 2 },
       }
-      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-age between circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -386,7 +386,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         age: { eq: age },
       }
-      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-age equal circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -408,7 +408,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         age: { disclose: true },
       }
-      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-age equal circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -432,7 +432,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         age: { range: [age - 5, age + 5] },
       }
-      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getAgeCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-age range circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -465,7 +465,7 @@ describe("subcircuits - RSA PKCS", () => {
         // Remember months start at 0 so 10 is November
         birthdate: { eq: new Date(1988, 10, 12) },
       }
-      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-birthdate equal circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -487,7 +487,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         birthdate: { range: [new Date(1988, 10, 11), new Date(1988, 10, 13)] },
       }
-      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-birthdate range circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -509,7 +509,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         birthdate: { disclose: true },
       }
-      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-birthdate disclose circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -531,7 +531,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         birthdate: { gte: new Date(1988, 10, 11) },
       }
-      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs)
         throw new Error("Unable to generate compare-birthdate greater than circuit inputs")
       const proof = await circuit.prove(inputs)
@@ -556,7 +556,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         birthdate: { lte: new Date(1988, 10, 15) },
       }
-      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-birthdate less than circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -578,7 +578,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         birthdate: { gte: new Date(1988, 10, 11), lte: new Date(1988, 10, 15) },
       }
-      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-birthdate between circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -610,7 +610,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         expiry_date: { eq: new Date(2030, 0, 1) },
       }
-      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-expirydate equal circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -632,7 +632,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         expiry_date: { range: [new Date(2025, 0, 1), new Date(2035, 0, 1)] },
       }
-      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-expirydate range circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -654,7 +654,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         expiry_date: { disclose: true },
       }
-      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-expirydate disclose circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -676,7 +676,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         expiry_date: { gte: new Date(2025, 0, 1) },
       }
-      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs)
         throw new Error("Unable to generate compare-expirydate greater than circuit inputs")
       const proof = await circuit.prove(inputs)
@@ -699,7 +699,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         expiry_date: { lte: new Date(2035, 0, 1) },
       }
-      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-expirydate less than circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -721,7 +721,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         expiry_date: { gte: new Date(2025, 0, 1), lte: new Date(2035, 0, 1) },
       }
-      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 0n)
+      const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-expirydate between circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
@@ -855,7 +855,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 0n)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
       expect(proof).toBeDefined()
@@ -883,7 +883,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
         firstname: { disclose: true },
         lastname: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 0n)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
       expect(proof).toBeDefined()
@@ -1018,7 +1018,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 0n)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
       expect(proof).toBeDefined()
@@ -1044,7 +1044,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 0n)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
       expect(proof).toBeDefined()
