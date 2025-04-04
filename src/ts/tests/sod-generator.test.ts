@@ -3,9 +3,9 @@ import { AsnConvert } from "@peculiar/asn1-schema"
 import { Version } from "@peculiar/asn1-x509"
 import { describe, it, expect } from "@jest/globals"
 import { generateSampleDSC, generateSod } from "../sod-generator"
-import { Binary, id_sha256 } from "@zkpassport/utils"
+import { Binary } from "@zkpassport/utils"
 import { createHash } from "crypto"
-import { ASN } from "../asn"
+import { ASN, id_sha256 } from "../asn"
 
 describe("SOD", () => {
   const dg1 = Binary.from(new Uint8Array(32).buffer)
