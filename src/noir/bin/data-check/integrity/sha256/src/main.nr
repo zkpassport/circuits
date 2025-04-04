@@ -6,7 +6,8 @@ use data_check_integrity::check_integrity_of_data_sha256;
 fn main(
     current_date: pub str<8>,
     comm_in: pub Field,
-    salt: Field,
+    salt_in: Field,
+    salt_out: Field,
     dg1: [u8; 95],
     signed_attributes: [u8; 200],
     signed_attributes_size: u32,
@@ -28,7 +29,8 @@ fn main(
     );
     let comm_out = commit_to_disclosure(
         comm_in,
-        salt,
+        salt_in,
+        salt_out,
         dg1,
         signed_attributes,
         signed_attributes_size as Field,

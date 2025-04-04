@@ -7,7 +7,8 @@ use sig_check_common::sha256_and_check_data_to_sign;
 
 fn main(
     comm_in: pub Field,
-    salt: Field,
+    salt_in: Field,
+    salt_out: Field,
     dg1: [u8; 95],
     dsc_pubkey_x: [u8; 48],
     dsc_pubkey_y: [u8; 48],
@@ -34,7 +35,8 @@ fn main(
     ));
     let comm_out = commit_to_id(
         comm_in,
-        salt,
+        salt_in,
+        salt_out,
         dg1,
         tbs_certificate,
         sod_signature,

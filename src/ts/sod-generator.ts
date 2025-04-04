@@ -1,5 +1,5 @@
-import { ASN } from "./asn"
-import { Binary, id_ldsSecurityObject } from "@zkpassport/utils"
+import { ASN, id_ldsSecurityObject } from "./asn"
+import { Binary } from "@zkpassport/utils"
 import {
   Attribute,
   CertificateChoices,

@@ -192,7 +192,8 @@ use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     comm_in: pub Field,
-    salt: Field,
+    salt_in: Field,
+    salt_out: Field,
     dg1: [u8; 95],
     dsc_pubkey_x: [u8; ${Math.ceil(bit_size / 8)}],
     dsc_pubkey_y: [u8; ${Math.ceil(bit_size / 8)}],
@@ -219,7 +220,8 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     ));
     let comm_out = commit_to_id(
         comm_in,
-        salt,
+        salt_in,
+        salt_out,
         dg1,
         tbs_certificate,
         sod_signature,
@@ -243,7 +245,8 @@ use commitment::commit_to_id;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     comm_in: pub Field,
-    salt: Field,
+    salt_in: Field,
+    salt_out: Field,
     dg1: [u8; 95],
     dsc_pubkey: [u8; ${Math.ceil(bit_size / 8)}],
     dsc_pubkey_redc_param: [u8; ${Math.ceil(bit_size / 8) + 1}],
@@ -267,7 +270,8 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     ));
     let comm_out = commit_to_id(
         comm_in,
-        salt,
+        salt_in,
+        salt_out,
         dg1,
         tbs_certificate,
         sod_signature,
@@ -289,7 +293,8 @@ use data_check_integrity::check_integrity_of_data_${hash_algorithm};
 ${unconstrained ? "unconstrained " : ""}fn main(
     current_date: pub str<8>,
     comm_in: pub Field,
-    salt: Field,
+    salt_in: Field,
+    salt_out: Field,
     dg1: [u8; 95],
     signed_attributes: [u8; 200],
     signed_attributes_size: u32,
@@ -311,7 +316,8 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     );
     let comm_out = commit_to_disclosure(
         comm_in,
-        salt,
+        salt_in,
+        salt_out,
         dg1,
         signed_attributes,
         signed_attributes_size as Field,
