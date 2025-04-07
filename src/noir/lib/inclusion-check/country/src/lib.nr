@@ -72,9 +72,10 @@ pub fn calculate_param_commitment<let N: u32>(country_list: [str<3>; N]) -> Fiel
     let mut params = [0 as Field; N];
     for i in 0..N {
         let country_code = country_list[i].as_bytes();
-        params[i] = country_code[0] as Field;
-        params[i + 1] = country_code[1] as Field;
-        params[i + 2] = country_code[2] as Field;
+        let country_sum: u32 = country_code[0] as u32 * 0x10000
+            + country_code[1] as u32 * 0x100
+            + country_code[2] as u32;
+        params[i] = country_sum as Field;
     }
     Poseidon2::hash(params, N)
 }
