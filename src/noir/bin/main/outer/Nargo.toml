@@ -1,6 +1,7 @@
 [package]
 name = "outer"
 type = "bin"
-compiler_version = ">=0.32.0"
+compiler_version = ">=1.0.0"
 
 [dependencies]
+common = { path = "../../../lib/commitment/common" }
