@@ -1,6 +1,6 @@
-use utils::{DiscloseFlags, DisclosedData};
-use disclose::get_disclosed_data;
 use commitment::nullify;
+use disclose::get_disclosed_data;
+use utils::{DisclosedData, DiscloseFlags};
 
 fn main(
     comm_in: pub Field,

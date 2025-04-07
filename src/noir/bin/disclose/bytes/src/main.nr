@@ -1,15 +1,17 @@
-use disclose::get_disclosed_bytes;
 use commitment::nullify;
+use disclose::{calculate_param_commitment, get_disclosed_bytes};
 
 fn main(
     comm_in: pub Field,
     salt: Field,
     private_nullifier: Field,
     dg1: [u8; 95],
-    disclose_mask: pub [u8; 90],
+    // The disclose mask is public (via the parameter commitment) so verifiers can check the mask
+    disclose_mask: [u8; 90],
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub ([u8; 90], Field) {
+) -> pub (Field, Field) {
+    // The disclose bytes are public (via the parameter commitment) so verifiers can check the bytes
     let disclosed_bytes = get_disclosed_bytes(dg1, disclose_mask);
     let scoped_nullifier = nullify(
         comm_in,
@@ -19,5 +21,6 @@ fn main(
         service_scope,
         service_subscope,
     );
-    (disclosed_bytes, scoped_nullifier)
+    let param_commitment = calculate_param_commitment(disclose_mask, disclosed_bytes);
+    (param_commitment, scoped_nullifier)
 }

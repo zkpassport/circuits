@@ -1,3 +1,4 @@
+use std::hash::poseidon2::Poseidon2;
 use utils::{get_issuing_country_from_mrz, get_nationality_from_mrz};
 
 unconstrained fn get_index<let N: u32>(list: [str<3>; N], value: [u8; 3]) -> i32 {
@@ -65,4 +66,15 @@ pub fn check_issuing_country_inclusion<let N: u32>(dg1: [u8; 95], country_list: 
         country_code[2],
         "Issuing country does not match the country code",
     );
+}
+
+pub fn calculate_param_commitment<let N: u32>(country_list: [str<3>; N]) -> Field {
+    let mut params = [0 as Field; N];
+    for i in 0..N {
+        let country_code = country_list[i].as_bytes();
+        params[i] = country_code[0] as Field;
+        params[i + 1] = country_code[1] as Field;
+        params[i + 2] = country_code[2] as Field;
+    }
+    Poseidon2::hash(params, N)
 }

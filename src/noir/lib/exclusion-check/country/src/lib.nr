@@ -1,3 +1,4 @@
+use std::hash::poseidon2::Poseidon2;
 use utils::{get_issuing_country_from_mrz, get_nationality_from_mrz};
 
 unconstrained fn get_closest_index<let N: u32>(sorted_list: [u32; N], value: u32) -> u32 {
@@ -72,4 +73,12 @@ pub fn check_issuing_country_exclusion<let N: u32>(dg1: [u8; 95], country_list: 
         assert(false);
     }
     // If those two checks pass, then the issuing country is not in the country list
+}
+
+pub fn calculate_param_commitment<let N: u32>(country_list: [u32; N]) -> Field {
+    let mut params = [0 as Field; N];
+    for i in 0..N {
+        params[i] = country_list[i] as Field;
+    }
+    Poseidon2::hash(params, N)
 }

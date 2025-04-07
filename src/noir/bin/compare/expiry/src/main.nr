@@ -1,5 +1,5 @@
 use commitment::nullify;
-use compare_date_lib::{compare_date, get_expiry_date};
+use compare_date_lib::{calculate_param_commitment, compare_date, get_expiry_date};
 
 fn main(
     comm_in: pub Field,
@@ -19,10 +19,11 @@ fn main(
     max_date: pub str<8>,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub Field {
+) -> pub (Field, Field) {
     let expiry_date = get_expiry_date(dg1, current_date.as_bytes());
     // Verify the expiry date of the ID holder
     compare_date(expiry_date, min_date.as_bytes(), max_date.as_bytes());
+    let param_commitment = calculate_param_commitment(current_date, min_date, max_date);
     let nullifier = nullify(
         comm_in,
         salt,
@@ -31,5 +32,5 @@ fn main(
         service_scope,
         service_subscope,
     );
-    nullifier
+    (param_commitment, nullifier)
 }

@@ -1,4 +1,5 @@
 use date::Date;
+use std::hash::poseidon2::Poseidon2;
 use utils::{
     get_array_slice, get_mrz_from_dg1, ID_CARD_MRZ_BIRTHDATE_INDEX, ID_CARD_MRZ_EXPIRY_DATE_INDEX,
     is_id_card, PASSPORT_MRZ_BIRTHDATE_INDEX, PASSPORT_MRZ_EXPIRY_DATE_INDEX,
@@ -69,4 +70,25 @@ pub fn compare_date(date_to_compare: Date, min_date_bytes: [u8; 8], max_date_byt
         assert(date_to_compare.gte(min_date));
         assert(date_to_compare.lte(max_date));
     }
+}
+
+pub fn calculate_param_commitment(
+    current_date: str<8>,
+    min_date: str<8>,
+    max_date: str<8>,
+) -> Field {
+    let mut params = [0 as Field; 24];
+    let current_date_bytes = current_date.as_bytes();
+    for i in 0..8 {
+        params[i] = current_date_bytes[i] as Field;
+    }
+    let min_date_bytes = min_date.as_bytes();
+    for i in 0..8 {
+        params[i + 8] = min_date_bytes[i] as Field;
+    }
+    let max_date_bytes = max_date.as_bytes();
+    for i in 0..8 {
+        params[i + 16] = max_date_bytes[i] as Field;
+    }
+    Poseidon2::hash(params, 24)
 }

@@ -1,4 +1,5 @@
 use date::Date;
+use std::hash::poseidon2::Poseidon2;
 use utils::{
     get_array_slice, get_mrz_from_dg1, ID_CARD_MRZ_BIRTHDATE_INDEX, is_id_card,
     PASSPORT_MRZ_BIRTHDATE_INDEX,
@@ -58,4 +59,19 @@ pub fn compare_age(dg1: [u8; 95], min_age: u8, max_age: u8, current_date_bytes: 
         // is equal to min_age = max_age
         assert(current_date.lt(birthdate.add_years((max_age + 1) as u32)));
     }
+}
+
+pub fn calculate_param_commitment(
+    current_date: str<8>,
+    min_age_required: u8,
+    max_age_required: u8,
+) -> Field {
+    let mut params = [0 as Field; 10];
+    let current_date_bytes = current_date.as_bytes();
+    for i in 0..8 {
+        params[i] = current_date_bytes[i] as Field;
+    }
+    params[8] = min_age_required as Field;
+    params[9] = max_age_required as Field;
+    Poseidon2::hash(params, 10)
 }
