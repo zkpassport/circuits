@@ -1,0 +1,5 @@
+[package]
+name = "outer_lib"
+type = "lib"
+authors = ["Theo Madzou"]
+compiler_version = ">=1.0.0"

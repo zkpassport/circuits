@@ -405,5 +405,13 @@ members = [
     "src/noir/bin/sig-check/id-data/tbs_1500/rsa/pkcs/4096/sha512",
     "src/noir/bin/data-check/integrity/sha256",
     "src/noir/bin/data-check/integrity/sha384",
-    "src/noir/bin/data-check/integrity/sha512"
+    "src/noir/bin/data-check/integrity/sha512",
+    "src/noir/bin/main/outer/count_4",
+    "src/noir/bin/main/outer/count_5",
+    "src/noir/bin/main/outer/count_6",
+    "src/noir/bin/main/outer/count_7",
+    "src/noir/bin/main/outer/count_8",
+    "src/noir/bin/main/outer/count_9",
+    "src/noir/bin/main/outer/count_10",
+    "src/noir/bin/main/outer/count_11"
 ]

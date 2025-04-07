@@ -1,6 +1,6 @@
 {
   "name": "circuits",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "scripts": {
     "lint": "tsc --project src/ts/tsconfig.json --noEmit",
     "test": "jest",
