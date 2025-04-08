@@ -3,6 +3,7 @@ import path from "path"
 import { exec } from "child_process"
 import { promisify } from "util"
 import { poseidon2Hash } from "@zkpassport/poseidon2"
+import { execSync } from "child_process"
 
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
@@ -40,6 +41,39 @@ class PromisePool {
     }
   }
 }
+
+function checkBBVersion() {
+  try {
+    // Read package.json to get expected bb version
+    const packageJsonPath = path.resolve(__dirname, "../../../package.json")
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
+    const expectedBBVersion = packageJson.dependencies["@aztec/bb.js"].replace(/[^0-9\.]/i, "")
+    if (!expectedBBVersion) {
+      throw new Error("Couldn't find bb version in package.json")
+    }
+    // Get installed bb version for comparison
+    const installedBBVersion = execSync("bb --version").toString().trim().replace(/^v/i, "")
+    if (!installedBBVersion) {
+      throw new Error(`Failed to parse bb version output: ${installedBBVersion}`)
+    }
+    if (installedBBVersion !== expectedBBVersion) {
+      throw new Error(
+        `bb version mismatch. Expected ${expectedBBVersion} but found ${installedBBVersion}. Change bb version using: bbup -v ${expectedBBVersion}`,
+      )
+    }
+  } catch (error: any) {
+    if (error.message.includes("command not found")) {
+      console.error(
+        "Error: bb is not installed. Visit https://noir-lang.org for installation instructions.",
+      )
+    } else {
+      console.error("Error:", error.message)
+    }
+    process.exit(1)
+  }
+}
+
+checkBBVersion()
 
 // Create packaged directory if it doesn't exist
 if (!fs.existsSync(PACKAGED_DIR)) {
