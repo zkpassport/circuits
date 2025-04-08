@@ -6,13 +6,16 @@ fn main(
     salt: Field,
     private_nullifier: Field,
     dg1: [u8; 95],
+    // @committed
     // The current date is public (via the parameter commitment) so verifiers can check the date
     // provided to the proof is correct
     current_date: str<8>,
+    // @committed
     // The minimum date required is public (via the parameter commitment) so verifiers can check
     // the date provided to the proof is correct
     // If the minimum date is a string of 1 (i.e. "11111111") it is not checked
     min_date: str<8>,
+    // @committed
     // The maximum date required is public (via the parameter commitment) so verifiers can check
     // the date provided to the proof is correct
     // If the maximum date is a string of 1 (i.e. "11111111") it is not checked

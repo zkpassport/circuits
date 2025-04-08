@@ -6,12 +6,15 @@ fn main(
     salt: Field,
     private_nullifier: Field,
     dg1: [u8; 95],
+    // @committed
     // The current date is public (via the parameter commitment) so verifiers can check the date
     // provided to the proof is correct
     current_date: str<8>,
+    // @committed
     // The minimum age required is public (via the parameter commitment) so verifiers can check
     // the age provided to the proof is correct
     min_age_required: u8,
+    // @committed
     // The maximum age required is public (via the parameter commitment) so verifiers can check
     // the age provided to the proof is correct
     // If the maximum age is 0, it is not checked

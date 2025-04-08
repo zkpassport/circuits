@@ -6,6 +6,7 @@ fn main(
     salt: Field,
     private_nullifier: Field,
     dg1: [u8; 95],
+    // @committed
     // There are roughly 200 countries in the world
     // so we can safely pad it to 200
     country_list: [str<3>; 200],

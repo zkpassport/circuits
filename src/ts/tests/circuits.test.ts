@@ -1,21 +1,14 @@
 import {
   Binary,
   parseCertificate,
-  getDiscloseFlagsCircuitInputs,
   getNationalityInclusionCircuitInputs,
   getNationalityExclusionCircuitInputs,
   getAgeCircuitInputs,
   getBirthdateCircuitInputs,
   calculateAge,
   DisclosedData,
-  getCountryListFromInclusionProof,
-  getCountryListFromExclusionProof,
-  getMinAgeFromProof,
-  getMaxAgeFromProof,
   getNullifierFromDisclosureProof,
   getExpiryDateCircuitInputs,
-  getMinDateFromProof,
-  getMaxDateFromProof,
   getMerkleRootFromDSCProof,
   getCommitmentFromDSCProof,
   getCommitmentInFromIDDataProof,
@@ -24,11 +17,19 @@ import {
   getCommitmentOutFromIntegrityProof,
   getCommitmentInFromDisclosureProof,
   getCurrentDateFromIntegrityProof,
-  getCurrentDateFromAgeProof,
-  getCurrentDateFromDateProof,
   getDiscloseCircuitInputs,
   getIssuingCountryExclusionCircuitInputs,
   getIssuingCountryInclusionCircuitInputs,
+  getParameterCommitmentFromDisclosureProof,
+  getCountryParameterCommitment,
+  getAgeParameterCommitment,
+  getFormattedDate,
+  getDateParameterCommitment,
+  getDiscloseParameterCommitment,
+  getDisclosedBytesFromMrzAndMask,
+  getOuterCircuitInputs,
+  proofToFields,
+  ultraVkToFields,
 } from "@zkpassport/utils"
 import type { CSCMasterlist, Query } from "@zkpassport/utils"
 import { beforeAll, describe, expect, test } from "@jest/globals"
@@ -38,7 +39,7 @@ import { generateSigningCertificates, signSod } from "../passport-generator"
 import { loadKeypairFromFile } from "../passport-generator"
 import { wrapSodInContentInfo } from "../sod-generator"
 import { generateSod } from "../sod-generator"
-import { serializeAsn, createUTCDate } from "../utils"
+import { serializeAsn, createUTCDate, loadPackagedCircuit } from "../utils"
 import { Circuit } from "../circuits"
 
 describe("subcircuits - RSA PKCS", () => {
@@ -59,6 +60,7 @@ describe("subcircuits - RSA PKCS", () => {
     0,
     0,
   )
+  let subproofs: Map<number, { proof: string[]; publicInputs: string[] }> = new Map()
 
   beforeAll(async () => {
     // Johnny Silverhand's MRZ
@@ -99,6 +101,10 @@ describe("subcircuits - RSA PKCS", () => {
       const merkleRoot = getMerkleRootFromDSCProof(proof)
       expect(merkleRoot).toBeDefined()
       dscCommitment = getCommitmentFromDSCProof(proof)
+      subproofs.set(0, {
+        proof: proofToFields(Buffer.from(proof.proof), 0).map((f) => `0x${f}`),
+        publicInputs: proof.publicInputs,
+      })
       await circuit.destroy()
     }, 30000)
   })
@@ -112,6 +118,10 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromIDDataProof(proof)
       idDataCommitment = getCommitmentOutFromIDDataProof(proof)
       expect(commitmentIn).toEqual(dscCommitment)
+      subproofs.set(1, {
+        proof: proofToFields(Buffer.from(proof.proof), 0).map((f) => `0x${f}`),
+        publicInputs: proof.publicInputs,
+      })
       await circuit.destroy()
     }, 30000)
   })
@@ -127,6 +137,10 @@ describe("subcircuits - RSA PKCS", () => {
       const currentDate = getCurrentDateFromIntegrityProof(proof)
       expect(commitmentIn).toEqual(idDataCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
+      subproofs.set(2, {
+        proof: proofToFields(Buffer.from(proof.proof), 0).map((f) => `0x${f}`),
+        publicInputs: proof.publicInputs,
+      })
       await circuit.destroy()
     }, 30000)
   })
@@ -134,13 +148,13 @@ describe("subcircuits - RSA PKCS", () => {
   describe("disclose", () => {
     let circuit: Circuit
     beforeAll(async () => {
-      circuit = Circuit.from("disclose_flags")
+      circuit = Circuit.from("disclose_bytes")
     })
     afterAll(async () => {
       await circuit.destroy()
     })
 
-    test("disclose all flags", async () => {
+    test("disclose all bytes", async () => {
       const query: Query = {
         issuing_country: { disclose: true },
         nationality: { disclose: true },
@@ -151,12 +165,22 @@ describe("subcircuits - RSA PKCS", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport as any, query, 3n)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
       expect(proof).toBeDefined()
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const disclosedBytes = getDisclosedBytesFromMrzAndMask(
+        helper.passport.mrz,
+        inputs.disclose_mask,
+      )
+      const calculatedParamCommitment = await getDiscloseParameterCommitment(
+        inputs.disclose_mask,
+        disclosedBytes,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       // Verify the disclosed data
-      const disclosedData = DisclosedData.fromFlagsProof(proof)
+      const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(disclosedData.issuingCountry).toBe("AUS")
       expect(disclosedData.nationality).toBe("AUS")
@@ -175,16 +199,26 @@ describe("subcircuits - RSA PKCS", () => {
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
 
-    test("disclose some flags", async () => {
+    test("disclose some bytes", async () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseFlagsCircuitInputs(helper.passport as any, query, 3n)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
       expect(proof).toBeDefined()
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const disclosedBytes = getDisclosedBytesFromMrzAndMask(
+        helper.passport.mrz,
+        inputs.disclose_mask,
+      )
+      const calculatedParamCommitment = await getDiscloseParameterCommitment(
+        inputs.disclose_mask,
+        disclosedBytes,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       // Verify the disclosed data
-      const disclosedData = DisclosedData.fromFlagsProof(proof)
+      const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(disclosedData.issuingCountry).toBe("")
       expect(disclosedData.nationality).toBe("AUS")
@@ -201,6 +235,10 @@ describe("subcircuits - RSA PKCS", () => {
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      subproofs.set(3, {
+        proof: proofToFields(Buffer.from(proof.proof), 0).map((f) => `0x${f}`),
+        publicInputs: proof.publicInputs,
+      })
     })
   })
 
@@ -214,9 +252,15 @@ describe("subcircuits - RSA PKCS", () => {
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
-      const countryList = getCountryListFromInclusionProof(proof)
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getCountryParameterCommitment([
+        "AUS",
+        "FRA",
+        "USA",
+        "GBR",
+      ])
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(countryList).toEqual(["AUS", "FRA", "USA", "GBR"])
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
@@ -238,9 +282,15 @@ describe("subcircuits - RSA PKCS", () => {
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
-      const countryList = getCountryListFromInclusionProof(proof)
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getCountryParameterCommitment([
+        "AUS",
+        "FRA",
+        "USA",
+        "GBR",
+      ])
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(countryList).toEqual(["AUS", "FRA", "USA", "GBR"])
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
@@ -260,13 +310,16 @@ describe("subcircuits - RSA PKCS", () => {
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
-      const countryList = getCountryListFromExclusionProof(proof)
-      const nullifier = getNullifierFromDisclosureProof(proof)
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       // Note that the order is in ascending order
       // while the original query was not
-      // getCountryExclusionCircuitInputs makes sure the order is ascending
-      // as it is required by the circuit
-      expect(countryList).toEqual(["FRA", "GBR", "USA"])
+      // Before being passed to the circuit, the list is sorted in ascending order
+      const calculatedParamCommitment = await getCountryParameterCommitment(
+        ["FRA", "GBR", "USA"],
+        true,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
+      const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
@@ -288,13 +341,16 @@ describe("subcircuits - RSA PKCS", () => {
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
-      const countryList = getCountryListFromExclusionProof(proof)
-      const nullifier = getNullifierFromDisclosureProof(proof)
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       // Note that the order is in ascending order
       // while the original query was not
-      // getCountryExclusionCircuitInputs makes sure the order is ascending
-      // as it is required by the circuit
-      expect(countryList).toEqual(["FRA", "GBR", "USA"])
+      // Before being passed to the circuit, the list is sorted in ascending order
+      const calculatedParamCommitment = await getCountryParameterCommitment(
+        ["FRA", "GBR", "USA"],
+        true,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
+      const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
@@ -321,18 +377,19 @@ describe("subcircuits - RSA PKCS", () => {
       if (!inputs) throw new Error("Unable to generate compare-age greater than circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
-      const minAge = getMinAgeFromProof(proof)
-      const maxAge = getMaxAgeFromProof(proof)
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getAgeParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        18,
+        0,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const currentDate = getCurrentDateFromAgeProof(proof)
-      expect(minAge).toBe(18)
-      expect(maxAge).toBe(0)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
 
     test("less than", async () => {
@@ -344,18 +401,19 @@ describe("subcircuits - RSA PKCS", () => {
       if (!inputs) throw new Error("Unable to generate compare-age less than circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
-      const minAge = getMinAgeFromProof(proof)
-      const maxAge = getMaxAgeFromProof(proof)
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getAgeParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        0,
+        age + 1,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const currentDate = getCurrentDateFromAgeProof(proof)
-      expect(minAge).toBe(0)
-      expect(maxAge).toBe(age + 1)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
 
     test("between", async () => {
@@ -367,18 +425,19 @@ describe("subcircuits - RSA PKCS", () => {
       if (!inputs) throw new Error("Unable to generate compare-age between circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
-      const minAge = getMinAgeFromProof(proof)
-      const maxAge = getMaxAgeFromProof(proof)
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getAgeParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        age,
+        age + 2,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const currentDate = getCurrentDateFromAgeProof(proof)
-      expect(minAge).toBe(age)
-      expect(maxAge).toBe(age + 2)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
 
     test("equal", async () => {
@@ -390,18 +449,19 @@ describe("subcircuits - RSA PKCS", () => {
       if (!inputs) throw new Error("Unable to generate compare-age equal circuit inputs")
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
-      const minAge = getMinAgeFromProof(proof)
-      const maxAge = getMaxAgeFromProof(proof)
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getAgeParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        age,
+        age,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const currentDate = getCurrentDateFromAgeProof(proof)
-      expect(minAge).toBe(age)
-      expect(maxAge).toBe(age)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
 
     test("disclose", async () => {
@@ -414,17 +474,18 @@ describe("subcircuits - RSA PKCS", () => {
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const age = calculateAge(helper.passport)
-      const minAge = getMinAgeFromProof(proof)
-      const maxAge = getMaxAgeFromProof(proof)
-      const currentDate = getCurrentDateFromAgeProof(proof)
-      expect(minAge).toBe(age)
-      expect(maxAge).toBe(age)
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getAgeParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        age,
+        age,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
 
     test("range", async () => {
@@ -437,17 +498,18 @@ describe("subcircuits - RSA PKCS", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const minAge = getMinAgeFromProof(proof)
-      const maxAge = getMaxAgeFromProof(proof)
-      const currentDate = getCurrentDateFromAgeProof(proof)
-      expect(minAge).toBe(age - 5)
-      expect(maxAge).toBe(age + 5)
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getAgeParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        age - 5,
+        age + 5,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
   })
 
@@ -470,17 +532,18 @@ describe("subcircuits - RSA PKCS", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const minDate = getMinDateFromProof(proof)
-      const maxDate = getMaxDateFromProof(proof)
-      const currentDate = getCurrentDateFromDateProof(proof)
-      expect(minDate).toEqual(new Date(1988, 10, 12))
-      expect(maxDate).toEqual(new Date(1988, 10, 12))
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getDateParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        "19881112",
+        "19881112",
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
 
     test("range", async () => {
@@ -492,17 +555,18 @@ describe("subcircuits - RSA PKCS", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const minDate = getMinDateFromProof(proof)
-      const maxDate = getMaxDateFromProof(proof)
-      const currentDate = getCurrentDateFromDateProof(proof)
-      expect(minDate).toEqual(new Date(1988, 10, 11))
-      expect(maxDate).toEqual(new Date(1988, 10, 13))
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getDateParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        "19881111",
+        "19881113",
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
 
     test("disclose", async () => {
@@ -514,17 +578,18 @@ describe("subcircuits - RSA PKCS", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const minDate = getMinDateFromProof(proof)
-      const maxDate = getMaxDateFromProof(proof)
-      const currentDate = getCurrentDateFromDateProof(proof)
-      expect(minDate).toEqual(new Date(1988, 10, 12))
-      expect(maxDate).toEqual(new Date(1988, 10, 12))
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getDateParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        "19881112",
+        "19881112",
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
 
     test("greater than", async () => {
@@ -537,19 +602,18 @@ describe("subcircuits - RSA PKCS", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const minDate = getMinDateFromProof(proof)
-      const maxDate = getMaxDateFromProof(proof)
-      const currentDate = getCurrentDateFromDateProof(proof)
-      expect(minDate).toEqual(new Date(1988, 10, 11))
-      // 11/11/1111 is considered the zero date in the circuit
-      // as 00/00/0000 would throw an error
-      expect(maxDate).toEqual(new Date(1111, 10, 11))
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getDateParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        "19881111",
+        "11111111",
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
 
     test("less than", async () => {
@@ -561,17 +625,18 @@ describe("subcircuits - RSA PKCS", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const minDate = getMinDateFromProof(proof)
-      const maxDate = getMaxDateFromProof(proof)
-      const currentDate = getCurrentDateFromDateProof(proof)
-      expect(minDate).toEqual(new Date(1111, 10, 11))
-      expect(maxDate).toEqual(new Date(1988, 10, 15))
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getDateParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        "11111111",
+        "19881115",
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
 
     test("between", async () => {
@@ -583,17 +648,18 @@ describe("subcircuits - RSA PKCS", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const minDate = getMinDateFromProof(proof)
-      const maxDate = getMaxDateFromProof(proof)
-      const currentDate = getCurrentDateFromDateProof(proof)
-      expect(minDate).toEqual(new Date(1988, 10, 11))
-      expect(maxDate).toEqual(new Date(1988, 10, 15))
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getDateParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        "19881111",
+        "19881115",
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
   })
 
@@ -615,17 +681,18 @@ describe("subcircuits - RSA PKCS", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const minDate = getMinDateFromProof(proof)
-      const maxDate = getMaxDateFromProof(proof)
-      const currentDate = getCurrentDateFromDateProof(proof)
-      expect(minDate).toEqual(new Date(2030, 0, 1))
-      expect(maxDate).toEqual(new Date(2030, 0, 1))
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getDateParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        "20300101",
+        "20300101",
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
 
     test("range", async () => {
@@ -637,17 +704,18 @@ describe("subcircuits - RSA PKCS", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const minDate = getMinDateFromProof(proof)
-      const maxDate = getMaxDateFromProof(proof)
-      const currentDate = getCurrentDateFromDateProof(proof)
-      expect(minDate).toEqual(new Date(2025, 0, 1))
-      expect(maxDate).toEqual(new Date(2035, 0, 1))
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getDateParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        "20250101",
+        "20350101",
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
 
     test("disclose", async () => {
@@ -659,17 +727,18 @@ describe("subcircuits - RSA PKCS", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const minDate = getMinDateFromProof(proof)
-      const maxDate = getMaxDateFromProof(proof)
-      const currentDate = getCurrentDateFromDateProof(proof)
-      expect(minDate).toEqual(new Date(2030, 0, 1))
-      expect(maxDate).toEqual(new Date(2030, 0, 1))
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getDateParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        "20300101",
+        "20300101",
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
 
     test("greater than", async () => {
@@ -682,17 +751,18 @@ describe("subcircuits - RSA PKCS", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const minDate = getMinDateFromProof(proof)
-      const maxDate = getMaxDateFromProof(proof)
-      const currentDate = getCurrentDateFromDateProof(proof)
-      expect(minDate).toEqual(new Date(2025, 0, 1))
-      expect(maxDate).toEqual(new Date(1111, 10, 11))
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getDateParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        "20250101",
+        "11111111",
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
 
     test("less than", async () => {
@@ -704,17 +774,18 @@ describe("subcircuits - RSA PKCS", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const minDate = getMinDateFromProof(proof)
-      const maxDate = getMaxDateFromProof(proof)
-      const currentDate = getCurrentDateFromDateProof(proof)
-      expect(minDate).toEqual(new Date(1111, 10, 11))
-      expect(maxDate).toEqual(new Date(2035, 0, 1))
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getDateParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        "11111111",
+        "20350101",
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
 
     test("between", async () => {
@@ -726,18 +797,66 @@ describe("subcircuits - RSA PKCS", () => {
       const proof = await circuit.prove(inputs)
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
-      const minDate = getMinDateFromProof(proof)
-      const maxDate = getMaxDateFromProof(proof)
-      const currentDate = getCurrentDateFromDateProof(proof)
-      expect(minDate).toEqual(new Date(2025, 0, 1))
-      expect(maxDate).toEqual(new Date(2035, 0, 1))
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getDateParameterCommitment(
+        getFormattedDate(globalCurrentDate),
+        "20250101",
+        "20350101",
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10145717760157071414871097616712373356688301026314602642662418913725691010870n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      expect(currentDate).toEqual(globalCurrentDate)
     })
+  })
+
+  describe("outer", () => {
+    test("4-subproofs", async () => {
+      const circuit = Circuit.from("outer_count_4")
+      const cscToDscCircuit = await loadPackagedCircuit(
+        `sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096_sha512`,
+      )
+      const dscToIdDataCircuit = await loadPackagedCircuit(
+        `sig_check_id_data_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_2048_sha256`,
+      )
+      const integrityCheckCircuit = await loadPackagedCircuit("data_check_integrity_sha256")
+      const disclosureCircuit = await loadPackagedCircuit("disclose_bytes")
+      const inputs = await getOuterCircuitInputs(
+        {
+          proof: subproofs.get(0)?.proof as string[],
+          publicInputs: subproofs.get(0)?.publicInputs as string[],
+          vkey: ultraVkToFields(Binary.fromBase64(cscToDscCircuit.vkey).toUInt8Array()),
+          keyHash: cscToDscCircuit.vkey_hash,
+        },
+        {
+          proof: subproofs.get(1)?.proof as string[],
+          publicInputs: subproofs.get(1)?.publicInputs as string[],
+          vkey: ultraVkToFields(Binary.fromBase64(dscToIdDataCircuit.vkey).toUInt8Array()),
+          keyHash: dscToIdDataCircuit.vkey_hash,
+        },
+        {
+          proof: subproofs.get(2)?.proof as string[],
+          publicInputs: subproofs.get(2)?.publicInputs as string[],
+          vkey: ultraVkToFields(Binary.fromBase64(integrityCheckCircuit.vkey).toUInt8Array()),
+          keyHash: integrityCheckCircuit.vkey_hash,
+        },
+        [
+          {
+            proof: subproofs.get(3)?.proof as string[],
+            publicInputs: subproofs.get(3)?.publicInputs as string[],
+            vkey: ultraVkToFields(Binary.fromBase64(disclosureCircuit.vkey).toUInt8Array()),
+            keyHash: disclosureCircuit.vkey_hash,
+          },
+        ],
+      )
+      console.log("outer inputs", inputs)
+      const proof = await circuit.prove(inputs, { useCli: true, circuitName: "outer_count_4" })
+      expect(proof).toBeDefined()
+      console.log("outer proof", proof)
+      await circuit.destroy()
+    }, 30000)
   })
 })
 
@@ -859,8 +978,18 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
       expect(proof).toBeDefined()
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const disclosedBytes = getDisclosedBytesFromMrzAndMask(
+        helper.passport.mrz,
+        inputs.disclose_mask,
+      )
+      const calculatedParamCommitment = await getDiscloseParameterCommitment(
+        inputs.disclose_mask,
+        disclosedBytes,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       // Verify the disclosed data
-      const disclosedData = DisclosedData.fromBytesProof(proof, "passport")
+      const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
       globalNullifier = getNullifierFromDisclosureProof(proof)
       expect(disclosedData.issuingCountry).toBe("AUS")
       expect(disclosedData.nationality).toBe("AUS")
@@ -887,8 +1016,18 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
       expect(proof).toBeDefined()
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const disclosedBytes = getDisclosedBytesFromMrzAndMask(
+        helper.passport.mrz,
+        inputs.disclose_mask,
+      )
+      const calculatedParamCommitment = await getDiscloseParameterCommitment(
+        inputs.disclose_mask,
+        disclosedBytes,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       // Verify the disclosed data
-      const disclosedData = DisclosedData.fromBytesProof(proof, "passport")
+      const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(disclosedData.issuingCountry).toBe("")
       expect(disclosedData.nationality).toBe("AUS")
@@ -1022,8 +1161,18 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
       expect(proof).toBeDefined()
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const disclosedBytes = getDisclosedBytesFromMrzAndMask(
+        helper.passport.mrz,
+        inputs.disclose_mask,
+      )
+      const calculatedParamCommitment = await getDiscloseParameterCommitment(
+        inputs.disclose_mask,
+        disclosedBytes,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       // Verify the disclosed data
-      const disclosedData = DisclosedData.fromBytesProof(proof, "passport")
+      const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
       globalNullifier = getNullifierFromDisclosureProof(proof)
       expect(disclosedData.issuingCountry).toBe("AUS")
       expect(disclosedData.nationality).toBe("AUS")
@@ -1048,8 +1197,18 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
       expect(proof).toBeDefined()
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const disclosedBytes = getDisclosedBytesFromMrzAndMask(
+        helper.passport.mrz,
+        inputs.disclose_mask,
+      )
+      const calculatedParamCommitment = await getDiscloseParameterCommitment(
+        inputs.disclose_mask,
+        disclosedBytes,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
       // Verify the disclosed data
-      const disclosedData = DisclosedData.fromBytesProof(proof, "passport")
+      const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(disclosedData.issuingCountry).toBe("")
       expect(disclosedData.nationality).toBe("AUS")

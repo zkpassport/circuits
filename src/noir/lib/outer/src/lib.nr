@@ -1,4 +1,4 @@
-global PROOF_SIZE: u32 = 439;
+global PROOF_SIZE: u32 = 440;
 global VKEY_SIZE: u32 = 128;
 
 pub fn prepare_integrity_check_inputs<let DATE_LEN: u32>(
@@ -8,10 +8,10 @@ pub fn prepare_integrity_check_inputs<let DATE_LEN: u32>(
 ) -> [Field; DATE_LEN + 2] {
     let date_bytes: [u8; DATE_LEN] = current_date.as_bytes();
     let mut result: [Field; 2 + DATE_LEN] = [0; 2 + DATE_LEN];
-    result[0] = comm_in;
     for i in 0..DATE_LEN {
-        result[i + 1] = date_bytes[i] as Field;
+        result[i] = date_bytes[i] as Field;
     }
+    result[DATE_LEN] = comm_in;
     result[DATE_LEN + 1] = comm_out;
     result
 }
