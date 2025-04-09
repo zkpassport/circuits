@@ -23,11 +23,17 @@ export class Circuit {
     this.name = name
   }
 
-  async init() {
+  async init(recursive: boolean = false) {
     if (!this.backend) {
-      this.backend = new UltraHonkBackend(this.manifest.bytecode, {
-        threads: BB_THREADS,
-      })
+      this.backend = new UltraHonkBackend(
+        this.manifest.bytecode,
+        {
+          threads: BB_THREADS,
+        },
+        {
+          recursive,
+        },
+      )
       if (!this.backend) throw new Error("Error initializing backend")
     }
     if (!this.noir) {
@@ -42,8 +48,8 @@ export class Circuit {
     this.backend = undefined
   }
 
-  async solve(inputs: InputMap): Promise<Uint8Array> {
-    await this.init()
+  async solve(inputs: InputMap, recursive: boolean = false): Promise<Uint8Array> {
+    await this.init(recursive)
     const { witness } = await this.noir!.execute(inputs)
     if (!witness) throw new Error("Error solving witness")
     return witness
@@ -53,8 +59,8 @@ export class Circuit {
     inputs: InputMap,
     options?: { witness?: Uint8Array; recursive?: boolean; useCli?: boolean; circuitName?: string },
   ): Promise<ProofData> {
-    await this.init()
-    const witness = options?.witness ?? (await this.solve(inputs))
+    await this.init(options?.recursive ?? false)
+    const witness = options?.witness ?? (await this.solve(inputs, options?.recursive ?? false))
     let proof: ProofData
     if (options?.useCli) {
       const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "prover-"))
@@ -93,19 +99,18 @@ export class Circuit {
     return proof
   }
 
-  async verify(proof: ProofData) {
-    await this.init()
+  async verify(proof: ProofData, recursive: boolean = false) {
+    await this.init(recursive)
     if (!this.backend) throw new Error("Backend not initialized")
     const proofData = {
       proof: Buffer.from(proof.proof.join(""), "hex"),
       publicInputs: proof.publicInputs,
     }
-    console.log("proofData", proofData)
     return await this.backend.verifyProof(proofData)
   }
 
-  async getVerificationKey() {
-    await this.init()
+  async getVerificationKey(recursive: boolean = false) {
+    await this.init(recursive)
     if (!this.backend) throw new Error("Backend not initialized")
     return await this.backend.getVerificationKey()
   }

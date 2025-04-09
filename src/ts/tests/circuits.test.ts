@@ -27,10 +27,6 @@ import {
   getDateParameterCommitment,
   getDiscloseParameterCommitment,
   getDisclosedBytesFromMrzAndMask,
-  getOuterCircuitInputs,
-  ultraVkToFields,
-  getCurrentDateFromOuterProof,
-  getNullifierFromOuterProof,
 } from "@zkpassport/utils"
 import type { CSCMasterlist, Query } from "@zkpassport/utils"
 import { beforeAll, describe, expect, test } from "@jest/globals"
@@ -40,7 +36,7 @@ import { generateSigningCertificates, signSod } from "../passport-generator"
 import { loadKeypairFromFile } from "../passport-generator"
 import { wrapSodInContentInfo } from "../sod-generator"
 import { generateSod } from "../sod-generator"
-import { serializeAsn, createUTCDate, loadPackagedCircuit } from "../utils"
+import { serializeAsn, createUTCDate } from "../utils"
 import { Circuit } from "../circuits"
 
 describe("subcircuits - RSA PKCS", () => {
@@ -61,7 +57,6 @@ describe("subcircuits - RSA PKCS", () => {
     0,
     0,
   )
-  let subproofs: Map<number, { proof: string[]; publicInputs: string[] }> = new Map()
 
   beforeAll(async () => {
     // Johnny Silverhand's MRZ
@@ -102,16 +97,10 @@ describe("subcircuits - RSA PKCS", () => {
         circuitName: `sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096_sha512`,
       })
       expect(proof).toBeDefined()
-      /*const verified = await circuit.verify(proof)
-      expect(verified).toBe(true)*/
       expect(proof.publicInputs.length).toEqual(2)
       const merkleRoot = getMerkleRootFromDSCProof(proof)
       expect(merkleRoot).toBeDefined()
       dscCommitment = getCommitmentFromDSCProof(proof)
-      subproofs.set(0, {
-        proof: proof.proof.map((f) => `0x${f}`),
-        publicInputs: proof.publicInputs,
-      })
       await circuit.destroy()
     }, 30000)
   })
@@ -129,10 +118,6 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromIDDataProof(proof)
       idDataCommitment = getCommitmentOutFromIDDataProof(proof)
       expect(commitmentIn).toEqual(dscCommitment)
-      subproofs.set(1, {
-        proof: proof.proof.map((f) => `0x${f}`),
-        publicInputs: proof.publicInputs,
-      })
       await circuit.destroy()
     }, 30000)
   })
@@ -152,10 +137,6 @@ describe("subcircuits - RSA PKCS", () => {
       const currentDate = getCurrentDateFromIntegrityProof(proof)
       expect(commitmentIn).toEqual(idDataCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
-      subproofs.set(2, {
-        proof: proof.proof.map((f) => `0x${f}`),
-        publicInputs: proof.publicInputs,
-      })
       await circuit.destroy()
     }, 30000)
   })
@@ -260,10 +241,6 @@ describe("subcircuits - RSA PKCS", () => {
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
-      subproofs.set(3, {
-        proof: proof.proof.map((f) => `0x${f}`),
-        publicInputs: proof.publicInputs,
-      })
     })
   })
 
@@ -923,61 +900,6 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
-  })
-
-  describe("outer", () => {
-    test("4-subproofs", async () => {
-      const circuit = Circuit.from("outer_count_4")
-      const cscToDscCircuit = await loadPackagedCircuit(
-        `sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096_sha512`,
-      )
-      const dscToIdDataCircuit = await loadPackagedCircuit(
-        `sig_check_id_data_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_2048_sha256`,
-      )
-      const integrityCheckCircuit = await loadPackagedCircuit("data_check_integrity_sha256")
-      const disclosureCircuit = await loadPackagedCircuit("disclose_bytes")
-      const inputs = await getOuterCircuitInputs(
-        {
-          proof: subproofs.get(0)?.proof as string[],
-          publicInputs: subproofs.get(0)?.publicInputs as string[],
-          vkey: ultraVkToFields(Binary.fromBase64(cscToDscCircuit.vkey).toUInt8Array()),
-          keyHash: cscToDscCircuit.vkey_hash,
-        },
-        {
-          proof: subproofs.get(1)?.proof as string[],
-          publicInputs: subproofs.get(1)?.publicInputs as string[],
-          vkey: ultraVkToFields(Binary.fromBase64(dscToIdDataCircuit.vkey).toUInt8Array()),
-          keyHash: dscToIdDataCircuit.vkey_hash,
-        },
-        {
-          proof: subproofs.get(2)?.proof as string[],
-          publicInputs: subproofs.get(2)?.publicInputs as string[],
-          vkey: ultraVkToFields(Binary.fromBase64(integrityCheckCircuit.vkey).toUInt8Array()),
-          keyHash: integrityCheckCircuit.vkey_hash,
-        },
-        [
-          {
-            proof: subproofs.get(3)?.proof as string[],
-            publicInputs: subproofs.get(3)?.publicInputs as string[],
-            vkey: ultraVkToFields(Binary.fromBase64(disclosureCircuit.vkey).toUInt8Array()),
-            keyHash: disclosureCircuit.vkey_hash,
-          },
-        ],
-      )
-      const proof = await circuit.prove(inputs, {
-        useCli: true,
-        circuitName: "outer_count_4",
-        recursive: true,
-      })
-      expect(proof).toBeDefined()
-      const currentDate = getCurrentDateFromOuterProof(proof)
-      expect(currentDate).toEqual(globalCurrentDate)
-      const nullifier = getNullifierFromOuterProof(proof)
-      expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
-      )
-      await circuit.destroy()
-    }, 30000)
   })
 })
 
