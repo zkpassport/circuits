@@ -26,7 +26,8 @@ use outer_lib::{
     CSCtoDSCProof, DisclosureProof, DSCtoIDDataProof, IntegrityCheckProof,
     prepare_disclosure_inputs, prepare_integrity_check_inputs,
 };
-use std::verify_proof;
+use std::verify_proof_with_type;
+global HONK_IDENTIFIER: u32 = 1;
 
 fn verify_subproofs(
     // Root of the sub-circuit merkle tree
@@ -60,7 +61,7 @@ fn verify_subproofs(
     let root = compute_merkle_root(proof_d.key_hash, proof_d.tree_index, proof_d.tree_hash_path);
     assert(root == circuit_registry_root);*/
 
-    verify_proof(
+    verify_proof_with_type(
         csc_to_dsc_proof.vkey,
         csc_to_dsc_proof.proof,
         [
@@ -68,8 +69,13 @@ fn verify_subproofs(
             csc_to_dsc_proof.public_inputs[0], // comm_out
         ],
         csc_to_dsc_proof.key_hash,
+        HONK_IDENTIFIER,
     );
-    verify_proof(
+
+    // Commitment out from CSC to DSC circuit == commitment in from DSC to ID Data circuit
+    assert_eq(csc_to_dsc_proof.public_inputs[0], dsc_to_id_data_proof.public_inputs[0]);
+
+    verify_proof_with_type(
         dsc_to_id_data_proof.vkey,
         dsc_to_id_data_proof.proof,
         [
@@ -77,9 +83,13 @@ fn verify_subproofs(
             dsc_to_id_data_proof.public_inputs[1], // comm_out
         ],
         dsc_to_id_data_proof.key_hash,
+        HONK_IDENTIFIER,
     );
 
-    verify_proof(
+    // Commitment out from DSC to ID Data circuit == commitment in from integrity check circuit
+    assert_eq(dsc_to_id_data_proof.public_inputs[1], integrity_check_proof.public_inputs[0]);
+
+    verify_proof_with_type(
         integrity_check_proof.vkey,
         integrity_check_proof.proof,
         prepare_integrity_check_inputs(
@@ -88,10 +98,14 @@ fn verify_subproofs(
             integrity_check_proof.public_inputs[1], // comm_out
         ),
         integrity_check_proof.key_hash,
+        HONK_IDENTIFIER,
     );
 
     for i in 0..disclosure_proofs.len() {
-        verify_proof(
+        // Commitment out from integrity check circuit == commitment in from disclosure circuit
+        assert_eq(integrity_check_proof.public_inputs[1], disclosure_proofs[i].public_inputs[0]);
+
+        verify_proof_with_type(
             disclosure_proofs[i].vkey,
             disclosure_proofs[i].proof,
             prepare_disclosure_inputs(
@@ -102,6 +116,7 @@ fn verify_subproofs(
                 scoped_nullifier,
             ),
             disclosure_proofs[i].key_hash,
+            HONK_IDENTIFIER,
         );
     }
 }

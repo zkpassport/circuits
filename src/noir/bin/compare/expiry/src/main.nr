@@ -9,17 +9,17 @@ fn main(
     // @committed
     // The current date is public so verifiers can check the date
     // provided to the proof is correct
-    current_date: pub str<8>,
+    current_date: str<8>,
     // @committed
     // The minimum date required is public so verifiers can check
     // the date provided to the proof is correct
     // If the minimum date is a string of 1 (i.e. "11111111") it is not checked
-    min_date: pub str<8>,
+    min_date: str<8>,
     // @committed
     // The maximum date required is public so verifiers can check
     // the date provided to the proof is correct
     // If the maximum date is a string of 1 (i.e. "11111111") it is not checked
-    max_date: pub str<8>,
+    max_date: str<8>,
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field) {

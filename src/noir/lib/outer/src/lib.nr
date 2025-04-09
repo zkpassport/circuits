@@ -1,4 +1,4 @@
-global PROOF_SIZE: u32 = 440;
+global PROOF_SIZE: u32 = 456;
 global VKEY_SIZE: u32 = 128;
 
 pub fn prepare_integrity_check_inputs<let DATE_LEN: u32>(

@@ -28,8 +28,9 @@ import {
   getDiscloseParameterCommitment,
   getDisclosedBytesFromMrzAndMask,
   getOuterCircuitInputs,
-  proofToFields,
   ultraVkToFields,
+  getCurrentDateFromOuterProof,
+  getNullifierFromOuterProof,
 } from "@zkpassport/utils"
 import type { CSCMasterlist, Query } from "@zkpassport/utils"
 import { beforeAll, describe, expect, test } from "@jest/globals"
@@ -95,14 +96,20 @@ describe("subcircuits - RSA PKCS", () => {
     test("rsa pkcs 4096", async () => {
       const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096_sha512`)
       const inputs = await helper.generateCircuitInputs("dsc")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096_sha512`,
+      })
       expect(proof).toBeDefined()
+      /*const verified = await circuit.verify(proof)
+      expect(verified).toBe(true)*/
       expect(proof.publicInputs.length).toEqual(2)
       const merkleRoot = getMerkleRootFromDSCProof(proof)
       expect(merkleRoot).toBeDefined()
       dscCommitment = getCommitmentFromDSCProof(proof)
       subproofs.set(0, {
-        proof: proofToFields(Buffer.from(proof.proof), 0).map((f) => `0x${f}`),
+        proof: proof.proof.map((f) => `0x${f}`),
         publicInputs: proof.publicInputs,
       })
       await circuit.destroy()
@@ -113,13 +120,17 @@ describe("subcircuits - RSA PKCS", () => {
     test("rsa pkcs 2048", async () => {
       const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_2048_sha256`)
       const inputs = await helper.generateCircuitInputs("id")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `sig_check_id_data_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_2048_sha256`,
+      })
       expect(proof).toBeDefined()
       const commitmentIn = getCommitmentInFromIDDataProof(proof)
       idDataCommitment = getCommitmentOutFromIDDataProof(proof)
       expect(commitmentIn).toEqual(dscCommitment)
       subproofs.set(1, {
-        proof: proofToFields(Buffer.from(proof.proof), 0).map((f) => `0x${f}`),
+        proof: proof.proof.map((f) => `0x${f}`),
         publicInputs: proof.publicInputs,
       })
       await circuit.destroy()
@@ -130,7 +141,11 @@ describe("subcircuits - RSA PKCS", () => {
     test("data integrity check", async () => {
       const circuit = Circuit.from("data_check_integrity_sha256")
       const inputs = await helper.generateCircuitInputs("integrity")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `data_check_integrity_sha256`,
+      })
       expect(proof).toBeDefined()
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
       integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
@@ -138,7 +153,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(commitmentIn).toEqual(idDataCommitment)
       expect(currentDate).toEqual(globalCurrentDate)
       subproofs.set(2, {
-        proof: proofToFields(Buffer.from(proof.proof), 0).map((f) => `0x${f}`),
+        proof: proof.proof.map((f) => `0x${f}`),
         publicInputs: proof.publicInputs,
       })
       await circuit.destroy()
@@ -167,7 +182,12 @@ describe("subcircuits - RSA PKCS", () => {
       }
       let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
-      const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
+      const proof = await circuit.prove(inputs, {
+        witness: await circuit.solve(inputs),
+        recursive: true,
+        useCli: true,
+        circuitName: `disclose_bytes`,
+      })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const disclosedBytes = getDisclosedBytesFromMrzAndMask(
@@ -205,7 +225,12 @@ describe("subcircuits - RSA PKCS", () => {
       }
       let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
-      const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
+      const proof = await circuit.prove(inputs, {
+        witness: await circuit.solve(inputs),
+        useCli: true,
+        recursive: true,
+        circuitName: `disclose_bytes`,
+      })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const disclosedBytes = getDisclosedBytesFromMrzAndMask(
@@ -236,7 +261,7 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       subproofs.set(3, {
-        proof: proofToFields(Buffer.from(proof.proof), 0).map((f) => `0x${f}`),
+        proof: proof.proof.map((f) => `0x${f}`),
         publicInputs: proof.publicInputs,
       })
     })
@@ -250,7 +275,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `inclusion_check_nationality`,
+      })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getCountryParameterCommitment([
@@ -280,7 +309,11 @@ describe("subcircuits - RSA PKCS", () => {
         3n,
       )
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `inclusion_check_issuing_country`,
+      })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getCountryParameterCommitment([
@@ -308,7 +341,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `exclusion_check_nationality`,
+      })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       // Note that the order is in ascending order
@@ -339,7 +376,11 @@ describe("subcircuits - RSA PKCS", () => {
         3n,
       )
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `exclusion_check_issuing_country`,
+      })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       // Note that the order is in ascending order
@@ -375,7 +416,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getAgeCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-age greater than circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `compare_age`,
+      })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getAgeParameterCommitment(
@@ -399,7 +444,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getAgeCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-age less than circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `compare_age`,
+      })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getAgeParameterCommitment(
@@ -423,7 +472,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getAgeCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-age between circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `compare_age`,
+      })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getAgeParameterCommitment(
@@ -447,7 +500,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getAgeCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-age equal circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `compare_age`,
+      })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getAgeParameterCommitment(
@@ -470,7 +527,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getAgeCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-age equal circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `compare_age`,
+      })
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const age = calculateAge(helper.passport)
@@ -495,7 +556,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getAgeCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-age range circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `compare_age`,
+      })
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
@@ -529,7 +594,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-birthdate equal circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `compare_birthdate`,
+      })
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
@@ -552,7 +621,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-birthdate range circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `compare_birthdate`,
+      })
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
@@ -575,7 +648,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-birthdate disclose circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `compare_birthdate`,
+      })
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
@@ -599,7 +676,11 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs)
         throw new Error("Unable to generate compare-birthdate greater than circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `compare_birthdate`,
+      })
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
@@ -622,7 +703,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-birthdate less than circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `compare_birthdate`,
+      })
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
@@ -645,7 +730,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-birthdate between circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `compare_birthdate`,
+      })
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
@@ -678,7 +767,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-expirydate equal circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `compare_expiry`,
+      })
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
@@ -701,7 +794,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-expirydate range circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `compare_expiry`,
+      })
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
@@ -724,7 +821,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-expirydate disclose circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `compare_expiry`,
+      })
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
@@ -748,7 +849,11 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs)
         throw new Error("Unable to generate compare-expirydate greater than circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `compare_expiry`,
+      })
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
@@ -771,7 +876,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-expirydate less than circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `compare_expiry`,
+      })
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
@@ -794,7 +903,11 @@ describe("subcircuits - RSA PKCS", () => {
       }
       const inputs = await getExpiryDateCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-expirydate between circuit inputs")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `compare_expiry`,
+      })
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
@@ -851,10 +964,18 @@ describe("subcircuits - RSA PKCS", () => {
           },
         ],
       )
-      console.log("outer inputs", inputs)
-      const proof = await circuit.prove(inputs, { useCli: true, circuitName: "outer_count_4" })
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        circuitName: "outer_count_4",
+        recursive: true,
+      })
       expect(proof).toBeDefined()
-      console.log("outer proof", proof)
+      const currentDate = getCurrentDateFromOuterProof(proof)
+      expect(currentDate).toEqual(globalCurrentDate)
+      const nullifier = getNullifierFromOuterProof(proof)
+      expect(nullifier).toEqual(
+        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+      )
       await circuit.destroy()
     }, 30000)
   })
@@ -916,7 +1037,11 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
     test("ecdsa nist p-384", async () => {
       const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p384_sha384`)
       const inputs = await helper.generateCircuitInputs("dsc")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `sig_check_dsc_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p384_sha384`,
+      })
       expect(proof).toBeDefined()
       expect(proof.publicInputs.length).toEqual(2)
       const merkleRoot = getMerkleRootFromDSCProof(proof)
@@ -930,7 +1055,11 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
     test("ecdsa nist p-256", async () => {
       const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p256_sha256`)
       const inputs = await helper.generateCircuitInputs("id")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `sig_check_id_data_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p256_sha256`,
+      })
       expect(proof).toBeDefined()
       const commitmentIn = getCommitmentInFromIDDataProof(proof)
       idDataCommitment = getCommitmentOutFromIDDataProof(proof)
@@ -943,7 +1072,11 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
     test("data integrity check", async () => {
       const circuit = Circuit.from("data_check_integrity_sha384")
       const inputs = await helper.generateCircuitInputs("integrity")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `data_check_integrity_sha384`,
+      })
       expect(proof).toBeDefined()
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
       integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
@@ -976,7 +1109,11 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
       }
       let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
-      const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `disclose_bytes`,
+      })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const disclosedBytes = getDisclosedBytesFromMrzAndMask(
@@ -1014,7 +1151,12 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
       }
       let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
-      const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
+      const proof = await circuit.prove(inputs, {
+        witness: await circuit.solve(inputs),
+        useCli: true,
+        recursive: true,
+        circuitName: `disclose_bytes`,
+      })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const disclosedBytes = getDisclosedBytesFromMrzAndMask(
@@ -1099,7 +1241,11 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
     test("ecdsa nist p-521", async () => {
       const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p521_sha512`)
       const inputs = await helper.generateCircuitInputs("dsc")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `sig_check_dsc_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p521_sha512`,
+      })
       expect(proof).toBeDefined()
       expect(proof.publicInputs.length).toEqual(2)
       const merkleRoot = getMerkleRootFromDSCProof(proof)
@@ -1113,7 +1259,11 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
     test("ecdsa nist p-384", async () => {
       const circuit = Circuit.from(`sig_check_id_data_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p384_sha384`)
       const inputs = await helper.generateCircuitInputs("id")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `sig_check_id_data_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p384_sha384`,
+      })
       expect(proof).toBeDefined()
       const commitmentIn = getCommitmentInFromIDDataProof(proof)
       idDataCommitment = getCommitmentOutFromIDDataProof(proof)
@@ -1126,7 +1276,11 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
     test("data integrity check", async () => {
       const circuit = Circuit.from("data_check_integrity_sha512")
       const inputs = await helper.generateCircuitInputs("integrity")
-      const proof = await circuit.prove(inputs)
+      const proof = await circuit.prove(inputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: `data_check_integrity_sha512`,
+      })
       expect(proof).toBeDefined()
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
       integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
@@ -1159,7 +1313,12 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
       }
       let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
-      const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
+      const proof = await circuit.prove(inputs, {
+        witness: await circuit.solve(inputs),
+        useCli: true,
+        recursive: true,
+        circuitName: `disclose_bytes`,
+      })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const disclosedBytes = getDisclosedBytesFromMrzAndMask(
@@ -1195,7 +1354,12 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
       }
       let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
-      const proof = await circuit.prove(inputs, { witness: await circuit.solve(inputs) })
+      const proof = await circuit.prove(inputs, {
+        witness: await circuit.solve(inputs),
+        useCli: true,
+        recursive: true,
+        circuitName: `disclose_bytes`,
+      })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const disclosedBytes = getDisclosedBytesFromMrzAndMask(
