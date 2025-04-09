@@ -54,84 +54,116 @@ const files = fs
 // Promisify exec
 const execPromise = promisify(exec)
 
+// Process a single file
+const processFile = async (file: string): Promise<boolean> => {
+  const inputPath = path.join(TARGET_DIR, file)
+  const outputPath = path.join(PACKAGED_DIR, file)
+  const vkeyPath = path.join(TARGET_DIR, file.replace(".json", ""))
+  const gateCountPath = path.join(TARGET_DIR, file.replace(".json", ".size.json"))
+
+  try {
+    // Skip if output file already exists
+    if (fs.existsSync(outputPath)) {
+      console.log(`Skipping ${file} - output file already exists at ${outputPath}`)
+      return true
+    }
+
+    // Run bb command to get bb version and generate circuit vkey
+    const bbVersion = (await execPromise("bb --version")).stdout.trim()
+    console.log(`Generating vkey for ${file}...`)
+    await execPromise(`mkdir -p ${vkeyPath}`)
+    await execPromise(
+      `bb write_vk --scheme ultra_honk --recursive --honk_recursion 1 --init_kzg_accumulator --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
+    )
+    await execPromise(`bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`)
+
+    // Get Poseidon2 hash of vkey
+    const vkeyAsFieldsJson = JSON.parse(fs.readFileSync(`${vkeyPath}/vk_fields.json`, "utf-8"))
+    const vkeyAsFields = vkeyAsFieldsJson.map((v: any) => BigInt(v))
+    const vkeyHash = `0x${poseidon2Hash(vkeyAsFields).toString(16)}`
+    const vkey = Buffer.from(fs.readFileSync(`${vkeyPath}/vk`)).toString("base64")
+    // Clean up vkey files
+    await execPromise(`rm -rf ${vkeyPath}`)
+
+    // Read and parse the input file
+    const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
+
+    const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
+    const gateCount = gateCountFileContent.functions[0].circuit_size
+    fs.unlinkSync(gateCountPath)
+
+    // Create packaged circuit object
+    const packagedCircuit: {
+      [key: string]: unknown
+    } = {
+      name: file.replace(".json", ""),
+      noir_version: jsonContent.noir_version,
+      bb_version: bbVersion,
+      size: gateCount,
+      abi: jsonContent.abi,
+      bytecode: jsonContent.bytecode,
+      vkey: vkey,
+      vkey_hash: vkeyHash,
+      hash: jsonContent.hash,
+    }
+
+    // Write the packaged circuit file
+    fs.writeFileSync(outputPath, JSON.stringify(packagedCircuit, null, 2))
+    console.log(`Saved packaged circuit: ${outputPath}`)
+    return true
+  } catch (error: any) {
+    if (error?.status !== undefined && error.status !== 0) {
+      console.error(
+        `Error processing file ${inputPath}: Command failed with exit code ${error.status}`,
+      )
+    } else {
+      console.error("Error processing file " + inputPath, error)
+    }
+    return false
+  }
+}
+
 // Process files with controlled concurrency
 const processFiles = async () => {
-  const pool = new PromisePool(MAX_CONCURRENT_PROCESSES)
-  const promises: Promise<void>[] = []
   let hasErrors = false
 
-  for (const file of files) {
-    const inputPath = path.join(TARGET_DIR, file)
-    const outputPath = path.join(PACKAGED_DIR, file)
-    const vkeyPath = path.join(TARGET_DIR, file.replace(".json", ""))
-    const gateCountPath = path.join(TARGET_DIR, file.replace(".json", ".size.json"))
+  // Split files into two groups: outer proof circuits and the other circuits
+  const outerFiles = files.filter((file) => file.startsWith("outer"))
+  const otherFiles = files.filter((file) => !file.startsWith("outer"))
 
-    const promise = pool.add(async () => {
-      try {
-        // Skip if output file already exists
-        if (fs.existsSync(outputPath)) {
-          console.log(`Skipping ${file} - output file already exists at ${outputPath}`)
-          return
-        }
-
-        // Run bb command to get bb version and generate circuit vkey
-        const bbVersion = (await execPromise("bb --version")).stdout.trim()
-        console.log(`Generating vkey for ${file}...`)
-        await execPromise(`mkdir -p ${vkeyPath}`)
-        await execPromise(
-          `bb write_vk --scheme ultra_honk --recursive --honk_recursion 1 --init_kzg_accumulator --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
-        )
-        await execPromise(`bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`)
-
-        // Get Poseidon2 hash of vkey
-        const vkeyAsFieldsJson = JSON.parse(fs.readFileSync(`${vkeyPath}/vk_fields.json`, "utf-8"))
-        const vkeyAsFields = vkeyAsFieldsJson.map((v: any) => BigInt(v))
-        const vkeyHash = `0x${poseidon2Hash(vkeyAsFields).toString(16)}`
-        const vkey = Buffer.from(fs.readFileSync(`${vkeyPath}/vk`)).toString("base64")
-        // Clean up vkey files
-        await execPromise(`rm -rf ${vkeyPath}`)
-
-        // Read and parse the input file
-        const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
-
-        const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
-        const gateCount = gateCountFileContent.functions[0].circuit_size
-        fs.unlinkSync(gateCountPath)
-
-        // Create packaged circuit object
-        const packagedCircuit: {
-          [key: string]: unknown
-        } = {
-          name: file.replace(".json", ""),
-          noir_version: jsonContent.noir_version,
-          bb_version: bbVersion,
-          size: gateCount,
-          abi: jsonContent.abi,
-          bytecode: jsonContent.bytecode,
-          vkey: vkey,
-          vkey_hash: vkeyHash,
-          hash: jsonContent.hash,
-        }
-
-        // Write the packaged circuit file
-        fs.writeFileSync(outputPath, JSON.stringify(packagedCircuit, null, 2))
-        console.log(`Saved packaged circuit: ${outputPath}`)
-      } catch (error: any) {
-        if (error?.status !== undefined && error.status !== 0) {
-          console.error(
-            `Error processing file ${inputPath}: Command failed with exit code ${error.status}`,
-          )
-        } else {
-          console.error("Error processing file " + inputPath, error)
-        }
+  // Process outer proof circuits one at a time
+  if (outerFiles.length > 0) {
+    console.log(`Processing ${outerFiles.length} outer proof circuits sequentially...`)
+    for (const file of outerFiles) {
+      console.log(
+        `Memory intensive processing of outer proof circuit: ${file} (no concurrent processing)`,
+      )
+      const success = await processFile(file)
+      if (!success) {
         hasErrors = true
       }
-    })
-    promises.push(promise)
+    }
   }
 
-  // Wait for all files to be processed
-  await Promise.all(promises)
+  // Process other circuits with concurrency
+  if (otherFiles.length > 0) {
+    console.log(`Processing ${otherFiles.length} regular circuits with concurrency...`)
+    const pool = new PromisePool(MAX_CONCURRENT_PROCESSES)
+    const promises: Promise<void>[] = []
+
+    for (const file of otherFiles) {
+      const promise = pool.add(async () => {
+        const success = await processFile(file)
+        if (!success) {
+          hasErrors = true
+        }
+      })
+      promises.push(promise)
+    }
+
+    // Wait for all other files to be processed
+    await Promise.all(promises)
+  }
 
   // Exit with error code if any file failed to process
   if (hasErrors) {
