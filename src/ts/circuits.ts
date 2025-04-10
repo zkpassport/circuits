@@ -86,7 +86,6 @@ export class Circuit {
       proof = getProofData(proofHex, getNumberOfPublicInputs(options?.circuitName ?? ""))
     } else {
       if (options?.recursive) {
-        // Don't use this for now, something is wrong with the proof
         proof = await this.backend!.generateProofForRecursiveAggregation(witness)
       } else {
         const result = await this.backend!.generateProof(witness)
