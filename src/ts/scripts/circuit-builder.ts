@@ -43,27 +43,47 @@ ${dependencies.map(({ name, path }) => `${name} = { path = "${path}" }`).join("\
 
 const STATIC_CIRCUITS = [
   { name: "compare_citizenship", path: "./src/noir/bin/compare/citizenship" },
-  { name: "compare_age", path: "./src/noir/bin/compare/age" },
-  { name: "compare_expiry", path: "./src/noir/bin/compare/expiry" },
-  { name: "compare_birthdate", path: "./src/noir/bin/compare/birthdate" },
+  { name: "compare_age", path: "./src/noir/bin/compare/age/standard" },
+  { name: "compare_age_evm", path: "./src/noir/bin/compare/age/evm" },
+  { name: "compare_expiry", path: "./src/noir/bin/compare/expiry/standard" },
+  { name: "compare_expiry_evm", path: "./src/noir/bin/compare/expiry/evm" },
+  { name: "compare_birthdate", path: "./src/noir/bin/compare/birthdate/standard" },
+  { name: "compare_birthdate_evm", path: "./src/noir/bin/compare/birthdate/evm" },
   { name: "disclose_flags", path: "./src/noir/bin/disclose/flags" },
-  { name: "disclose_bytes", path: "./src/noir/bin/disclose/bytes" },
+  { name: "disclose_bytes", path: "./src/noir/bin/disclose/bytes/standard" },
+  { name: "disclose_bytes_evm", path: "./src/noir/bin/disclose/bytes/evm" },
   { name: "data_check_expiry", path: "./src/noir/bin/data-check/expiry" },
   {
     name: "exclusion_check_issuing_country",
-    path: "./src/noir/bin/exclusion-check/issuing-country",
+    path: "./src/noir/bin/exclusion-check/issuing-country/standard",
+  },
+  {
+    name: "exclusion_check_issuing_country_evm",
+    path: "./src/noir/bin/exclusion-check/issuing-country/evm",
   },
   {
     name: "inclusion_check_issuing_country",
-    path: "./src/noir/bin/inclusion-check/issuing-country",
+    path: "./src/noir/bin/inclusion-check/issuing-country/standard",
+  },
+  {
+    name: "inclusion_check_issuing_country_evm",
+    path: "./src/noir/bin/inclusion-check/issuing-country/evm",
   },
   {
     name: "exclusion_check_nationality",
-    path: "./src/noir/bin/exclusion-check/nationality",
+    path: "./src/noir/bin/exclusion-check/nationality/standard",
+  },
+  {
+    name: "exclusion_check_nationality_evm",
+    path: "./src/noir/bin/exclusion-check/nationality/evm",
   },
   {
     name: "inclusion_check_nationality",
-    path: "./src/noir/bin/inclusion-check/nationality",
+    path: "./src/noir/bin/inclusion-check/nationality/standard",
+  },
+  {
+    name: "inclusion_check_nationality_evm",
+    path: "./src/noir/bin/inclusion-check/nationality/evm",
   },
 ]
 

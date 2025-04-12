@@ -1,3 +1,4 @@
+use std::hash::keccak256;
 use std::hash::poseidon2::Poseidon2;
 use utils::{
     DisclosedData, DiscloseFlags, get_mrz_from_dg1, ID_CARD_MRZ_BIRTHDATE_INDEX,
@@ -149,6 +150,18 @@ pub fn get_disclosed_bytes(dg1: [u8; 95], mask: [u8; 90]) -> [u8; 90] {
     disclosed_bytes
 }
 
+/// Calculate the commitment of the disclose mask and disclosed bytes using Poseidon2
+///
+/// This is less demanding on the prover but much more demanding on EVM verifiers
+///
+/// # Arguments
+///
+/// * `disclose_mask`: The disclose mask
+/// * `disclosed_bytes`: The disclosed bytes
+///
+/// # Returns
+///
+/// * `commitment`: The commitment of the disclose mask and disclosed bytes
 pub fn calculate_param_commitment(disclose_mask: [u8; 90], disclosed_bytes: [u8; 90]) -> Field {
     let mut params = [0 as Field; 180];
     for i in 0..90 {
@@ -158,4 +171,31 @@ pub fn calculate_param_commitment(disclose_mask: [u8; 90], disclosed_bytes: [u8;
         params[i + 90] = disclosed_bytes[i] as Field;
     }
     Poseidon2::hash(params, 180)
+}
+
+/// Calculate the commitment of the disclose mask and disclosed bytes using SHA2-256
+///
+/// This is more demanding on the prover but less demanding on EVM verifiers
+///
+/// # Arguments
+///
+/// * `disclose_mask`: The disclose mask
+/// * `disclosed_bytes`: The disclosed bytes
+///
+/// # Returns
+///
+/// * `commitment`: The commitment of the disclose mask and disclosed bytes
+pub fn calculate_param_commitment_sha2(
+    disclose_mask: [u8; 90],
+    disclosed_bytes: [u8; 90],
+) -> Field {
+    let mut params = [0 as u8; 180];
+    for i in 0..90 {
+        params[i] = disclose_mask[i];
+    }
+    for i in 0..90 {
+        params[i + 90] = disclosed_bytes[i];
+    }
+    let hash = sha256::sha256_var(params, 180);
+    utils::pack_be_bytes_into_field::<32, 31>(hash)
 }

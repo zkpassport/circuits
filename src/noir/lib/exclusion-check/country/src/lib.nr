@@ -75,10 +75,43 @@ pub fn check_issuing_country_exclusion<let N: u32>(dg1: [u8; 95], country_list: 
     // If those two checks pass, then the issuing country is not in the country list
 }
 
+/// Calculate the commitment of the country list using Poseidon2
+///
+/// This is less demanding on the prover but much more demanding on EVM verifiers
+///
+/// # Arguments
+///
+/// * `country_list`: The list of countries
+///
+/// # Returns
+///
+/// * `commitment`: The commitment of the country list
 pub fn calculate_param_commitment<let N: u32>(country_list: [u32; N]) -> Field {
     let mut params = [0 as Field; N];
     for i in 0..N {
         params[i] = country_list[i] as Field;
     }
     Poseidon2::hash(params, N)
+}
+
+/// Calculate the commitment of the country list using SHA2-256
+///
+/// This is more demanding on the prover but less demanding on EVM verifiers
+///
+/// # Arguments
+///
+/// * `country_list`: The list of countries
+///
+/// # Returns
+///
+/// * `commitment`: The commitment of the country list
+pub fn calculate_param_commitment_sha2<let N: u32>(country_list: [u32; N]) -> Field {
+    let mut params = [0 as u8; N * 3];
+    for i in 0..N {
+        params[i * 3] = (country_list[i] >> 16) as u8;
+        params[i * 3 + 1] = ((country_list[i] >> 8) & 0xFF) as u8;
+        params[i * 3 + 2] = (country_list[i] & 0xFF) as u8;
+    }
+    let hash = sha256::sha256_var(params, (N * 3) as u64);
+    utils::pack_be_bytes_into_field::<32, 31>(hash)
 }

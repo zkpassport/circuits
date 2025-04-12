@@ -211,6 +211,18 @@ pub fn is_id_card(dg1: [u8; 95]) -> bool {
     (dg1[93] != 0) & (dg1[94] != 0)
 }
 
+pub fn pack_be_bytes_into_field<let NBytes: u32, let MAX_FIELD_SIZE: u32>(
+    x: [u8; NBytes],
+) -> Field {
+    let mut result: Field = 0;
+    for i in 0..MAX_FIELD_SIZE {
+        result *= 256;
+        result += x[i] as Field;
+    }
+    std::as_witness(result);
+    result
+}
+
 pub fn pack_be_bytes_into_fields<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE: u32>(
     x: [u8; NBytes],
 ) -> [u128; N] {

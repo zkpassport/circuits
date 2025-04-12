@@ -1,0 +1,9 @@
+[package]
+name = "compare_age"
+type = "bin"
+authors = ["Theo Madzou"]
+compiler_version = ">=0.22.0"
+
+[dependencies]
+compare_age = { path = "../../../../lib/compare/age" }
+commitment = { path = "../../../../lib/commitment/scoped-nullifier" }

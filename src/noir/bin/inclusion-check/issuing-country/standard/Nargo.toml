@@ -1,0 +1,10 @@
+[package]
+name = "inclusion_check_issuing_country"
+type = "bin"
+authors = ["Theo Madzou"]
+compiler_version = ">=0.22.0"
+
+[dependencies]
+inclusion_check_country = { path = "../../../../lib/inclusion-check/country" }
+commitment = { path = "../../../../lib/commitment/scoped-nullifier" }
+utils = { path = "../../../../lib/utils" }

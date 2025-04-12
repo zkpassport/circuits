@@ -1,9 +1,0 @@
-[package]
-name = "disclose_bytes"
-type = "bin"
-authors = ["Theo Madzou"]
-compiler_version = ">=0.32.0"
-
-[dependencies]
-disclose = { path = "../../../lib/disclose" }
-commitment = { path = "../../../lib/commitment/scoped-nullifier" }
