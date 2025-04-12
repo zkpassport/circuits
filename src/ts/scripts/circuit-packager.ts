@@ -55,11 +55,16 @@ const files = fs
 const execPromise = promisify(exec)
 
 // Process a single file
-const processFile = async (file: string): Promise<boolean> => {
+const processFile = async (
+  file: string,
+  recursive: boolean = true,
+  evm: boolean = false,
+  outputName: string = file.replace(".json", ""),
+): Promise<boolean> => {
   const inputPath = path.join(TARGET_DIR, file)
-  const outputPath = path.join(PACKAGED_DIR, file)
-  const vkeyPath = path.join(TARGET_DIR, file.replace(".json", ""))
-  const gateCountPath = path.join(TARGET_DIR, file.replace(".json", ".size.json"))
+  const outputPath = path.join(PACKAGED_DIR, `${outputName}.json`)
+  const vkeyPath = path.join(TARGET_DIR, `${outputName}.vkey.json`)
+  const gateCountPath = path.join(TARGET_DIR, `${outputName}.size.json`)
 
   try {
     // Skip if output file already exists
@@ -73,7 +78,9 @@ const processFile = async (file: string): Promise<boolean> => {
     console.log(`Generating vkey for ${file}...`)
     await execPromise(`mkdir -p ${vkeyPath}`)
     await execPromise(
-      `bb write_vk --scheme ultra_honk --recursive --honk_recursion 1 --init_kzg_accumulator --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
+      `bb write_vk --scheme ultra_honk ${recursive ? "--recursive --init_kzg_accumulator" : ""} ${
+        evm ? "--oracle_hash keccak" : ""
+      } --honk_recursion 1 --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
     )
     await execPromise(`bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`)
 
@@ -96,7 +103,7 @@ const processFile = async (file: string): Promise<boolean> => {
     const packagedCircuit: {
       [key: string]: unknown
     } = {
-      name: file.replace(".json", ""),
+      name: outputName,
       noir_version: jsonContent.noir_version,
       bb_version: bbVersion,
       size: gateCount,
@@ -138,8 +145,19 @@ const processFiles = async () => {
       console.log(
         `Memory intensive processing of outer proof circuit: ${file} (no concurrent processing)`,
       )
+      console.log(`Generating the standard outer proof packaged circuit...`)
       const success = await processFile(file)
       if (!success) {
+        hasErrors = true
+      }
+      console.log(`Generating the EVM-optimised outer proof packaged circuit...`)
+      const successEvm = await processFile(
+        file,
+        false,
+        true,
+        file.replace("outer_count", "outer_evm_count").replace(".json", ""),
+      )
+      if (!successEvm) {
         hasErrors = true
       }
     }
