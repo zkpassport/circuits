@@ -104,7 +104,7 @@ pub fn calculate_param_commitment<let N: u32>(country_list: [str<3>; N]) -> Fiel
 /// * `commitment`: The commitment of the country list
 pub fn calculate_param_commitment_sha2<let N: u32>(country_list: [str<3>; N]) -> Field {
     let mut params = [0 as u8; N * 3];
-    for i in 0..N * 3 {
+    for i in 0..N {
         let country_code = country_list[i].as_bytes();
         params[i * 3] = country_code[0];
         params[i * 3 + 1] = country_code[1];

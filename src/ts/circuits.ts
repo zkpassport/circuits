@@ -57,7 +57,15 @@ export class Circuit {
 
   async prove(
     inputs: InputMap,
-    options?: { witness?: Uint8Array; recursive?: boolean; useCli?: boolean; circuitName?: string },
+    options?: {
+      witness?: Uint8Array
+      recursive?: boolean
+      useCli?: boolean
+      circuitName?: string
+      // Should only be used with the outer proof optimised for EVM verification
+      // The subproofs must always use Poseidon2 and be recursively verifiable
+      evm?: boolean
+    },
   ): Promise<ProofData> {
     await this.init(options?.recursive ?? false)
     const witness = options?.witness ?? (await this.solve(inputs, options?.recursive ?? false))
@@ -71,7 +79,9 @@ export class Circuit {
       await writeFileAsync(circuitPath, JSON.stringify(this.manifest))
       const proveCommand = `bb prove --scheme ultra_honk ${
         options?.recursive ? "--recursive --init_kzg_accumulator" : ""
-      }  --honk_recursion 1 -b ${circuitPath} -w ${witnessPath} -o ${tempDir}`
+      } ${
+        options?.evm ? "--oracle_hash keccak" : ""
+      } --honk_recursion 1 -b ${circuitPath} -w ${witnessPath} -o ${tempDir}`
 
       await execAsync(proveCommand, {
         cwd: tempDir,
@@ -88,7 +98,9 @@ export class Circuit {
       if (options?.recursive) {
         proof = await this.backend!.generateProofForRecursiveAggregation(witness)
       } else {
-        const result = await this.backend!.generateProof(witness)
+        const result = await this.backend!.generateProof(witness, {
+          keccak: (options && options.evm) ?? false,
+        })
         proof = {
           proof: getProofData(result.proof.join(""), 0).proof,
           publicInputs: result.publicInputs,
@@ -98,20 +110,24 @@ export class Circuit {
     return proof
   }
 
-  async verify(proof: ProofData, recursive: boolean = false) {
+  async verify(proof: ProofData, recursive: boolean = false, evm: boolean = false) {
     await this.init(recursive)
     if (!this.backend) throw new Error("Backend not initialized")
     const proofData = {
       proof: Buffer.from(proof.proof.join(""), "hex"),
       publicInputs: proof.publicInputs,
     }
-    return await this.backend.verifyProof(proofData)
+    return await this.backend.verifyProof(proofData, {
+      keccak: evm,
+    })
   }
 
-  async getVerificationKey(recursive: boolean = false) {
+  async getVerificationKey(recursive: boolean = false, evm: boolean = false) {
     await this.init(recursive)
     if (!this.backend) throw new Error("Backend not initialized")
-    return await this.backend.getVerificationKey()
+    return await this.backend.getVerificationKey({
+      keccak: evm,
+    })
   }
 
   static from(fileName: string): Circuit {
