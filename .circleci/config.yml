@@ -5,6 +5,9 @@ parameters:
   noir_version:
     type: string
     default: "1.0.0-beta.3"
+  bb_version:
+    type: string
+    default: "0.82.0"
 
 defaults: &defaults
   working_directory: ~/repo
@@ -23,14 +26,24 @@ jobs:
           name: Install Noir
           command: |
             curl -sSL https://raw.githubusercontent.com/noir-lang/noirup/refs/heads/main/install | bash || true
-            echo 'export PATH="/home/circleci/.nargo/bin:$PATH"' >> $BASH_ENV
+            echo 'export PATH="$HOME/.nargo/bin:$PATH"' >> $BASH_ENV
             source $BASH_ENV
             noirup -v << pipeline.parameters.noir_version >>
-            /home/circleci/.nargo/bin/nargo -V
+            $HOME/.nargo/bin/nargo -V
       - save_cache:
           paths:
-            - /home/circleci/.nargo
+            - $HOME/.nargo
           key: nargo-cache-<< pipeline.parameters.noir_version >>
+      - run:
+          name: Install bb
+          command: |
+            mkdir -p $HOME/.bb && curl -L -o $HOME/.bb/bb https://circuits.zkpassport.id/bb/bb_<< pipeline.parameters.bb_version >>
+            chmod +x $HOME/.bb/bb
+            $HOME/.bb/bb --version
+      - save_cache:
+          paths:
+            - $HOME/.bb
+          key: bb-cache-<< pipeline.parameters.bb_version >>
       - restore_cache:
           keys:
             - node-deps-{{ checksum "package-lock.json" }}
@@ -64,7 +77,7 @@ jobs:
           at: ~/repo
       - run:
           name: nargo test
-          command: /home/circleci/.nargo/bin/nargo test
+          command: $HOME/.nargo/bin/nargo test
 
   test_circuits:
     <<: *defaults
@@ -72,16 +85,19 @@ jobs:
       - restore_cache:
           keys:
             - nargo-cache-<< pipeline.parameters.noir_version >>
+      - restore_cache:
+          keys:
+            - bb-cache-<< pipeline.parameters.bb_version >>
       - attach_workspace:
           at: ~/repo
       - run:
           name: Compile circuits
           command: |
-            PATH=/home/circleci/.nargo/bin:$PATH ~/repo/scripts/ci-compile-circuits.sh
+            PATH=$HOME/.nargo/bin:$PATH ~/repo/scripts/ci-compile-circuits.sh
       - run:
           name: Integration tests
           command: |
-            npm test circuits.test.ts
+            PATH=$HOME/.bb:$PATH npm test circuits.test.ts
 
 workflows:
   version: 2
