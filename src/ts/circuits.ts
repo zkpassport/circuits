@@ -82,7 +82,6 @@ export class Circuit {
       } ${
         options?.evm ? "--oracle_hash keccak" : ""
       } --honk_recursion 1 -b ${circuitPath} -w ${witnessPath} -o ${tempDir}`
-
       await execAsync(proveCommand, {
         cwd: tempDir,
       })

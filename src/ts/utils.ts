@@ -48,3 +48,21 @@ export function serializeAsn(obj: any): ArrayBuffer {
 export function createUTCDate(year: number, month: number, day: number): Date {
   return new Date(Date.UTC(year, month, day))
 }
+
+export function snakeToCamel(str: string): string {
+  return str.replace(/_([a-z0-9])/g, (_, letter) => letter.toUpperCase())
+}
+
+export function snakeToPascal(str: string): string {
+  return str
+    .replace(/_([a-z0-9])/g, (_, letter) => letter.toUpperCase())
+    .replace(/^([a-z])/, (_, letter) => letter.toUpperCase())
+}
+
+export function camelToSnake(str: string): string {
+  return str.replace(/([A-Z0-9])/g, "_$1").toLowerCase()
+}
+
+export function pascalToSnake(str: string): string {
+  return str.replace(/([A-Z0-9])/g, "_$1").toLowerCase()
+}

@@ -3,6 +3,7 @@ import path from "path"
 import { exec } from "child_process"
 import { promisify } from "util"
 import { poseidon2Hash } from "@zkpassport/poseidon2"
+import { snakeToPascal } from "../utils"
 
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
@@ -60,12 +61,16 @@ const processFile = async (
   recursive: boolean = true,
   evm: boolean = false,
   outputName: string = file.replace(".json", ""),
+  generateSolidityVerifier: boolean = false,
 ): Promise<boolean> => {
   const inputPath = path.join(TARGET_DIR, file)
   const outputPath = path.join(PACKAGED_DIR, `${outputName}.json`)
   const vkeyPath = path.join(TARGET_DIR, `${outputName}.vkey.json`)
   const gateCountPath = path.join(TARGET_DIR, `${outputName}.size.json`)
-
+  const solidityVerifierPath = path.join(
+    "src/solidity/src",
+    `${snakeToPascal(outputName)}.sol`.replace("Evm", ""),
+  )
   try {
     // Skip if output file already exists
     if (fs.existsSync(outputPath)) {
@@ -83,6 +88,11 @@ const processFile = async (
       } --honk_recursion 1 --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
     )
     await execPromise(`bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`)
+    if (generateSolidityVerifier) {
+      await execPromise(
+        `bb write_solidity_verifier --scheme ultra_honk -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
+      )
+    }
 
     // Get Poseidon2 hash of vkey
     const vkeyAsFieldsJson = JSON.parse(fs.readFileSync(`${vkeyPath}/vk_fields.json`, "utf-8"))
@@ -156,6 +166,7 @@ const processFiles = async () => {
         false,
         true,
         file.replace("outer_count", "outer_evm_count").replace(".json", ""),
+        true,
       )
       if (!successEvm) {
         hasErrors = true

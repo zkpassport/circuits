@@ -626,8 +626,8 @@ describe("outer proof - evm optimised", () => {
       )
       const proof = await circuit.prove(inputs, {
         useCli: true,
-        circuitName: "outer_count_4",
-        recursive: true,
+        circuitName: "outer_evm_count_4",
+        recursive: false,
         evm: true,
       })
       expect(proof).toBeDefined()
@@ -740,8 +740,8 @@ describe("outer proof - evm optimised", () => {
 
       const proof = await outerProofCircuit.prove(inputs, {
         useCli: true,
-        circuitName: "outer_count_6",
-        recursive: true,
+        circuitName: "outer_evm_count_6",
+        recursive: false,
         evm: true,
       })
       expect(proof).toBeDefined()

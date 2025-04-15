@@ -9,3 +9,5 @@ node_modules
 flamegraphs
 res
 .env
+src/solidity/cache
+src/solidity/out
