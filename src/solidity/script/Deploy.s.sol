@@ -62,21 +62,21 @@ contract Deploy is Script {
         
         // Create JSON for verifiers
         string memory verifiers = "verifiers";
-        vm.serializeAddress(verifiers, "outerCount4", address(outerCount4Verifier));
-        vm.serializeAddress(verifiers, "outerCount5", address(outerCount5Verifier));
-        vm.serializeAddress(verifiers, "outerCount6", address(outerCount6Verifier));
-        vm.serializeAddress(verifiers, "outerCount7", address(outerCount7Verifier));
-        vm.serializeAddress(verifiers, "outerCount8", address(outerCount8Verifier));
-        vm.serializeAddress(verifiers, "outerCount9", address(outerCount9Verifier));
-        vm.serializeAddress(verifiers, "outerCount10", address(outerCount10Verifier));
-        verifiers = vm.serializeAddress(verifiers, "outerCount11", address(outerCount11Verifier));
+        vm.serializeAddress(verifiers, "outer_count_4", address(outerCount4Verifier));
+        vm.serializeAddress(verifiers, "outer_count_5", address(outerCount5Verifier));
+        vm.serializeAddress(verifiers, "outer_count_6", address(outerCount6Verifier));
+        vm.serializeAddress(verifiers, "outer_count_7", address(outerCount7Verifier));
+        vm.serializeAddress(verifiers, "outer_count_8", address(outerCount8Verifier));
+        vm.serializeAddress(verifiers, "outer_count_9", address(outerCount9Verifier));
+        vm.serializeAddress(verifiers, "outer_count_10", address(outerCount10Verifier));
+        verifiers = vm.serializeAddress(verifiers, "outer_count_11", address(outerCount11Verifier));
         
         // Create the main JSON object
         string memory mainJson = "main";
         
         // Add deployment details to the main JSON
-        vm.serializeUint(mainJson, "chainId", block.chainid);
-        vm.serializeString(mainJson, "deploymentTimestamp", vm.toString(block.timestamp));
+        vm.serializeUint(mainJson, "chain_id", block.chainid);
+        vm.serializeString(mainJson, "deployment_timestamp", vm.toString(block.timestamp));
         
         // Add verifiers object to the main JSON
         string memory finalJson = vm.serializeString(mainJson, "verifiers", verifiers);
