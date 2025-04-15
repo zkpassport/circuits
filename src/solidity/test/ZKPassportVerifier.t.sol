@@ -108,6 +108,8 @@ contract ZKPassportVerifierTest is Test {
 
         // Verify the proof
         vm.startSnapshotGas("ZKPassportVerifier verifyProof");
+        // Set the timestamp to 2025-04-15 20:35:23 UTC
+        vm.warp(1744749323);
         (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(VKEY_HASH, proof, publicInputs, committedInputs, committedInputCounts, 2);
         uint256 gasUsed = vm.stopSnapshotGas();
         console.log("Gas used in ZKPassportVerifier verifyProof");

@@ -147,7 +147,7 @@ contract ZKPassportVerifier {
         }
         uint256 timestamp = getTimestampFromDate(currentDate);
         uint256 validityPeriodTimestamp = timestamp + validityPeriodInDays * SECONDS_PER_DAY;
-        return block.timestamp <= timestamp && validityPeriodTimestamp > timestamp && validityPeriodTimestamp > block.timestamp;
+        return block.timestamp >= timestamp && validityPeriodTimestamp > timestamp && validityPeriodTimestamp > block.timestamp;
     }
 
     function verifyCommittedInputs(bytes32[] memory paramCommitments, bytes calldata committedInputs, uint256[] memory committedInputCounts) internal view returns (bool) {
@@ -177,7 +177,7 @@ contract ZKPassportVerifier {
         // TODO: verify the certificate registry root
         // bytes32 certificateRegistryRoot = publicInputs[0];
         // Checks the date of the proof
-        require(checkDate(publicInputs, validityPeriodInDays), "Proof expired");
+        require(checkDate(publicInputs, validityPeriodInDays), "Proof expired or date is invalid");
         // Extracts the commitments from the public inputs
         bytes32[] memory paramCommitments = new bytes32[](actualPublicInputCount - 12);
         for (uint256 i = 11; i < actualPublicInputCount - 1; i++) {
