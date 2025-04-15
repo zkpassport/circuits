@@ -11,3 +11,6 @@ res
 .env
 src/solidity/cache
 src/solidity/out
+src/solidity/broadcast
+# Ignore the anvil deployment file
+src/solidity/deployments/deployment-31337.json
