@@ -1,9 +1,0 @@
-[package]
-name = "compare_birthdate"
-type = "bin"
-authors = ["Theo Madzou", "Michael Elliot"]
-compiler_version = ">=1.0.0"
-
-[dependencies]
-compare_date_lib = { path = "../../../lib/compare/date" }
-commitment = { path = "../../../lib/commitment/scoped-nullifier" }

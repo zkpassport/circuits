@@ -43,27 +43,47 @@ ${dependencies.map(({ name, path }) => `${name} = { path = "${path}" }`).join("\
 
 const STATIC_CIRCUITS = [
   { name: "compare_citizenship", path: "./src/noir/bin/compare/citizenship" },
-  { name: "compare_age", path: "./src/noir/bin/compare/age" },
-  { name: "compare_expiry", path: "./src/noir/bin/compare/expiry" },
-  { name: "compare_birthdate", path: "./src/noir/bin/compare/birthdate" },
+  { name: "compare_age", path: "./src/noir/bin/compare/age/standard" },
+  { name: "compare_age_evm", path: "./src/noir/bin/compare/age/evm" },
+  { name: "compare_expiry", path: "./src/noir/bin/compare/expiry/standard" },
+  { name: "compare_expiry_evm", path: "./src/noir/bin/compare/expiry/evm" },
+  { name: "compare_birthdate", path: "./src/noir/bin/compare/birthdate/standard" },
+  { name: "compare_birthdate_evm", path: "./src/noir/bin/compare/birthdate/evm" },
   { name: "disclose_flags", path: "./src/noir/bin/disclose/flags" },
-  { name: "disclose_bytes", path: "./src/noir/bin/disclose/bytes" },
+  { name: "disclose_bytes", path: "./src/noir/bin/disclose/bytes/standard" },
+  { name: "disclose_bytes_evm", path: "./src/noir/bin/disclose/bytes/evm" },
   { name: "data_check_expiry", path: "./src/noir/bin/data-check/expiry" },
   {
     name: "exclusion_check_issuing_country",
-    path: "./src/noir/bin/exclusion-check/issuing-country",
+    path: "./src/noir/bin/exclusion-check/issuing-country/standard",
+  },
+  {
+    name: "exclusion_check_issuing_country_evm",
+    path: "./src/noir/bin/exclusion-check/issuing-country/evm",
   },
   {
     name: "inclusion_check_issuing_country",
-    path: "./src/noir/bin/inclusion-check/issuing-country",
+    path: "./src/noir/bin/inclusion-check/issuing-country/standard",
+  },
+  {
+    name: "inclusion_check_issuing_country_evm",
+    path: "./src/noir/bin/inclusion-check/issuing-country/evm",
   },
   {
     name: "exclusion_check_nationality",
-    path: "./src/noir/bin/exclusion-check/nationality",
+    path: "./src/noir/bin/exclusion-check/nationality/standard",
+  },
+  {
+    name: "exclusion_check_nationality_evm",
+    path: "./src/noir/bin/exclusion-check/nationality/evm",
   },
   {
     name: "inclusion_check_nationality",
-    path: "./src/noir/bin/inclusion-check/nationality",
+    path: "./src/noir/bin/inclusion-check/nationality/standard",
+  },
+  {
+    name: "inclusion_check_nationality_evm",
+    path: "./src/noir/bin/inclusion-check/nationality/evm",
   },
 ]
 
@@ -350,6 +370,162 @@ ${unconstrained ? "unconstrained " : ""}fn main(
 }
 `
 
+const OUTER_CIRCUIT_TEMPLATE = (
+  disclosure_proofs_count: number,
+  unconstrained: boolean = false,
+) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
+/*
+############################################################
+# Outer Circuit
+############################################################
+# Wraps ${
+  disclosure_proofs_count + 3
+} subproofs (3 base proofs + ${disclosure_proofs_count} disclosure proofs) into a single proof 
+# by verifying them recursively
+############################################################
+
+# Inputs/Outputs
+############################################################
+certificate_registry_root -> The root of the certificate registry merkle tree
+current_date -> The current date as a string, e.g. 20241103 (used by the integrity check subproof)
+service_scope -> The service scope
+service_subscope -> The service subscope
+param_commitments -> The commitments over the parameters of the disclosure circuits
+scoped_nullifier -> The scoped nullifier
+csc_to_dsc_proof -> The proof of the CSC to DSC circuit
+dsc_to_id_data_proof -> The proof of the DSC to ID Data circuit
+integrity_check_proof -> The proof of the integrity check circuit
+disclosure_proofs -> The proofs of the disclosure circuits
+*/
+
+//use common::compute_merkle_root;
+use outer_lib::{
+    CSCtoDSCProof, DisclosureProof, DSCtoIDDataProof, IntegrityCheckProof,
+    prepare_disclosure_inputs, prepare_integrity_check_inputs,
+};
+use std::verify_proof_with_type;
+global HONK_IDENTIFIER: u32 = 1;
+
+fn verify_subproofs(
+    // Root of the sub-circuit merkle tree
+    // TODO: enable it when the circuit registry is ready
+    // circuit_registry_root: Field,
+    // Root of the certificate merkle tree
+    certificate_registry_root: Field,
+    // Current date as a string, e.g. 20241103
+    current_date: str<8>,
+    // The commitments over the parameters of the disclosure circuits
+    param_commitments: [Field; ${disclosure_proofs_count}],
+    // The nullifier service scope (a Pederson hash of the domain)
+    service_scope: Field,
+    // The service sub-scope
+    service_subscope: Field,
+    // The scoped nullifier: H(private_nullifier,service_scope,service_subscope)
+    scoped_nullifier: Field,
+    csc_to_dsc_proof: CSCtoDSCProof,
+    dsc_to_id_data_proof: DSCtoIDDataProof,
+    integrity_check_proof: IntegrityCheckProof,
+    disclosure_proofs: [DisclosureProof; ${disclosure_proofs_count}],
+) {
+    // Verify that sub-circuit a, b, c, and d vkey hashes exist in the circuit tree
+    // TODO: enable it when the circuit registry is ready
+    /*let root = compute_merkle_root(proof_a.key_hash, proof_a.tree_index, proof_a.tree_hash_path);
+    assert(root == circuit_registry_root);
+    let root = compute_merkle_root(proof_b.key_hash, proof_b.tree_index, proof_b.tree_hash_path);
+    assert(root == circuit_registry_root);
+    let root = compute_merkle_root(proof_c.key_hash, proof_c.tree_index, proof_c.tree_hash_path);
+    assert(root == circuit_registry_root);
+    let root = compute_merkle_root(proof_d.key_hash, proof_d.tree_index, proof_d.tree_hash_path);
+    assert(root == circuit_registry_root);*/
+
+    verify_proof_with_type(
+        csc_to_dsc_proof.vkey,
+        csc_to_dsc_proof.proof,
+        [
+            certificate_registry_root,
+            csc_to_dsc_proof.public_inputs[0], // comm_out
+        ],
+        csc_to_dsc_proof.key_hash,
+        HONK_IDENTIFIER,
+    );
+
+    // Commitment out from CSC to DSC circuit == commitment in from DSC to ID Data circuit
+    assert_eq(csc_to_dsc_proof.public_inputs[0], dsc_to_id_data_proof.public_inputs[0]);
+
+    verify_proof_with_type(
+        dsc_to_id_data_proof.vkey,
+        dsc_to_id_data_proof.proof,
+        [
+            dsc_to_id_data_proof.public_inputs[0], // comm_in
+            dsc_to_id_data_proof.public_inputs[1], // comm_out
+        ],
+        dsc_to_id_data_proof.key_hash,
+        HONK_IDENTIFIER,
+    );
+
+    // Commitment out from DSC to ID Data circuit == commitment in from integrity check circuit
+    assert_eq(dsc_to_id_data_proof.public_inputs[1], integrity_check_proof.public_inputs[0]);
+
+    verify_proof_with_type(
+        integrity_check_proof.vkey,
+        integrity_check_proof.proof,
+        prepare_integrity_check_inputs(
+            current_date,
+            integrity_check_proof.public_inputs[0], // comm_in
+            integrity_check_proof.public_inputs[1], // comm_out
+        ),
+        integrity_check_proof.key_hash,
+        HONK_IDENTIFIER,
+    );
+
+    for i in 0..disclosure_proofs.len() {
+        // Commitment out from integrity check circuit == commitment in from disclosure circuit
+        assert_eq(integrity_check_proof.public_inputs[1], disclosure_proofs[i].public_inputs[0]);
+
+        verify_proof_with_type(
+            disclosure_proofs[i].vkey,
+            disclosure_proofs[i].proof,
+            prepare_disclosure_inputs(
+                disclosure_proofs[i].public_inputs[0], // comm_in
+                param_commitments[i],
+                service_scope,
+                service_subscope,
+                scoped_nullifier,
+            ),
+            disclosure_proofs[i].key_hash,
+            HONK_IDENTIFIER,
+        );
+    }
+}
+
+${unconstrained ? "unconstrained " : ""}fn main(
+    // TODO: enable it when the circuit registry is ready
+    // circuit_registry_root: pub Field,
+    certificate_registry_root: pub Field,
+    current_date: pub str<8>,
+    service_scope: pub Field,
+    service_subscope: pub Field,
+    param_commitments: pub [Field; ${disclosure_proofs_count}],
+    scoped_nullifier: pub Field,
+    csc_to_dsc_proof: CSCtoDSCProof,
+    dsc_to_id_data_proof: DSCtoIDDataProof,
+    integrity_check_proof: IntegrityCheckProof,
+    disclosure_proofs: [DisclosureProof; ${disclosure_proofs_count}],
+) {
+    verify_subproofs(
+        certificate_registry_root,
+        current_date,
+        param_commitments,
+        service_scope,
+        service_subscope,
+        scoped_nullifier,
+        csc_to_dsc_proof,
+        dsc_to_id_data_proof,
+        integrity_check_proof,
+        disclosure_proofs,
+    );
+}`
+
 function generateDscEcdsaCircuit(
   curve_family: string,
   curve_name: string,
@@ -490,6 +666,22 @@ function generateDataIntegrityCheckCircuit(
   generatedCircuits.push({ name, path: folderPath })
 }
 
+function generateOuterCircuit(disclosure_proofs_count: number, unconstrained: boolean = false) {
+  const noirFile = OUTER_CIRCUIT_TEMPLATE(disclosure_proofs_count, unconstrained)
+  const name = `outer_count_${disclosure_proofs_count + 3}`
+  const nargoFile = NARGO_TEMPLATE(name, [
+    { name: "common", path: "../../../../lib/commitment/common" },
+    { name: "outer_lib", path: "../../../../lib/outer" },
+  ])
+  const folderPath = `./src/noir/bin/main/outer/count_${disclosure_proofs_count + 3}`
+  const noirFilePath = `${folderPath}/src/main.nr`
+  const nargoFilePath = `${folderPath}/Nargo.toml`
+  ensureDirectoryExistence(noirFilePath)
+  fs.writeFileSync(noirFilePath, noirFile)
+  fs.writeFileSync(nargoFilePath, nargoFile)
+  generatedCircuits.push({ name, path: folderPath })
+}
+
 const SIGNATURE_ALGORITHMS_SUPPORTED: {
   type: "ecdsa" | "rsa"
   family: "brainpool" | "nist" | "pss" | "pkcs"
@@ -595,6 +787,13 @@ const generateDataIntegrityCheckCircuits = ({
       unconstrained,
     )
   })
+}
+
+const generateOuterCircuits = ({ unconstrained = false }: { unconstrained: boolean }) => {
+  console.log("Generating outer circuits...")
+  for (let i = 1; i <= 8; i++) {
+    generateOuterCircuit(i, unconstrained)
+  }
 }
 
 /**
@@ -809,6 +1008,7 @@ if (args.includes("generate")) {
   generateDscCircuits({ unconstrained })
   generateIdDataCircuits({ unconstrained })
   generateDataIntegrityCheckCircuits({ unconstrained })
+  generateOuterCircuits({ unconstrained })
   generateWorkspaceToml()
 }
 

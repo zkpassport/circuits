@@ -1,3 +1,4 @@
+use std::hash::poseidon2::Poseidon2;
 use utils::{get_issuing_country_from_mrz, get_nationality_from_mrz};
 
 unconstrained fn get_index<let N: u32>(list: [str<3>; N], value: [u8; 3]) -> i32 {
@@ -65,4 +66,50 @@ pub fn check_issuing_country_inclusion<let N: u32>(dg1: [u8; 95], country_list: 
         country_code[2],
         "Issuing country does not match the country code",
     );
+}
+
+/// Calculate the commitment of the country list using Poseidon2
+///
+/// This is less demanding on the prover but much more demanding on EVM verifiers
+///
+/// # Arguments
+///
+/// * `country_list`: The list of countries
+///
+/// # Returns
+///
+/// * `commitment`: The commitment of the country list
+pub fn calculate_param_commitment<let N: u32>(country_list: [str<3>; N]) -> Field {
+    let mut params = [0 as Field; N];
+    for i in 0..N {
+        let country_code = country_list[i].as_bytes();
+        let country_sum: u32 = country_code[0] as u32 * 0x10000
+            + country_code[1] as u32 * 0x100
+            + country_code[2] as u32;
+        params[i] = country_sum as Field;
+    }
+    Poseidon2::hash(params, N)
+}
+
+/// Calculate the commitment of the country list using SHA2-256
+///
+/// This is more demanding on the prover but less demanding on EVM verifiers
+///
+/// # Arguments
+///
+/// * `country_list`: The list of countries
+///
+/// # Returns
+///
+/// * `commitment`: The commitment of the country list
+pub fn calculate_param_commitment_sha2<let N: u32>(country_list: [str<3>; N]) -> Field {
+    let mut params = [0 as u8; N * 3];
+    for i in 0..N {
+        let country_code = country_list[i].as_bytes();
+        params[i * 3] = country_code[0];
+        params[i * 3 + 1] = country_code[1];
+        params[i * 3 + 2] = country_code[2];
+    }
+    let hash = sha256::sha256_var(params, (N * 3) as u64);
+    utils::pack_be_bytes_into_field::<32, 31>(hash)
 }

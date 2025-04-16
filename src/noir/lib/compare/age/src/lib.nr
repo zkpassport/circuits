@@ -1,4 +1,5 @@
 use date::Date;
+use std::hash::poseidon2::Poseidon2;
 use utils::{
     get_array_slice, get_mrz_from_dg1, ID_CARD_MRZ_BIRTHDATE_INDEX, is_id_card,
     PASSPORT_MRZ_BIRTHDATE_INDEX,
@@ -58,4 +59,61 @@ pub fn compare_age(dg1: [u8; 95], min_age: u8, max_age: u8, current_date_bytes: 
         // is equal to min_age = max_age
         assert(current_date.lt(birthdate.add_years((max_age + 1) as u32)));
     }
+}
+
+/// Calculate the commitment of the current date, min age and max age using Poseidon2
+///
+/// This is less demanding on the prover but much more demanding on EVM verifiers
+///
+/// # Arguments
+///
+/// * `current_date`: The current date
+/// * `min_age_required`: The minimum age required
+/// * `max_age_required`: The maximum age required
+///
+/// # Returns
+///
+/// * `commitment`: The commitment of the current date, min age and max age
+pub fn calculate_param_commitment(
+    current_date: str<8>,
+    min_age_required: u8,
+    max_age_required: u8,
+) -> Field {
+    let mut params = [0 as Field; 10];
+    let current_date_bytes = current_date.as_bytes();
+    for i in 0..8 {
+        params[i] = current_date_bytes[i] as Field;
+    }
+    params[8] = min_age_required as Field;
+    params[9] = max_age_required as Field;
+    Poseidon2::hash(params, 10)
+}
+
+/// Calculate the commitment of the current date, min age and max age using SHA2-256
+///
+/// This is more demanding on the prover but less demanding on EVM verifiers
+///
+/// # Arguments
+///
+/// * `current_date`: The current date
+/// * `min_age_required`: The minimum age required
+/// * `max_age_required`: The maximum age required
+///
+/// # Returns
+///
+/// * `commitment`: The commitment of the current date, min age and max age
+pub fn calculate_param_commitment_sha2(
+    current_date: str<8>,
+    min_age_required: u8,
+    max_age_required: u8,
+) -> Field {
+    let mut params = [0 as u8; 10];
+    let current_date_bytes = current_date.as_bytes();
+    for i in 0..8 {
+        params[i] = current_date_bytes[i];
+    }
+    params[8] = min_age_required;
+    params[9] = max_age_required;
+    let hash = sha256::sha256_var(params, 10);
+    utils::pack_be_bytes_into_field::<32, 31>(hash)
 }

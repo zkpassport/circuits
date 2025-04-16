@@ -1,0 +1,9 @@
+[package]
+name = "disclose_bytes_evm"
+type = "bin"
+authors = ["Theo Madzou", "Michael Elliot"]
+compiler_version = ">=1.0.0"
+
+[dependencies]
+disclose = { path = "../../../../lib/disclose" }
+commitment = { path = "../../../../lib/commitment/scoped-nullifier" }

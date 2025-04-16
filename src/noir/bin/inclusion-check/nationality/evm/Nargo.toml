@@ -1,0 +1,10 @@
+[package]
+name = "inclusion_check_nationality_evm"
+type = "bin"
+authors = ["Theo Madzou", "Michael Elliot"]
+compiler_version = ">=1.0.0"
+
+[dependencies]
+inclusion_check_country = { path = "../../../../lib/inclusion-check/country" }
+commitment = { path = "../../../../lib/commitment/scoped-nullifier" }
+utils = { path = "../../../../lib/utils" }

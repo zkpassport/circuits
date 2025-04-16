@@ -147,7 +147,7 @@ fn test_compute_merkle_root1() {
         0x2a775ea761d20435b31fa2c33ff07663e24542ffb9e7b293dfce3042eb104686,
         0x0f320b0703439a8114f81593de99cd0b8f3b9bf854601abb5b2ea0e8a3dda4a7,
         0x0d07f6e7a8a0e9199d6d92801fff867002ff5b4808962f9da2ba5ce1bdd26a73,
-        0x1c4954081e324939350febc2b918a293ebcdaead01be95ec02fcbe8d2c1635d1
+        0x1c4954081e324939350febc2b918a293ebcdaead01be95ec02fcbe8d2c1635d1,
     ];
     let root = compute_merkle_root(leaf, index, hash_path);
     assert(root == 0x0742857aba0058b2167c4ac94fede8ec480600911aa871153b988c3f71095449);
@@ -169,10 +169,13 @@ fn test_compute_merkle_root2() {
     assert(expected_root == 0x0f4f16b234c1d5054b15d408282cb45ba6c10a629fe068e7f3cc253ceae4f08d);
 
     let hash_path = [e01, e10];
-    assert(hash_path == [
-        0x168758332d5b3e2d13be8048c8011b454590e06c44bce7f702f09103eef5a373,
-        0x113d8ff59c2e15d711241797c380264e39dc1b9e00f2713e707d8d7773b6d912
-    ]);
+    assert(
+        hash_path
+            == [
+                0x168758332d5b3e2d13be8048c8011b454590e06c44bce7f702f09103eef5a373,
+                0x113d8ff59c2e15d711241797c380264e39dc1b9e00f2713e707d8d7773b6d912,
+            ],
+    );
 
     let leaf = Poseidon2::hash([1], 1);
     let index = 0;
@@ -314,7 +317,7 @@ fn test_get_vkey_hash() {
         0x000000000000000000000000000000feb33855ac28e08d8b02991fb3f3c211cf,
         0x000000000000000000000000000000000007d8476506cdef23b023ca072ed709,
         0x000000000000000000000000000000e985e0b015edca55f69192bdb7139b7224,
-        0x000000000000000000000000000000000020470f3258600e780b46d6c7db1bc6
+        0x000000000000000000000000000000000020470f3258600e780b46d6c7db1bc6,
     ];
     let vkey_hash = get_vkey_hash(vkey);
     assert(vkey_hash == 0x159c7f9777839c2449c0a0f90b411569ed72aaa9d090c82c9c028adf5419d3d6);

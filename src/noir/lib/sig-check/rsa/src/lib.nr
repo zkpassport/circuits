@@ -21,8 +21,8 @@ pub fn verify_signature<let SIG_BYTES: u32, let IS_PSS: u32, let DATA_TO_SIGN_LE
     );
 
     let pubkey =
-        utils::pack_be_bytes_into_u128::<SIG_BYTES, (SIG_BYTES + 14) / 15, 15>(pubkey_bytes);
-    let redc_param = utils::pack_be_bytes_into_u128::<SIG_BYTES + 1, _, 15>(redc_param_bytes);
+        utils::pack_be_bytes_into_u128s::<SIG_BYTES, (SIG_BYTES + 14) / 15, 15>(pubkey_bytes);
+    let redc_param = utils::pack_be_bytes_into_u128s::<SIG_BYTES + 1, _, 15>(redc_param_bytes);
     let params = BigNumParams::new(false, pubkey, redc_param);
 
     let signature = RuntimeBigNum::from_be_bytes(params, sig_bytes);
