@@ -421,5 +421,24 @@ members = [
     "src/noir/bin/main/outer/count_8",
     "src/noir/bin/main/outer/count_9",
     "src/noir/bin/main/outer/count_10",
-    "src/noir/bin/main/outer/count_11"
+    "src/noir/bin/main/outer/count_11",
+
+    "src/noir/lib/commitment/common",
+    "src/noir/lib/commitment/csc-to-dsc",
+    "src/noir/lib/commitment/dsc-to-id",
+    "src/noir/lib/commitment/integrity-to-disclosure",
+    "src/noir/lib/commitment/scoped-nullifier",
+    "src/noir/lib/compare/age",
+    "src/noir/lib/compare/citizenship",
+    "src/noir/lib/compare/date",
+    "src/noir/lib/data-check/expiry",
+    "src/noir/lib/data-check/integrity",
+    "src/noir/lib/data-check/tbs-pubkey",
+    "src/noir/lib/disclose",
+    "src/noir/lib/exclusion-check/country",
+    "src/noir/lib/inclusion-check/country",
+    "src/noir/lib/sig-check/common",
+    "src/noir/lib/sig-check/ecdsa",
+    "src/noir/lib/sig-check/rsa",
+    "src/noir/lib/utils"
 ]
