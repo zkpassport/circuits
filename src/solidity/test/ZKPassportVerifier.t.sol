@@ -139,7 +139,7 @@ contract ZKPassportVerifierTest is Test {
     console.log("Disclose bytes");
     console.logBytes(discloseBytes);
 
-    vm.startSnapshotGas("ZKPassportVerifier getFormattedMRZ");
+    vm.startSnapshotGas("ZKPassportVerifier getDisclosedData");
     (
       string memory name,
       string memory issuingCountry,
@@ -149,10 +149,10 @@ contract ZKPassportVerifierTest is Test {
       string memory expiryDate,
       string memory documentNumber,
       string memory documentType
-    ) = zkPassportVerifier.getFormattedMRZ(discloseBytes, false);
-    uint256 gasUsedGetFormattedMRZ = vm.stopSnapshotGas();
-    console.log("Gas used in ZKPassportVerifier getFormattedMRZ");
-    console.log(gasUsedGetFormattedMRZ);
+    ) = zkPassportVerifier.getDisclosedData(discloseBytes, false);
+    uint256 gasUsedGetDisclosedData = vm.stopSnapshotGas();
+    console.log("Gas used in ZKPassportVerifier getDisclosedData");
+    console.log(gasUsedGetDisclosedData);
     assertEq(name, "SILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<");
     assertEq(issuingCountry, "AUS");
     assertEq(nationality, "AUS");

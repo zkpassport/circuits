@@ -120,7 +120,7 @@ contract ZKPassportVerifier {
     return DateUtils.isDateValid(currentDate, validityPeriodInDays);
   }
 
-  function getFormattedMRZ(
+  function getDisclosedData(
     bytes calldata discloseBytes,
     bool isIDCard
   )
