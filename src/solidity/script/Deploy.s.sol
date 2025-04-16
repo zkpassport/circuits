@@ -34,7 +34,7 @@ contract Deploy is Script {
         bytes32(hex"133b430a9eb889e77185dae5b0505ec9fa0c27e4e8e5b0887c7914954b9b8440"),
         // Outer (11 subproofs)
         bytes32(hex"069f039e7d9a3a64d963797f9a7232380dab2c2cd294c1d7864105b7caa6ea00")
-    ];
+];
 
     function run() public {
         // Load the private key from environment variable

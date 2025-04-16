@@ -8,6 +8,7 @@ import { snakeToPascal } from "../utils"
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
 const MAX_CONCURRENT_PROCESSES = 10
+const DEPLOY_SOL_PATH = "src/solidity/script/Deploy.s.sol"
 
 // Promise pool for controlled concurrency
 class PromisePool {
@@ -140,6 +141,99 @@ const processFile = async (
   }
 }
 
+// Get all outer EVM vkey hashes from packaged circuit files
+const getOuterEvmVkeyHashes = (): { count: number; hash: string }[] => {
+  console.log("Collecting vkey hashes from packaged circuit files...")
+  const vkeyHashes: { count: number; hash: string }[] = []
+
+  try {
+    // Get all packaged JSON files
+    const packagedFiles = fs.readdirSync(PACKAGED_DIR).filter((file) => file.endsWith(".json"))
+
+    // Filter for outer_evm_count files and extract their vkey hashes
+    for (const file of packagedFiles) {
+      if (file.startsWith("outer_evm_count_")) {
+        const countMatch = file.match(/outer_evm_count_(\d+)\.json/)
+        if (countMatch && countMatch[1]) {
+          const count = parseInt(countMatch[1])
+          const filePath = path.join(PACKAGED_DIR, file)
+
+          // Read the packaged circuit file
+          const fileContent = fs.readFileSync(filePath, "utf-8")
+          const packagedCircuit = JSON.parse(fileContent)
+
+          if (packagedCircuit.vkey_hash) {
+            // Ensure the hash has the proper 0x prefix and length
+            let hash = packagedCircuit.vkey_hash as string
+            // Remove "0x" prefix if present
+            const hashWithoutPrefix = hash.startsWith("0x") ? hash.substring(2) : hash
+            // Ensure even number of characters by adding leading zero if needed
+            const paddedHash =
+              hashWithoutPrefix.length % 2 === 1 ? `0${hashWithoutPrefix}` : hashWithoutPrefix
+            // Normalize the hash format to always have 0x prefix
+            const normalizedHash = `0x${paddedHash}`
+
+            vkeyHashes.push({
+              count,
+              hash: normalizedHash,
+            })
+            console.log(`Collected vkey hash for outer_evm_count_${count}: ${normalizedHash}`)
+          }
+        }
+      }
+    }
+
+    // Sort by count in ascending order
+    vkeyHashes.sort((a, b) => a.count - b.count)
+
+    return vkeyHashes
+  } catch (error) {
+    console.error("Error collecting vkey hashes:", error)
+    return []
+  }
+}
+
+// Update Deploy.s.sol file with vkey hashes
+const updateDeploySol = () => {
+  // Get vkey hashes from packaged files
+  const outerEvmVkeyHashes = getOuterEvmVkeyHashes()
+
+  if (outerEvmVkeyHashes.length === 0) {
+    console.log("No outer EVM vkey hashes found to update in Deploy.s.sol")
+    return
+  }
+
+  console.log("Updating Deploy.s.sol with vkey hashes...")
+
+  try {
+    // Read the Deploy.s.sol file
+    const deploySolContent = fs.readFileSync(DEPLOY_SOL_PATH, "utf-8")
+
+    // Find the vkeyHashes array section
+    const vkeyHashesRegex = /(bytes32\[\] public vkeyHashes = \[)([\s\S]*?)(\];)/
+
+    // Generate the new vkey hashes content
+    const newVkeyHashesContent = outerEvmVkeyHashes
+      .map(
+        ({ count, hash }) =>
+          `        // Outer (${count} subproofs)\n        bytes32(hex"${hash.substring(2)}")`,
+      )
+      .join(",\n")
+
+    // Replace the old vkey hashes with the new ones
+    const updatedContent = deploySolContent.replace(
+      vkeyHashesRegex,
+      (match, prefix, _, suffix) => `${prefix}\n${newVkeyHashesContent}\n${suffix}`,
+    )
+
+    // Write the updated file
+    fs.writeFileSync(DEPLOY_SOL_PATH, updatedContent)
+    console.log(`Updated vkey hashes in ${DEPLOY_SOL_PATH}`)
+  } catch (error) {
+    console.error("Error updating Deploy.s.sol:", error)
+  }
+}
+
 // Process files with controlled concurrency
 const processFiles = async () => {
   let hasErrors = false
@@ -193,6 +287,9 @@ const processFiles = async () => {
     // Wait for all other files to be processed
     await Promise.all(promises)
   }
+
+  // Update Deploy.s.sol with the vkey hashes
+  updateDeploySol()
 
   // Exit with error code if any file failed to process
   if (hasErrors) {
