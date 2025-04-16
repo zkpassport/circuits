@@ -1,8 +1,8 @@
 [package]
 name = "data_check_expiry"
 type = "bin"
-authors = ["Theo Madzou"]
-compiler_version = ">=0.22.0"
+authors = ["Theo Madzou", "Michael Elliot"]
+compiler_version = ">=1.0.0"
 
 [dependencies]
 data_check_expiry = { path = "../../../lib/data-check/expiry" }
