@@ -67,6 +67,27 @@ const STATIC_CIRCUITS = [
   },
 ]
 
+const LIB_CIRCUITS = [
+  "src/noir/lib/commitment/common",
+  "src/noir/lib/commitment/csc-to-dsc",
+  "src/noir/lib/commitment/dsc-to-id",
+  "src/noir/lib/commitment/integrity-to-disclosure",
+  "src/noir/lib/commitment/scoped-nullifier",
+  "src/noir/lib/compare/age",
+  "src/noir/lib/compare/citizenship",
+  "src/noir/lib/compare/date",
+  "src/noir/lib/data-check/expiry",
+  "src/noir/lib/data-check/integrity",
+  "src/noir/lib/data-check/tbs-pubkey",
+  "src/noir/lib/disclose",
+  "src/noir/lib/exclusion-check/country",
+  "src/noir/lib/inclusion-check/country",
+  "src/noir/lib/sig-check/common",
+  "src/noir/lib/sig-check/ecdsa",
+  "src/noir/lib/sig-check/rsa",
+  "src/noir/lib/utils",
+]
+
 const WORKSPACE_NARGO_TEMPLATE = (dependencies: string[]) => `[workspace]
 members = [${STATIC_CIRCUITS.map(
   ({ path }) => `
@@ -76,7 +97,9 @@ members = [${STATIC_CIRCUITS.map(
     (path) => `
     "${path.replace("./", "")}"`,
   )
-  .join(",")}
+  .join(",")},
+
+    "${LIB_CIRCUITS.join('",\n    "')}"
 ]
 `
 
