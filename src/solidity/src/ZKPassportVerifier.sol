@@ -3,22 +3,9 @@
 pragma solidity >=0.8.21;
 
 import {IVerifier} from "../src/OuterCount4.sol";
-import {console} from "forge-std/console.sol";
+import {DateUtils} from "../src/DateUtils.sol";
 
 contract ZKPassportVerifier {
-    // Constants
-    uint256 constant UNIX_EPOCH_START_YEAR = 1970;
-    uint256 constant UNIX_EPOCH_START_MONTH = 1;
-    uint256 constant UNIX_EPOCH_START_DAY = 1;
-
-    // Constants for timestamp calculation
-    uint256 constant SECONDS_PER_DAY = 86400;
-    uint256 constant SECONDS_PER_HOUR = 3600;
-    uint256 constant SECONDS_PER_MINUTE = 60;
-    uint256 constant DAYS_PER_WEEK = 7;
-    
-    // Array of days in each month (non-leap year)
-    uint8[12] private DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     address public admin;
     bool public paused;
 
@@ -75,79 +62,12 @@ contract ZKPassportVerifier {
         }
     }
 
-    function asciiCodeToNumber(bytes32 asciiCode) internal pure returns (uint256) {
-        return uint256(asciiCode) - 48;
-    }
-
-    /**
-     * @dev Helper function to check if a year is a leap year
-     * @param year The year to check
-     * @return True if the year is a leap year, false otherwise
-     */
-    function isLeapYear(uint256 year) internal pure returns (bool) {
-        if (year % 4 != 0) return false;
-        if (year % 100 != 0) return true;
-        if (year % 400 != 0) return false;
-        return true;
-    }
-
-    /**
-     * @dev Helper function to get days in a specific month
-     * @param month The month (1-12)
-     * @param year The year (to check for leap years)
-     * @return The number of days in the month
-     */
-    function getDaysInMonth(uint256 month, uint256 year) internal view returns (uint256) {
-        require(month >= 1 && month <= 12, "Invalid month");
-        
-        // February special case for leap years
-        if (month == 2 && isLeapYear(year)) {
-            return 29;
-        }
-        
-        // Arrays in Solidity are 0-indexed, but months are 1-indexed
-        return DAYS_IN_MONTH[month - 1];
-    }
-
-    /**
-     * @dev Helper function to get the timestamp from the date
-     * @param date The date in this format: [Y1, Y2, Y3, Y4, M1, M2, D1, D2]
-     * @return The UNIX timestamp in seconds
-     */
-    function getTimestampFromDate(bytes32[] memory date) internal view returns (uint256) {
-        uint256 year = asciiCodeToNumber(date[0]) * 1000 + asciiCodeToNumber(date[1]) * 100 + asciiCodeToNumber(date[2]) * 10 + asciiCodeToNumber(date[3]);
-        uint256 month = asciiCodeToNumber(date[4]) * 10 + asciiCodeToNumber(date[5]);
-        uint256 day = asciiCodeToNumber(date[6]) * 10 + asciiCodeToNumber(date[7]);
-        require(year >= UNIX_EPOCH_START_YEAR, "Year before UNIX epoch");
-        require(month >= 1 && month <= 12, "Invalid month");
-        require(day >= 1 && day <= getDaysInMonth(month, year), "Invalid day");
-        
-        // Count days before current year
-        uint256 totalDays = 0;
-        for (uint256 y = UNIX_EPOCH_START_YEAR; y < year; y++) {
-            totalDays += isLeapYear(y) ? 366 : 365;
-        }
-        
-        // Count days before current month
-        for (uint256 m = 1; m < month; m++) {
-            totalDays += getDaysInMonth(m, year);
-        }
-        
-        // Add days in current month
-        totalDays += day - 1;  // Subtract 1 because we want days since epoch start
-        
-        // Convert to seconds (86400 seconds in a day)
-        return totalDays * SECONDS_PER_DAY;
-    }
-
     function checkDate(bytes32[] memory publicInputs, uint256 validityPeriodInDays) internal view returns (bool) {
         bytes32[] memory currentDate = new bytes32[](8);
         for (uint256 i = 1; i < 9; i++) {
             currentDate[i - 1] = publicInputs[i];
         }
-        uint256 timestamp = getTimestampFromDate(currentDate);
-        uint256 validityPeriodTimestamp = timestamp + validityPeriodInDays * SECONDS_PER_DAY;
-        return block.timestamp >= timestamp && validityPeriodTimestamp > timestamp && validityPeriodTimestamp > block.timestamp;
+        return DateUtils.isDateValid(currentDate, validityPeriodInDays);
     }
 
     function verifyCommittedInputs(bytes32[] memory paramCommitments, bytes calldata committedInputs, uint256[] memory committedInputCounts) internal view returns (bool) {
