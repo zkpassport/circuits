@@ -130,7 +130,7 @@ pub fn calculate_param_commitment_sha2(
     max_date: str<8>,
 ) -> Field {
     let mut params = [0 as u8; 25];
-    params[0] = proof_type as u8;
+    params[0] = proof_type;
     let current_date_bytes = current_date.as_bytes();
     for i in 1..9 {
         params[i] = current_date_bytes[i - 1];

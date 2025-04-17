@@ -192,7 +192,7 @@ pub fn calculate_param_commitment_sha2(
     disclosed_bytes: [u8; 90],
 ) -> Field {
     let mut params = [0 as u8; 181];
-    params[0] = PROOF_TYPE_DISCLOSE as u8;
+    params[0] = PROOF_TYPE_DISCLOSE;
     for i in 1..91 {
         params[i] = disclose_mask[i - 1];
     }

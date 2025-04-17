@@ -113,7 +113,7 @@ pub fn calculate_param_commitment_sha2<let N: u32>(
     country_list: [u32; N],
 ) -> Field {
     let mut params = [0 as u8; N * 3 + 1];
-    params[0] = proof_type as u8;
+    params[0] = proof_type;
     for i in 1..N + 1 {
         params[i * 3] = (country_list[i - 1] >> 16) as u8;
         params[i * 3 + 1] = ((country_list[i - 1] >> 8) & 0xFF) as u8;

@@ -110,7 +110,7 @@ pub fn calculate_param_commitment_sha2<let N: u32>(
     country_list: [str<3>; N],
 ) -> Field {
     let mut params = [0 as u8; N * 3 + 1];
-    params[0] = proof_type as u8;
+    params[0] = proof_type;
     for i in 1..N + 1 {
         let country_code = country_list[i - 1].as_bytes();
         params[i * 3] = country_code[0];
