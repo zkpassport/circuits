@@ -53,65 +53,45 @@ forge build
 forge test
 ```
 
-### Deployment
+## Deployment
 
-You can deploy to both a local Anvil instance and Sepolia testnet using the provided script.
+### Environment Setup
 
-#### Deploy to Local Anvil
+This project uses environment variables for deployment configuration. There are two ways to set them
+up:
 
-The script will automatically start an Anvil instance if one is not already running and will skip
-contract verification:
+1. **Using a `.env` file (recommended):**
+
+   - Copy `.env.example` to `.env`
+   - Fill in your values in the `.env` file
+   - The deployment script will automatically load these values
+
+2. **Using environment variables directly:**
+   - Export the required variables in your terminal:
+     ```bash
+     export PRIVATE_KEY=your_private_key_here
+     export SEPOLIA_RPC_URL=your_sepolia_rpc_url
+     export ETHERSCAN_API_KEY=your_etherscan_api_key  # Optional for verification
+     ```
+
+### Running Deployments
+
+To deploy to different networks:
 
 ```bash
-cd src/solidity
+# Deploy to local Anvil node (default)
 ./deploy.sh
-# or explicitly
-./deploy.sh anvil
-```
 
-#### Deploy to Sepolia
-
-Make sure you have set the required environment variables in your `.env` file:
-
-```bash
-cd src/solidity
+# Deploy to Sepolia testnet
 ./deploy.sh sepolia
 ```
 
-If `ETHERSCAN_API_KEY` is set, the script will attempt to verify the contracts on Etherscan. If not
-set, verification will be skipped but deployment will still proceed.
+The script will automatically:
 
-### Manual Deployment
-
-If you prefer to deploy manually without using the script:
-
-#### Local Anvil
-
-Start an Anvil instance:
-
-```bash
-anvil
-```
-
-In a separate terminal:
-
-```bash
-forge script script/Deploy.s.sol --rpc-url anvil --broadcast
-```
-
-#### Sepolia
-
-With verification:
-
-```bash
-forge script script/Deploy.s.sol --rpc-url sepolia --broadcast --verify
-```
-
-Without verification:
-
-```bash
-forge script script/Deploy.s.sol --rpc-url sepolia --broadcast
-```
+- Load environment variables from `.env` if present
+- Check if required variables are set
+- Display helpful error messages if something is missing
+- Use the appropriate RPC URL for the selected network
 
 ## Additional Resources
 
