@@ -81,17 +81,19 @@ pub fn check_issuing_country_exclusion<let N: u32>(dg1: [u8; 95], country_list: 
 ///
 /// # Arguments
 ///
+/// * `proof_type`: The proof type
 /// * `country_list`: The list of countries
 ///
 /// # Returns
 ///
 /// * `commitment`: The commitment of the country list
-pub fn calculate_param_commitment<let N: u32>(country_list: [u32; N]) -> Field {
-    let mut params = [0 as Field; N];
-    for i in 0..N {
-        params[i] = country_list[i] as Field;
+pub fn calculate_param_commitment<let N: u32>(proof_type: u8, country_list: [u32; N]) -> Field {
+    let mut params = [0 as Field; N + 1];
+    params[0] = proof_type as Field;
+    for i in 1..N + 1 {
+        params[i] = country_list[i - 1] as Field;
     }
-    Poseidon2::hash(params, N)
+    Poseidon2::hash(params, N + 1)
 }
 
 /// Calculate the commitment of the country list using SHA2-256
@@ -100,18 +102,23 @@ pub fn calculate_param_commitment<let N: u32>(country_list: [u32; N]) -> Field {
 ///
 /// # Arguments
 ///
+/// * `proof_type`: The proof type
 /// * `country_list`: The list of countries
 ///
 /// # Returns
 ///
 /// * `commitment`: The commitment of the country list
-pub fn calculate_param_commitment_sha2<let N: u32>(country_list: [u32; N]) -> Field {
-    let mut params = [0 as u8; N * 3];
-    for i in 0..N {
-        params[i * 3] = (country_list[i] >> 16) as u8;
-        params[i * 3 + 1] = ((country_list[i] >> 8) & 0xFF) as u8;
-        params[i * 3 + 2] = (country_list[i] & 0xFF) as u8;
+pub fn calculate_param_commitment_sha2<let N: u32>(
+    proof_type: u8,
+    country_list: [u32; N],
+) -> Field {
+    let mut params = [0 as u8; N * 3 + 1];
+    params[0] = proof_type as u8;
+    for i in 1..N + 1 {
+        params[i * 3] = (country_list[i - 1] >> 16) as u8;
+        params[i * 3 + 1] = ((country_list[i - 1] >> 8) & 0xFF) as u8;
+        params[i * 3 + 2] = (country_list[i - 1] & 0xFF) as u8;
     }
-    let hash = sha256::sha256_var(params, (N * 3) as u64);
+    let hash = sha256::sha256_var(params, (N * 3 + 1) as u64);
     utils::pack_be_bytes_into_field::<32, 31>(hash)
 }

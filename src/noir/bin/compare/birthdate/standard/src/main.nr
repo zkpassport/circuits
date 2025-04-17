@@ -1,5 +1,6 @@
 use commitment::nullify;
 use compare_date_lib::{calculate_param_commitment, compare_date, get_birthdate};
+use utils::PROOF_TYPE_BIRTHDATE;
 
 fn main(
     comm_in: pub Field,
@@ -35,6 +36,7 @@ fn main(
         service_subscope,
     );
     // Use Poseidon2 to calculate the parameter commitment so the prover has less work to do
-    let param_commitment = calculate_param_commitment(current_date, min_date, max_date);
+    let param_commitment =
+        calculate_param_commitment(PROOF_TYPE_BIRTHDATE, current_date, min_date, max_date);
     (param_commitment, nullifier)
 }

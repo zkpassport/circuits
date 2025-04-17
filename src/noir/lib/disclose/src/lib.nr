@@ -8,6 +8,7 @@ use utils::{
     PASSPORT_MRZ_BIRTHDATE_INDEX, PASSPORT_MRZ_COUNTRY_INDEX, PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
     PASSPORT_MRZ_DOCUMENT_TYPE_INDEX, PASSPORT_MRZ_EXPIRY_DATE_INDEX, PASSPORT_MRZ_GENDER_INDEX,
     PASSPORT_MRZ_LENGTH, PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NATIONALITY_INDEX,
+    PROOF_TYPE_DISCLOSE,
 };
 
 fn get_array_slice<let N: u32, let M: u32>(array: [u8; N], start: u32, end: u32) -> [u8; M] {
@@ -163,14 +164,15 @@ pub fn get_disclosed_bytes(dg1: [u8; 95], mask: [u8; 90]) -> [u8; 90] {
 ///
 /// * `commitment`: The commitment of the disclose mask and disclosed bytes
 pub fn calculate_param_commitment(disclose_mask: [u8; 90], disclosed_bytes: [u8; 90]) -> Field {
-    let mut params = [0 as Field; 180];
-    for i in 0..90 {
-        params[i] = disclose_mask[i] as Field;
+    let mut params = [0 as Field; 181];
+    params[0] = PROOF_TYPE_DISCLOSE as Field;
+    for i in 1..91 {
+        params[i] = disclose_mask[i - 1] as Field;
     }
-    for i in 0..90 {
-        params[i + 90] = disclosed_bytes[i] as Field;
+    for i in 91..181 {
+        params[i] = disclosed_bytes[i - 91] as Field;
     }
-    Poseidon2::hash(params, 180)
+    Poseidon2::hash(params, 181)
 }
 
 /// Calculate the commitment of the disclose mask and disclosed bytes using SHA2-256
@@ -189,13 +191,14 @@ pub fn calculate_param_commitment_sha2(
     disclose_mask: [u8; 90],
     disclosed_bytes: [u8; 90],
 ) -> Field {
-    let mut params = [0 as u8; 180];
-    for i in 0..90 {
-        params[i] = disclose_mask[i];
+    let mut params = [0 as u8; 181];
+    params[0] = PROOF_TYPE_DISCLOSE as u8;
+    for i in 1..91 {
+        params[i] = disclose_mask[i - 1];
     }
-    for i in 0..90 {
-        params[i + 90] = disclosed_bytes[i];
+    for i in 91..181 {
+        params[i] = disclosed_bytes[i - 91];
     }
-    let hash = sha256::sha256_var(params, 180);
+    let hash = sha256::sha256_var(params, 181);
     utils::pack_be_bytes_into_field::<32, 31>(hash)
 }

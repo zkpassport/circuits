@@ -78,6 +78,7 @@ pub fn compare_date(date_to_compare: Date, min_date_bytes: [u8; 8], max_date_byt
 ///
 /// # Arguments
 ///
+/// * `proof_type`: The proof type
 /// * `current_date`: The current date
 /// * `min_date`: The minimum date
 /// * `max_date`: The maximum date
@@ -86,24 +87,26 @@ pub fn compare_date(date_to_compare: Date, min_date_bytes: [u8; 8], max_date_byt
 ///
 /// * `commitment`: The commitment of the current date, min date and max date
 pub fn calculate_param_commitment(
+    proof_type: u8,
     current_date: str<8>,
     min_date: str<8>,
     max_date: str<8>,
 ) -> Field {
-    let mut params = [0 as Field; 24];
+    let mut params = [0 as Field; 25];
+    params[0] = proof_type as Field;
     let current_date_bytes = current_date.as_bytes();
-    for i in 0..8 {
-        params[i] = current_date_bytes[i] as Field;
+    for i in 1..9 {
+        params[i] = current_date_bytes[i - 1] as Field;
     }
     let min_date_bytes = min_date.as_bytes();
-    for i in 0..8 {
-        params[i + 8] = min_date_bytes[i] as Field;
+    for i in 9..17 {
+        params[i] = min_date_bytes[i - 9] as Field;
     }
     let max_date_bytes = max_date.as_bytes();
-    for i in 0..8 {
-        params[i + 16] = max_date_bytes[i] as Field;
+    for i in 17..25 {
+        params[i] = max_date_bytes[i - 17] as Field;
     }
-    Poseidon2::hash(params, 24)
+    Poseidon2::hash(params, 25)
 }
 
 /// Calculate the commitment of the current date, min date and max date using SHA2-256
@@ -112,6 +115,7 @@ pub fn calculate_param_commitment(
 ///
 /// # Arguments
 ///
+/// * `proof_type`: The proof type
 /// * `current_date`: The current date
 /// * `min_date`: The minimum date
 /// * `max_date`: The maximum date
@@ -120,23 +124,25 @@ pub fn calculate_param_commitment(
 ///
 /// * `commitment`: The commitment of the current date, min date and max date
 pub fn calculate_param_commitment_sha2(
+    proof_type: u8,
     current_date: str<8>,
     min_date: str<8>,
     max_date: str<8>,
 ) -> Field {
-    let mut params = [0 as u8; 24];
+    let mut params = [0 as u8; 25];
+    params[0] = proof_type as u8;
     let current_date_bytes = current_date.as_bytes();
-    for i in 0..8 {
-        params[i] = current_date_bytes[i];
+    for i in 1..9 {
+        params[i] = current_date_bytes[i - 1];
     }
     let min_date_bytes = min_date.as_bytes();
-    for i in 0..8 {
-        params[i + 8] = min_date_bytes[i];
+    for i in 9..17 {
+        params[i] = min_date_bytes[i - 9];
     }
     let max_date_bytes = max_date.as_bytes();
-    for i in 0..8 {
-        params[i + 16] = max_date_bytes[i];
+    for i in 17..25 {
+        params[i] = max_date_bytes[i - 17];
     }
-    let hash = sha256::sha256_var(params, 24);
+    let hash = sha256::sha256_var(params, 25);
     utils::pack_be_bytes_into_field::<32, 31>(hash)
 }

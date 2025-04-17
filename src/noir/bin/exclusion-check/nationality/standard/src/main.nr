@@ -1,5 +1,6 @@
 use commitment::nullify;
 use exclusion_check_country::{calculate_param_commitment, check_nationality_exclusion};
+use utils::PROOF_TYPE_NATIONALITY_EXCLUSION;
 
 fn main(
     comm_in: pub Field,
@@ -28,6 +29,7 @@ fn main(
         service_subscope,
     );
     // Use Poseidon2 to calculate the parameter commitment so the prover has less work to do
-    let param_commitment = calculate_param_commitment(country_list);
+    let param_commitment =
+        calculate_param_commitment(PROOF_TYPE_NATIONALITY_EXCLUSION, country_list);
     (param_commitment, nullifier)
 }

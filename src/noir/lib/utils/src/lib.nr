@@ -69,6 +69,16 @@ pub global ECDSA_CURVE_BRAINPOOL_B384T1: u32 = 6;
 pub global ECDSA_CURVE_BRAINPOOL_B512R1: u32 = 7;
 pub global ECDSA_CURVE_BRAINPOOL_B512T1: u32 = 8;
 
+// Proof type to identify the circuit used for a given parameter commitment
+pub global PROOF_TYPE_DISCLOSE: u8 = 0;
+pub global PROOF_TYPE_AGE: u8 = 1;
+pub global PROOF_TYPE_BIRTHDATE: u8 = 2;
+pub global PROOF_TYPE_EXPIRY_DATE: u8 = 3;
+pub global PROOF_TYPE_NATIONALITY_INCLUSION: u8 = 4;
+pub global PROOF_TYPE_NATIONALITY_EXCLUSION: u8 = 5;
+pub global PROOF_TYPE_ISSUING_COUNTRY_INCLUSION: u8 = 6;
+pub global PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION: u8 = 7;
+
 pub struct IDData {
     // Regroups the hashes of all the data groups plus some padding
     // at the start and in between each data group hashes

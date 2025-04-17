@@ -2,7 +2,7 @@ use date::Date;
 use std::hash::poseidon2::Poseidon2;
 use utils::{
     get_array_slice, get_mrz_from_dg1, ID_CARD_MRZ_BIRTHDATE_INDEX, is_id_card,
-    PASSPORT_MRZ_BIRTHDATE_INDEX,
+    PASSPORT_MRZ_BIRTHDATE_INDEX, PROOF_TYPE_AGE,
 };
 
 fn get_birthdate(dg1: [u8; 95], current_date: [u8; 8]) -> Date {
@@ -79,14 +79,15 @@ pub fn calculate_param_commitment(
     min_age_required: u8,
     max_age_required: u8,
 ) -> Field {
-    let mut params = [0 as Field; 10];
+    let mut params = [0 as Field; 11];
+    params[0] = PROOF_TYPE_AGE as Field;
     let current_date_bytes = current_date.as_bytes();
-    for i in 0..8 {
+    for i in 1..9 {
         params[i] = current_date_bytes[i] as Field;
     }
-    params[8] = min_age_required as Field;
-    params[9] = max_age_required as Field;
-    Poseidon2::hash(params, 10)
+    params[9] = min_age_required as Field;
+    params[10] = max_age_required as Field;
+    Poseidon2::hash(params, 11)
 }
 
 /// Calculate the commitment of the current date, min age and max age using SHA2-256
@@ -107,13 +108,14 @@ pub fn calculate_param_commitment_sha2(
     min_age_required: u8,
     max_age_required: u8,
 ) -> Field {
-    let mut params = [0 as u8; 10];
+    let mut params = [0 as u8; 11];
+    params[0] = PROOF_TYPE_AGE as u8;
     let current_date_bytes = current_date.as_bytes();
-    for i in 0..8 {
+    for i in 1..9 {
         params[i] = current_date_bytes[i];
     }
-    params[8] = min_age_required;
-    params[9] = max_age_required;
-    let hash = sha256::sha256_var(params, 10);
+    params[9] = min_age_required;
+    params[10] = max_age_required;
+    let hash = sha256::sha256_var(params, 11);
     utils::pack_be_bytes_into_field::<32, 31>(hash)
 }
