@@ -4,6 +4,18 @@ pragma solidity >=0.8.21;
 
 import {IVerifier} from "../src/OuterCount4.sol";
 import {DateUtils} from "../src/DateUtils.sol";
+import {console} from "forge-std/console.sol";
+
+enum ProofType {
+  DISCLOSE,
+  AGE,
+  BIRTHDATE,
+  EXPIRY_DATE,
+  NATIONALITY_INCLUSION,
+  NATIONALITY_EXCLUSION,
+  ISSUING_COUNTRY_INCLUSION,
+  ISSUING_COUNTRY_EXCLUSION
+}
 
 contract ZKPassportVerifier {
   // Constants
@@ -49,15 +61,6 @@ contract ZKPassportVerifier {
   uint256 constant ID_CARD_MRZ_NAME_INDEX = 60;
   // Length of the MRZ on an ID card
   uint256 constant ID_CARD_MRZ_LENGTH = 90;
-
-  uint8 constant PROOF_TYPE_DISCLOSE = 0;
-  uint8 constant PROOF_TYPE_AGE = 1;
-  uint8 constant PROOF_TYPE_BIRTHDATE = 2;
-  uint8 constant PROOF_TYPE_EXPIRY_DATE = 3;
-  uint8 constant PROOF_TYPE_NATIONALITY_INCLUSION = 4;
-  uint8 constant PROOF_TYPE_NATIONALITY_EXCLUSION = 5;
-  uint8 constant PROOF_TYPE_ISSUING_COUNTRY_INCLUSION = 6;
-  uint8 constant PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION = 7;
 
   address public admin;
   bool public paused;
@@ -129,27 +132,6 @@ contract ZKPassportVerifier {
   function removeCertificateRegistryRoot(bytes32 certificateRegistryRoot) external onlyAdmin {
     isValidCertificateRegistryRoot[certificateRegistryRoot] = false;
     emit CertificateRegistryRootRemoved(certificateRegistryRoot);
-  }
-
-  function proofTypeToName(uint8 proofType) public pure returns (string memory) {
-    if (proofType == PROOF_TYPE_DISCLOSE) {
-      return "disclose";
-    } else if (proofType == PROOF_TYPE_AGE) {
-      return "age";
-    } else if (proofType == PROOF_TYPE_BIRTHDATE) {
-      return "birthdate";
-    } else if (proofType == PROOF_TYPE_EXPIRY_DATE) {
-      return "expiry_date";
-    } else if (proofType == PROOF_TYPE_NATIONALITY_INCLUSION) {
-      return "nationality_inclusion";
-    } else if (proofType == PROOF_TYPE_NATIONALITY_EXCLUSION) {
-      return "nationality_exclusion";
-    } else if (proofType == PROOF_TYPE_ISSUING_COUNTRY_INCLUSION) {
-      return "issuing_country_inclusion";
-    } else if (proofType == PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION) {
-      return "issuing_country_exclusion";
-    }
-    revert("Invalid proof type");
   }
 
   function checkDate(
@@ -228,19 +210,14 @@ contract ZKPassportVerifier {
   function getDiscloseProofInputs(
     bytes calldata committedInputs,
     uint256[] calldata committedInputCounts
-  )
-    public
-    pure
-    returns (bytes memory discloseMask, bytes memory discloseBytes, string memory proofType)
-  {
+  ) public pure returns (bytes memory discloseMask, bytes memory discloseBytes) {
     uint256 offset = 0;
     bool found = false;
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // Disclose circuits have 181 bytes of committed inputs
       // The first byte is the proof type
       if (committedInputCounts[i] == 181) {
-        require(committedInputs[offset] == bytes1(PROOF_TYPE_DISCLOSE), "Invalid proof type");
-        proofType = proofTypeToName(PROOF_TYPE_DISCLOSE);
+        require(committedInputs[offset] == bytes1(uint8(ProofType.DISCLOSE)), "Invalid proof type");
         discloseMask = committedInputs[offset + 1:offset + 91];
         discloseBytes = committedInputs[offset + 91:offset + 181];
         found = true;
@@ -252,24 +229,15 @@ contract ZKPassportVerifier {
 
   function getDateProofInputs(
     bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts
-  )
-    public
-    pure
-    returns (uint256 currentDate, uint256 minDate, uint256 maxDate, string memory proofType)
-  {
+    uint256[] calldata committedInputCounts,
+    ProofType proofType
+  ) public pure returns (uint256 currentDate, uint256 minDate, uint256 maxDate) {
     uint256 offset = 0;
     bool found = false;
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // Date circuits have 25 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == 25) {
-        require(
-          committedInputs[offset] == bytes1(PROOF_TYPE_EXPIRY_DATE) ||
-            committedInputs[offset] == bytes1(PROOF_TYPE_BIRTHDATE),
-          "Invalid proof type"
-        );
-        proofType = proofTypeToName(uint8(committedInputs[offset]));
+      if (committedInputCounts[i] == 25 && committedInputs[offset] == bytes1(uint8(proofType))) {
         currentDate = DateUtils.getTimestampFromDate(committedInputs[offset + 1:offset + 9]);
         minDate = DateUtils.getTimestampFromDate(committedInputs[offset + 9:offset + 17]);
         maxDate = DateUtils.getTimestampFromDate(committedInputs[offset + 17:offset + 25]);
@@ -283,15 +251,14 @@ contract ZKPassportVerifier {
   function getAgeProofInputs(
     bytes calldata committedInputs,
     uint256[] calldata committedInputCounts
-  ) public pure returns (uint256 currentDate, uint8 minAge, uint8 maxAge, string memory proofType) {
+  ) public pure returns (uint256 currentDate, uint8 minAge, uint8 maxAge) {
     uint256 offset = 0;
     bool found = false;
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // The age circuit has 11 bytes of committed inputs
       // The first byte is the proof type
       if (committedInputCounts[i] == 11) {
-        require(committedInputs[offset] == bytes1(PROOF_TYPE_AGE), "Invalid proof type");
-        proofType = proofTypeToName(PROOF_TYPE_AGE);
+        require(committedInputs[offset] == bytes1(uint8(ProofType.AGE)), "Invalid proof type");
         currentDate = DateUtils.getTimestampFromDate(committedInputs[offset + 1:offset + 9]);
         minAge = uint8(committedInputs[offset + 9]);
         maxAge = uint8(committedInputs[offset + 10]);
@@ -304,28 +271,22 @@ contract ZKPassportVerifier {
 
   function getCountryProofInputs(
     bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts
-  ) public pure returns (string[] memory countryList, string memory proofType) {
+    uint256[] calldata committedInputCounts,
+    ProofType proofType
+  ) public pure returns (string[] memory countryList) {
     uint256 offset = 0;
     bool found = false;
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // Country (inclusion and exclusion) circuits have 601 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == 601) {
-        require(
-          committedInputs[offset] == bytes1(PROOF_TYPE_NATIONALITY_INCLUSION) ||
-            committedInputs[offset] == bytes1(PROOF_TYPE_NATIONALITY_EXCLUSION) ||
-            committedInputs[offset] == bytes1(PROOF_TYPE_ISSUING_COUNTRY_INCLUSION) ||
-            committedInputs[offset] == bytes1(PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION),
-          "Invalid proof type"
-        );
-        proofType = proofTypeToName(uint8(committedInputs[offset]));
-        for (uint256 j = 1; j < 601; j++) {
-          if (committedInputs[offset + j * 3] == 0) {
+      if (committedInputCounts[i] == 601 && committedInputs[offset] == bytes1(uint8(proofType))) {
+        countryList = new string[](200);
+        for (uint256 j = 0; j < 200; j++) {
+          if (committedInputs[offset + j * 3 + 1] == 0) {
             // We don't need to include the padding bytes
             break;
           }
-          countryList[j] = string(committedInputs[offset + j * 3:offset + j * 3 + 3]);
+          countryList[j] = string(committedInputs[offset + j * 3 + 1:offset + j * 3 + 3 + 1]);
         }
         found = true;
       }

@@ -14,6 +14,8 @@ library DateUtils {
   uint256 constant SECONDS_PER_MINUTE = 60;
   uint256 constant DAYS_PER_WEEK = 7;
 
+  bytes constant DEFAULT_DATE_STRING = bytes("11111111");
+
   /**
    * @dev Converts an ASCII code to a number
    * @param asciiCode The ASCII code to convert
@@ -64,6 +66,9 @@ library DateUtils {
    * @return The UNIX timestamp in seconds
    */
   function getTimestampFromDate(bytes memory date) internal pure returns (uint256) {
+    if (keccak256(date) == keccak256(DEFAULT_DATE_STRING)) {
+      return 0;
+    }
     uint256 year = asciiCodeToNumber(date[0]) *
       1000 +
       asciiCodeToNumber(date[1]) *
