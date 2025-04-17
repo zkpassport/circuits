@@ -24,6 +24,11 @@ import {
   getCertificateRegistryRootFromOuterProof,
   getParamCommitmentsFromOuterProof,
   getDiscloseEVMParameterCommitment,
+  getExpiryDateCircuitInputs,
+  getBirthdateCircuitInputs,
+  getIssuingCountryInclusionCircuitInputs,
+  getIssuingCountryExclusionCircuitInputs,
+  getNationalityExclusionCircuitInputs,
 } from "@zkpassport/utils"
 import type { CSCMasterlist, Query } from "@zkpassport/utils"
 import { beforeAll, describe, expect, test } from "@jest/globals"
@@ -555,11 +560,12 @@ describe("outer proof - evm optimised", () => {
       inputs.disclose_mask,
       disclosedBytes,
     )
-    console.log("compressedCommittedInputs")
+    /*console.log("Disclose compressedCommittedInputs")
     console.log(
-      inputs.disclose_mask.map((x: number) => x.toString(16).padStart(2, "0")).join("") +
+      ProofType.DISCLOSE.toString(16).padStart(2, "0") +
+        inputs.disclose_mask.map((x: number) => x.toString(16).padStart(2, "0")).join("") +
         disclosedBytes.map((x: number) => x.toString(16).padStart(2, "0")).join(""),
-    )
+    )*/
     expect(paramCommitment).toEqual(calculatedParamCommitment)
     // Verify the disclosed data
     const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
@@ -632,13 +638,13 @@ describe("outer proof - evm optimised", () => {
         evm: true,
       })
       expect(proof).toBeDefined()
-      console.log("Outer 4 subproofs")
+      /*console.log("Outer 4 subproofs")
       console.log(
         JSON.stringify({
           proof: proof.proof.slice(16).join(""),
           publicInputs: proof.publicInputs.concat(proof.proof.slice(0, 16).map((f) => `0x${f}`)),
         }),
-      )
+      )*/
       const currentDate = getCurrentDateFromOuterProof(proof)
       expect(currentDate).toEqual(globalCurrentDate)
       const nullifier = getNullifierFromOuterProof(proof)
@@ -655,38 +661,183 @@ describe("outer proof - evm optimised", () => {
   )
 
   test(
-    "6 subproofs",
+    "11 subproofs",
     async () => {
+      //let compressedCommittedInputs = ""
       // 2nd disclosure proof
-      const nationalityCircuit = Circuit.from("inclusion_check_nationality_evm")
-      const nationalityQuery: Query = {
+      const nationalityInclusionCircuit = Circuit.from("inclusion_check_nationality_evm")
+      const nationalityInclusionQuery: Query = {
         nationality: { in: ["AUS", "FRA", "USA", "GBR"] },
       }
-      const nationalityInputs = await getNationalityInclusionCircuitInputs(
+      const nationalityInclusionInputs = await getNationalityInclusionCircuitInputs(
         helper.passport as any,
-        nationalityQuery,
+        nationalityInclusionQuery,
         3n,
       )
-      if (!nationalityInputs) throw new Error("Unable to generate inclusion check circuit inputs")
-      const nationalityProof = await nationalityCircuit.prove(nationalityInputs, {
-        recursive: true,
-        useCli: true,
-        circuitName: `inclusion_check_nationality_evm`,
-      })
-      expect(nationalityProof).toBeDefined()
-      const nationalityParamCommitment = getParameterCommitmentFromDisclosureProof(nationalityProof)
-      const nationalityVkey = ultraVkToFields(await nationalityCircuit.getVerificationKey(true))
-      const nationalityVkeyHash = `0x${(
-        await poseidon2HashAsync(nationalityVkey.map((x) => BigInt(x)))
+      if (!nationalityInclusionInputs)
+        throw new Error("Unable to generate inclusion check circuit inputs")
+      const nationalityInclusionProof = await nationalityInclusionCircuit.prove(
+        nationalityInclusionInputs,
+        {
+          recursive: true,
+          useCli: true,
+          circuitName: `inclusion_check_nationality_evm`,
+        },
+      )
+      expect(nationalityInclusionProof).toBeDefined()
+      const nationalityInclusionParamCommitment =
+        getParameterCommitmentFromDisclosureProof(nationalityInclusionProof)
+      const nationalityInclusionVkey = ultraVkToFields(
+        await nationalityInclusionCircuit.getVerificationKey(true),
+      )
+      const nationalityInclusionVkeyHash = `0x${(
+        await poseidon2HashAsync(nationalityInclusionVkey.map((x) => BigInt(x)))
       ).toString(16)}`
-      await nationalityCircuit.destroy()
+      await nationalityInclusionCircuit.destroy()
+
+      /*compressedCommittedInputs +=
+        ProofType.NATIONALITY_INCLUSION.toString(16).padStart(2, "0") +
+        rightPadArrayWithZeros(
+          nationalityInclusionInputs.country_list
+            .map((c: string) => Array.from(new TextEncoder().encode(c)))
+            .flat(),
+          600,
+        )
+          .map((x) => x.toString(16).padStart(2, "0"))
+          .join("")*/
 
       // 3rd disclosure proof
-      const query: Query = {
+      const nationalityExclusionCircuit = Circuit.from("exclusion_check_nationality_evm")
+      const nationalityExclusionQuery: Query = {
+        nationality: { out: ["ESP", "PRT", "ITA"] },
+      }
+      const nationalityExclusionInputs = await getNationalityExclusionCircuitInputs(
+        helper.passport as any,
+        nationalityExclusionQuery,
+        3n,
+      )
+      if (!nationalityExclusionInputs)
+        throw new Error("Unable to generate inclusion check circuit inputs")
+      const nationalityExclusionProof = await nationalityExclusionCircuit.prove(
+        nationalityExclusionInputs,
+        {
+          recursive: true,
+          useCli: true,
+          circuitName: `exclusion_check_nationality_evm`,
+        },
+      )
+      expect(nationalityExclusionProof).toBeDefined()
+      const nationalityExclusionParamCommitment =
+        getParameterCommitmentFromDisclosureProof(nationalityExclusionProof)
+      const nationalityExclusionVkey = ultraVkToFields(
+        await nationalityExclusionCircuit.getVerificationKey(true),
+      )
+      const nationalityExclusionVkeyHash = `0x${(
+        await poseidon2HashAsync(nationalityExclusionVkey.map((x) => BigInt(x)))
+      ).toString(16)}`
+      await nationalityExclusionCircuit.destroy()
+
+      /*compressedCommittedInputs +=
+        ProofType.NATIONALITY_EXCLUSION.toString(16).padStart(2, "0") +
+        rightPadArrayWithZeros(
+          nationalityExclusionInputs.country_list
+            .map((c: number) => Array.from(new TextEncoder().encode(getCountryFromWeightedSum(c))))
+            .flat(),
+          600,
+        )
+          .map((x) => x.toString(16).padStart(2, "0"))
+          .join("")*/
+
+      // 4th disclosure proof
+      const issuingCountryInclusionCircuit = Circuit.from("inclusion_check_issuing_country_evm")
+      const issuingCountryInclusionQuery: Query = {
+        issuing_country: { in: ["AUS", "FRA", "USA", "GBR"] },
+      }
+      const issuingCountryInclusionInputs = await getIssuingCountryInclusionCircuitInputs(
+        helper.passport as any,
+        issuingCountryInclusionQuery,
+        3n,
+      )
+      if (!issuingCountryInclusionInputs)
+        throw new Error("Unable to generate inclusion check circuit inputs")
+      const issuingCountryInclusionProof = await issuingCountryInclusionCircuit.prove(
+        issuingCountryInclusionInputs,
+        {
+          recursive: true,
+          useCli: true,
+          circuitName: `inclusion_check_issuing_country_evm`,
+        },
+      )
+      expect(issuingCountryInclusionProof).toBeDefined()
+      const issuingCountryInclusionParamCommitment = getParameterCommitmentFromDisclosureProof(
+        issuingCountryInclusionProof,
+      )
+      const issuingCountryInclusionVkey = ultraVkToFields(
+        await issuingCountryInclusionCircuit.getVerificationKey(true),
+      )
+      const issuingCountryInclusionVkeyHash = `0x${(
+        await poseidon2HashAsync(issuingCountryInclusionVkey.map((x) => BigInt(x)))
+      ).toString(16)}`
+      await issuingCountryInclusionCircuit.destroy()
+      /*compressedCommittedInputs +=
+        ProofType.ISSUING_COUNTRY_INCLUSION.toString(16).padStart(2, "0") +
+        rightPadArrayWithZeros(
+          issuingCountryInclusionInputs.country_list
+            .map((c: string) => Array.from(new TextEncoder().encode(c)))
+            .flat(),
+          600,
+        )
+          .map((x) => x.toString(16).padStart(2, "0"))
+          .join("")*/
+
+      // 5th disclosure proof
+      const issuingCountryExclusionCircuit = Circuit.from("exclusion_check_issuing_country_evm")
+      const issuingCountryExclusionQuery: Query = {
+        issuing_country: { out: ["ESP", "PRT", "ITA"] },
+      }
+      const issuingCountryExclusionInputs = await getIssuingCountryExclusionCircuitInputs(
+        helper.passport as any,
+        issuingCountryExclusionQuery,
+        3n,
+      )
+      if (!issuingCountryExclusionInputs)
+        throw new Error("Unable to generate inclusion check circuit inputs")
+      const issuingCountryExclusionProof = await issuingCountryExclusionCircuit.prove(
+        issuingCountryExclusionInputs,
+        {
+          recursive: true,
+          useCli: true,
+          circuitName: `exclusion_check_issuing_country_evm`,
+        },
+      )
+      expect(issuingCountryExclusionProof).toBeDefined()
+      const issuingCountryExclusionParamCommitment = getParameterCommitmentFromDisclosureProof(
+        issuingCountryExclusionProof,
+      )
+      const issuingCountryExclusionVkey = ultraVkToFields(
+        await issuingCountryExclusionCircuit.getVerificationKey(true),
+      )
+      const issuingCountryExclusionVkeyHash = `0x${(
+        await poseidon2HashAsync(issuingCountryExclusionVkey.map((x) => BigInt(x)))
+      ).toString(16)}`
+      await issuingCountryExclusionCircuit.destroy()
+      /*compressedCommittedInputs +=
+        ProofType.ISSUING_COUNTRY_EXCLUSION.toString(16).padStart(2, "0") +
+        rightPadArrayWithZeros(
+          issuingCountryExclusionInputs.country_list
+            .map((c: number) => Array.from(new TextEncoder().encode(getCountryFromWeightedSum(c))))
+            .flat(),
+          600,
+        )
+          .map((x) => x.toString(16).padStart(2, "0"))
+          .join("")*/
+
+      // 6th disclosure proof
+      const ageQuery: Query = {
         age: { gte: 18 },
       }
       const ageCircuit = Circuit.from("compare_age_evm")
-      const ageInputs = await getAgeCircuitInputs(helper.passport as any, query, 3n)
+      const ageInputs = await getAgeCircuitInputs(helper.passport as any, ageQuery, 3n)
       if (!ageInputs) throw new Error("Unable to generate compare-age greater than circuit inputs")
       const ageProof = await ageCircuit.prove(ageInputs, {
         recursive: true,
@@ -700,11 +851,90 @@ describe("outer proof - evm optimised", () => {
         16,
       )}`
       await ageCircuit.destroy()
+      /*compressedCommittedInputs +=
+        ProofType.AGE.toString(16).padStart(2, "0") +
+        Array.from(new TextEncoder().encode(ageInputs.current_date))
+          .map((x: number) => x.toString(16).padStart(2, "0"))
+          .join("") +
+        ageInputs.min_age_required.toString(16).padStart(2, "0") +
+          ageInputs.max_age_required.toString(16).padStart(2, "0")*/
+
+      // 7th disclosure proof
+      const expiryDateCircuit = Circuit.from("compare_expiry_evm")
+      const expiryDateQuery: Query = {
+        expiry_date: { gte: new Date() },
+      }
+      const expiryDateInputs = await getExpiryDateCircuitInputs(
+        helper.passport as any,
+        expiryDateQuery,
+        3n,
+      )
+      if (!expiryDateInputs)
+        throw new Error("Unable to generate compare-expiry-date greater than circuit inputs")
+      const expiryDateProof = await expiryDateCircuit.prove(expiryDateInputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `compare_expiry_evm`,
+      })
+      expect(expiryDateProof).toBeDefined()
+      const expiryDateParamCommitment = getParameterCommitmentFromDisclosureProof(expiryDateProof)
+      const expiryDateVkey = ultraVkToFields(await expiryDateCircuit.getVerificationKey(true))
+      const expiryDateVkeyHash = `0x${(
+        await poseidon2HashAsync(expiryDateVkey.map((x) => BigInt(x)))
+      ).toString(16)}`
+      await expiryDateCircuit.destroy()
+      /*compressedCommittedInputs +=
+        ProofType.EXPIRY_DATE.toString(16).padStart(2, "0") +
+        Array.from(new TextEncoder().encode(expiryDateInputs.current_date))
+          .map((x: number) => x.toString(16).padStart(2, "0"))
+          .join("") +
+        Array.from(new TextEncoder().encode(expiryDateInputs.min_date))
+          .map((x: number) => x.toString(16).padStart(2, "0"))
+          .join("") +
+        Array.from(new TextEncoder().encode(expiryDateInputs.max_date))
+          .map((x: number) => x.toString(16).padStart(2, "0"))
+          .join("")*/
+
+      // 8th disclosure proof
+      const birthDateCircuit = Circuit.from("compare_birthdate_evm")
+      const birthDateQuery: Query = {
+        birthdate: { lte: new Date() },
+      }
+      const birthDateInputs = await getBirthdateCircuitInputs(
+        helper.passport as any,
+        birthDateQuery,
+        3n,
+      )
+      if (!birthDateInputs)
+        throw new Error("Unable to generate compare-birthdate-date less than circuit inputs")
+      const birthDateProof = await birthDateCircuit.prove(birthDateInputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `compare_birthdate_evm`,
+      })
+      expect(birthDateProof).toBeDefined()
+      const birthDateParamCommitment = getParameterCommitmentFromDisclosureProof(birthDateProof)
+      const birthDateVkey = ultraVkToFields(await birthDateCircuit.getVerificationKey(true))
+      const birthDateVkeyHash = `0x${(
+        await poseidon2HashAsync(birthDateVkey.map((x) => BigInt(x)))
+      ).toString(16)}`
+      await birthDateCircuit.destroy()
+      /*compressedCommittedInputs +=
+        ProofType.BIRTHDATE.toString(16).padStart(2, "0") +
+        Array.from(new TextEncoder().encode(birthDateInputs.current_date))
+          .map((x: number) => x.toString(16).padStart(2, "0"))
+          .join("") +
+        Array.from(new TextEncoder().encode(birthDateInputs.min_date))
+          .map((x: number) => x.toString(16).padStart(2, "0"))
+          .join("") +
+        Array.from(new TextEncoder().encode(birthDateInputs.max_date))
+          .map((x: number) => x.toString(16).padStart(2, "0"))
+          .join("")*/
 
       // Outer proof
-      // We can use the regular outer_count_6 rather than outer_evm_count_6
+      // We can use the regular outer_count_11 rather than outer_evm_count_11
       // since only the vkey changes and we don't use it here
-      const outerProofCircuit = Circuit.from("outer_count_6")
+      const outerProofCircuit = Circuit.from("outer_count_11")
       const inputs = await getOuterCircuitInputs(
         {
           proof: subproofs.get(0)?.proof as string[],
@@ -732,10 +962,28 @@ describe("outer proof - evm optimised", () => {
             keyHash: subproofs.get(3)?.vkeyHash as string,
           },
           {
-            proof: nationalityProof.proof.map((f) => `0x${f}`) as string[],
-            publicInputs: nationalityProof.publicInputs as string[],
-            vkey: nationalityVkey,
-            keyHash: nationalityVkeyHash,
+            proof: nationalityInclusionProof.proof.map((f) => `0x${f}`) as string[],
+            publicInputs: nationalityInclusionProof.publicInputs as string[],
+            vkey: nationalityInclusionVkey,
+            keyHash: nationalityInclusionVkeyHash,
+          },
+          {
+            proof: nationalityExclusionProof.proof.map((f) => `0x${f}`) as string[],
+            publicInputs: nationalityExclusionProof.publicInputs as string[],
+            vkey: nationalityExclusionVkey,
+            keyHash: nationalityExclusionVkeyHash,
+          },
+          {
+            proof: issuingCountryInclusionProof.proof.map((f) => `0x${f}`) as string[],
+            publicInputs: issuingCountryInclusionProof.publicInputs as string[],
+            vkey: issuingCountryInclusionVkey,
+            keyHash: issuingCountryInclusionVkeyHash,
+          },
+          {
+            proof: issuingCountryExclusionProof.proof.map((f) => `0x${f}`) as string[],
+            publicInputs: issuingCountryExclusionProof.publicInputs as string[],
+            vkey: issuingCountryExclusionVkey,
+            keyHash: issuingCountryExclusionVkeyHash,
           },
           {
             proof: ageProof.proof.map((f) => `0x${f}`) as string[],
@@ -743,23 +991,37 @@ describe("outer proof - evm optimised", () => {
             vkey: ageVkey,
             keyHash: ageVkeyHash,
           },
+          {
+            proof: expiryDateProof.proof.map((f) => `0x${f}`) as string[],
+            publicInputs: expiryDateProof.publicInputs as string[],
+            vkey: expiryDateVkey,
+            keyHash: expiryDateVkeyHash,
+          },
+          {
+            proof: birthDateProof.proof.map((f) => `0x${f}`) as string[],
+            publicInputs: birthDateProof.publicInputs as string[],
+            vkey: birthDateVkey,
+            keyHash: birthDateVkeyHash,
+          },
         ],
       )
 
       const proof = await outerProofCircuit.prove(inputs, {
         useCli: true,
-        circuitName: "outer_evm_count_6",
+        circuitName: "outer_evm_count_11",
         recursive: false,
         evm: true,
       })
       expect(proof).toBeDefined()
-      console.log("Outer 6 subproofs")
+      /*console.log("Outer 11 subproofs")
       console.log(
         JSON.stringify({
           proof: proof.proof.slice(16).join(""),
           publicInputs: proof.publicInputs.concat(proof.proof.slice(0, 16).map((f) => `0x${f}`)),
         }),
       )
+      console.log("committed inputs")
+      console.log(compressedCommittedInputs)*/
       const currentDate = getCurrentDateFromOuterProof(proof)
       expect(currentDate).toEqual(globalCurrentDate)
       const nullifier = getNullifierFromOuterProof(proof)
@@ -770,8 +1032,13 @@ describe("outer proof - evm optimised", () => {
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
       const paramCommitmentsFromProof = getParamCommitmentsFromOuterProof(proof)
       expect(subproofs.get(3)?.paramCommitment).toEqual(paramCommitmentsFromProof[0])
-      expect(nationalityParamCommitment).toEqual(paramCommitmentsFromProof[1])
-      expect(ageParamCommitment).toEqual(paramCommitmentsFromProof[2])
+      expect(nationalityInclusionParamCommitment).toEqual(paramCommitmentsFromProof[1])
+      expect(nationalityExclusionParamCommitment).toEqual(paramCommitmentsFromProof[2])
+      expect(issuingCountryInclusionParamCommitment).toEqual(paramCommitmentsFromProof[3])
+      expect(issuingCountryExclusionParamCommitment).toEqual(paramCommitmentsFromProof[4])
+      expect(ageParamCommitment).toEqual(paramCommitmentsFromProof[5])
+      expect(expiryDateParamCommitment).toEqual(paramCommitmentsFromProof[6])
+      expect(birthDateParamCommitment).toEqual(paramCommitmentsFromProof[7])
       await outerProofCircuit.destroy()
     },
     60000 * 3,

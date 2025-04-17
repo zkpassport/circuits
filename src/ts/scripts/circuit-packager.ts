@@ -250,7 +250,9 @@ const updateDeploySol = () => {
     const newVkeyHashesContent = outerEvmVkeyHashes
       .map(
         ({ count, hash }) =>
-          `        // Outer (${count} subproofs)\n        bytes32(hex"${hash.substring(2)}")`,
+          `        // Outer (${count} subproofs)\n        bytes32(hex"${hash
+            .substring(2)
+            .padStart(64, "0")}")`,
       )
       .join(",\n")
 
