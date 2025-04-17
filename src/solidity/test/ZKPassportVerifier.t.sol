@@ -16,6 +16,8 @@ contract ZKPassportVerifierTest is Test {
   string constant COMMITTED_INPUTS_PATH = "./test/fixtures/valid_committed_inputs.hex";
   bytes32 constant VKEY_HASH =
     bytes32(uint256(0x8eb40d971a28de3157941b06eca6a9d97984855c415e1e6759b2c0f03b5540));
+  bytes32 constant CERTIFICATE_REGISTRY_ROOT =
+    bytes32(uint256(0x1051a4bd8b16e794bfb2b265ca0a69905d0f8451228c12b53615a29c2897ed5d));
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
@@ -29,6 +31,7 @@ contract ZKPassportVerifierTest is Test {
     address[] memory verifiers = new address[](1);
     verifiers[0] = address(verifier);
     zkPassportVerifier.addVerifiers(vkeyHashes, verifiers);
+    zkPassportVerifier.addCertificateRegistryRoot(CERTIFICATE_REGISTRY_ROOT);
   }
 
   /**
@@ -105,19 +108,19 @@ contract ZKPassportVerifierTest is Test {
     // Contains in order the number of bytes of committed inputs for each disclosure proofs
     // that was verified by the final recursive proof
     uint256[] memory committedInputCounts = new uint256[](1);
-    committedInputCounts[0] = 180;
+    committedInputCounts[0] = 181;
 
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
-    // Set the timestamp to 2025-04-15 20:35:23 UTC
-    vm.warp(1744749323);
+    // Set the timestamp to 2025-04-17 09:22:52 UTC
+    vm.warp(1744881772);
     (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(
       VKEY_HASH,
       proof,
       publicInputs,
       committedInputs,
       committedInputCounts,
-      2
+      7
     );
     uint256 gasUsed = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier verifyProof");
@@ -129,8 +132,11 @@ contract ZKPassportVerifierTest is Test {
     );
 
     vm.startSnapshotGas("ZKPassportVerifier getDiscloseProofInputs");
-    (bytes memory discloseMask, bytes memory discloseBytes) = zkPassportVerifier
-      .getDiscloseProofInputs(committedInputs, committedInputCounts);
+    (
+      bytes memory discloseMask,
+      bytes memory discloseBytes,
+      string memory proofType
+    ) = zkPassportVerifier.getDiscloseProofInputs(committedInputs, committedInputCounts);
     uint256 gasUsedDiscloseProofInputs = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier getDiscloseProofInputs");
     console.log(gasUsedDiscloseProofInputs);
@@ -138,6 +144,8 @@ contract ZKPassportVerifierTest is Test {
     console.logBytes(discloseMask);
     console.log("Disclose bytes");
     console.logBytes(discloseBytes);
+    console.log("Proof type");
+    console.log(proofType);
 
     vm.startSnapshotGas("ZKPassportVerifier getDisclosedData");
     (
@@ -154,11 +162,9 @@ contract ZKPassportVerifierTest is Test {
     console.log("Gas used in ZKPassportVerifier getDisclosedData");
     console.log(gasUsedGetDisclosedData);
     assertEq(name, "SILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<");
-    assertEq(issuingCountry, "AUS");
     assertEq(nationality, "AUS");
     assertEq(gender, "M");
     assertEq(birthDate, "881112");
-    assertEq(expiryDate, "300101");
     assertEq(documentNumber, "PA1234567");
     assertEq(documentType, "P<");
   }

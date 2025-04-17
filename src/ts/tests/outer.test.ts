@@ -531,13 +531,11 @@ describe("outer proof - evm optimised", () => {
 
     const discloseCircuit = Circuit.from("disclose_bytes_evm")
     const query: Query = {
-      issuing_country: { disclose: true },
       nationality: { disclose: true },
       document_type: { disclose: true },
       document_number: { disclose: true },
       fullname: { disclose: true },
       birthdate: { disclose: true },
-      expiry_date: { disclose: true },
       gender: { disclose: true },
     }
     let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
@@ -557,11 +555,15 @@ describe("outer proof - evm optimised", () => {
       inputs.disclose_mask,
       disclosedBytes,
     )
+    console.log("compressedCommittedInputs")
+    console.log(
+      inputs.disclose_mask.map((x: number) => x.toString(16).padStart(2, "0")).join("") +
+        disclosedBytes.map((x: number) => x.toString(16).padStart(2, "0")).join(""),
+    )
     expect(paramCommitment).toEqual(calculatedParamCommitment)
     // Verify the disclosed data
     const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
     const nullifier = getNullifierFromDisclosureProof(proof)
-    expect(disclosedData.issuingCountry).toBe("AUS")
     expect(disclosedData.nationality).toBe("AUS")
     expect(disclosedData.documentType).toBe("passport")
     expect(disclosedData.documentNumber).toBe("PA1234567")
@@ -569,7 +571,6 @@ describe("outer proof - evm optimised", () => {
     expect(disclosedData.firstName).toBe("JOHNNY")
     expect(disclosedData.lastName).toBe("SILVERHAND")
     expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1988, 10, 12))
-    expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2030, 0, 1))
     expect(disclosedData.gender).toBe("M")
     expect(nullifier).toEqual(
       10145717760157071414871097616712373356688301026314602642662418913725691010870n,
@@ -631,6 +632,13 @@ describe("outer proof - evm optimised", () => {
         evm: true,
       })
       expect(proof).toBeDefined()
+      console.log("Outer 4 subproofs")
+      console.log(
+        JSON.stringify({
+          proof: proof.proof.slice(16).join(""),
+          publicInputs: proof.publicInputs.concat(proof.proof.slice(0, 16).map((f) => `0x${f}`)),
+        }),
+      )
       const currentDate = getCurrentDateFromOuterProof(proof)
       expect(currentDate).toEqual(globalCurrentDate)
       const nullifier = getNullifierFromOuterProof(proof)
@@ -745,6 +753,13 @@ describe("outer proof - evm optimised", () => {
         evm: true,
       })
       expect(proof).toBeDefined()
+      console.log("Outer 6 subproofs")
+      console.log(
+        JSON.stringify({
+          proof: proof.proof.slice(16).join(""),
+          publicInputs: proof.publicInputs.concat(proof.proof.slice(0, 16).map((f) => `0x${f}`)),
+        }),
+      )
       const currentDate = getCurrentDateFromOuterProof(proof)
       expect(currentDate).toEqual(globalCurrentDate)
       const nullifier = getNullifierFromOuterProof(proof)

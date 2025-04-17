@@ -114,10 +114,10 @@ pub fn calculate_param_commitment_sha2<let N: u32>(
 ) -> Field {
     let mut params = [0 as u8; N * 3 + 1];
     params[0] = proof_type;
-    for i in 1..N + 1 {
-        params[i * 3] = (country_list[i - 1] >> 16) as u8;
-        params[i * 3 + 1] = ((country_list[i - 1] >> 8) & 0xFF) as u8;
-        params[i * 3 + 2] = (country_list[i - 1] & 0xFF) as u8;
+    for i in 0..N {
+        params[i * 3 + 1] = (country_list[i] >> 16) as u8;
+        params[i * 3 + 2] = ((country_list[i] >> 8) & 0xFF) as u8;
+        params[i * 3 + 3] = (country_list[i] & 0xFF) as u8;
     }
     let hash = sha256::sha256_var(params, (N * 3 + 1) as u64);
     utils::pack_be_bytes_into_field::<32, 31>(hash)

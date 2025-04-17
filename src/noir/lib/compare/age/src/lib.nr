@@ -83,7 +83,7 @@ pub fn calculate_param_commitment(
     params[0] = PROOF_TYPE_AGE as Field;
     let current_date_bytes = current_date.as_bytes();
     for i in 1..9 {
-        params[i] = current_date_bytes[i] as Field;
+        params[i] = current_date_bytes[i - 1] as Field;
     }
     params[9] = min_age_required as Field;
     params[10] = max_age_required as Field;
@@ -112,7 +112,7 @@ pub fn calculate_param_commitment_sha2(
     params[0] = PROOF_TYPE_AGE;
     let current_date_bytes = current_date.as_bytes();
     for i in 1..9 {
-        params[i] = current_date_bytes[i];
+        params[i] = current_date_bytes[i - 1];
     }
     params[9] = min_age_required;
     params[10] = max_age_required;
