@@ -1,5 +1,6 @@
 use commitment::nullify;
 use inclusion_check_country::{calculate_param_commitment_sha2, check_issuing_country_inclusion};
+use utils::PROOF_TYPE_ISSUING_COUNTRY_INCLUSION;
 
 fn main(
     comm_in: pub Field,
@@ -25,6 +26,7 @@ fn main(
     );
     // Use SHA2-256 to calculate the parameter commitment so the parameter commitment can be
     // reconstructed by verifiers on EVM chains
-    let param_commitment = calculate_param_commitment_sha2(country_list);
+    let param_commitment =
+        calculate_param_commitment_sha2(PROOF_TYPE_ISSUING_COUNTRY_INCLUSION, country_list);
     (param_commitment, nullifier)
 }

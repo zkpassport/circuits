@@ -31,6 +31,7 @@ import {
   getCountryEVMParameterCommitment,
   getAgeEVMParameterCommitment,
   getDateEVMParameterCommitment,
+  ProofType,
 } from "@zkpassport/utils"
 import type { CSCMasterlist, Query } from "@zkpassport/utils"
 import { beforeAll, describe, expect, test } from "@jest/globals"
@@ -366,12 +367,10 @@ describe("subcircuits - RSA PKCS", () => {
       })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const calculatedParamCommitment = await getCountryParameterCommitment([
-        "AUS",
-        "FRA",
-        "USA",
-        "GBR",
-      ])
+      const calculatedParamCommitment = await getCountryParameterCommitment(
+        ProofType.NATIONALITY_INCLUSION,
+        ["AUS", "FRA", "USA", "GBR"],
+      )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
@@ -400,12 +399,10 @@ describe("subcircuits - RSA PKCS", () => {
       })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const calculatedParamCommitment = await getCountryParameterCommitment([
-        "AUS",
-        "FRA",
-        "USA",
-        "GBR",
-      ])
+      const calculatedParamCommitment = await getCountryParameterCommitment(
+        ProofType.ISSUING_COUNTRY_INCLUSION,
+        ["AUS", "FRA", "USA", "GBR"],
+      )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
@@ -432,12 +429,10 @@ describe("subcircuits - RSA PKCS", () => {
       })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const calculatedParamCommitment = await getCountryEVMParameterCommitment([
-        "AUS",
-        "FRA",
-        "USA",
-        "GBR",
-      ])
+      const calculatedParamCommitment = await getCountryEVMParameterCommitment(
+        ProofType.NATIONALITY_INCLUSION,
+        ["AUS", "FRA", "USA", "GBR"],
+      )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
@@ -466,12 +461,10 @@ describe("subcircuits - RSA PKCS", () => {
       })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const calculatedParamCommitment = await getCountryEVMParameterCommitment([
-        "AUS",
-        "FRA",
-        "USA",
-        "GBR",
-      ])
+      const calculatedParamCommitment = await getCountryEVMParameterCommitment(
+        ProofType.ISSUING_COUNTRY_INCLUSION,
+        ["AUS", "FRA", "USA", "GBR"],
+      )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
@@ -502,6 +495,7 @@ describe("subcircuits - RSA PKCS", () => {
       // while the original query was not
       // Before being passed to the circuit, the list is sorted in ascending order
       const calculatedParamCommitment = await getCountryParameterCommitment(
+        ProofType.NATIONALITY_EXCLUSION,
         ["FRA", "GBR", "USA"],
         true,
       )
@@ -537,6 +531,7 @@ describe("subcircuits - RSA PKCS", () => {
       // while the original query was not
       // Before being passed to the circuit, the list is sorted in ascending order
       const calculatedParamCommitment = await getCountryParameterCommitment(
+        ProofType.ISSUING_COUNTRY_EXCLUSION,
         ["FRA", "GBR", "USA"],
         true,
       )
@@ -570,6 +565,7 @@ describe("subcircuits - RSA PKCS", () => {
       // while the original query was not
       // Before being passed to the circuit, the list is sorted in ascending order
       const calculatedParamCommitment = await getCountryEVMParameterCommitment(
+        ProofType.NATIONALITY_EXCLUSION,
         ["FRA", "GBR", "USA"],
         true,
       )
@@ -605,6 +601,7 @@ describe("subcircuits - RSA PKCS", () => {
       // while the original query was not
       // Before being passed to the circuit, the list is sorted in ascending order
       const calculatedParamCommitment = await getCountryEVMParameterCommitment(
+        ProofType.ISSUING_COUNTRY_EXCLUSION,
         ["FRA", "GBR", "USA"],
         true,
       )
@@ -858,6 +855,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
+        ProofType.BIRTHDATE,
         getFormattedDate(globalCurrentDate),
         "19881112",
         "19881112",
@@ -885,6 +883,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
+        ProofType.BIRTHDATE,
         getFormattedDate(globalCurrentDate),
         "19881111",
         "19881113",
@@ -912,6 +911,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
+        ProofType.BIRTHDATE,
         getFormattedDate(globalCurrentDate),
         "19881112",
         "19881112",
@@ -940,6 +940,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
+        ProofType.BIRTHDATE,
         getFormattedDate(globalCurrentDate),
         "19881111",
         "11111111",
@@ -967,6 +968,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
+        ProofType.BIRTHDATE,
         getFormattedDate(globalCurrentDate),
         "11111111",
         "19881115",
@@ -994,6 +996,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
+        ProofType.BIRTHDATE,
         getFormattedDate(globalCurrentDate),
         "19881111",
         "19881115",
@@ -1032,6 +1035,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateEVMParameterCommitment(
+        ProofType.BIRTHDATE,
         getFormattedDate(globalCurrentDate),
         "19881112",
         "19881112",
@@ -1069,6 +1073,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
+        ProofType.EXPIRY_DATE,
         getFormattedDate(globalCurrentDate),
         "20300101",
         "20300101",
@@ -1096,6 +1101,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
+        ProofType.EXPIRY_DATE,
         getFormattedDate(globalCurrentDate),
         "20250101",
         "20350101",
@@ -1123,6 +1129,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
+        ProofType.EXPIRY_DATE,
         getFormattedDate(globalCurrentDate),
         "20300101",
         "20300101",
@@ -1151,6 +1158,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
+        ProofType.EXPIRY_DATE,
         getFormattedDate(globalCurrentDate),
         "20250101",
         "11111111",
@@ -1178,6 +1186,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
+        ProofType.EXPIRY_DATE,
         getFormattedDate(globalCurrentDate),
         "11111111",
         "20350101",
@@ -1205,6 +1214,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
+        ProofType.EXPIRY_DATE,
         getFormattedDate(globalCurrentDate),
         "20250101",
         "20350101",
@@ -1242,6 +1252,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateEVMParameterCommitment(
+        ProofType.EXPIRY_DATE,
         getFormattedDate(globalCurrentDate),
         "20300101",
         "20300101",

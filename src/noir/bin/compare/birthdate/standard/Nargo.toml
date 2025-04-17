@@ -7,3 +7,4 @@ compiler_version = ">=1.0.0"
 [dependencies]
 compare_date_lib = { path = "../../../../lib/compare/date" }
 commitment = { path = "../../../../lib/commitment/scoped-nullifier" }
+utils = { path = "../../../../lib/utils" }

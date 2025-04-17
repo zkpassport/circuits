@@ -1,5 +1,6 @@
 use commitment::nullify;
 use compare_date_lib::{calculate_param_commitment_sha2, compare_date, get_birthdate};
+use utils::PROOF_TYPE_BIRTHDATE;
 
 fn main(
     comm_in: pub Field,
@@ -36,6 +37,7 @@ fn main(
     );
     // Use SHA2-256 to calculate the parameter commitment so the parameter commitment can be
     // reconstructed by verifiers on EVM chains
-    let param_commitment = calculate_param_commitment_sha2(current_date, min_date, max_date);
+    let param_commitment =
+        calculate_param_commitment_sha2(PROOF_TYPE_BIRTHDATE, current_date, min_date, max_date);
     (param_commitment, nullifier)
 }
