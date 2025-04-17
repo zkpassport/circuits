@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Load environment variables from .env file if it exists
+if [ -f .env ]; then
+  echo "Loading environment variables from .env file..."
+  set -o allexport
+  source .env
+  set +o allexport
+fi
+
 # Default to anvil if no network is specified
 NETWORK=${1:-anvil}
 
@@ -25,7 +33,11 @@ if [ "$NETWORK" = "anvil" ]; then
   fi
   
   # Deploy to local Anvil
-  forge script script/Deploy.s.sol --rpc-url anvil --broadcast
+  forge script script/Deploy.s.sol --rpc-url anvil --broadcast \
+    --retries 3 \
+    --slow \
+    --delay 2 \
+    --timeout 300
   
   # If we started anvil in this script, ask if we should stop it
   if [ ! -z "$ANVIL_PID" ]; then
@@ -41,18 +53,34 @@ elif [ "$NETWORK" = "sepolia" ]; then
   # Check if environment variables are set
   if [ -z "$SEPOLIA_RPC_URL" ] || [ -z "$PRIVATE_KEY" ]; then
     echo "Error: Required environment variables not set"
-    echo "Please set SEPOLIA_RPC_URL and PRIVATE_KEY"
+    echo "Please set SEPOLIA_RPC_URL and PRIVATE_KEY in your .env file or environment"
+    echo "You can copy .env.example to .env and fill in your values"
     exit 1
   fi
   
   # For Sepolia, check if ETHERSCAN_API_KEY is set
   if [ -z "$ETHERSCAN_API_KEY" ]; then
     echo "Warning: ETHERSCAN_API_KEY not set. Contract verification will be skipped."
-    # Deploy to Sepolia without verification
-    forge script script/Deploy.s.sol --rpc-url sepolia --broadcast
+    # Deploy to Sepolia without verification, with gas settings and sequential broadcasting
+    echo "Deploying with gas settings: Gas Price=$GAS_PRICE, Priority Fee=$PRIORITY_FEE, Retries=$TX_RETRIES"
+    forge script script/Deploy.s.sol \
+      --rpc-url $SEPOLIA_RPC_URL \
+      --broadcast \
+      --retries 3 \
+      --slow \
+      --delay 2 \
+      --timeout 300
   else
-    # Deploy to Sepolia with verification
-    forge script script/Deploy.s.sol --rpc-url sepolia --broadcast --verify
+    # Deploy to Sepolia with verification, with gas settings and sequential broadcasting
+    echo "Deploying with gas settings: Gas Price=$GAS_PRICE, Priority Fee=$PRIORITY_FEE, Retries=$TX_RETRIES"
+    forge script script/Deploy.s.sol \
+      --rpc-url $SEPOLIA_RPC_URL \
+      --broadcast \
+      --verify \
+      --retries 3 \
+      --slow \
+      --delay 2 \
+      --timeout 300
   fi
 else
   echo "Unsupported network: $NETWORK"
