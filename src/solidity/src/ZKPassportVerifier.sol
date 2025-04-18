@@ -4,7 +4,6 @@ pragma solidity >=0.8.21;
 
 import {IVerifier} from "../src/OuterCount4.sol";
 import {DateUtils} from "../src/DateUtils.sol";
-import {console} from "forge-std/console.sol";
 
 enum ProofType {
   DISCLOSE,
