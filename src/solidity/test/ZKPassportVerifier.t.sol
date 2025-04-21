@@ -3,7 +3,7 @@
 pragma solidity >=0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
-import {ZKPassportVerifier, ProofType} from "../src/ZKPassportVerifier.sol";
+import {ZKPassportVerifier, ProofType, ProofVerificationParams} from "../src/ZKPassportVerifier.sol";
 import {HonkVerifier as OuterVerifier4} from "../src/OuterCount4.sol";
 import {HonkVerifier as OuterVerifier11} from "../src/OuterCount11.sol";
 import {TestUtils} from "./Utils.t.sol";
@@ -64,14 +64,17 @@ contract ZKPassportVerifierTest is TestUtils {
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
     // Set the timestamp to 2025-04-17 09:22:52 UTC
     vm.warp(1744881772);
-    (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(
-      VKEY_HASH,
-      proof,
-      publicInputs,
-      committedInputs,
-      committedInputCounts,
-      7
-    );
+    ProofVerificationParams memory params = ProofVerificationParams({
+      vkeyHash: VKEY_HASH,
+      proof: proof,
+      publicInputs: publicInputs,
+      committedInputs: committedInputs,
+      committedInputCounts: committedInputCounts,
+      validityPeriodInDays: 7,
+      scope: "",
+      subscope: ""
+    });
+    (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
     uint256 gasUsed = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier verifyProof");
     console.log(gasUsed);
@@ -136,14 +139,17 @@ contract ZKPassportVerifierTest is TestUtils {
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
     // Set the timestamp to 2025-04-17 15:14:00 UTC
     vm.warp(1744899180);
-    (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(
-      OUTER_PROOF_11_VKEY_HASH,
-      proof,
-      publicInputs,
-      committedInputs,
-      committedInputCounts,
-      7
-    );
+    ProofVerificationParams memory params = ProofVerificationParams({
+      vkeyHash: OUTER_PROOF_11_VKEY_HASH,
+      proof: proof,
+      publicInputs: publicInputs,
+      committedInputs: committedInputs,
+      committedInputCounts: committedInputCounts,
+      validityPeriodInDays: 7,
+      scope: "",
+      subscope: ""
+    });
+    (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
     uint256 gasUsed = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier verifyProof");
     console.log(gasUsed);
@@ -211,14 +217,17 @@ contract ZKPassportVerifierTest is TestUtils {
 
     // Set the timestamp to 2025-04-17 15:14:00 UTC
     vm.warp(1744899180);
-    (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(
-      OUTER_PROOF_11_VKEY_HASH,
-      loadBytesFromFile(ALL_SUBPROOFS_PROOF_PATH),
-      loadBytes32FromFile(ALL_SUBPROOFS_PUBLIC_INPUTS_PATH),
-      committedInputs,
-      committedInputCounts,
-      7
-    );
+    ProofVerificationParams memory params = ProofVerificationParams({
+      vkeyHash: OUTER_PROOF_11_VKEY_HASH,
+      proof: loadBytesFromFile(ALL_SUBPROOFS_PROOF_PATH),
+      publicInputs: loadBytes32FromFile(ALL_SUBPROOFS_PUBLIC_INPUTS_PATH),
+      committedInputs: committedInputs,
+      committedInputCounts: committedInputCounts,
+      validityPeriodInDays: 7,
+      scope: "",
+      subscope: ""
+    });
+    (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
     assertEq(result, true);
 
     vm.startSnapshotGas("ZKPassportVerifier getDateProofInputs - birthdate");

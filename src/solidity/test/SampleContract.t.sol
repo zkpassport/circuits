@@ -3,7 +3,7 @@
 pragma solidity >=0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
-import {ZKPassportVerifier, ProofType} from "../src/ZKPassportVerifier.sol";
+import {ZKPassportVerifier, ProofType, ProofVerificationParams} from "../src/ZKPassportVerifier.sol";
 import {HonkVerifier as OuterVerifier11} from "../src/OuterCount11.sol";
 import {SampleContract} from "../src/SampleContract.sol";
 import {TestUtils} from "./Utils.t.sol";
@@ -63,14 +63,17 @@ contract SampleContractTest is TestUtils {
 
     // Set the timestamp to 2025-04-17 09:22:52 UTC
     vm.warp(1744881772);
-    bytes32 uniqueIdentifier = sampleContract.register(
-      VKEY_HASH,
-      proof,
-      publicInputs,
-      committedInputs,
-      committedInputCounts,
-      false
-    );
+    ProofVerificationParams memory params = ProofVerificationParams({
+      vkeyHash: VKEY_HASH,
+      proof: proof,
+      publicInputs: publicInputs,
+      committedInputs: committedInputs,
+      committedInputCounts: committedInputCounts,
+      validityPeriodInDays: 7,
+      scope: "",
+      subscope: ""
+    });
+    bytes32 uniqueIdentifier = sampleContract.register(params, false);
 
     // The sender can now call this function since they registered just before
     sampleContract.doStuff();
