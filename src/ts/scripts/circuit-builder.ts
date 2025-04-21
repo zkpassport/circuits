@@ -166,6 +166,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         country,
         tbs_certificate,
         salt,
+        ${hashAlgorithmToId(hash_algorithm)},
         concat_array(csc_pubkey_x, csc_pubkey_y),
     );
     comm_out
@@ -213,6 +214,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         country,
         tbs_certificate,
         salt,
+        ${hashAlgorithmToId(hash_algorithm)},
         csc_pubkey,
     );
     comm_out
@@ -380,7 +382,7 @@ const OUTER_CIRCUIT_TEMPLATE = (
 ############################################################
 # Wraps ${
   disclosure_proofs_count + 3
-} subproofs (3 base proofs + ${disclosure_proofs_count} disclosure proofs) into a single proof 
+} subproofs (3 base proofs + ${disclosure_proofs_count} disclosure proofs) into a single proof
 # by verifying them recursively
 ############################################################
 
@@ -1029,4 +1031,16 @@ if (args.includes("compile")) {
   const printStdErr = args.includes("verbose")
   checkNargoVersion()
   compileCircuitsWithNargo({ forceCompilation, printStdErr, concurrency })
+}
+
+function hashAlgorithmToId(hash_algorithm: "sha256" | "sha384" | "sha512") {
+  const hashMap: Record<string, number> = {
+    sha256: 2,
+    sha384: 3,
+    sha512: 5,
+  }
+  if (hashMap[hash_algorithm] === undefined) {
+    throw new Error(`Unsupported hash algorithm: ${hash_algorithm}`)
+  }
+  return hashMap[hash_algorithm]
 }
