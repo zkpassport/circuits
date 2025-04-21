@@ -4,6 +4,8 @@ pragma solidity >=0.8.21;
 
 import {IVerifier} from "../src/OuterCount4.sol";
 import {DateUtils} from "../src/DateUtils.sol";
+import {StringUtils} from "../src/StringUtils.sol";
+import {ArrayUtils} from "../src/ArrayUtils.sol";
 
 enum ProofType {
   DISCLOSE,
@@ -14,6 +16,18 @@ enum ProofType {
   NATIONALITY_EXCLUSION,
   ISSUING_COUNTRY_INCLUSION,
   ISSUING_COUNTRY_EXCLUSION
+}
+
+// Add this struct to group parameters
+struct ProofVerificationParams {
+  bytes32 vkeyHash;
+  bytes proof;
+  bytes32[] publicInputs;
+  bytes committedInputs;
+  uint256[] committedInputCounts;
+  uint256 validityPeriodInDays;
+  string scope;
+  string subscope;
 }
 
 contract ZKPassportVerifier {
@@ -123,12 +137,16 @@ contract ZKPassportVerifier {
     }
   }
 
-  function addCertificateRegistryRoot(bytes32 certificateRegistryRoot) external onlyAdmin {
+  function addCertificateRegistryRoot(
+    bytes32 certificateRegistryRoot
+  ) external onlyAdmin whenNotPaused {
     isValidCertificateRegistryRoot[certificateRegistryRoot] = true;
     emit CertificateRegistryRootAdded(certificateRegistryRoot);
   }
 
-  function removeCertificateRegistryRoot(bytes32 certificateRegistryRoot) external onlyAdmin {
+  function removeCertificateRegistryRoot(
+    bytes32 certificateRegistryRoot
+  ) external onlyAdmin whenNotPaused {
     isValidCertificateRegistryRoot[certificateRegistryRoot] = false;
     emit CertificateRegistryRootRemoved(certificateRegistryRoot);
   }
@@ -294,11 +312,26 @@ contract ZKPassportVerifier {
     require(found, "Country proof inputs not found");
   }
 
+  function verifyScopes(
+    bytes32[] calldata publicInputs,
+    string calldata scope,
+    string calldata subscope
+  ) public pure returns (bool) {
+    // One byte is dropped at the end
+    bytes32 scopeHash = StringUtils.isEmpty(scope)
+      ? bytes32(0)
+      : sha256(abi.encodePacked(scope)) >> 8;
+    bytes32 subscopeHash = StringUtils.isEmpty(subscope)
+      ? bytes32(0)
+      : sha256(abi.encodePacked(subscope)) >> 8;
+    return publicInputs[9] == scopeHash && publicInputs[10] == subscopeHash;
+  }
+
   function verifyCommittedInputs(
     bytes32[] memory paramCommitments,
     bytes calldata committedInputs,
     uint256[] memory committedInputCounts
-  ) internal pure returns (bool) {
+  ) internal pure {
     uint256 offset = 0;
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // One byte is dropped inside the circuit as BN254 is limited to 254 bits
@@ -308,40 +341,51 @@ contract ZKPassportVerifier {
       require(calculatedCommitment == paramCommitments[i], "Invalid commitment");
       offset += committedInputCounts[i];
     }
-    return true;
+  }
+
+  function _getVerifier(bytes32 vkeyHash) internal view returns (address) {
+    address verifier = vkeyHashToVerifier[vkeyHash];
+    require(verifier != address(0), "Verifier not found");
+    return verifier;
+  }
+
+  function _validateCertificateRoot(bytes32 certificateRoot) internal view {
+    // TODO: Replace by a call to the actual certificate registry when it is ready
+    require(isValidCertificateRegistryRoot[certificateRoot], "Invalid certificate registry root");
   }
 
   function verifyProof(
-    bytes32 vkeyHash,
-    bytes calldata proof,
-    bytes32[] calldata publicInputs,
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
-    uint256 validityPeriodInDays
+    ProofVerificationParams calldata params
   ) external view returns (bool, bytes32) {
-    address verifier = vkeyHashToVerifier[vkeyHash];
-    require(verifier != address(0), "Verifier not found");
+    address verifier = _getVerifier(params.vkeyHash);
+
     // We remove the last 16 public inputs from the count cause they are part of the aggregation object
     // and not the actual public inputs of the circuit
-    uint256 actualPublicInputCount = publicInputs.length - 16;
-    // TODO: Replace by a call to the actual certificate registry when it is ready
-    require(isValidCertificateRegistryRoot[publicInputs[0]], "Invalid certificate registry root");
+    uint256 actualPublicInputCount = params.publicInputs.length - 16;
+
+    // Validate certificate registry root
+    _validateCertificateRoot(params.publicInputs[0]);
+
     // Checks the date of the proof
-    require(checkDate(publicInputs, validityPeriodInDays), "Proof expired or date is invalid");
-    // Verifies the commitments against the committed inputs
     require(
-      verifyCommittedInputs(
-        // Extracts the commitments from the public inputs
-        publicInputs[11:actualPublicInputCount - 1],
-        committedInputs,
-        committedInputCounts
-      ),
-      "Invalid committed inputs"
+      checkDate(params.publicInputs, params.validityPeriodInDays),
+      "Proof expired or date is invalid"
     );
-    // Verifies the proof
+
+    // Validate scopes if provided
+    require(verifyScopes(params.publicInputs, params.scope, params.subscope), "Invalid scopes");
+
+    // Verifies the commitments against the committed inputs
+    verifyCommittedInputs(
+      // Extracts the commitments from the public inputs
+      params.publicInputs[11:actualPublicInputCount - 1],
+      params.committedInputs,
+      params.committedInputCounts
+    );
+
     return (
-      IVerifier(verifier).verify(proof, publicInputs),
-      publicInputs[actualPublicInputCount - 1]
+      IVerifier(verifier).verify(params.proof, params.publicInputs),
+      params.publicInputs[actualPublicInputCount - 1]
     );
   }
 }

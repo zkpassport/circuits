@@ -3,7 +3,7 @@
 pragma solidity >=0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
-import {ZKPassportVerifier, ProofType} from "../src/ZKPassportVerifier.sol";
+import {ZKPassportVerifier, ProofType, ProofVerificationParams} from "../src/ZKPassportVerifier.sol";
 import {HonkVerifier as OuterVerifier4} from "../src/OuterCount4.sol";
 import {HonkVerifier as OuterVerifier11} from "../src/OuterCount11.sol";
 import {TestUtils} from "./Utils.t.sol";
@@ -29,7 +29,7 @@ contract ZKPassportVerifierTest is TestUtils {
   bytes32 constant CERTIFICATE_REGISTRY_ROOT =
     bytes32(uint256(0x1051a4bd8b16e794bfb2b265ca0a69905d0f8451228c12b53615a29c2897ed5d));
   bytes32 constant CERTIFICATE_REGISTRY_ROOT_2 =
-    bytes32(uint256(0x051f7d5144ece7ab472f3b057ddf0bd9d434b22e4e6f5982142d3475e5271373));
+    bytes32(uint256(0x2a3e605512942d2cddcb3799729dbdf40c862de134703c94b847092bea92ebd7));
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
@@ -62,16 +62,19 @@ contract ZKPassportVerifierTest is TestUtils {
 
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
-    // Set the timestamp to 2025-04-17 09:22:52 UTC
-    vm.warp(1744881772);
-    (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(
-      VKEY_HASH,
-      proof,
-      publicInputs,
-      committedInputs,
-      committedInputCounts,
-      7
-    );
+    // Set the timestamp to 2025-04-21 15:30:19 UTC
+    vm.warp(1745249419);
+    ProofVerificationParams memory params = ProofVerificationParams({
+      vkeyHash: VKEY_HASH,
+      proof: proof,
+      publicInputs: publicInputs,
+      committedInputs: committedInputs,
+      committedInputCounts: committedInputCounts,
+      validityPeriodInDays: 7,
+      scope: "",
+      subscope: ""
+    });
+    (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
     uint256 gasUsed = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier verifyProof");
     console.log(gasUsed);
@@ -134,23 +137,26 @@ contract ZKPassportVerifierTest is TestUtils {
 
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
-    // Set the timestamp to 2025-04-17 15:14:00 UTC
-    vm.warp(1744899180);
-    (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(
-      OUTER_PROOF_11_VKEY_HASH,
-      proof,
-      publicInputs,
-      committedInputs,
-      committedInputCounts,
-      7
-    );
+    // Set the timestamp to 2025-04-21 15:30:19 UTC
+    vm.warp(1745249419);
+    ProofVerificationParams memory params = ProofVerificationParams({
+      vkeyHash: OUTER_PROOF_11_VKEY_HASH,
+      proof: proof,
+      publicInputs: publicInputs,
+      committedInputs: committedInputs,
+      committedInputCounts: committedInputCounts,
+      validityPeriodInDays: 7,
+      scope: "zkpassport.id",
+      subscope: "bigproof"
+    });
+    (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
     uint256 gasUsed = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier verifyProof");
     console.log(gasUsed);
     assertEq(result, true);
     assertEq(
       scopedNullifier,
-      bytes32(0x166e45d330ee09cdfd9584800d692caf5c89bafa9c756ddb07efe5a937311f36)
+      bytes32(0x06dc69f42548d61f3d14450ec54c2c7e19d3518b66f5d7c9a06c3c119d9671e2)
     );
 
     vm.startSnapshotGas("ZKPassportVerifier getAgeProofInputs");
@@ -161,7 +167,7 @@ contract ZKPassportVerifierTest is TestUtils {
     uint256 gasUsedGetAgeProofInputs = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier getAgeProofInputs");
     console.log(gasUsedGetAgeProofInputs);
-    assertEq(currentDate, 1744848000);
+    assertEq(currentDate, 1745193600);
     assertEq(minAge, 18);
     assertEq(maxAge, 0);
 
@@ -209,16 +215,19 @@ contract ZKPassportVerifierTest is TestUtils {
     committedInputCounts[6] = 25;
     committedInputCounts[7] = 25;
 
-    // Set the timestamp to 2025-04-17 15:14:00 UTC
-    vm.warp(1744899180);
-    (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(
-      OUTER_PROOF_11_VKEY_HASH,
-      loadBytesFromFile(ALL_SUBPROOFS_PROOF_PATH),
-      loadBytes32FromFile(ALL_SUBPROOFS_PUBLIC_INPUTS_PATH),
-      committedInputs,
-      committedInputCounts,
-      7
-    );
+    // Set the timestamp to 2025-04-21 15:30:19 UTC
+    vm.warp(1745249419);
+    ProofVerificationParams memory params = ProofVerificationParams({
+      vkeyHash: OUTER_PROOF_11_VKEY_HASH,
+      proof: loadBytesFromFile(ALL_SUBPROOFS_PROOF_PATH),
+      publicInputs: loadBytes32FromFile(ALL_SUBPROOFS_PUBLIC_INPUTS_PATH),
+      committedInputs: committedInputs,
+      committedInputCounts: committedInputCounts,
+      validityPeriodInDays: 7,
+      scope: "zkpassport.id",
+      subscope: "bigproof"
+    });
+    (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
     assertEq(result, true);
 
     vm.startSnapshotGas("ZKPassportVerifier getDateProofInputs - birthdate");
@@ -234,9 +243,9 @@ contract ZKPassportVerifierTest is TestUtils {
     uint256 gasUsed = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier getDateProofInputs - birthdate");
     console.log(gasUsed);
-    assertEq(currentDateBirthDate, 1744848000);
+    assertEq(currentDateBirthDate, 1745193600);
     assertEq(minDateBirthDate, 0);
-    assertEq(maxDateBirthDate, 1744848000);
+    assertEq(maxDateBirthDate, 1745193600);
 
     vm.startSnapshotGas("ZKPassportVerifier getDateProofInputs - expiry date");
     (
@@ -251,8 +260,8 @@ contract ZKPassportVerifierTest is TestUtils {
     gasUsed = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier getDateProofInputs - expiry date");
     console.log(gasUsed);
-    assertEq(currentDateExpiryDate, 1744848000);
-    assertEq(minDateExpiryDate, 1744848000);
+    assertEq(currentDateExpiryDate, 1745193600);
+    assertEq(minDateExpiryDate, 1745193600);
     assertEq(maxDateExpiryDate, 0);
 
     vm.startSnapshotGas("ZKPassportVerifier getCountryProofInputs - issuing country inclusion");

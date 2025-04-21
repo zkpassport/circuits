@@ -23,13 +23,21 @@ CIRCUITS=(
     "data_check_integrity_sha512"
     "disclose_flags"
     "disclose_bytes"
+    "disclose_bytes_evm"
     "inclusion_check_nationality"
+    "inclusion_check_nationality_evm"
     "exclusion_check_nationality"
+    "exclusion_check_nationality_evm"
     "inclusion_check_issuing_country"
+    "inclusion_check_issuing_country_evm"
     "exclusion_check_issuing_country"
+    "exclusion_check_issuing_country_evm"
     "compare_age"
+    "compare_age_evm"
     "compare_expiry"
+    "compare_expiry_evm"
     "compare_birthdate"
+    "compare_birthdate_evm"
 )
 
 for circuit in "${CIRCUITS[@]}"; do
