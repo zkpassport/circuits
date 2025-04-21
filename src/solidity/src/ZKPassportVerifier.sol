@@ -4,6 +4,8 @@ pragma solidity >=0.8.21;
 
 import {IVerifier} from "../src/OuterCount4.sol";
 import {DateUtils} from "../src/DateUtils.sol";
+import {StringUtils} from "../src/StringUtils.sol";
+import {ArrayUtils} from "../src/ArrayUtils.sol";
 
 enum ProofType {
   DISCLOSE,
@@ -292,6 +294,22 @@ contract ZKPassportVerifier {
       offset += committedInputCounts[i];
     }
     require(found, "Country proof inputs not found");
+  }
+
+  function verifyScopes(
+    bytes32[] calldata publicInputs,
+    string calldata scope,
+    string calldata subscope
+  ) public pure returns (bool) {
+    // One byte is dropped at the end, but not the same way as for the parameter
+    // commitments (hence the shift to the left rather than to the right)
+    bytes32 scopeHash = StringUtils.isEmpty(scope)
+      ? bytes32(0)
+      : sha256(abi.encodePacked(scope)) << 8;
+    bytes32 subscopeHash = StringUtils.isEmpty(subscope)
+      ? bytes32(0)
+      : sha256(abi.encodePacked(subscope)) << 8;
+    return publicInputs[9] == scopeHash && publicInputs[10] == subscopeHash;
   }
 
   function verifyCommittedInputs(

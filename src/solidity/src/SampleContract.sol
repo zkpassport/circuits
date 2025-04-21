@@ -3,42 +3,10 @@
 pragma solidity >=0.8.21;
 
 import {DateUtils} from "../src/DateUtils.sol";
+import {StringUtils} from "../src/StringUtils.sol";
+import {ArrayUtils} from "../src/ArrayUtils.sol";
 import {ZKPassportVerifier, ProofType} from "../src/ZKPassportVerifier.sol";
 import {console} from "forge-std/console.sol";
-
-library StringUtils {
-  function equals(string memory a, string memory b) internal pure returns (bool) {
-    return keccak256(bytes(a)) == keccak256(bytes(b));
-  }
-
-  function isEmpty(string memory a) internal pure returns (bool) {
-    return bytes(a).length == 0;
-  }
-
-  function getWeightedBytes(string memory a) internal pure returns (uint256) {
-    uint256 length = bytes(a).length;
-    uint256 sum = 0;
-    for (uint256 i = length - 1; i > 0; i--) {
-      sum += uint256(uint8(bytes(a)[length - 1 - i])) * 2 ** (i * 8);
-    }
-    return sum;
-  }
-}
-
-library ArrayUtils {
-  function isSortedAscending(string[] memory array) internal pure returns (bool) {
-    for (uint256 i = 1; i < array.length; i++) {
-      // Ignore empty strings
-      if (StringUtils.isEmpty(array[i])) {
-        continue;
-      }
-      if (StringUtils.getWeightedBytes(array[i]) < StringUtils.getWeightedBytes(array[i - 1])) {
-        return false;
-      }
-    }
-    return true;
-  }
-}
 
 contract SampleContract {
   address public admin;
@@ -50,9 +18,14 @@ contract SampleContract {
   mapping(bytes32 => string) public userNationality;
   // User address => unique identifier
   mapping(address => bytes32) public userUniqueIdentifier;
+  string public validScope;
+  string public validSubscope;
 
   constructor() {
     admin = msg.sender;
+    // Empty string equals to a 0 scope
+    validScope = "";
+    validSubscope = "";
   }
 
   modifier onlyAdmin() {
@@ -62,6 +35,14 @@ contract SampleContract {
 
   function setZKPassportVerifier(address _zkPassportVerifier) public onlyAdmin {
     zkPassportVerifier = ZKPassportVerifier(_zkPassportVerifier);
+  }
+
+  function setScope(string calldata _scope) public onlyAdmin {
+    validScope = _scope;
+  }
+
+  function setSubscope(string calldata _subscope) public onlyAdmin {
+    validSubscope = _subscope;
   }
 
   /**
@@ -93,6 +74,12 @@ contract SampleContract {
     );
     require(verified, "Proof is invalid");
     require(!isVerified[uniqueIdentifier], "User already verified");
+    // Check the proof was generated using your domain name (scope) and the subscope
+    // you specified
+    require(
+      zkPassportVerifier.verifyScopes(publicInputs, validScope, validSubscope),
+      "Invalid scope or subscope"
+    );
 
     // Get the age condition checked in the proof
     (uint256 currentDate, uint8 minAge, uint8 maxAge) = zkPassportVerifier.getAgeProofInputs(
