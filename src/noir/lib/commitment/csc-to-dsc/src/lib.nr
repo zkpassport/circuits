@@ -35,6 +35,7 @@ pub fn commit_to_dsc<let CSC_KEY_SIZE: u32, let HASH_PATH_SIZE: u32, let TBS_CER
     country: str<3>,
     tbs_certificate: [u8; TBS_CERT_SIZE],
     salt: Field,
+    hash_algorithm: u8,
     csc_pubkey: [u8; CSC_KEY_SIZE],
 ) -> Field {
     // Verify csc_pubkey exists in certificate registry
@@ -42,6 +43,7 @@ pub fn commit_to_dsc<let CSC_KEY_SIZE: u32, let HASH_PATH_SIZE: u32, let TBS_CER
         certificate_registry_id,
         CSC_CERT_TYPE,
         country,
+        hash_algorithm,
         csc_pubkey,
     );
     let root = compute_merkle_root(
