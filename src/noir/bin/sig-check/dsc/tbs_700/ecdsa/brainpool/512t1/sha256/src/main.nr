@@ -34,6 +34,7 @@ fn main(
         country,
         tbs_certificate,
         salt,
+        2,
         concat_array(csc_pubkey_x, csc_pubkey_y),
     );
     comm_out
