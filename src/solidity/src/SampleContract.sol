@@ -23,9 +23,10 @@ contract SampleContract {
 
   constructor() {
     admin = msg.sender;
-    // Empty string equals to a 0 scope
-    validScope = "";
-    validSubscope = "";
+    // Replace with your domain name
+    validScope = "zkpassport.id";
+    // Replace with the scope you specified in the SDK
+    validSubscope = "bigproof";
   }
 
   modifier onlyAdmin() {

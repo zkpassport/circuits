@@ -29,6 +29,7 @@ import {
   getIssuingCountryInclusionCircuitInputs,
   getIssuingCountryExclusionCircuitInputs,
   getNationalityExclusionCircuitInputs,
+  getScopeHash,
 } from "@zkpassport/utils"
 import type { CSCMasterlist, Query } from "@zkpassport/utils"
 import { beforeAll, describe, expect, test } from "@jest/globals"
@@ -543,7 +544,13 @@ describe("outer proof - evm optimised", () => {
       birthdate: { disclose: true },
       gender: { disclose: true },
     }
-    let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
+    let inputs = await getDiscloseCircuitInputs(
+      helper.passport as any,
+      query,
+      3n,
+      getScopeHash("zkpassport.id"),
+      getScopeHash("bigproof"),
+    )
     if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
     const proof = await discloseCircuit.prove(inputs, {
       recursive: true,
@@ -579,7 +586,7 @@ describe("outer proof - evm optimised", () => {
     expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1988, 10, 12))
     expect(disclosedData.gender).toBe("M")
     expect(nullifier).toEqual(
-      10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+      3103314711270760631299740901773115899504879398538738529035258383108670910946n,
     )
     const discloseCommitmentIn = getCommitmentInFromDisclosureProof(proof)
     expect(discloseCommitmentIn).toEqual(integrityCheckToDisclosureCommitment)
@@ -649,7 +656,7 @@ describe("outer proof - evm optimised", () => {
       expect(currentDate).toEqual(globalCurrentDate)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        3103314711270760631299740901773115899504879398538738529035258383108670910946n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
@@ -663,7 +670,7 @@ describe("outer proof - evm optimised", () => {
   test(
     "11 subproofs",
     async () => {
-      //let compressedCommittedInputs = ""
+      let compressedCommittedInputs = ""
       // 2nd disclosure proof
       const nationalityInclusionCircuit = Circuit.from("inclusion_check_nationality_evm")
       const nationalityInclusionQuery: Query = {
@@ -673,6 +680,8 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         nationalityInclusionQuery,
         3n,
+        getScopeHash("zkpassport.id"),
+        getScopeHash("bigproof"),
       )
       if (!nationalityInclusionInputs)
         throw new Error("Unable to generate inclusion check circuit inputs")
@@ -715,6 +724,8 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         nationalityExclusionQuery,
         3n,
+        getScopeHash("zkpassport.id"),
+        getScopeHash("bigproof"),
       )
       if (!nationalityExclusionInputs)
         throw new Error("Unable to generate inclusion check circuit inputs")
@@ -757,6 +768,8 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         issuingCountryInclusionQuery,
         3n,
+        getScopeHash("zkpassport.id"),
+        getScopeHash("bigproof"),
       )
       if (!issuingCountryInclusionInputs)
         throw new Error("Unable to generate inclusion check circuit inputs")
@@ -799,6 +812,8 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         issuingCountryExclusionQuery,
         3n,
+        getScopeHash("zkpassport.id"),
+        getScopeHash("bigproof"),
       )
       if (!issuingCountryExclusionInputs)
         throw new Error("Unable to generate inclusion check circuit inputs")
@@ -837,7 +852,13 @@ describe("outer proof - evm optimised", () => {
         age: { gte: 18 },
       }
       const ageCircuit = Circuit.from("compare_age_evm")
-      const ageInputs = await getAgeCircuitInputs(helper.passport as any, ageQuery, 3n)
+      const ageInputs = await getAgeCircuitInputs(
+        helper.passport as any,
+        ageQuery,
+        3n,
+        getScopeHash("zkpassport.id"),
+        getScopeHash("bigproof"),
+      )
       if (!ageInputs) throw new Error("Unable to generate compare-age greater than circuit inputs")
       const ageProof = await ageCircuit.prove(ageInputs, {
         recursive: true,
@@ -857,7 +878,7 @@ describe("outer proof - evm optimised", () => {
           .map((x: number) => x.toString(16).padStart(2, "0"))
           .join("") +
         ageInputs.min_age_required.toString(16).padStart(2, "0") +
-          ageInputs.max_age_required.toString(16).padStart(2, "0")*/
+        ageInputs.max_age_required.toString(16).padStart(2, "0")*/
 
       // 7th disclosure proof
       const expiryDateCircuit = Circuit.from("compare_expiry_evm")
@@ -868,6 +889,8 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         expiryDateQuery,
         3n,
+        getScopeHash("zkpassport.id"),
+        getScopeHash("bigproof"),
       )
       if (!expiryDateInputs)
         throw new Error("Unable to generate compare-expiry-date greater than circuit inputs")
@@ -904,6 +927,8 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         birthDateQuery,
         3n,
+        getScopeHash("zkpassport.id"),
+        getScopeHash("bigproof"),
       )
       if (!birthDateInputs)
         throw new Error("Unable to generate compare-birthdate-date less than circuit inputs")
@@ -1026,7 +1051,7 @@ describe("outer proof - evm optimised", () => {
       expect(currentDate).toEqual(globalCurrentDate)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        3103314711270760631299740901773115899504879398538738529035258383108670910946n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)

@@ -317,14 +317,13 @@ contract ZKPassportVerifier {
     string calldata scope,
     string calldata subscope
   ) public pure returns (bool) {
-    // One byte is dropped at the end, but not the same way as for the parameter
-    // commitments (hence the shift to the left rather than to the right)
+    // One byte is dropped at the end
     bytes32 scopeHash = StringUtils.isEmpty(scope)
       ? bytes32(0)
-      : sha256(abi.encodePacked(scope)) << 8;
+      : sha256(abi.encodePacked(scope)) >> 8;
     bytes32 subscopeHash = StringUtils.isEmpty(subscope)
       ? bytes32(0)
-      : sha256(abi.encodePacked(subscope)) << 8;
+      : sha256(abi.encodePacked(subscope)) >> 8;
     return publicInputs[9] == scopeHash && publicInputs[10] == subscopeHash;
   }
 
