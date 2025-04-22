@@ -43,3 +43,6 @@ CIRCUITS=(
 for circuit in "${CIRCUITS[@]}"; do
     nargo compile --force --package "$circuit"
 done
+
+# Regenerate constrained circuits (without unconstrained entrypoint)
+./node_modules/.bin/tsx src/ts/scripts/circuit-builder.ts generate
