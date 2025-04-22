@@ -31,7 +31,7 @@ pub fn commit_to_dsc<let CSC_KEY_SIZE: u32, let HASH_PATH_SIZE: u32, let TBS_CER
     certificate_registry_root: Field,
     certificate_registry_index: Field,
     certificate_registry_hash_path: [Field; HASH_PATH_SIZE],
-    certificate_registry_id: Field,
+    certificate_tags: Field,
     country: str<3>,
     tbs_certificate: [u8; TBS_CERT_SIZE],
     salt: Field,
@@ -40,7 +40,7 @@ pub fn commit_to_dsc<let CSC_KEY_SIZE: u32, let HASH_PATH_SIZE: u32, let TBS_CER
 ) -> Field {
     // Verify csc_pubkey exists in certificate registry
     let leaf: Field = calculate_certificate_registry_leaf(
-        certificate_registry_id,
+        certificate_tags,
         CSC_CERT_TYPE,
         country,
         hash_algorithm,
