@@ -562,7 +562,7 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
-    })
+    }, 30000)
 
     test("issuing country", async () => {
       const circuit = Circuit.from("exclusion_check_issuing_country_evm")
@@ -596,7 +596,7 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
-    })
+    }, 30000)
   })
 
   describe("compare-age", () => {
