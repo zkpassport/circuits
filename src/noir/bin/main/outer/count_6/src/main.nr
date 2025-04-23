@@ -3,7 +3,7 @@
 ############################################################
 # Outer Circuit
 ############################################################
-# Wraps 6 subproofs (3 base proofs + 3 disclosure proofs) into a single proof 
+# Wraps 6 subproofs (3 base proofs + 3 disclosure proofs) into a single proof
 # by verifying them recursively
 ############################################################
 

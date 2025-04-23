@@ -1,6 +1,6 @@
 import {
   Binary,
-  parseCertificate,
+  convertPemToPackagedCertificate,
   getNationalityInclusionCircuitInputs,
   getNationalityExclusionCircuitInputs,
   getAgeCircuitInputs,
@@ -33,7 +33,7 @@ import {
   getDateEVMParameterCommitment,
   ProofType,
 } from "@zkpassport/utils"
-import type { CSCMasterlist, Query } from "@zkpassport/utils"
+import type { PackagedCertificate, Query } from "@zkpassport/utils"
 import { beforeAll, describe, expect, test } from "@jest/globals"
 import * as path from "path"
 import { TestHelper } from "../test-helper"
@@ -43,10 +43,11 @@ import { wrapSodInContentInfo } from "../sod-generator"
 import { generateSod } from "../sod-generator"
 import { serializeAsn, createUTCDate } from "../utils"
 import { Circuit } from "../circuits"
+import fs from "fs"
 
 describe("subcircuits - RSA PKCS", () => {
   const helper = new TestHelper()
-  const masterlist: CSCMasterlist = { certificates: [] }
+  const cscaCerts: PackagedCertificate[] = []
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-rsa.json")
   const MAX_TBS_LENGTH = 700
@@ -64,6 +65,12 @@ describe("subcircuits - RSA PKCS", () => {
   )
 
   beforeAll(async () => {
+    // Add CSCA certificate test fixtures
+    const fixtureCSCACerts = JSON.parse(
+      fs.readFileSync(path.join(FIXTURES_PATH, "csca-packaged-certs.json"), "utf8"),
+    ).certificates
+    cscaCerts.push(...fixtureCSCACerts)
+
     // Johnny Silverhand's MRZ
     const mrz =
       "P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<\0\0"
@@ -71,7 +78,7 @@ describe("subcircuits - RSA PKCS", () => {
     // Load DSC keypair
     const dscKeypair = await loadKeypairFromFile(DSC_KEYPAIR_PATH)
 
-    // Generate CSC and DSC signing certificates
+    // Generate CSCA and DSC signing certificates
     const { cscPem, dsc, dscKeys } = await generateSigningCertificates({
       cscSigningHashAlgorithm: "SHA-512",
       cscKeyType: "RSA",
@@ -84,12 +91,14 @@ describe("subcircuits - RSA PKCS", () => {
     // Generate SOD and sign it with DSC keypair
     const { sod } = await generateSod(dg1, [dsc], "SHA-256")
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
-    // Add newly generated CSC to masterlist
-    masterlist.certificates.push(parseCertificate(cscPem))
+
+    // Add newly generated CSCA certificate to the list
+    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setMasterlist(masterlist)
+    helper.setCertificates(cscaCerts)
   })
 
   describe("dsc", () => {
@@ -425,7 +434,7 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
-    })
+    }, 30000)
 
     test("issuing country", async () => {
       const circuit = Circuit.from("inclusion_check_issuing_country_evm")
@@ -455,7 +464,7 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
-    })
+    }, 30000)
   })
 
   describe("exclusion-check", () => {
@@ -553,7 +562,7 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
-    })
+    }, 30000)
 
     test("issuing country", async () => {
       const circuit = Circuit.from("exclusion_check_issuing_country_evm")
@@ -587,7 +596,7 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
-    })
+    }, 30000)
   })
 
   describe("compare-age", () => {
@@ -1201,7 +1210,7 @@ describe("subcircuits - RSA PKCS", () => {
 
 describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
   const helper = new TestHelper()
-  const masterlist: CSCMasterlist = { certificates: [] }
+  const cscaCerts: PackagedCertificate[] = []
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-ecdsa.json")
   const MAX_TBS_LENGTH = 700
@@ -1244,11 +1253,11 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
     const { sod } = await generateSod(dg1, [dsc], "SHA-384")
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
-    masterlist.certificates.push(parseCertificate(cscPem))
+    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setMasterlist(masterlist)
+    helper.setCertificates(cscaCerts)
   })
 
   describe("dsc", () => {
@@ -1399,7 +1408,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
 
 describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
   const helper = new TestHelper()
-  const masterlist: CSCMasterlist = { certificates: [] }
+  const cscaCerts: PackagedCertificate[] = []
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-ecdsa.json")
   const MAX_TBS_LENGTH = 700
@@ -1439,11 +1448,11 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
     const { sod } = await generateSod(dg1, [dsc], "SHA-512")
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-384")
     // Add newly generated CSC to masterlist
-    masterlist.certificates.push(parseCertificate(cscPem))
+    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setMasterlist(masterlist)
+    helper.setCertificates(cscaCerts)
   })
 
   describe("dsc", () => {

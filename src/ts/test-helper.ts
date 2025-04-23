@@ -1,38 +1,33 @@
-import fs from "fs/promises"
-import path from "path"
+import { InputMap } from "@noir-lang/noir_js"
 import {
   Binary,
-  PassportReader,
-  type CSCMasterlist,
-  type PassportViewModel,
-  type Query,
   getDiscloseCircuitInputs,
   getDSCCircuitInputs,
   getIDDataCircuitInputs,
   getIntegrityCheckCircuitInputs,
+  PassportReader,
+  type PackagedCertificate,
+  type PassportViewModel,
+  type Query,
 } from "@zkpassport/utils"
-import { InputMap } from "@noir-lang/noir_js"
+import fs from "fs/promises"
+import path from "path"
 
 type CircuitType = "dsc" | "id" | "integrity" | "disclose"
 
 export class TestHelper {
   private passportReader = new PassportReader()
   public passport!: PassportViewModel
-  private masterlist!: CSCMasterlist
+  private certificates!: PackagedCertificate[]
 
-  setMasterlist(masterlist: CSCMasterlist) {
-    this.masterlist = masterlist
+  setCertificates(certificates: PackagedCertificate[]) {
+    this.certificates = certificates
   }
 
   async generateCircuitInputs(circuitType: CircuitType): Promise<InputMap> {
     switch (circuitType) {
       case "dsc": {
-        const inputs = await getDSCCircuitInputs(
-          this.passport as any,
-          1n,
-          undefined,
-          this.masterlist,
-        )
+        const inputs = await getDSCCircuitInputs(this.passport as any, 1n, this.certificates)
         if (!inputs) throw new Error("Unable to generate DSC circuit inputs")
         return inputs
       }

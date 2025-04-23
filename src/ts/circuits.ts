@@ -49,6 +49,7 @@ export class Circuit {
   }
 
   async solve(inputs: InputMap, recursive: boolean = false): Promise<Uint8Array> {
+    this.checkInputs(inputs)
     await this.init(recursive)
     const { witness } = await this.noir!.execute(inputs)
     if (!witness) throw new Error("Error solving witness")
@@ -67,6 +68,7 @@ export class Circuit {
       evm?: boolean
     },
   ): Promise<ProofData> {
+    this.checkInputs(inputs)
     await this.init(options?.recursive ?? false)
     const witness = options?.witness ?? (await this.solve(inputs, options?.recursive ?? false))
     let proof: ProofData
@@ -148,5 +150,24 @@ export class Circuit {
 
   getName(): string {
     return this.name
+  }
+
+  private checkInputs(inputs: InputMap): void {
+    const checkForBigInt = (obj: any): boolean => {
+      if (typeof obj === "bigint") {
+        return true
+      }
+      if (typeof obj === "object" && obj !== null) {
+        if (Array.isArray(obj)) {
+          return obj.some((item) => checkForBigInt(item))
+        } else {
+          return Object.values(obj).some((value) => checkForBigInt(value))
+        }
+      }
+      return false
+    }
+    if (checkForBigInt(inputs)) {
+      console.warn("WARNING: BigInt values detected in inputs. This may cause issues.")
+    }
   }
 }
