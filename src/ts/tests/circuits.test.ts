@@ -1603,9 +1603,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
 
 describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
   const helper = new TestHelper()
-  const masterlist: CSCMasterlist = { certificates: [] }
-  const FIXTURES_PATH = path.join(__dirname, "fixtures")
-  const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-rsa.json")
+  const cscaCerts: PackagedCertificate[] = []
   const MAX_TBS_LENGTH = 700
   let dscCommitment: bigint
   let idDataCommitment: bigint
@@ -1625,8 +1623,6 @@ describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
     const mrz =
       "P<ZKRSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_ZKR881112_M300101_<CYBERCITY<<<<\0\0"
     const dg1 = Binary.fromHex("615B5F1F58").concat(Binary.from(mrz))
-    // Load DSC keypair
-    const dscKeypair = await loadKeypairFromFile(DSC_KEYPAIR_PATH)
 
     // Generate CSC and DSC signing certificates
     const { cscPem, dsc, dscKeys } = await generateSigningCertificates({
@@ -1636,18 +1632,17 @@ describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
       dscSigningHashAlgorithm: "SHA-256",
       dscKeyType: "RSA",
       dscKeySize: 2048,
-      dscKeypair,
-      issuingCountry: "ZKR",
+      issuingCountry: "ZK",
     })
     // Generate SOD and sign it with DSC keypair
     const { sod } = await generateSod(dg1, [dsc], "SHA-256")
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
-    masterlist.certificates.push(parseCertificate(cscPem))
+    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setMasterlist(masterlist)
+    helper.setCertificates(cscaCerts)
   })
 
   describe("dsc", () => {
