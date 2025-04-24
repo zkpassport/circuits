@@ -1,51 +1,49 @@
+import { describe, expect, test } from "@jest/globals"
+import { poseidon2HashAsync } from "@zkpassport/poseidon2"
+import type { PackagedCertificate, Query } from "@zkpassport/utils"
 import {
   Binary,
-  parseCertificate,
-  getNationalityInclusionCircuitInputs,
-  getAgeCircuitInputs,
   DisclosedData,
-  getNullifierFromDisclosureProof,
-  getMerkleRootFromDSCProof,
+  convertPemToPackagedCertificate,
+  getAgeCircuitInputs,
+  getBirthdateCircuitInputs,
+  getCertificateRegistryRootFromOuterProof,
   getCommitmentFromDSCProof,
-  getCommitmentInFromIDDataProof,
-  getCommitmentOutFromIDDataProof,
-  getCommitmentInFromIntegrityProof,
-  getCommitmentOutFromIntegrityProof,
   getCommitmentInFromDisclosureProof,
+  getCommitmentInFromIDDataProof,
+  getCommitmentInFromIntegrityProof,
+  getCommitmentOutFromIDDataProof,
+  getCommitmentOutFromIntegrityProof,
   getCurrentDateFromIntegrityProof,
+  getCurrentDateFromOuterProof,
   getDiscloseCircuitInputs,
-  getParameterCommitmentFromDisclosureProof,
+  getDiscloseEVMParameterCommitment,
   getDiscloseParameterCommitment,
   getDisclosedBytesFromMrzAndMask,
-  getOuterCircuitInputs,
-  ultraVkToFields,
-  getCurrentDateFromOuterProof,
-  getNullifierFromOuterProof,
-  getCertificateRegistryRootFromOuterProof,
-  getParamCommitmentsFromOuterProof,
-  getDiscloseEVMParameterCommitment,
   getExpiryDateCircuitInputs,
-  getBirthdateCircuitInputs,
-  getIssuingCountryInclusionCircuitInputs,
   getIssuingCountryExclusionCircuitInputs,
+  getIssuingCountryInclusionCircuitInputs,
+  getMerkleRootFromDSCProof,
   getNationalityExclusionCircuitInputs,
+  getNationalityInclusionCircuitInputs,
+  getNullifierFromDisclosureProof,
+  getNullifierFromOuterProof,
+  getOuterCircuitInputs,
+  getParamCommitmentsFromOuterProof,
+  getParameterCommitmentFromDisclosureProof,
   getScopeHash,
+  ultraVkToFields,
 } from "@zkpassport/utils"
-import type { CSCMasterlist, Query } from "@zkpassport/utils"
-import { beforeAll, describe, expect, test } from "@jest/globals"
 import * as path from "path"
-import { TestHelper } from "../test-helper"
-import { generateSigningCertificates, signSod } from "../passport-generator"
-import { loadKeypairFromFile } from "../passport-generator"
-import { wrapSodInContentInfo } from "../sod-generator"
-import { generateSod } from "../sod-generator"
-import { serializeAsn, createUTCDate } from "../utils"
 import { Circuit } from "../circuits"
-import { poseidon2HashAsync } from "@zkpassport/poseidon2"
+import { generateSigningCertificates, loadKeypairFromFile, signSod } from "../passport-generator"
+import { generateSod, wrapSodInContentInfo } from "../sod-generator"
+import { TestHelper } from "../test-helper"
+import { createUTCDate, serializeAsn } from "../utils"
 
 describe("outer proof", () => {
   const helper = new TestHelper()
-  const masterlist: CSCMasterlist = { certificates: [] }
+  const cscaCerts: PackagedCertificate[] = []
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-rsa.json")
   const MAX_TBS_LENGTH = 700
@@ -92,11 +90,11 @@ describe("outer proof", () => {
     const { sod } = await generateSod(dg1, [dsc], "SHA-256")
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
-    masterlist.certificates.push(parseCertificate(cscPem))
+    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setMasterlist(masterlist)
+    helper.setCertificates(cscaCerts)
 
     subproofs = new Map()
     const cscToDscCircuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096_sha512`)
@@ -405,7 +403,7 @@ describe("outer proof", () => {
 
 describe("outer proof - evm optimised", () => {
   const helper = new TestHelper()
-  const masterlist: CSCMasterlist = { certificates: [] }
+  const cscaCerts: PackagedCertificate[] = []
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-rsa.json")
   const MAX_TBS_LENGTH = 700
@@ -452,11 +450,11 @@ describe("outer proof - evm optimised", () => {
     const { sod } = await generateSod(dg1, [dsc], "SHA-256")
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
-    masterlist.certificates.push(parseCertificate(cscPem))
+    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setMasterlist(masterlist)
+    helper.setCertificates(cscaCerts)
 
     subproofs = new Map()
     const cscToDscCircuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096_sha512`)

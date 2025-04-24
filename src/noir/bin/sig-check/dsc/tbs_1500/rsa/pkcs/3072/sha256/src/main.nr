@@ -6,7 +6,7 @@ fn main(
     certificate_registry_root: pub Field,
     certificate_registry_index: Field,
     certificate_registry_hash_path: [Field; 14],
-    certificate_registry_id: Field,
+    certificate_tags: Field,
     salt: Field,
     country: str<3>,
     tbs_certificate: [u8; 1500],
@@ -28,10 +28,11 @@ fn main(
         certificate_registry_root,
         certificate_registry_index,
         certificate_registry_hash_path,
-        certificate_registry_id,
+        certificate_tags,
         country,
         tbs_certificate,
         salt,
+        2,
         csc_pubkey,
     );
     comm_out

@@ -129,7 +129,7 @@ export async function generateSigningCertificates({
   const cscSubjectKeyIdentifier = await crypto.subtle.digest("SHA-256", cscKeys.publicKey)
   const dscSubjectKeyIdentifier = await crypto.subtle.digest("SHA-256", dscKeys.publicKey)
 
-  // Create the root CSC
+  // Generate CSCA certificate
   const cscCert = await generateCertificate({
     subject: [
       { type: "2.5.4.3", value: "ZKpassport Test Root CSC" },
@@ -148,9 +148,9 @@ export async function generateSigningCertificates({
     hashAlgorithm: cscSigningHashAlgorithm,
   })
 
-  // Create the DSC
+  // Generate DSC certificate
   const dscCert = await generateCertificate({
-    subject: [{ type: "2.5.4.3", value: "ZKpassport Test DSC" }],
+    subject: [{ type: "2.5.4.3", value: "ZKPassport Test DSC" }],
     issuer: [
       { type: "2.5.4.3", value: "ZKpassport Test Root CSC" },
       { type: "2.5.4.6", value: issuingCountry },
