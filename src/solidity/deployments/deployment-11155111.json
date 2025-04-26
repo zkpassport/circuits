@@ -1,6 +1,6 @@
 {
   "chain_id": 11155111,
-  "deployment_timestamp": "1745252856",
+  "deployment_timestamp": "1745688060",
   "verifiers": {
     "outer_count_10": "0xD90b4C11Ef8e4005753C123755441F43341a63f4",
     "outer_count_11": "0xaB6e5f7cCBf41E1afaCe9FaEA2c79934657430a2",
@@ -11,5 +11,5 @@
     "outer_count_8": "0xb413e98d2d416b78b41807be51D5929A21b66a60",
     "outer_count_9": "0x4EC27F70Ab5e10D926D6dCc0AF4DEca30562fF86"
   },
-  "zk_passport_verifier": "0x21E12Fa30a1F98699F242ac062Db4a8e7b344B5d"
+  "zk_passport_verifier": "0x8D3c9633990cE7f8462888d7491f8dD255D14F92"
 }

@@ -87,7 +87,7 @@ elif [ "$NETWORK" = "sepolia" ]; then
     forge script $DEPLOY_SCRIPT \
       --rpc-url $SEPOLIA_RPC_URL \
       --broadcast \
-      --retries 3 \
+      --retries 10 \
       --slow \
       --delay 2 \
       --timeout 300
@@ -98,7 +98,7 @@ elif [ "$NETWORK" = "sepolia" ]; then
       --rpc-url $SEPOLIA_RPC_URL \
       --broadcast \
       --verify \
-      --retries 3 \
+      --retries 10 \
       --slow \
       --delay 2 \
       --timeout 300
