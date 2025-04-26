@@ -1,4 +1,8 @@
 use common::{calculate_scoped_nullifier, hash_salt_dg1_private_nullifier};
+use utils::get_issuing_country_from_mrz;
+
+// The ZKR (or Zero Knowledge Republic) is a mock country used for testing purposes
+global ZKR_COUNTRY_CODE_BYTES: [u8; 3] = [90, 75, 82];
 
 /*
 ############################################################
@@ -32,10 +36,15 @@ pub fn nullify(
     service_subscope: Field,
 ) -> Field {
     assert(comm_in == hash_salt_dg1_private_nullifier(salt, dg1, private_nullifier));
-    // println(f"comm_in: {comm_in}");
-    let scoped_nullifier =
+    let mut scoped_nullifier =
         calculate_scoped_nullifier(private_nullifier, service_scope, service_subscope);
-    // println(f"scoped_nullifier: {scoped_nullifier}");
+    let issuing_country = get_issuing_country_from_mrz(dg1);
+    // Doesn't matter if we already calculated the scoped nullifier above
+    // cause it's ZK all branches will be evaluated anyway
+    if issuing_country == ZKR_COUNTRY_CODE_BYTES {
+        // Set the scoped nullifier to 0 to indicate the issuing country is not a real one
+        // and prevent the use of these proofs in production
+        scoped_nullifier = 0;
+    }
     scoped_nullifier
 }
-

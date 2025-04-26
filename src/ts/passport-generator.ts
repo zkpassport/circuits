@@ -101,6 +101,7 @@ export async function generateSigningCertificates({
   cscKeySize = 4096,
   dscKeySize = 2048,
   dscKeypair,
+  issuingCountry = "AU",
 }: {
   cscSigningHashAlgorithm?: HashAlgorithm
   cscKeyType?: "RSA" | "ECDSA"
@@ -111,6 +112,7 @@ export async function generateSigningCertificates({
   cscKeySize?: number
   dscKeySize?: number
   dscKeypair?: KeyPair
+  issuingCountry?: string
 } = {}) {
   // Generate or use provided key pairs
   const cscKeys =
@@ -130,12 +132,12 @@ export async function generateSigningCertificates({
   // Generate CSCA certificate
   const cscCert = await generateCertificate({
     subject: [
-      { type: "2.5.4.3", value: "ZKPassport Test Root CSC" },
-      { type: "2.5.4.6", value: "AU" },
+      { type: "2.5.4.3", value: "ZKpassport Test Root CSC" },
+      { type: "2.5.4.6", value: issuingCountry },
     ],
     issuer: [
-      { type: "2.5.4.3", value: "ZKPassport Test Root CSC" },
-      { type: "2.5.4.6", value: "AU" },
+      { type: "2.5.4.3", value: "ZKpassport Test Root CSC" },
+      { type: "2.5.4.6", value: issuingCountry },
     ],
     publicKey: cscKeys.publicKey,
     signingKeyPair: cscKeys,
@@ -150,8 +152,8 @@ export async function generateSigningCertificates({
   const dscCert = await generateCertificate({
     subject: [{ type: "2.5.4.3", value: "ZKPassport Test DSC" }],
     issuer: [
-      { type: "2.5.4.3", value: "ZKPassport Test Root CSC" },
-      { type: "2.5.4.6", value: "AU" },
+      { type: "2.5.4.3", value: "ZKpassport Test Root CSC" },
+      { type: "2.5.4.6", value: issuingCountry },
     ],
     publicKey: dscKeys.publicKey,
     signingKeyPair: cscKeys,
