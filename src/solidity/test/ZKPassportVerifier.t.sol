@@ -33,7 +33,7 @@ contract ZKPassportVerifierTest is TestUtils {
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
-    zkPassportVerifier = new ZKPassportVerifier();
+    zkPassportVerifier = new ZKPassportVerifier(vm.envAddress("ROOT_REGISTRY_ADDRESS"));
     // Deploy the UltraHonkVerifier
     verifier4 = new OuterVerifier4();
     verifier11 = new OuterVerifier11();
