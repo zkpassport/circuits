@@ -12,8 +12,9 @@ import {
 import { cryptoProvider, PemConverter, X509CertificateGenerator, Extension } from "@peculiar/x509"
 import { ASN } from "./asn"
 import { wrapSodInContentInfo } from "./sod-generator"
-import fs from "fs"
 import { Crypto, CryptoKey } from "@peculiar/webcrypto"
+import { KeyUsageFlags } from "@peculiar/asn1-x509"
+import fs from "fs"
 
 const crypto = new Crypto()
 cryptoProvider.set(crypto as any)
@@ -204,7 +205,10 @@ export async function generateCertificate(params: CertificateParams): Promise<Ce
       true,
       AsnSerializer.serialize(
         new KeyUsage(
-          params.isCA ? 0x06 : 0x80, // keyCertSign + digitalSignature for CA, digitalSignature for DSC
+          // keyCertSign + digitalSignature for CSCA, digitalSignature for DSC
+          params.isCA
+            ? KeyUsageFlags.keyCertSign | KeyUsageFlags.digitalSignature
+            : KeyUsageFlags.digitalSignature,
         ),
       ),
     ),
