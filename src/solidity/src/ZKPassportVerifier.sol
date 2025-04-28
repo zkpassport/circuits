@@ -6,6 +6,7 @@ import {IVerifier} from "../src/OuterCount4.sol";
 import {DateUtils} from "../src/DateUtils.sol";
 import {StringUtils} from "../src/StringUtils.sol";
 import {ArrayUtils} from "../src/ArrayUtils.sol";
+import {IRootRegistry} from "../src/IRootRegistry.sol";
 
 enum ProofType {
   DISCLOSE,
@@ -75,11 +76,18 @@ contract ZKPassportVerifier {
   // Length of the MRZ on an ID card
   uint256 constant ID_CARD_MRZ_LENGTH = 90;
 
+  bytes32 public constant CERTIFICATE_REGISTRY_ID = bytes32(uint256(1));
+  bytes32 public constant CIRCUIT_REGISTRY_ID = bytes32(uint256(2));
+
   address public admin;
   bool public paused;
 
   mapping(bytes32 => address) public vkeyHashToVerifier;
+  // TODO: remove this when proper local testing with the root registry is done
   mapping(bytes32 => bool) public isValidCertificateRegistryRoot;
+
+  // Maybe make this immutable as this should most likely not change?
+  IRootRegistry public rootRegistry;
 
   // Events
   event AdminUpdated(address indexed oldAdmin, address indexed newAdmin);
@@ -93,8 +101,10 @@ contract ZKPassportVerifier {
   /**
    * @dev Constructor
    */
-  constructor() {
+  constructor(address _rootRegistry) {
+    require(_rootRegistry != address(0), "Root registry cannot be zero address");
     admin = msg.sender;
+    rootRegistry = IRootRegistry(_rootRegistry);
     emit ZKPassportVerifierDeployed(admin, block.timestamp);
   }
 
@@ -123,30 +133,33 @@ contract ZKPassportVerifier {
   function addVerifiers(
     bytes32[] calldata vkeyHashes,
     address[] calldata verifiers
-  ) external onlyAdmin whenNotPaused {
+  ) external onlyAdmin {
     for (uint256 i = 0; i < vkeyHashes.length; i++) {
       vkeyHashToVerifier[vkeyHashes[i]] = verifiers[i];
       emit VerifierAdded(vkeyHashes[i], verifiers[i]);
     }
   }
 
-  function removeVerifiers(bytes32[] calldata vkeyHashes) external onlyAdmin whenNotPaused {
+  function removeVerifiers(bytes32[] calldata vkeyHashes) external onlyAdmin {
     for (uint256 i = 0; i < vkeyHashes.length; i++) {
       delete vkeyHashToVerifier[vkeyHashes[i]];
       emit VerifierRemoved(vkeyHashes[i]);
     }
   }
 
-  function addCertificateRegistryRoot(
-    bytes32 certificateRegistryRoot
-  ) external onlyAdmin whenNotPaused {
+  function updateRootRegistry(address _rootRegistry) external onlyAdmin {
+    require(_rootRegistry != address(0), "Root registry cannot be zero address");
+    rootRegistry = IRootRegistry(_rootRegistry);
+  }
+
+  // TODO: remove this when proper local testing with the root registry is done
+  function addCertificateRegistryRoot(bytes32 certificateRegistryRoot) external onlyAdmin {
     isValidCertificateRegistryRoot[certificateRegistryRoot] = true;
     emit CertificateRegistryRootAdded(certificateRegistryRoot);
   }
 
-  function removeCertificateRegistryRoot(
-    bytes32 certificateRegistryRoot
-  ) external onlyAdmin whenNotPaused {
+  // TODO: remove this when proper local testing with the root registry is done
+  function removeCertificateRegistryRoot(bytes32 certificateRegistryRoot) external onlyAdmin {
     isValidCertificateRegistryRoot[certificateRegistryRoot] = false;
     emit CertificateRegistryRootRemoved(certificateRegistryRoot);
   }
@@ -350,13 +363,33 @@ contract ZKPassportVerifier {
   }
 
   function _validateCertificateRoot(bytes32 certificateRoot) internal view {
-    // TODO: Replace by a call to the actual certificate registry when it is ready
-    require(isValidCertificateRegistryRoot[certificateRoot], "Invalid certificate registry root");
+    require(
+      // Keep the legacy check for testing purposes for now
+      // Only in local testing will the mapping be populated
+      isValidCertificateRegistryRoot[certificateRoot] ||
+        rootRegistry.isRootValid(CERTIFICATE_REGISTRY_ID, certificateRoot),
+      "Invalid certificate registry root"
+    );
   }
 
+  // TODO: use this function when the circuit registry inclusion is done
+  // in the outer proofs
+  function _validateCircuitRoot(bytes32 circuitRoot) internal view {
+    require(
+      rootRegistry.isRootValid(CIRCUIT_REGISTRY_ID, circuitRoot),
+      "Invalid circuit registry root"
+    );
+  }
+
+  /**
+   * @notice Verifies a proof from ZKPassport
+   * @param params The proof verification parameters
+   * @return isValid True if the proof is valid, false otherwise
+   * @return uniqueIdentifier The unique identifier associated to the identity document that generated the proof
+   */
   function verifyProof(
     ProofVerificationParams calldata params
-  ) external view returns (bool, bytes32) {
+  ) external view whenNotPaused returns (bool, bytes32) {
     address verifier = _getVerifier(params.vkeyHash);
 
     // We remove the last 16 public inputs from the count cause they are part of the aggregation object

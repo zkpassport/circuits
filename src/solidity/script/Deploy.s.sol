@@ -78,7 +78,8 @@ contract Deploy is Script {
     console.log("Outer (11 subproofs) verifier deployed at:", address(outerCount11Verifier));
 
     console.log("Deploying ZKPassportVerifier...");
-    ZKPassportVerifier zkPassportVerifier = new ZKPassportVerifier();
+    address rootRegistry = vm.envAddress("ROOT_REGISTRY_ADDRESS");
+    ZKPassportVerifier zkPassportVerifier = new ZKPassportVerifier(rootRegistry);
     console.log("ZKPassportVerifier deployed at:", address(zkPassportVerifier));
 
     // Add verifiers to ZKPassportVerifier
@@ -94,12 +95,6 @@ contract Deploy is Script {
     console.log("Adding verifiers to ZKPassportVerifier...");
     zkPassportVerifier.addVerifiers(vkeyHashes, verifierAddresses);
     console.log("Verifiers added to ZKPassportVerifier");
-
-    console.log("Setting certificate registry root...");
-    zkPassportVerifier.addCertificateRegistryRoot(
-      bytes32(hex"17f72a43f711983c607deb82b512cff23e949ba928b48ccb8759c587f06d6479")
-    );
-    console.log("Certificate registry root set");
 
     // Stop broadcasting transactions
     vm.stopBroadcast();
@@ -137,5 +132,6 @@ contract Deploy is Script {
     string memory outputPath = string.concat(deploymentsDir, "/deployment-", chainId, ".json");
     vm.writeJson(finalJson, outputPath);
     console.log("Deployment addresses written to:", outputPath);
+    console.log("Don't forget to update the addresses in DeployWithExistingVerifiers.s.sol");
   }
 }

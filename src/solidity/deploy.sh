@@ -10,15 +10,35 @@ fi
 
 # Default to anvil if no network is specified
 NETWORK=${1:-anvil}
+# Default to false for using existing verifiers
+USE_EXISTING_VERIFIERS=${2:-false}
+
+# Determine which deploy script to use
+if [ "$USE_EXISTING_VERIFIERS" = "true" ]; then
+  DEPLOY_SCRIPT="script/DeployWithExistingVerifiers.s.sol"
+  echo "Using deployment script with existing verifiers..."
+else
+  DEPLOY_SCRIPT="script/Deploy.s.sol"
+  echo "Using standard deployment script..."
+fi
 
 echo "Deploying to $NETWORK..."
 
 if [ "$NETWORK" = "anvil" ]; then
   # Start anvil in the background if it's not already running
   export ETHERSCAN_API_KEY=""
+  
+  # Check if SEPOLIA_RPC_URL is set for forking
+  if [ -z "$SEPOLIA_RPC_URL" ]; then
+    echo "Error: SEPOLIA_RPC_URL not set for forking"
+    echo "Please set SEPOLIA_RPC_URL in your .env file or environment"
+    echo "You can copy .env.example to .env and fill in your values"
+    exit 1
+  fi
+  
   if ! nc -z localhost 8545 &>/dev/null; then
-    echo "Starting Anvil node..."
-    anvil &
+    echo "Starting Anvil node forked from Sepolia..."
+    anvil --fork-url $SEPOLIA_RPC_URL --chain-id 31337 &
     ANVIL_PID=$!
     # Give anvil a moment to start
     sleep 2
@@ -28,12 +48,13 @@ if [ "$NETWORK" = "anvil" ]; then
     export PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
   else
     echo "Anvil is already running"
+    echo "Note: Existing Anvil instance might not be forking from Sepolia"
     # Use a default private key for Anvil
     export PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
   fi
   
   # Deploy to local Anvil
-  forge script script/Deploy.s.sol --rpc-url anvil --broadcast \
+  forge script $DEPLOY_SCRIPT --rpc-url anvil --broadcast \
     --retries 3 \
     --slow \
     --delay 2 \
@@ -63,21 +84,21 @@ elif [ "$NETWORK" = "sepolia" ]; then
     echo "Warning: ETHERSCAN_API_KEY not set. Contract verification will be skipped."
     # Deploy to Sepolia without verification, with gas settings and sequential broadcasting
     echo "Deploying with gas settings: Gas Price=$GAS_PRICE, Priority Fee=$PRIORITY_FEE, Retries=$TX_RETRIES"
-    forge script script/Deploy.s.sol \
+    forge script $DEPLOY_SCRIPT \
       --rpc-url $SEPOLIA_RPC_URL \
       --broadcast \
-      --retries 3 \
+      --retries 10 \
       --slow \
       --delay 2 \
       --timeout 300
   else
     # Deploy to Sepolia with verification, with gas settings and sequential broadcasting
     echo "Deploying with gas settings: Gas Price=$GAS_PRICE, Priority Fee=$PRIORITY_FEE, Retries=$TX_RETRIES"
-    forge script script/Deploy.s.sol \
+    forge script $DEPLOY_SCRIPT \
       --rpc-url $SEPOLIA_RPC_URL \
       --broadcast \
       --verify \
-      --retries 3 \
+      --retries 10 \
       --slow \
       --delay 2 \
       --timeout 300
@@ -85,5 +106,8 @@ elif [ "$NETWORK" = "sepolia" ]; then
 else
   echo "Unsupported network: $NETWORK"
   echo "Supported networks: anvil, sepolia"
+  echo "Usage: ./deploy.sh [network] [use_existing_verifiers]"
+  echo "  network: anvil or sepolia (default: anvil)"
+  echo "  use_existing_verifiers: true or false (default: false)"
   exit 1
 fi 

@@ -23,7 +23,7 @@ contract SampleContractTest is TestUtils {
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
-    zkPassportVerifier = new ZKPassportVerifier();
+    zkPassportVerifier = new ZKPassportVerifier(vm.envAddress("ROOT_REGISTRY_ADDRESS"));
     // Deploy the UltraHonkVerifier
     verifier = new OuterVerifier11();
 
