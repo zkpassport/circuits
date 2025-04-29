@@ -293,12 +293,21 @@ export async function signSod(sod: SignedData, signerKeys: KeyPair, hashAlgorith
   return { signature, sod: newSod }
 }
 
-export function saveSodToFile(sod: SignedData, filePath: string) {
+export function saveSodToFile(sod: SignedData, filePath: string, asJson = false) {
   const encoded = AsnSerializer.serialize(wrapSodInContentInfo(sod))
   if (!fs) {
     throw new Error("File system operations are only available in Node.js environment")
   }
-  fs.writeFileSync(filePath, Buffer.from(encoded))
+  if (asJson) {
+    fs.writeFileSync(
+      filePath,
+      JSON.stringify({
+        encoded: Buffer.from(encoded).toString("base64"),
+      }),
+    )
+  } else {
+    fs.writeFileSync(filePath, Buffer.from(encoded))
+  }
 }
 
 export function saveCertificateToFile(certificate: Certificate, filePath: string) {

@@ -73,7 +73,7 @@ describe("subcircuits - RSA PKCS", () => {
 
     // Johnny Silverhand's MRZ
     const mrz =
-      "P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<\0\0"
+      "P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<<<"
     const dg1 = Binary.fromHex("615B5F1F58").concat(Binary.from(mrz))
     // Load DSC keypair
     const dscKeypair = await loadKeypairFromFile(DSC_KEYPAIR_PATH)
@@ -1234,7 +1234,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
   beforeAll(async () => {
     // Johnny Silverhand's MRZ
     const mrz =
-      "P<AUSSILVERHAND<<JOHNNY<MATTHEW<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<\0\0"
+      "P<AUSSILVERHAND<<JOHNNY<MATTHEW<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<<<"
     const dg1 = Binary.fromHex("615B5F1F58").concat(Binary.from(mrz))
     // Load DSC keypair
     const dscKeypair = await loadKeypairFromFile(DSC_KEYPAIR_PATH)
@@ -1432,7 +1432,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
   beforeAll(async () => {
     // Johnny Silverhand's MRZ
     const mrz =
-      "P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<\0\0"
+      "P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<<<"
     const dg1 = Binary.fromHex("615B5F1F58").concat(Binary.from(mrz))
 
     // Generate CSC and DSC signing certificates
@@ -1621,7 +1621,7 @@ describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
   beforeAll(async () => {
     // Johnny Silverhand's MRZ
     const mrz =
-      "P<ZKRSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_ZKR881112_M300101_<CYBERCITY<<<<\0\0"
+      "P<ZKRSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_ZKR881112_M300101_<CYBERCITY<<<<<<"
     const dg1 = Binary.fromHex("615B5F1F58").concat(Binary.from(mrz))
 
     // Generate CSC and DSC signing certificates

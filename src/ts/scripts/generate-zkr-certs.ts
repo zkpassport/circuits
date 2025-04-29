@@ -9,6 +9,7 @@ import {
   KeyPair,
   saveSodToFile,
   saveKeypairToFile,
+  loadKeypairFromFile,
 } from "../passport-generator"
 import { Binary } from "@zkpassport/utils"
 import { generateSod } from "@/sod-generator"
@@ -17,10 +18,35 @@ import { PemConverter } from "@peculiar/x509"
 import { AsnSerializer } from "@peculiar/asn1-schema"
 import { Certificate } from "@peculiar/asn1-x509"
 
-// Johnny Silverhand's MRZ
-const mrz =
-  "P<ZKRSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_ZKR881112_M300101_<CYBERCITY<<<<\0\0"
-const dg1 = Binary.fromHex("615B5F1F58").concat(Binary.from(mrz))
+// John Miller Smith's MRZ
+const johnMRZ =
+  "P<ZKRSMITH<<JOHN<MILLER<<<<<<<<<<<<<<<<<<<<<ZP1111111_ZKR951112_M350101_<<<<<<<<<<<<<<<<"
+const johnDG1 = Binary.fromHex("615B5F1F58").concat(Binary.from(johnMRZ))
+
+// Jane Miller Smith's MRZ
+const janeMRZ =
+  "P<ZKRSMITH<<JANE<MILLER<<<<<<<<<<<<<<<<<<<<<ZP3333333_ZKR090225_F270101_<<<<<<<<<<<<<<<<"
+const janeDG1 = Binary.fromHex("615B5F1F58").concat(Binary.from(janeMRZ))
+
+// Jack Miller Smith's MRZ
+const jackMRZ =
+  "P<ZKRSMITH<<JACK<MILLER<<<<<<<<<<<<<<<<<<<<<ZP4444444_ZKR020414_M280101_<<<<<<<<<<<<<<<<"
+const jackDG1 = Binary.fromHex("615B5F1F58").concat(Binary.from(jackMRZ))
+
+// Mary Miller Smith's MRZ
+const maryMRZ =
+  "P<ZKRSMITH<<MARY<MILLER<<<<<<<<<<<<<<<<<<<<<ZP2222222_ZKR750302_F300101_<<<<<<<<<<<<<<<<"
+const maryDG1 = Binary.fromHex("615B5F1F58").concat(Binary.from(maryMRZ))
+
+// Paul Miller Smith's MRZ
+const paulMRZ =
+  "P<ZKRSMITH<<PAUL<MILLER<<<<<<<<<<<<<<<<<<<<<ZP6666666_ZKR500717_M310101_<<<<<<<<<<<<<<<<"
+const paulDG1 = Binary.fromHex("615B5F1F58").concat(Binary.from(paulMRZ))
+
+// Stephanie Miller Smith's MRZ
+const stephanieMRZ =
+  "P<ZKRSMITH<<STEPHANIE<MILLER<<<<<<<<<<<<<<<<ZP5555555_ZKR150503_F290101_<<<<<<<<<<<<<<<<"
+const stephanieDG1 = Binary.fromHex("615B5F1F58").concat(Binary.from(stephanieMRZ))
 
 async function generateCSCA({
   hashAlg,
@@ -43,10 +69,22 @@ async function generateCSCA({
   serialNumber?: Uint8Array
   years?: number
 }) {
-  const keyPair =
-    keyType === "RSA"
-      ? await generateRsaKeyPair(keySize!, hashAlg)
-      : await generateEcdsaKeyPair(curve!, hashAlg)
+  let keyPair: KeyPair
+  if (filePath) {
+    // Check if the file already exists and if yes
+    // loads the keypair rather than generating a new one
+    const keypairPath = path.join(
+      path.dirname(filePath),
+      "keypairs",
+      path.basename(filePath).replace(".pem", ".json"),
+    )
+    keyPair = await loadKeypairFromFile(keypairPath)
+  } else {
+    keyPair =
+      keyType === "RSA"
+        ? await generateRsaKeyPair(keySize!, hashAlg)
+        : await generateEcdsaKeyPair(curve!, hashAlg)
+  }
   const subjectKeyIdentifier = await crypto.subtle.digest("SHA-256", keyPair.publicKey)
   const authorityKeyIdentifier = subjectKeyIdentifier
   const cscaCert = await generateCertificate({
@@ -107,10 +145,22 @@ async function generateDSC({
   serialNumber?: Uint8Array
   years?: number
 }) {
-  const keyPair =
-    keyType === "RSA"
-      ? await generateRsaKeyPair(keySize!, hashAlg)
-      : await generateEcdsaKeyPair(curve!, hashAlg)
+  let keyPair: KeyPair
+  if (filePath) {
+    // Check if the file already exists and if yes
+    // loads the keypair rather than generating a new one
+    const keypairPath = path.join(
+      path.dirname(filePath),
+      "keypairs",
+      path.basename(filePath).replace(".pem", ".json"),
+    )
+    keyPair = await loadKeypairFromFile(keypairPath)
+  } else {
+    keyPair =
+      keyType === "RSA"
+        ? await generateRsaKeyPair(keySize!, hashAlg)
+        : await generateEcdsaKeyPair(curve!, hashAlg)
+  }
   const subjectKeyIdentifier = await crypto.subtle.digest("SHA-256", keyPair.publicKey)
   const authorityKeyIdentifier = await crypto.subtle.digest("SHA-256", signingKeyPair.publicKey)
   const dscCert = await generateCertificate({
@@ -160,7 +210,7 @@ async function generateAndSignSod({
   // Generate SOD and sign it with DSC keypair
   const { sod } = await generateSod(dg1, [dsc], hashAlg)
   const { sod: signedSod } = await signSod(sod, signingKeyPair, hashAlg)
-  saveSodToFile(signedSod, filePath)
+  saveSodToFile(signedSod, filePath, true)
 }
 
 /*
@@ -233,25 +283,25 @@ const dscRsa4096Sha512 = await generateDSC({
 })
 
 await generateAndSignSod({
-  dg1,
+  dg1: johnDG1,
   dsc: dscRsa2048Sha256.cert,
   signingKeyPair: dscRsa2048Sha256.keyPair,
   hashAlg: "SHA-256",
-  filePath: path.join(fixturesDir, "johnny-silverhand-rsa-2048-sha256.sod"),
+  filePath: path.join(fixturesDir, "john-miller-smith-rsa-2048-sha256.json"),
 })
 await generateAndSignSod({
-  dg1,
+  dg1: janeDG1,
   dsc: dscRsa3072Sha384.cert,
   signingKeyPair: dscRsa3072Sha384.keyPair,
   hashAlg: "SHA-384",
-  filePath: path.join(fixturesDir, "johnny-silverhand-rsa-3072-sha384.sod"),
+  filePath: path.join(fixturesDir, "jane-miller-smith-rsa-3072-sha384.json"),
 })
 await generateAndSignSod({
-  dg1,
+  dg1: jackDG1,
   dsc: dscRsa4096Sha512.cert,
   signingKeyPair: dscRsa4096Sha512.keyPair,
   hashAlg: "SHA-512",
-  filePath: path.join(fixturesDir, "johnny-silverhand-rsa-4096-sha512.sod"),
+  filePath: path.join(fixturesDir, "jack-miller-smith-rsa-4096-sha512.json"),
 })
 
 const cscaEcdsa = await generateCSCA({
@@ -304,25 +354,25 @@ const dscEcdsaP521Sha512 = await generateDSC({
   filePath: path.join(fixturesDir, "zkr-dsc-ecdsa-p521-sha512.pem"),
 })
 await generateAndSignSod({
-  dg1,
+  dg1: maryDG1,
   dsc: dscEcdsaP256Sha256.cert,
   signingKeyPair: dscEcdsaP256Sha256.keyPair,
   hashAlg: "SHA-256",
-  filePath: path.join(fixturesDir, "johnny-silverhand-ecdsa-p256-sha256.sod"),
+  filePath: path.join(fixturesDir, "mary-miller-smith-ecdsa-p256-sha256.json"),
 })
 await generateAndSignSod({
-  dg1,
+  dg1: paulDG1,
   dsc: dscEcdsaP384Sha384.cert,
   signingKeyPair: dscEcdsaP384Sha384.keyPair,
   hashAlg: "SHA-384",
-  filePath: path.join(fixturesDir, "johnny-silverhand-ecdsa-p384-sha384.sod"),
+  filePath: path.join(fixturesDir, "paul-miller-smith-ecdsa-p384-sha384.json"),
 })
 await generateAndSignSod({
-  dg1,
+  dg1: stephanieDG1,
   dsc: dscEcdsaP521Sha512.cert,
   signingKeyPair: dscEcdsaP521Sha512.keyPair,
   hashAlg: "SHA-512",
-  filePath: path.join(fixturesDir, "johnny-silverhand-ecdsa-p521-sha512.sod"),
+  filePath: path.join(fixturesDir, "stephanie-miller-smith-ecdsa-p521-sha512.json"),
 })
 
 /*
