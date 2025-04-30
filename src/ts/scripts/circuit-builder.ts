@@ -2,7 +2,7 @@ import * as fs from "fs"
 import * as path from "path"
 import { exec, execSync } from "child_process"
 import { compileCircuit } from "../utils"
-import { CERTIFICATE_REGISTRY_HEIGHT, CERTIFICATE_REGISTRY_ID } from "@zkpassport/utils"
+import { CERTIFICATE_REGISTRY_HEIGHT } from "@zkpassport/utils"
 
 // Function to ensure directory exists
 function ensureDirectoryExistence(filePath: string) {
