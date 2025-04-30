@@ -1,11 +1,22 @@
 use std::hash::poseidon2::Poseidon2;
 use utils::{get_issuing_country_from_mrz, get_nationality_from_mrz};
 
-unconstrained fn get_closest_index<let N: u32>(sorted_list: [u32; N], value: u32) -> u32 {
-    let mut index: u32 = 0;
+unconstrained fn get_closest_index<let N: u32>(sorted_list: [u32; N], value: u32) -> i64 {
+    let mut index: i64 = -1;
     for i in 0..N {
         if sorted_list[i] > value {
-            index = i;
+            index = i as i64;
+            break;
+        }
+    }
+    index
+}
+
+unconstrained fn get_last_index<let N: u32>(sorted_list: [u32; N]) -> i64 {
+    let mut index: i64 = -1;
+    for i in 0..N {
+        if sorted_list[i] == 0 {
+            index = (i - 1) as i64;
             break;
         }
     }
@@ -32,8 +43,20 @@ pub fn check_nationality_exclusion<let N: u32>(dg1: [u8; 95], country_list: [u32
     // Safety: since the list is assumed to be sorted in ascending order, we can get the index to check against
     // from an unconstrained function
     let closest_index = unsafe { get_closest_index(country_list, nationality_sum) };
+    if closest_index == -1 {
+        // Safety: get the index of the last element in the list that is not 0
+        let last_index = unsafe { get_last_index(country_list) };
+        assert(country_list[last_index] > 0);
+        if last_index < (N - 1) as i64 {
+            // If there are still 0s after the last non-0 element,
+            // then we need to check that the next element is 0
+            assert_eq(country_list[last_index + 1], 0);
+        }
+        // If the index is -1, then the nationality sum is greater than all the elements in the list
+        assert(country_list[last_index] < nationality_sum);
+    }
     // Assert that either the index is the first element of the list or the previous element is less than the nationality sum
-    if closest_index == 0 {
+    else if closest_index == 0 {
         // Assert that the country at the index is greater than the nationality sum
         assert(country_list[closest_index] > nationality_sum);
     }
@@ -62,7 +85,23 @@ pub fn check_issuing_country_exclusion<let N: u32>(dg1: [u8; 95], country_list: 
     // from an unconstrained function
     let closest_index = unsafe { get_closest_index(country_list, issuing_country_sum) };
 
-    if closest_index == 0 {
+    // Safety: since the list is assumed to be sorted in ascending order, we can get the index to check against
+    // from an unconstrained function
+    let closest_index = unsafe { get_closest_index(country_list, issuing_country_sum) };
+    if closest_index == -1 {
+        // Safety: get the index of the last element in the list that is not 0
+        let last_index = unsafe { get_last_index(country_list) };
+        assert(country_list[last_index] > 0);
+        if last_index < (N - 1) as i64 {
+            // If there are still 0s after the last non-0 element,
+            // then we need to check that the next element is 0
+            assert_eq(country_list[last_index + 1], 0);
+        }
+        // If the index is -1, then the nationality sum is greater than all the elements in the list
+        assert(country_list[last_index] < issuing_country_sum);
+    }
+    // Assert that either the index is the first element of the list or the previous element is less than the nationality sum
+    else if closest_index == 0 {
         // Assert that the country at the index is greater than the issuing country sum
         assert(country_list[closest_index] > issuing_country_sum);
     } else if country_list[closest_index - 1] < issuing_country_sum {
