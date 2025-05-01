@@ -73,7 +73,7 @@ describe("subcircuits - RSA PKCS", () => {
 
     // Johnny Silverhand's MRZ
     const mrz =
-      "P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<\0\0"
+      "P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<<<"
     const dg1 = Binary.fromHex("615B5F1F58").concat(Binary.from(mrz))
     // Load DSC keypair
     const dscKeypair = await loadKeypairFromFile(DSC_KEYPAIR_PATH)
@@ -201,7 +201,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2030, 0, 1))
       expect(disclosedData.gender).toBe("M")
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -243,7 +243,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(isNaN(disclosedData.dateOfExpiry.getTime())).toBe(true)
       expect(disclosedData.gender).toBe("")
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -302,7 +302,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2030, 0, 1))
       expect(disclosedData.gender).toBe("M")
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -344,7 +344,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(isNaN(disclosedData.dateOfExpiry.getTime())).toBe(true)
       expect(disclosedData.gender).toBe("")
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -371,7 +371,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -401,7 +401,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -429,7 +429,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -459,7 +459,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -491,7 +491,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -525,7 +525,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -557,7 +557,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -591,7 +591,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -627,7 +627,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -653,7 +653,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -679,7 +679,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -705,7 +705,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -731,7 +731,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -757,7 +757,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -792,7 +792,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -829,7 +829,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -855,7 +855,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -881,7 +881,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -908,7 +908,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -934,7 +934,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -960,7 +960,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -997,7 +997,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -1033,7 +1033,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -1059,7 +1059,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -1085,7 +1085,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -1112,7 +1112,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -1138,7 +1138,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -1164,7 +1164,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -1200,7 +1200,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
       )
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
@@ -1234,7 +1234,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
   beforeAll(async () => {
     // Johnny Silverhand's MRZ
     const mrz =
-      "P<AUSSILVERHAND<<JOHNNY<MATTHEW<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<\0\0"
+      "P<AUSSILVERHAND<<JOHNNY<MATTHEW<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<<<"
     const dg1 = Binary.fromHex("615B5F1F58").concat(Binary.from(mrz))
     // Load DSC keypair
     const dscKeypair = await loadKeypairFromFile(DSC_KEYPAIR_PATH)
@@ -1432,7 +1432,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
   beforeAll(async () => {
     // Johnny Silverhand's MRZ
     const mrz =
-      "P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<\0\0"
+      "P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<<<"
     const dg1 = Binary.fromHex("615B5F1F58").concat(Binary.from(mrz))
 
     // Generate CSC and DSC signing certificates
@@ -1621,7 +1621,7 @@ describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
   beforeAll(async () => {
     // Johnny Silverhand's MRZ
     const mrz =
-      "P<ZKRSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_ZKR881112_M300101_<CYBERCITY<<<<\0\0"
+      "P<ZKRSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_ZKR881112_M300101_<CYBERCITY<<<<<<"
     const dg1 = Binary.fromHex("615B5F1F58").concat(Binary.from(mrz))
 
     // Generate CSC and DSC signing certificates

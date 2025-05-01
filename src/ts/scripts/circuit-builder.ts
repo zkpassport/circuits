@@ -2,6 +2,7 @@ import * as fs from "fs"
 import * as path from "path"
 import { exec, execSync } from "child_process"
 import { compileCircuit } from "../utils"
+import { CERTIFICATE_REGISTRY_HEIGHT } from "@zkpassport/utils"
 
 // Function to ensure directory exists
 function ensureDirectoryExistence(filePath: string) {
@@ -139,7 +140,7 @@ use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
     certificate_registry_index: Field,
-    certificate_registry_hash_path: [Field; 14],
+    certificate_registry_hash_path: [Field; ${CERTIFICATE_REGISTRY_HEIGHT}],
     certificate_tags: Field,
     salt: Field,
     country: str<3>,
@@ -185,7 +186,7 @@ use commitment::commit_to_dsc;
 ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
     certificate_registry_index: Field,
-    certificate_registry_hash_path: [Field; 14],
+    certificate_registry_hash_path: [Field; ${CERTIFICATE_REGISTRY_HEIGHT}],
     certificate_tags: Field,
     salt: Field,
     country: str<3>,

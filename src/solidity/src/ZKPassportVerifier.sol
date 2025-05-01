@@ -29,6 +29,7 @@ struct ProofVerificationParams {
   uint256 validityPeriodInDays;
   string scope;
   string subscope;
+  bool devMode;
 }
 
 contract ZKPassportVerifier {
@@ -414,6 +415,13 @@ contract ZKPassportVerifier {
       params.publicInputs[11:actualPublicInputCount - 1],
       params.committedInputs,
       params.committedInputCounts
+    );
+
+    // Allow mock proofs in dev mode
+    // Mock proofs are recognisable by their unique identifier set to 0
+    require(
+      params.publicInputs[actualPublicInputCount - 1] != bytes32(0) || params.devMode,
+      "Mock proofs are only allowed in dev mode"
     );
 
     return (

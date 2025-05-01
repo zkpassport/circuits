@@ -72,7 +72,8 @@ contract ZKPassportVerifierTest is TestUtils {
       committedInputCounts: committedInputCounts,
       validityPeriodInDays: 7,
       scope: "",
-      subscope: ""
+      subscope: "",
+      devMode: false
     });
     (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
     uint256 gasUsed = vm.stopSnapshotGas();
@@ -147,7 +148,8 @@ contract ZKPassportVerifierTest is TestUtils {
       committedInputCounts: committedInputCounts,
       validityPeriodInDays: 7,
       scope: "zkpassport.id",
-      subscope: "bigproof"
+      subscope: "bigproof",
+      devMode: false
     });
     (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
     uint256 gasUsed = vm.stopSnapshotGas();
@@ -225,7 +227,8 @@ contract ZKPassportVerifierTest is TestUtils {
       committedInputCounts: committedInputCounts,
       validityPeriodInDays: 7,
       scope: "zkpassport.id",
-      subscope: "bigproof"
+      subscope: "bigproof",
+      devMode: false
     });
     (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
     assertEq(result, true);

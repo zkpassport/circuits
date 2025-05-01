@@ -71,7 +71,9 @@ contract SampleContractTest is TestUtils {
       committedInputCounts: committedInputCounts,
       validityPeriodInDays: 7,
       scope: "zkpassport.id",
-      subscope: "bigproof"
+      subscope: "bigproof",
+      // Set to true to accept mock proofs from the ZKR
+      devMode: false
     });
     bytes32 uniqueIdentifier = sampleContract.register(params, false);
 
