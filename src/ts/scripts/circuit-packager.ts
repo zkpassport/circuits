@@ -281,14 +281,16 @@ const processFiles = async () => {
   if (otherFiles.length > 0) {
     console.log(`Processing ${otherFiles.length} regular circuits with concurrency...`)
     const pool = new PromisePool(MAX_CONCURRENT_PROCESSES)
-    otherFiles.forEach((file) => {
-      pool.add(async () => {
-        const success = await processFile(file)
-        if (!success) hasErrors = true
-      })
-    })
+    await Promise.all(
+      otherFiles.map((file) => {
+        pool.add(async () => {
+          const success = await processFile(file)
+          if (!success) hasErrors = true
+        })
+      }),
+    )
     // Wait for all files to be processed
-    await pool.await()
+    await pool.drain()
   }
 
   // Update Deploy.s.sol with the vkey hashes
