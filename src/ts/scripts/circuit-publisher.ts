@@ -1,5 +1,6 @@
 import { CloudFrontClient, CreateInvalidationCommand } from "@aws-sdk/client-cloudfront"
 import { HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
+import { PromisePool } from "@zkpassport/utils"
 import * as fsSync from "fs"
 import * as fs from "fs/promises"
 import * as path from "path"
@@ -7,43 +8,43 @@ import { promisify } from "util"
 import { gzip } from "zlib"
 
 const gzipAsync = promisify(gzip)
+
+/**
+ * Wait for the Enter key to be pressed
+ */
+function waitForEnterKey(message: string = "Press Enter to continue..."): Promise<void> {
+  return new Promise((resolve) => {
+    const stdin = process.stdin
+    stdin.setRawMode(true)
+    stdin.resume()
+    stdin.setEncoding("utf8")
+
+    const onData = (key: string) => {
+      // Check if Enter key is pressed (CR or LF)
+      if (key === "\r" || key === "\n") {
+        stdin.setRawMode(false)
+        stdin.pause()
+        stdin.removeListener("data", onData)
+        resolve()
+      }
+      // Check for Ctrl+C or Escape key
+      else if (key === "\u0003" || key === "\u001b") {
+        process.exit(0)
+      } else {
+        // If any other key is pressed, repeat the message
+        console.log(message)
+      }
+    }
+
+    console.log(message)
+    stdin.on("data", onData)
+  })
+}
+
 interface CircuitArtifact {
   name: string
   hash: string
   path: string
-}
-
-// Promise pool for controlled concurrency
-class PromisePool {
-  private queue: (() => Promise<void>)[] = []
-  private activePromises = 0
-
-  constructor(private concurrency: number) {}
-
-  async add(fn: () => Promise<void>) {
-    if (this.activePromises >= this.concurrency) {
-      // Queue the task if we're at max concurrency
-      await new Promise<void>((resolve) => {
-        this.queue.push(async () => {
-          await fn()
-          resolve()
-        })
-      })
-    } else {
-      // Execute immediately if under the concurrency limit
-      this.activePromises++
-      try {
-        await fn()
-      } finally {
-        this.activePromises--
-        // Process next queued task if any
-        if (this.queue.length > 0) {
-          const next = this.queue.shift()!
-          this.add(next)
-        }
-      }
-    }
-  }
 }
 
 class CircuitPublisher {
@@ -143,7 +144,7 @@ class CircuitPublisher {
 
   async publishCircuits(
     version: string,
-    circuitDir: string = "target/packaged",
+    circuitDir: string,
     concurrency: number = 10,
   ): Promise<void> {
     const startTime = Date.now()
@@ -180,60 +181,45 @@ class CircuitPublisher {
       })
     }
 
-    // Create promise pool for concurrent uploads
+    // Upload artifacts with controlled concurrency
     const pool = new PromisePool(concurrency)
-    const uploadPromises: Promise<void>[] = []
-
-    // Upload artifacts concurrently with controlled concurrency
     console.log(`Uploading artifacts with concurrency ${concurrency}...`)
     let processedCount = 0
     const totalCount = artifacts.length
-
     for (const artifact of artifacts) {
       const currentCount = ++processedCount
       const shortHash = artifact.hash.substring(0, 16)
-
-      uploadPromises.push(
-        pool.add(async () => {
-          try {
-            console.log(`Uploading artifact ${artifact.name} (${currentCount}/${totalCount})...`)
-            await this.uploadIfNotExists(artifact.path, artifact.name, shortHash)
-          } catch (error) {
-            console.error(`Error uploading ${artifact.name}: ${error}`)
-          }
-        }),
-      )
+      await pool.add(async () => {
+        try {
+          console.log(`Uploading artifact ${artifact.name} (${currentCount}/${totalCount})...`)
+          await this.uploadIfNotExists(artifact.path, artifact.name, shortHash)
+        } catch (error) {
+          console.error(`Error uploading ${artifact.name}: ${error}`)
+        }
+      })
     }
-
     // Wait for all uploads to complete
-    await Promise.all(uploadPromises)
+    await pool.await()
 
     // Create version symlinks
     console.log(`Creating version ${version} symlinks...`)
-    const symlinkPromises: Promise<void>[] = []
-
     // Reset for symlink creation
     processedCount = 0
-
     for (const artifact of artifacts) {
       const currentCount = ++processedCount
       const shortHash = artifact.hash.substring(0, 16)
-
-      symlinkPromises.push(
-        pool.add(async () => {
-          try {
-            console.log(`Creating symlinks for ${artifact.name} (${currentCount}/${totalCount})...`)
-            await this.createVersionSymlink(version, artifact.name, shortHash)
-            await this.createHashSymlink(artifact.hash, artifact.name)
-          } catch (error) {
-            console.error(`Error creating symlinks for ${artifact.name}: ${error}`)
-          }
-        }),
-      )
+      await pool.add(async () => {
+        try {
+          console.log(`Creating symlinks for ${artifact.name} (${currentCount}/${totalCount})...`)
+          await this.createVersionSymlink(version, artifact.name, shortHash)
+          await this.createHashSymlink(artifact.hash, artifact.name)
+        } catch (error) {
+          console.error(`Error creating symlinks for ${artifact.name}: ${error}`)
+        }
+      })
     }
-
     // Wait for all symlink creations to complete
-    await Promise.all(symlinkPromises)
+    await pool.await()
 
     // Invalidate CloudFront cache for the version
     console.log("Invalidating CloudFront cache...")
@@ -308,7 +294,14 @@ if (require.main === module) {
   const bucket = process.env.CIRCUIT_BUCKET
   const distributionId = process.env.CLOUDFRONT_DISTRIBUTION_ID
   const region = process.env.AWS_REGION
+  console.log(
+    `Publishing circuits to ${bucket} with distribution ${distributionId} in region ${region}`,
+  )
+  console.log(`Using packaged circuits version: ${version}`)
 
+  await waitForEnterKey("Press Enter to publish or Esc to exit")
+
+  console.log("Publishing circuits...")
   const publisher = new CircuitPublisher(bucket, distributionId, region)
-  publisher.publishCircuits(version, "target/packaged", concurrency).catch(console.error)
+  publisher.publishCircuits(version, "target/packaged/circuits", concurrency).catch(console.error)
 }
