@@ -1,48 +1,16 @@
-import fs from "fs"
+import fs, { mkdirSync } from "fs"
 import path from "path"
 import { exec } from "child_process"
 import { promisify } from "util"
 import { poseidon2Hash } from "@zkpassport/poseidon2"
 import { snakeToPascal } from "../utils"
 import { execSync } from "child_process"
+import { PromisePool } from "@zkpassport/utils"
 
 const TARGET_DIR = "target"
-const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
+const PACKAGED_DIR = path.join(TARGET_DIR, "packaged/circuits")
 const MAX_CONCURRENT_PROCESSES = 10
 const DEPLOY_SOL_PATH = "src/solidity/script/Deploy.s.sol"
-
-// Promise pool for controlled concurrency
-class PromisePool {
-  private queue: (() => Promise<void>)[] = []
-  private activePromises = 0
-
-  constructor(private maxConcurrent: number) {}
-
-  async add(fn: () => Promise<void>) {
-    if (this.activePromises >= this.maxConcurrent) {
-      // Queue the task if we're at max concurrency
-      await new Promise<void>((resolve) => {
-        this.queue.push(async () => {
-          await fn()
-          resolve()
-        })
-      })
-    } else {
-      // Execute immediately if under the concurrency limit
-      this.activePromises++
-      try {
-        await fn()
-      } finally {
-        this.activePromises--
-        // Process next queued task if any
-        if (this.queue.length > 0) {
-          const next = this.queue.shift()!
-          this.add(next)
-        }
-      }
-    }
-  }
-}
 
 function checkBBVersion() {
   try {
@@ -100,7 +68,7 @@ const processFile = async (
 ): Promise<boolean> => {
   const inputPath = path.join(TARGET_DIR, file)
   const outputPath = path.join(PACKAGED_DIR, `${outputName}.json`)
-  const vkeyPath = path.join(TARGET_DIR, `${outputName}.vkey.json`)
+  const vkeyPath = path.join(TARGET_DIR, `${outputName}_vkey`)
   const gateCountPath = path.join(TARGET_DIR, `${outputName}.size.json`)
   const solidityVerifierPath = path.join(
     "src/solidity/src",
@@ -116,7 +84,7 @@ const processFile = async (
     // Run bb command to get bb version and generate circuit vkey
     const bbVersion = (await execPromise("bb --version")).stdout.trim()
     console.log(`Generating vkey for ${file}...`)
-    await execPromise(`mkdir -p ${vkeyPath}`)
+    mkdirSync(vkeyPath, { recursive: true })
     await execPromise(
       `bb write_vk --scheme ultra_honk ${recursive ? "--recursive --init_kzg_accumulator" : ""} ${
         evm ? "--oracle_hash keccak" : ""
@@ -135,7 +103,9 @@ const processFile = async (
     const vkeyHash = `0x${poseidon2Hash(vkeyAsFields).toString(16)}`
     const vkey = Buffer.from(fs.readFileSync(`${vkeyPath}/vk`)).toString("base64")
     // Clean up vkey files
-    await execPromise(`rm -rf ${vkeyPath}`)
+    fs.unlinkSync(`${vkeyPath}/vk`)
+    fs.unlinkSync(`${vkeyPath}/vk_fields.json`)
+    fs.rmdirSync(vkeyPath)
 
     // Read and parse the input file
     const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
@@ -308,20 +278,14 @@ const processFiles = async () => {
   if (otherFiles.length > 0) {
     console.log(`Processing ${otherFiles.length} regular circuits with concurrency...`)
     const pool = new PromisePool(MAX_CONCURRENT_PROCESSES)
-    const promises: Promise<void>[] = []
-
-    for (const file of otherFiles) {
-      const promise = pool.add(async () => {
+    otherFiles.forEach((file) => {
+      pool.add(async () => {
         const success = await processFile(file)
-        if (!success) {
-          hasErrors = true
-        }
+        if (!success) hasErrors = true
       })
-      promises.push(promise)
-    }
-
-    // Wait for all other files to be processed
-    await Promise.all(promises)
+    })
+    // Wait for all files to be processed
+    await pool.await()
   }
 
   // Update Deploy.s.sol with the vkey hashes
