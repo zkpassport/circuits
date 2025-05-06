@@ -8,7 +8,8 @@ import { execSync } from "child_process"
 import { PromisePool } from "@zkpassport/utils"
 
 const TARGET_DIR = "target"
-const PACKAGED_DIR = path.join(TARGET_DIR, "packaged/circuits")
+const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
+const PACKAGED_CIRCUITS_DIR = path.join(TARGET_DIR, "packaged/circuits")
 const MAX_CONCURRENT_PROCESSES = 10
 const DEPLOY_SOL_PATH = "src/solidity/script/Deploy.s.sol"
 
@@ -46,8 +47,8 @@ function checkBBVersion() {
 checkBBVersion()
 
 // Create packaged directory if it doesn't exist
-if (!fs.existsSync(PACKAGED_DIR)) {
-  fs.mkdirSync(PACKAGED_DIR, { recursive: true })
+if (!fs.existsSync(PACKAGED_CIRCUITS_DIR)) {
+  fs.mkdirSync(PACKAGED_CIRCUITS_DIR, { recursive: true })
 }
 
 // Get all JSON files from target directory
@@ -67,7 +68,7 @@ const processFile = async (
   generateSolidityVerifier: boolean = false,
 ): Promise<boolean> => {
   const inputPath = path.join(TARGET_DIR, file)
-  const outputPath = path.join(PACKAGED_DIR, `${outputName}.json`)
+  const outputPath = path.join(PACKAGED_CIRCUITS_DIR, `${outputName}.json`)
   const vkeyPath = path.join(TARGET_DIR, `${outputName}_vkey`)
   const gateCountPath = path.join(TARGET_DIR, `${outputName}.size.json`)
   const solidityVerifierPath = path.join(
@@ -77,14 +78,14 @@ const processFile = async (
   try {
     // Skip if output file already exists
     if (fs.existsSync(outputPath)) {
-      console.log(`Skipping ${file} - output file already exists at ${outputPath}`)
+      console.log(`Skipping ${file} (already packaged)`)
       return true
     }
 
     // Run bb command to get bb version and generate circuit vkey
     const bbVersion = (await execPromise("bb --version")).stdout.trim()
     console.log(`Generating vkey for ${file}...`)
-    mkdirSync(vkeyPath, { recursive: true })
+    mkdirSync(vkeyPath)
     await execPromise(
       `bb write_vk --scheme ultra_honk ${recursive ? "--recursive --init_kzg_accumulator" : ""} ${
         evm ? "--oracle_hash keccak" : ""
@@ -152,7 +153,9 @@ const getOuterEvmVkeyHashes = (): { count: number; hash: string }[] => {
 
   try {
     // Get all packaged JSON files
-    const packagedFiles = fs.readdirSync(PACKAGED_DIR).filter((file) => file.endsWith(".json"))
+    const packagedFiles = fs
+      .readdirSync(PACKAGED_CIRCUITS_DIR)
+      .filter((file) => file.endsWith(".json"))
 
     // Filter for outer_evm_count files and extract their vkey hashes
     for (const file of packagedFiles) {
@@ -160,7 +163,7 @@ const getOuterEvmVkeyHashes = (): { count: number; hash: string }[] => {
         const countMatch = file.match(/outer_evm_count_(\d+)\.json/)
         if (countMatch && countMatch[1]) {
           const count = parseInt(countMatch[1])
-          const filePath = path.join(PACKAGED_DIR, file)
+          const filePath = path.join(PACKAGED_CIRCUITS_DIR, file)
 
           // Read the packaged circuit file
           const fileContent = fs.readFileSync(filePath, "utf-8")
@@ -297,6 +300,56 @@ const processFiles = async () => {
   }
 }
 
+interface CircuitManifest {
+  version: string
+  root: string
+  circuits: {
+    [key: string]: {
+      hash: string
+      size: string
+    }
+  }
+}
+
+function generateCircuitManifest(files: string[]) {
+  const circuitManifestPath = path.join(PACKAGED_DIR, "manifest.json")
+  console.log(`Generating circuit manifest for ${files.length} circuits`)
+
+  // Get version from package.json
+  const packageJson = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "../../../package.json"), "utf-8"),
+  )
+  const version = packageJson.version
+
+  let manifest: CircuitManifest = { version, root: "", circuits: {} }
+  const circuits = files
+    .map((file) => {
+      const json = JSON.parse(fs.readFileSync(path.join(PACKAGED_CIRCUITS_DIR, file), "utf-8"))
+      return {
+        name: json.name,
+        hash: json.vkey_hash,
+        size: json.size,
+      }
+    })
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  // Calculate circuits root hash
+  const circuitHashes = circuits.map((circuit) => BigInt(circuit.hash))
+  manifest.root = `0x${poseidon2Hash(circuitHashes).toString(16)}`
+  console.log("Circuits root:", manifest.root)
+
+  for (const circuit of circuits) {
+    manifest.circuits[circuit.name] = {
+      hash: circuit.hash,
+      size: circuit.size,
+    }
+  }
+
+  // Save circuit manifest
+  fs.writeFileSync(circuitManifestPath, JSON.stringify(manifest, null, 2))
+  console.log(`Saved circuit manifest: ${circuitManifestPath}`)
+}
+
 // Start timing
 const startTime = Date.now()
 
@@ -313,7 +366,9 @@ processFiles()
 
     if (minutes > 0) {
       console.log(`Total time taken: ${minutes}m ${seconds}s`)
-    } else if (seconds > 0) {
+    } else if (seconds >= 0) {
       console.log(`Total time taken: ${seconds}s`)
     }
+    // Generate manifest
+    generateCircuitManifest(files)
   })
