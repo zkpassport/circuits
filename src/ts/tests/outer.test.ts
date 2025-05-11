@@ -31,7 +31,8 @@ import {
   getOuterCircuitInputs,
   getParamCommitmentsFromOuterProof,
   getParameterCommitmentFromDisclosureProof,
-  getScopeHash,
+  getServiceScopeHash,
+  getServiceSubscopeHash,
   ultraVkToFields,
 } from "@zkpassport/utils"
 import * as path from "path"
@@ -546,8 +547,8 @@ describe("outer proof - evm optimised", () => {
       helper.passport as any,
       query,
       3n,
-      getScopeHash("zkpassport.id"),
-      getScopeHash("bigproof"),
+      getServiceScopeHash("zkpassport.id", 31337),
+      getServiceSubscopeHash("bigproof"),
     )
     if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
     const proof = await discloseCircuit.prove(inputs, {
@@ -584,7 +585,7 @@ describe("outer proof - evm optimised", () => {
     expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1988, 10, 12))
     expect(disclosedData.gender).toBe("M")
     expect(nullifier).toEqual(
-      3103314711270760631299740901773115899504879398538738529035258383108670910946n,
+      4026926106532981026900237093488833780124730628840750106110477452749007163429n,
     )
     const discloseCommitmentIn = getCommitmentInFromDisclosureProof(proof)
     expect(discloseCommitmentIn).toEqual(integrityCheckToDisclosureCommitment)
@@ -654,7 +655,7 @@ describe("outer proof - evm optimised", () => {
       expect(currentDate).toEqual(globalCurrentDate)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        3103314711270760631299740901773115899504879398538738529035258383108670910946n,
+        4026926106532981026900237093488833780124730628840750106110477452749007163429n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
@@ -678,8 +679,8 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         nationalityInclusionQuery,
         3n,
-        getScopeHash("zkpassport.id"),
-        getScopeHash("bigproof"),
+        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceSubscopeHash("bigproof"),
       )
       if (!nationalityInclusionInputs)
         throw new Error("Unable to generate inclusion check circuit inputs")
@@ -722,8 +723,8 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         nationalityExclusionQuery,
         3n,
-        getScopeHash("zkpassport.id"),
-        getScopeHash("bigproof"),
+        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceSubscopeHash("bigproof"),
       )
       if (!nationalityExclusionInputs)
         throw new Error("Unable to generate inclusion check circuit inputs")
@@ -766,8 +767,8 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         issuingCountryInclusionQuery,
         3n,
-        getScopeHash("zkpassport.id"),
-        getScopeHash("bigproof"),
+        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceSubscopeHash("bigproof"),
       )
       if (!issuingCountryInclusionInputs)
         throw new Error("Unable to generate inclusion check circuit inputs")
@@ -810,8 +811,8 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         issuingCountryExclusionQuery,
         3n,
-        getScopeHash("zkpassport.id"),
-        getScopeHash("bigproof"),
+        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceSubscopeHash("bigproof"),
       )
       if (!issuingCountryExclusionInputs)
         throw new Error("Unable to generate inclusion check circuit inputs")
@@ -854,8 +855,8 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         ageQuery,
         3n,
-        getScopeHash("zkpassport.id"),
-        getScopeHash("bigproof"),
+        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceSubscopeHash("bigproof"),
       )
       if (!ageInputs) throw new Error("Unable to generate compare-age greater than circuit inputs")
       const ageProof = await ageCircuit.prove(ageInputs, {
@@ -887,8 +888,8 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         expiryDateQuery,
         3n,
-        getScopeHash("zkpassport.id"),
-        getScopeHash("bigproof"),
+        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceSubscopeHash("bigproof"),
       )
       if (!expiryDateInputs)
         throw new Error("Unable to generate compare-expiry-date greater than circuit inputs")
@@ -925,8 +926,8 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         birthDateQuery,
         3n,
-        getScopeHash("zkpassport.id"),
-        getScopeHash("bigproof"),
+        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceSubscopeHash("bigproof"),
       )
       if (!birthDateInputs)
         throw new Error("Unable to generate compare-birthdate-date less than circuit inputs")
@@ -1036,7 +1037,7 @@ describe("outer proof - evm optimised", () => {
         evm: true,
       })
       expect(proof).toBeDefined()
-      /*console.log("Outer 11 subproofs")
+      console.log("Outer 11 subproofs")
       console.log(
         JSON.stringify({
           proof: proof.proof.slice(16).join(""),
@@ -1044,12 +1045,12 @@ describe("outer proof - evm optimised", () => {
         }),
       )
       console.log("committed inputs")
-      console.log(compressedCommittedInputs)*/
+      console.log(compressedCommittedInputs)
       const currentDate = getCurrentDateFromOuterProof(proof)
       expect(currentDate).toEqual(globalCurrentDate)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        3103314711270760631299740901773115899504879398538738529035258383108670910946n,
+        4026926106532981026900237093488833780124730628840750106110477452749007163429n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)

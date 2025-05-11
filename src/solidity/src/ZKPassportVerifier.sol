@@ -330,11 +330,12 @@ contract ZKPassportVerifier {
     bytes32[] calldata publicInputs,
     string calldata scope,
     string calldata subscope
-  ) public pure returns (bool) {
+  ) public view returns (bool) {
     // One byte is dropped at the end
+    string memory chainId = StringUtils.toString(block.chainid);
     bytes32 scopeHash = StringUtils.isEmpty(scope)
       ? bytes32(0)
-      : sha256(abi.encodePacked(scope)) >> 8;
+      : sha256(abi.encodePacked(scope, ":chain-", chainId)) >> 8;
     bytes32 subscopeHash = StringUtils.isEmpty(subscope)
       ? bytes32(0)
       : sha256(abi.encodePacked(subscope)) >> 8;
