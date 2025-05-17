@@ -1,4 +1,4 @@
-import fs, { mkdirSync } from "fs"
+import fs from "fs"
 import path from "path"
 import { exec } from "child_process"
 import { promisify } from "util"
@@ -85,7 +85,7 @@ const processFile = async (
     // Run bb command to get bb version and generate circuit vkey
     const bbVersion = (await execPromise("bb --version")).stdout.trim()
     console.log(`Generating vkey for ${file}...`)
-    mkdirSync(vkeyPath)
+    fs.mkdirSync(vkeyPath, { recursive: true })
     await execPromise(
       `bb write_vk --scheme ultra_honk ${recursive ? "--recursive --init_kzg_accumulator" : ""} ${
         evm ? "--oracle_hash keccak" : ""
@@ -282,8 +282,8 @@ const processFiles = async () => {
     console.log(`Processing ${otherFiles.length} regular circuits with concurrency...`)
     const pool = new PromisePool(MAX_CONCURRENT_PROCESSES)
     await Promise.all(
-      otherFiles.map((file) => {
-        pool.add(async () => {
+      otherFiles.map(async (file) => {
+        await pool.add(async () => {
           const success = await processFile(file)
           if (!success) hasErrors = true
         })
