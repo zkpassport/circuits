@@ -38,6 +38,8 @@ CIRCUITS=(
     "compare_expiry_evm"
     "compare_birthdate"
     "compare_birthdate_evm"
+    "bind"
+    "bind_evm"
 )
 
 for circuit in "${CIRCUITS[@]}"; do
