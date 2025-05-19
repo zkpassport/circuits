@@ -361,7 +361,7 @@ contract ZKPassportVerifier {
     require(found, "Bind data proof inputs not found");
   }
 
-  function formatBindData(bytes calldata data) public pure returns (address senderAddress) {
+  function getBindData(bytes calldata data) public pure returns (address senderAddress) {
     for (uint256 i = 0; i < 500; i++) {
       if (data[i] == bytes1(uint8(BindDataIdentifier.USER_ADDRESS))) {
         uint8 addressLength = uint8(data[i + 1]);

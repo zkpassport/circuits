@@ -3,7 +3,7 @@
 pragma solidity >=0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
-import {IVerifier, HonkVerifier} from "../src/OuterCount4.sol";
+import {IVerifier, HonkVerifier} from "../src/OuterCount5.sol";
 import {TestUtils} from "./Utils.t.sol";
 
 contract VerifierTest is TestUtils {
@@ -44,11 +44,11 @@ contract VerifierTest is TestUtils {
       proof[i] = bytes1(uint8(i % 256));
     }
 
-    // Create a dummy public inputs array with the required size (29)
-    bytes32[] memory publicInputs = new bytes32[](29);
+    // Create a dummy public inputs array with the required size (30)
+    bytes32[] memory publicInputs = new bytes32[](30);
 
     // Fill with some values
-    for (uint i = 0; i < 29; i++) {
+    for (uint i = 0; i < 30; i++) {
       publicInputs[i] = bytes32(uint256(i));
     }
 
