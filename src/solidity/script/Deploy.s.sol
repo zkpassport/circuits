@@ -33,7 +33,9 @@ contract Deploy is Script {
         // Outer (10 subproofs)
         bytes32(hex"133b430a9eb889e77185dae5b0505ec9fa0c27e4e8e5b0887c7914954b9b8440"),
         // Outer (11 subproofs)
-        bytes32(hex"069f039e7d9a3a64d963797f9a7232380dab2c2cd294c1d7864105b7caa6ea00")
+        bytes32(hex"069f039e7d9a3a64d963797f9a7232380dab2c2cd294c1d7864105b7caa6ea00"),
+        // Outer (12 subproofs)
+        bytes32(hex"0f4fa787b5033e1c36b21e2a5408947993bf160986b11bbf2f8e9a4bac24309b")
 ];
 
   function run() public {

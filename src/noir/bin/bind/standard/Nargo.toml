@@ -1,0 +1,9 @@
+[package]
+name = "bind"
+type = "bin"
+authors = ["Theo Madzou", "Michael Elliot"]
+compiler_version = ">=1.0.0"
+
+[dependencies]
+bind = { path = "../../../lib/bind" }
+commitment = { path = "../../../lib/commitment/scoped-nullifier" }
