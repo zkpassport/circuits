@@ -20,6 +20,11 @@ enum ProofType {
   BIND
 }
 
+enum BindDataIdentifier {
+  NONE,
+  USER_ADDRESS
+}
+
 // Add this struct to group parameters
 struct ProofVerificationParams {
   bytes32 vkeyHash;
@@ -325,6 +330,45 @@ contract ZKPassportVerifier {
       offset += committedInputCounts[i];
     }
     require(found, "Country proof inputs not found");
+  }
+
+  function getBindProofInputs(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint256 dataLength
+  ) public pure returns (bytes memory data, bytes32 expectedHash) {
+    uint256 offset = 0;
+    bool found = false;
+    for (uint256 i = 0; i < committedInputCounts.length; i++) {
+      // The bind data circuit has 533 bytes of committed inputs
+      // The first byte is the proof type
+      if (committedInputCounts[i] == 533) {
+        require(committedInputs[offset] == bytes1(uint8(ProofType.BIND)), "Invalid proof type");
+        require(dataLength > 0 && dataLength <= 500, "Invalid data length");
+
+        // Verify all padding bytes are zeros
+        for (uint256 j = dataLength; j < 500; j++) {
+          require(committedInputs[offset + 1 + j] == 0, "Invalid padding");
+        }
+
+        data = committedInputs[offset + 1:offset + 501];
+        expectedHash = bytes32(committedInputs[offset + 501:offset + 533]);
+        require(sha256(abi.encodePacked(data)) == expectedHash, "Invalid expected hash");
+        found = true;
+      }
+      offset += committedInputCounts[i];
+    }
+    require(found, "Bind data proof inputs not found");
+  }
+
+  function formatBindData(bytes calldata data) public pure returns (address senderAddress) {
+    for (uint256 i = 0; i < 500; i++) {
+      if (data[i] == bytes1(uint8(BindDataIdentifier.USER_ADDRESS))) {
+        uint8 addressLength = uint8(data[i + 1]);
+        senderAddress = address(bytes20(data[i + 2:i + 2 + addressLength]));
+        break;
+      }
+    }
   }
 
   function verifyScopes(
