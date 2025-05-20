@@ -78,6 +78,7 @@ pub global PROOF_TYPE_NATIONALITY_INCLUSION: u8 = 4;
 pub global PROOF_TYPE_NATIONALITY_EXCLUSION: u8 = 5;
 pub global PROOF_TYPE_ISSUING_COUNTRY_INCLUSION: u8 = 6;
 pub global PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION: u8 = 7;
+pub global PROOF_TYPE_BIND: u8 = 8;
 
 pub struct IDData {
     // Regroups the hashes of all the data groups plus some padding

@@ -6,6 +6,7 @@ import {
   DisclosedData,
   convertPemToPackagedCertificate,
   getAgeCircuitInputs,
+  getBindCircuitInputs,
   getBirthdateCircuitInputs,
   getCertificateRegistryRootFromOuterProof,
   getCommitmentFromDSCProof,
@@ -33,6 +34,7 @@ import {
   getParameterCommitmentFromDisclosureProof,
   getServiceScopeHash,
   getServiceSubscopeHash,
+  rightPadArrayWithZeros,
   ultraVkToFields,
 } from "@zkpassport/utils"
 import * as path from "path"
@@ -604,11 +606,48 @@ describe("outer proof - evm optimised", () => {
   }, 60000 * 3)
 
   test(
-    "4 subproofs",
+    "5 subproofs",
     async () => {
-      // We can use the regular outer_count_4 rather than outer_evm_count_4
+      const bindQuery: Query = {
+        bind: {
+          user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8",
+          custom_data: "email:test@test.com,customer_id:1234567890",
+        },
+      }
+      const bindCircuitInputs = await getBindCircuitInputs(
+        helper.passport as any,
+        bindQuery,
+        3n,
+        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceSubscopeHash("bigproof"),
+      )
+      if (!bindCircuitInputs) throw new Error("Unable to generate bind circuit inputs")
+      const bindCircuit = Circuit.from("bind_evm")
+      const bindProof = await bindCircuit.prove(bindCircuitInputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `bind_evm`,
+      })
+      expect(bindProof).toBeDefined()
+      const bindParamCommitment = getParameterCommitmentFromDisclosureProof(bindProof)
+      const bindVkey = ultraVkToFields(await bindCircuit.getVerificationKey(true))
+      const bindVkeyHash = `0x${(await poseidon2HashAsync(bindVkey.map((x) => BigInt(x)))).toString(
+        16,
+      )}`
+      await bindCircuit.destroy()
+
+      /*const bindCommittedInputs =
+        ProofType.BIND.toString(16).padStart(2, "0") +
+        rightPadArrayWithZeros(formatBoundData(bindQuery.bind!), 500)
+          .map((x) => x.toString(16).padStart(2, "0"))
+          .join("")
+
+      console.log("Bind committed inputs")
+      console.log(bindCommittedInputs)*/
+
+      // We can use the regular outer_count_5 rather than outer_evm_count_5
       // since only the vkey changes and we don't use it here
-      const circuit = Circuit.from("outer_count_4")
+      const circuit = Circuit.from("outer_count_5")
       const inputs = await getOuterCircuitInputs(
         {
           proof: subproofs.get(0)?.proof as string[],
@@ -635,16 +674,22 @@ describe("outer proof - evm optimised", () => {
             vkey: subproofs.get(3)?.vkey as string[],
             keyHash: subproofs.get(3)?.vkeyHash as string,
           },
+          {
+            proof: bindProof.proof.map((f) => `0x${f}`) as string[],
+            publicInputs: bindProof.publicInputs as string[],
+            vkey: bindVkey,
+            keyHash: bindVkeyHash,
+          },
         ],
       )
       const proof = await circuit.prove(inputs, {
         useCli: true,
-        circuitName: "outer_evm_count_4",
+        circuitName: "outer_evm_count_5",
         recursive: false,
         evm: true,
       })
       expect(proof).toBeDefined()
-      /*console.log("Outer 4 subproofs")
+      /*console.log("Outer 5 subproofs")
       console.log(
         JSON.stringify({
           proof: proof.proof.slice(16).join(""),
@@ -661,6 +706,7 @@ describe("outer proof - evm optimised", () => {
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
       const paramCommitmentsFromProof = getParamCommitmentsFromOuterProof(proof)
       expect(subproofs.get(3)?.paramCommitment).toEqual(paramCommitmentsFromProof[0])
+      expect(bindParamCommitment).toEqual(paramCommitmentsFromProof[1])
       await circuit.destroy()
     },
     60000 * 3,

@@ -32,6 +32,10 @@ import {
   getAgeEVMParameterCommitment,
   getDateEVMParameterCommitment,
   ProofType,
+  getBindCircuitInputs,
+  getBindParameterCommitment,
+  formatBoundData,
+  getBindEVMParameterCommitment,
 } from "@zkpassport/utils"
 import type { PackagedCertificate, Query } from "@zkpassport/utils"
 import { beforeAll, describe, expect, test } from "@jest/globals"
@@ -1198,6 +1202,70 @@ describe("subcircuits - RSA PKCS", () => {
         "20300101",
         "20300101",
       )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
+      expect(nullifier).toEqual(
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
+      )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+    })
+  })
+
+  describe("bind", () => {
+    let circuit: Circuit
+    beforeAll(async () => {
+      circuit = Circuit.from("bind")
+    })
+    afterAll(async () => {
+      await circuit.destroy()
+    })
+
+    test("bind to address", async () => {
+      const query: Query = {
+        bind: { user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8" },
+      }
+      const inputs = await getBindCircuitInputs(helper.passport as any, query, 3n)
+      if (!inputs) throw new Error("Unable to generate compare-expirydate equal circuit inputs")
+      const proof = await circuit.prove(inputs, {
+        circuitName: `bind`,
+      })
+      expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const boundData = formatBoundData(query.bind!)
+      const calculatedParamCommitment = await getBindParameterCommitment(boundData)
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
+      expect(nullifier).toEqual(
+        10064708033511406944551100977335301585065041863391721395253240603473805865270n,
+      )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+    })
+  })
+
+  describe("bind evm", () => {
+    let circuit: Circuit
+    beforeAll(async () => {
+      circuit = Circuit.from("bind_evm")
+    })
+    afterAll(async () => {
+      await circuit.destroy()
+    })
+
+    test("bind to address", async () => {
+      const query: Query = {
+        bind: { user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8" },
+      }
+      const inputs = await getBindCircuitInputs(helper.passport as any, query, 3n)
+      if (!inputs) throw new Error("Unable to generate compare-expirydate equal circuit inputs")
+      const proof = await circuit.prove(inputs, {
+        circuitName: `bind_evm`,
+      })
+      expect(proof).toBeDefined()
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const boundData = formatBoundData(query.bind!)
+      const calculatedParamCommitment = await getBindEVMParameterCommitment(boundData)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10064708033511406944551100977335301585065041863391721395253240603473805865270n,

@@ -10,6 +10,8 @@ members = [
     "src/noir/bin/disclose/flags",
     "src/noir/bin/disclose/bytes/standard",
     "src/noir/bin/disclose/bytes/evm",
+    "src/noir/bin/bind/standard",
+    "src/noir/bin/bind/evm",
     "src/noir/bin/data-check/expiry",
     "src/noir/bin/exclusion-check/issuing-country/standard",
     "src/noir/bin/exclusion-check/issuing-country/evm",
@@ -422,7 +424,9 @@ members = [
     "src/noir/bin/main/outer/count_9",
     "src/noir/bin/main/outer/count_10",
     "src/noir/bin/main/outer/count_11",
+    "src/noir/bin/main/outer/count_12",
 
+    "src/noir/lib/bind",
     "src/noir/lib/commitment/common",
     "src/noir/lib/commitment/csc-to-dsc",
     "src/noir/lib/commitment/dsc-to-id",

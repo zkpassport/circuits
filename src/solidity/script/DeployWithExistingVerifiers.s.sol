@@ -25,18 +25,21 @@ contract Deploy is Script {
     // Outer (10 subproofs)
     bytes32(hex"133b430a9eb889e77185dae5b0505ec9fa0c27e4e8e5b0887c7914954b9b8440"),
     // Outer (11 subproofs)
-    bytes32(hex"069f039e7d9a3a64d963797f9a7232380dab2c2cd294c1d7864105b7caa6ea00")
+    bytes32(hex"069f039e7d9a3a64d963797f9a7232380dab2c2cd294c1d7864105b7caa6ea00"),
+    // Outer (12 subproofs)
+    bytes32(hex"0f4fa787b5033e1c36b21e2a5408947993bf160986b11bbf2f8e9a4bac24309b")
   ];
 
   address[] public verifierAddresses = [
-    address(0x605946fcdF41e8c5Ff5b0059562AACE405d1C129),
-    address(0x50e3745058be9155f2dF1fB8A5adF845AA5fAA92),
-    address(0x3BD42C90f45969465F3b93bC00bDED8346810e61),
-    address(0x63c26D62F5D53234BAf3C35E29dc02fE5C2d55D5),
-    address(0xb413e98d2d416b78b41807be51D5929A21b66a60),
-    address(0x4EC27F70Ab5e10D926D6dCc0AF4DEca30562fF86),
-    address(0xD90b4C11Ef8e4005753C123755441F43341a63f4),
-    address(0xaB6e5f7cCBf41E1afaCe9FaEA2c79934657430a2)
+    address(0x54D7862040FE1DC9d725673C1bb9188b4d22aEC5),
+    address(0x19d2E6D1E08c9Dbf999eeCA91F0F63789874aC05),
+    address(0x8ac98c8eD23Af17664a358a0256B7D554Be541b9),
+    address(0xFc1399ee5379A5187ed87f534B0Fc4Ffd8eE065c),
+    address(0x6309cc0bB4A81B4d486BD78ef55716947acdDE8F),
+    address(0xDDd5864BC4b466b9DfFD8d676319d2E85ceD62b4),
+    address(0x31Fe0B6d343Ba034C4a42BAc9F2709e5C864dC7C),
+    address(0x98b94FcF3df6522EE86a1FC18Bbd8BeD6958089A),
+    address(0x56879bFEfE37C5ccF7A66d3247D6Aa40D03BEa45)
   ];
 
   function run() public {
@@ -68,7 +71,8 @@ contract Deploy is Script {
     vm.serializeAddress(verifiers, "outer_count_8", verifierAddresses[4]);
     vm.serializeAddress(verifiers, "outer_count_9", verifierAddresses[5]);
     vm.serializeAddress(verifiers, "outer_count_10", verifierAddresses[6]);
-    verifiers = vm.serializeAddress(verifiers, "outer_count_11", verifierAddresses[7]);
+    vm.serializeAddress(verifiers, "outer_count_11", verifierAddresses[7]);
+    verifiers = vm.serializeAddress(verifiers, "outer_count_12", verifierAddresses[8]);
 
     // Create the main JSON object
     string memory mainJson = "main";

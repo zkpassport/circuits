@@ -11,6 +11,7 @@ import {HonkVerifier as OuterCount8Verifier} from "../src/OuterCount8.sol";
 import {HonkVerifier as OuterCount9Verifier} from "../src/OuterCount9.sol";
 import {HonkVerifier as OuterCount10Verifier} from "../src/OuterCount10.sol";
 import {HonkVerifier as OuterCount11Verifier} from "../src/OuterCount11.sol";
+import {HonkVerifier as OuterCount12Verifier} from "../src/OuterCount12.sol";
 import {ZKPassportVerifier} from "../src/ZKPassportVerifier.sol";
 import {stdJson} from "forge-std/StdJson.sol";
 
@@ -18,23 +19,25 @@ contract Deploy is Script {
   using stdJson for string;
 
   bytes32[] public vkeyHashes = [
-        // Outer (4 subproofs)
-        bytes32(hex"008eb40d971a28de3157941b06eca6a9d97984855c415e1e6759b2c0f03b5540"),
-        // Outer (5 subproofs)
-        bytes32(hex"0c8c35f5c432db69fa4fca78209915f6d04684cd14bccc8f930f9fb8d3998bbc"),
-        // Outer (6 subproofs)
-        bytes32(hex"18b5a54dd4dbf07fa45d6a98b99e4059bb0451815893353cba0ed23a35db645a"),
-        // Outer (7 subproofs)
-        bytes32(hex"0a74b6f0d9229f0b8cf21e7b4ed4062dc173366fc8accb3ea09c5758643aa516"),
-        // Outer (8 subproofs)
-        bytes32(hex"10dc3ff4352429ba0cb98915698aeb9461e4c929860df9ce324b887c68d78e08"),
-        // Outer (9 subproofs)
-        bytes32(hex"1ad5e890551debb76e722e977143df02b409607fc6271d37f3ba1e38532859ad"),
-        // Outer (10 subproofs)
-        bytes32(hex"133b430a9eb889e77185dae5b0505ec9fa0c27e4e8e5b0887c7914954b9b8440"),
-        // Outer (11 subproofs)
-        bytes32(hex"069f039e7d9a3a64d963797f9a7232380dab2c2cd294c1d7864105b7caa6ea00")
-];
+    // Outer (4 subproofs)
+    bytes32(hex"008eb40d971a28de3157941b06eca6a9d97984855c415e1e6759b2c0f03b5540"),
+    // Outer (5 subproofs)
+    bytes32(hex"0c8c35f5c432db69fa4fca78209915f6d04684cd14bccc8f930f9fb8d3998bbc"),
+    // Outer (6 subproofs)
+    bytes32(hex"18b5a54dd4dbf07fa45d6a98b99e4059bb0451815893353cba0ed23a35db645a"),
+    // Outer (7 subproofs)
+    bytes32(hex"0a74b6f0d9229f0b8cf21e7b4ed4062dc173366fc8accb3ea09c5758643aa516"),
+    // Outer (8 subproofs)
+    bytes32(hex"10dc3ff4352429ba0cb98915698aeb9461e4c929860df9ce324b887c68d78e08"),
+    // Outer (9 subproofs)
+    bytes32(hex"1ad5e890551debb76e722e977143df02b409607fc6271d37f3ba1e38532859ad"),
+    // Outer (10 subproofs)
+    bytes32(hex"133b430a9eb889e77185dae5b0505ec9fa0c27e4e8e5b0887c7914954b9b8440"),
+    // Outer (11 subproofs)
+    bytes32(hex"069f039e7d9a3a64d963797f9a7232380dab2c2cd294c1d7864105b7caa6ea00"),
+    // Outer (12 subproofs)
+    bytes32(hex"0f4fa787b5033e1c36b21e2a5408947993bf160986b11bbf2f8e9a4bac24309b")
+  ];
 
   function run() public {
     // Load the private key from environment variable
@@ -77,13 +80,17 @@ contract Deploy is Script {
     OuterCount11Verifier outerCount11Verifier = new OuterCount11Verifier();
     console.log("Outer (11 subproofs) verifier deployed at:", address(outerCount11Verifier));
 
+    console.log("Deploying Outer (12 subproofs) verifier...");
+    OuterCount12Verifier outerCount12Verifier = new OuterCount12Verifier();
+    console.log("Outer (12 subproofs) verifier deployed at:", address(outerCount12Verifier));
+
     console.log("Deploying ZKPassportVerifier...");
     address rootRegistry = vm.envAddress("ROOT_REGISTRY_ADDRESS");
     ZKPassportVerifier zkPassportVerifier = new ZKPassportVerifier(rootRegistry);
     console.log("ZKPassportVerifier deployed at:", address(zkPassportVerifier));
 
     // Add verifiers to ZKPassportVerifier
-    address[] memory verifierAddresses = new address[](8);
+    address[] memory verifierAddresses = new address[](9);
     verifierAddresses[0] = address(outerCount4Verifier);
     verifierAddresses[1] = address(outerCount5Verifier);
     verifierAddresses[2] = address(outerCount6Verifier);
@@ -92,6 +99,7 @@ contract Deploy is Script {
     verifierAddresses[5] = address(outerCount9Verifier);
     verifierAddresses[6] = address(outerCount10Verifier);
     verifierAddresses[7] = address(outerCount11Verifier);
+    verifierAddresses[8] = address(outerCount12Verifier);
     console.log("Adding verifiers to ZKPassportVerifier...");
     zkPassportVerifier.addVerifiers(vkeyHashes, verifierAddresses);
     console.log("Verifiers added to ZKPassportVerifier");
@@ -108,7 +116,8 @@ contract Deploy is Script {
     vm.serializeAddress(verifiers, "outer_count_8", address(outerCount8Verifier));
     vm.serializeAddress(verifiers, "outer_count_9", address(outerCount9Verifier));
     vm.serializeAddress(verifiers, "outer_count_10", address(outerCount10Verifier));
-    verifiers = vm.serializeAddress(verifiers, "outer_count_11", address(outerCount11Verifier));
+    vm.serializeAddress(verifiers, "outer_count_11", address(outerCount11Verifier));
+    verifiers = vm.serializeAddress(verifiers, "outer_count_12", address(outerCount12Verifier));
 
     // Create the main JSON object
     string memory mainJson = "main";

@@ -16,7 +16,14 @@ enum ProofType {
   NATIONALITY_INCLUSION,
   NATIONALITY_EXCLUSION,
   ISSUING_COUNTRY_INCLUSION,
-  ISSUING_COUNTRY_EXCLUSION
+  ISSUING_COUNTRY_EXCLUSION,
+  BIND
+}
+
+enum BoundDataIdentifier {
+  NONE,
+  USER_ADDRESS,
+  CUSTOM_DATA
 }
 
 // Add this struct to group parameters
@@ -324,6 +331,77 @@ contract ZKPassportVerifier {
       offset += committedInputCounts[i];
     }
     require(found, "Country proof inputs not found");
+  }
+
+  function getBindProofInputs(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts
+  ) public pure returns (bytes memory data) {
+    uint256 offset = 0;
+    bool found = false;
+    for (uint256 i = 0; i < committedInputCounts.length; i++) {
+      // The bind data circuit has 501 bytes of committed inputs
+      // The first byte is the proof type
+      if (committedInputCounts[i] == 501) {
+        require(committedInputs[offset] == bytes1(uint8(ProofType.BIND)), "Invalid proof type");
+        // Get the length of the data from the tag length encoded in the data
+        // The developer should check on their side the actual data returned before
+        // the padding bytes by asserting the values returned from getBoundData meets
+        // what they expect
+        uint256 dataLength = 0;
+        while (dataLength < 500) {
+          if (
+            committedInputs[offset + 1 + dataLength] ==
+            bytes1(uint8(BoundDataIdentifier.USER_ADDRESS))
+          ) {
+            uint16 addressLength = uint16(
+              bytes2(committedInputs[offset + 1 + dataLength + 1:offset + 1 + dataLength + 3])
+            );
+            dataLength += 2 + addressLength + 1;
+          } else if (
+            committedInputs[offset + 1 + dataLength] ==
+            bytes1(uint8(BoundDataIdentifier.CUSTOM_DATA))
+          ) {
+            uint16 customDataLength = uint16(
+              bytes2(committedInputs[offset + 1 + dataLength + 1:offset + 1 + dataLength + 3])
+            );
+            dataLength += 2 + customDataLength + 1;
+          } else {
+            break;
+          }
+        }
+        require(dataLength > 0 && dataLength <= 500, "Invalid data length");
+
+        // Verify all padding bytes are zeros
+        for (uint256 j = dataLength; j < 500; j++) {
+          require(committedInputs[offset + 1 + j] == 0, "Invalid padding");
+        }
+
+        data = committedInputs[offset + 1:offset + 501];
+        found = true;
+      }
+      offset += committedInputCounts[i];
+    }
+    require(found, "Bind data proof inputs not found");
+  }
+
+  function getBoundData(
+    bytes calldata data
+  ) public pure returns (address senderAddress, string memory customData) {
+    uint256 offset = 0;
+    while (offset < 500) {
+      if (data[offset] == bytes1(uint8(BoundDataIdentifier.USER_ADDRESS))) {
+        uint16 addressLength = uint16(bytes2(data[offset + 1:offset + 3]));
+        senderAddress = address(bytes20(data[offset + 3:offset + 3 + addressLength]));
+        offset += 2 + addressLength + 1;
+      } else if (data[offset] == bytes1(uint8(BoundDataIdentifier.CUSTOM_DATA))) {
+        uint16 customDataLength = uint16(bytes2(data[offset + 1:offset + 3]));
+        customData = string(data[offset + 3:offset + 3 + customDataLength]);
+        offset += 2 + customDataLength + 1;
+      } else {
+        break;
+      }
+    }
   }
 
   function verifyScopes(

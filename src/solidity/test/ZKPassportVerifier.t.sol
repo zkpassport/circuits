@@ -4,12 +4,12 @@ pragma solidity >=0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ZKPassportVerifier, ProofType, ProofVerificationParams} from "../src/ZKPassportVerifier.sol";
-import {HonkVerifier as OuterVerifier4} from "../src/OuterCount4.sol";
+import {HonkVerifier as OuterVerifier5} from "../src/OuterCount5.sol";
 import {HonkVerifier as OuterVerifier11} from "../src/OuterCount11.sol";
 import {TestUtils} from "./Utils.t.sol";
 
 contract ZKPassportVerifierTest is TestUtils {
-  OuterVerifier4 public verifier4;
+  OuterVerifier5 public verifier5;
   OuterVerifier11 public verifier11;
   ZKPassportVerifier public zkPassportVerifier;
 
@@ -27,7 +27,7 @@ contract ZKPassportVerifierTest is TestUtils {
   bytes32 constant OUTER_PROOF_11_VKEY_HASH =
     bytes32(uint256(0x069f039e7d9a3a64d963797f9a7232380dab2c2cd294c1d7864105b7caa6ea00));
   bytes32 constant CERTIFICATE_REGISTRY_ROOT =
-    bytes32(uint256(0x1051a4bd8b16e794bfb2b265ca0a69905d0f8451228c12b53615a29c2897ed5d));
+    bytes32(uint256(0x18c7b1c288dfe56522f1c3e89c700af020892950c55c005d16199f87f2bb1f15));
   bytes32 constant CERTIFICATE_REGISTRY_ROOT_2 =
     bytes32(uint256(0x2721d9fef89710b8bc936da5c06b92573eb54caefb52854ee867f72380ffa4ab));
 
@@ -35,7 +35,7 @@ contract ZKPassportVerifierTest is TestUtils {
     // Deploy the ZKPassportVerifier
     zkPassportVerifier = new ZKPassportVerifier(vm.envAddress("ROOT_REGISTRY_ADDRESS"));
     // Deploy the UltraHonkVerifier
-    verifier4 = new OuterVerifier4();
+    verifier5 = new OuterVerifier5();
     verifier11 = new OuterVerifier11();
 
     // Add the verifier to the ZKPassportVerifier
@@ -43,7 +43,7 @@ contract ZKPassportVerifierTest is TestUtils {
     vkeyHashes[0] = VKEY_HASH;
     vkeyHashes[1] = OUTER_PROOF_11_VKEY_HASH;
     address[] memory verifiers = new address[](2);
-    verifiers[0] = address(verifier4);
+    verifiers[0] = address(verifier5);
     verifiers[1] = address(verifier11);
     zkPassportVerifier.addVerifiers(vkeyHashes, verifiers);
     zkPassportVerifier.addCertificateRegistryRoot(CERTIFICATE_REGISTRY_ROOT);
@@ -57,13 +57,14 @@ contract ZKPassportVerifierTest is TestUtils {
     bytes memory committedInputs = loadBytesFromFile(COMMITTED_INPUTS_PATH);
     // Contains in order the number of bytes of committed inputs for each disclosure proofs
     // that was verified by the final recursive proof
-    uint256[] memory committedInputCounts = new uint256[](1);
+    uint256[] memory committedInputCounts = new uint256[](2);
     committedInputCounts[0] = 181;
+    committedInputCounts[1] = 501;
 
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
-    // Set the timestamp to 2025-04-21 15:30:19 UTC
-    vm.warp(1745249419);
+    // Set the timestamp to 2025-05-20 09:22:15 UTC
+    vm.warp(1747732935);
     ProofVerificationParams memory params = ProofVerificationParams({
       vkeyHash: VKEY_HASH,
       proof: proof,
@@ -71,8 +72,8 @@ contract ZKPassportVerifierTest is TestUtils {
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
       validityPeriodInDays: 7,
-      scope: "",
-      subscope: "",
+      scope: "zkpassport.id",
+      subscope: "bigproof",
       devMode: false
     });
     (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
@@ -82,7 +83,7 @@ contract ZKPassportVerifierTest is TestUtils {
     assertEq(result, true);
     assertEq(
       scopedNullifier,
-      bytes32(0x166e45d330ee09cdfd9584800d692caf5c89bafa9c756ddb07efe5a937311f36)
+      bytes32(0x08e728ced3c0ae721742755e62018c14be91a47da5dbfe392fb098cee6d31025)
     );
 
     vm.startSnapshotGas("ZKPassportVerifier getDiscloseProofInputs");
@@ -99,11 +100,11 @@ contract ZKPassportVerifierTest is TestUtils {
     vm.startSnapshotGas("ZKPassportVerifier getDisclosedData");
     (
       string memory name,
-      string memory issuingCountry,
+      ,
       string memory nationality,
       string memory gender,
       string memory birthDate,
-      string memory expiryDate,
+      ,
       string memory documentNumber,
       string memory documentType
     ) = zkPassportVerifier.getDisclosedData(discloseBytes, false);
@@ -116,6 +117,55 @@ contract ZKPassportVerifierTest is TestUtils {
     assertEq(birthDate, "881112");
     assertEq(documentNumber, "PA1234567");
     assertEq(documentType, "P<");
+  }
+
+  function test_VerifyValidProof_2() public {
+    // Load proof and public inputs from files
+    bytes memory proof = loadBytesFromFile(PROOF_PATH);
+    bytes32[] memory publicInputs = loadBytes32FromFile(PUBLIC_INPUTS_PATH);
+    bytes memory committedInputs = loadBytesFromFile(COMMITTED_INPUTS_PATH);
+    // Contains in order the number of bytes of committed inputs for each disclosure proofs
+    // that was verified by the final recursive proof
+    uint256[] memory committedInputCounts = new uint256[](2);
+    committedInputCounts[0] = 181;
+    committedInputCounts[1] = 501;
+
+    // Set the timestamp to 2025-05-20 09:22:15 UTC
+    vm.warp(1747732935);
+    ProofVerificationParams memory params = ProofVerificationParams({
+      vkeyHash: VKEY_HASH,
+      proof: proof,
+      publicInputs: publicInputs,
+      committedInputs: committedInputs,
+      committedInputCounts: committedInputCounts,
+      validityPeriodInDays: 7,
+      scope: "zkpassport.id",
+      subscope: "bigproof",
+      devMode: false
+    });
+    (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
+    assertEq(result, true);
+    assertEq(
+      scopedNullifier,
+      bytes32(0x08e728ced3c0ae721742755e62018c14be91a47da5dbfe392fb098cee6d31025)
+    );
+
+    vm.startSnapshotGas("ZKPassportVerifier getBindProofInputs");
+    bytes memory data = zkPassportVerifier.getBindProofInputs(
+      committedInputs,
+      committedInputCounts
+    );
+    uint256 gasUsedGetBindProofInputs = vm.stopSnapshotGas();
+    console.log("Gas used in ZKPassportVerifier getBindProofInputs");
+    console.log(gasUsedGetBindProofInputs);
+
+    vm.startSnapshotGas("ZKPassportVerifier getBoundData");
+    (address senderAddress, string memory customData) = zkPassportVerifier.getBoundData(data);
+    uint256 gasUsedGetBoundData = vm.stopSnapshotGas();
+    console.log("Gas used in ZKPassportVerifier getBoundData");
+    console.log(gasUsedGetBoundData);
+    assertEq(senderAddress, 0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8);
+    assertEq(customData, "email:test@test.com,customer_id:1234567890");
   }
 
   function test_VerifyAllSubproofsProof() public {

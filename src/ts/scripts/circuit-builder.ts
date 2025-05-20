@@ -53,6 +53,8 @@ const STATIC_CIRCUITS = [
   { name: "disclose_flags", path: "./src/noir/bin/disclose/flags" },
   { name: "disclose_bytes", path: "./src/noir/bin/disclose/bytes/standard" },
   { name: "disclose_bytes_evm", path: "./src/noir/bin/disclose/bytes/evm" },
+  { name: "bind", path: "./src/noir/bin/bind/standard" },
+  { name: "bind_evm", path: "./src/noir/bin/bind/evm" },
   { name: "data_check_expiry", path: "./src/noir/bin/data-check/expiry" },
   {
     name: "exclusion_check_issuing_country",
@@ -89,6 +91,7 @@ const STATIC_CIRCUITS = [
 ]
 
 const LIB_CIRCUITS = [
+  "src/noir/lib/bind",
   "src/noir/lib/commitment/common",
   "src/noir/lib/commitment/csc-to-dsc",
   "src/noir/lib/commitment/dsc-to-id",
@@ -794,7 +797,7 @@ const generateDataIntegrityCheckCircuits = ({
 
 const generateOuterCircuits = ({ unconstrained = false }: { unconstrained: boolean }) => {
   console.log("Generating outer circuits...")
-  for (let i = 1; i <= 8; i++) {
+  for (let i = 1; i <= 9; i++) {
     generateOuterCircuit(i, unconstrained)
   }
 }
