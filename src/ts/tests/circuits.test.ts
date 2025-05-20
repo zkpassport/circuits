@@ -34,8 +34,7 @@ import {
   ProofType,
   getBindCircuitInputs,
   getBindParameterCommitment,
-  getBindDataHash,
-  formatBindData,
+  formatBoundData,
   getBindEVMParameterCommitment,
 } from "@zkpassport/utils"
 import type { PackagedCertificate, Query } from "@zkpassport/utils"
@@ -1233,12 +1232,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const dataToHash = formatBindData(query.bind!)
-      const expectedHash = await getBindDataHash(dataToHash)
-      const calculatedParamCommitment = await getBindParameterCommitment(
-        dataToHash,
-        expectedHash as bigint,
-      )
+      const boundData = formatBoundData(query.bind!)
+      const calculatedParamCommitment = await getBindParameterCommitment(boundData)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10064708033511406944551100977335301585065041863391721395253240603473805865270n,
@@ -1261,7 +1256,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         bind: { user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8" },
       }
-      const inputs = await getBindCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, true)
+      const inputs = await getBindCircuitInputs(helper.passport as any, query, 3n)
       if (!inputs) throw new Error("Unable to generate compare-expirydate equal circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `bind_evm`,
@@ -1269,12 +1264,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(proof).toBeDefined()
       const nullifier = getNullifierFromDisclosureProof(proof)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const dataToHash = formatBindData(query.bind!)
-      const expectedHash = await getBindDataHash(dataToHash, true)
-      const calculatedParamCommitment = await getBindEVMParameterCommitment(
-        dataToHash,
-        expectedHash as number[],
-      )
+      const boundData = formatBoundData(query.bind!)
+      const calculatedParamCommitment = await getBindEVMParameterCommitment(boundData)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(
         10064708033511406944551100977335301585065041863391721395253240603473805865270n,

@@ -10,10 +10,6 @@ fn main(
     // The data is public (via the parameter commitment) so verifiers can check the data
     // provided to the proof is correct
     data: [Field; 500],
-    // @committed
-    // The expected hash is public (via the parameter commitment) so verifiers can check the hash
-    // provided to the proof is correct
-    expected_hash: Field,
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field) {
@@ -26,6 +22,6 @@ fn main(
         service_subscope,
     );
     // Use Poseidon2 to calculate the parameter commitment so the prover has less work to do
-    let param_commitment = calculate_param_commitment(data, expected_hash);
+    let param_commitment = calculate_param_commitment(data);
     (param_commitment, nullifier)
 }

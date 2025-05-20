@@ -34,6 +34,7 @@ import {
   getParameterCommitmentFromDisclosureProof,
   getServiceScopeHash,
   getServiceSubscopeHash,
+  rightPadArrayWithZeros,
   ultraVkToFields,
 } from "@zkpassport/utils"
 import * as path from "path"
@@ -608,7 +609,10 @@ describe("outer proof - evm optimised", () => {
     "5 subproofs",
     async () => {
       const bindQuery: Query = {
-        bind: { user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8" },
+        bind: {
+          user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8",
+          custom_data: "email:test@test.com,customer_id:1234567890",
+        },
       }
       const bindCircuitInputs = await getBindCircuitInputs(
         helper.passport as any,
@@ -616,7 +620,6 @@ describe("outer proof - evm optimised", () => {
         3n,
         getServiceScopeHash("zkpassport.id", 31337),
         getServiceSubscopeHash("bigproof"),
-        true,
       )
       if (!bindCircuitInputs) throw new Error("Unable to generate bind circuit inputs")
       const bindCircuit = Circuit.from("bind_evm")
@@ -635,10 +638,7 @@ describe("outer proof - evm optimised", () => {
 
       /*const bindCommittedInputs =
         ProofType.BIND.toString(16).padStart(2, "0") +
-        rightPadArrayWithZeros(formatBindData(bindQuery.bind!), 500)
-          .map((x) => x.toString(16).padStart(2, "0"))
-          .join("") +
-        ((await getBindDataHash(formatBindData(bindQuery.bind!), true)) as number[])
+        rightPadArrayWithZeros(formatBoundData(bindQuery.bind!), 500)
           .map((x) => x.toString(16).padStart(2, "0"))
           .join("")
 

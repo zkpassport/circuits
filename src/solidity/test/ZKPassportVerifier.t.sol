@@ -27,7 +27,7 @@ contract ZKPassportVerifierTest is TestUtils {
   bytes32 constant OUTER_PROOF_11_VKEY_HASH =
     bytes32(uint256(0x069f039e7d9a3a64d963797f9a7232380dab2c2cd294c1d7864105b7caa6ea00));
   bytes32 constant CERTIFICATE_REGISTRY_ROOT =
-    bytes32(uint256(0x2acefcf82d4968e25dc8486171ccda2e54653384e79ee4127c6af3fafd11c679));
+    bytes32(uint256(0x18c7b1c288dfe56522f1c3e89c700af020892950c55c005d16199f87f2bb1f15));
   bytes32 constant CERTIFICATE_REGISTRY_ROOT_2 =
     bytes32(uint256(0x2721d9fef89710b8bc936da5c06b92573eb54caefb52854ee867f72380ffa4ab));
 
@@ -59,12 +59,12 @@ contract ZKPassportVerifierTest is TestUtils {
     // that was verified by the final recursive proof
     uint256[] memory committedInputCounts = new uint256[](2);
     committedInputCounts[0] = 181;
-    committedInputCounts[1] = 533;
+    committedInputCounts[1] = 501;
 
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
-    // Set the timestamp to 2025-05-19 14:51:17 UTC
-    vm.warp(1747666277);
+    // Set the timestamp to 2025-05-20 09:22:15 UTC
+    vm.warp(1747732935);
     ProofVerificationParams memory params = ProofVerificationParams({
       vkeyHash: VKEY_HASH,
       proof: proof,
@@ -128,10 +128,10 @@ contract ZKPassportVerifierTest is TestUtils {
     // that was verified by the final recursive proof
     uint256[] memory committedInputCounts = new uint256[](2);
     committedInputCounts[0] = 181;
-    committedInputCounts[1] = 533;
+    committedInputCounts[1] = 501;
 
-    // Set the timestamp to 2025-05-19 14:51:17 UTC
-    vm.warp(1747666277);
+    // Set the timestamp to 2025-05-20 09:22:15 UTC
+    vm.warp(1747732935);
     ProofVerificationParams memory params = ProofVerificationParams({
       vkeyHash: VKEY_HASH,
       proof: proof,
@@ -151,23 +151,22 @@ contract ZKPassportVerifierTest is TestUtils {
     );
 
     vm.startSnapshotGas("ZKPassportVerifier getBindProofInputs");
-    (bytes memory data, bytes32 expectedHash) = zkPassportVerifier.getBindProofInputs(
+    bytes memory data = zkPassportVerifier.getBindProofInputs(
       committedInputs,
       committedInputCounts,
-      22
+      68
     );
     uint256 gasUsedGetBindProofInputs = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier getBindProofInputs");
     console.log(gasUsedGetBindProofInputs);
-    assertEq(expectedHash, sha256(data));
-    assertEq(expectedHash, 0xd9ef7e7bfb9a852aae22a5659e332c3b2f4b81096d96e1a21f1ac8dcff077a58);
 
-    vm.startSnapshotGas("ZKPassportVerifier getBindData");
-    address senderAddress = zkPassportVerifier.getBindData(data);
-    uint256 gasUsedGetBindData = vm.stopSnapshotGas();
-    console.log("Gas used in ZKPassportVerifier getBindData");
-    console.log(gasUsedGetBindData);
+    vm.startSnapshotGas("ZKPassportVerifier getBoundData");
+    (address senderAddress, string memory customData) = zkPassportVerifier.getBoundData(data);
+    uint256 gasUsedGetBoundData = vm.stopSnapshotGas();
+    console.log("Gas used in ZKPassportVerifier getBoundData");
+    console.log(gasUsedGetBoundData);
     assertEq(senderAddress, 0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8);
+    assertEq(customData, "email:test@test.com,customer_id:1234567890");
   }
 
   function test_VerifyValidProof_InvalidPadding_BindProof() public {
@@ -179,10 +178,10 @@ contract ZKPassportVerifierTest is TestUtils {
     // that was verified by the final recursive proof
     uint256[] memory committedInputCounts = new uint256[](2);
     committedInputCounts[0] = 181;
-    committedInputCounts[1] = 533;
+    committedInputCounts[1] = 501;
 
-    // Set the timestamp to 2025-05-19 14:51:17 UTC
-    vm.warp(1747666277);
+    // Set the timestamp to 2025-05-20 09:22:15 UTC
+    vm.warp(1747732935);
     ProofVerificationParams memory params = ProofVerificationParams({
       vkeyHash: VKEY_HASH,
       proof: proof,
@@ -203,10 +202,10 @@ contract ZKPassportVerifierTest is TestUtils {
 
     vm.startSnapshotGas("ZKPassportVerifier getBindProofInputs");
     vm.expectRevert("Invalid padding");
-    (bytes memory data, bytes32 expectedHash) = zkPassportVerifier.getBindProofInputs(
+    bytes memory data = zkPassportVerifier.getBindProofInputs(
       committedInputs,
       committedInputCounts,
-      21
+      65
     );
   }
 

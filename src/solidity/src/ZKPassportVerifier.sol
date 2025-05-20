@@ -20,9 +20,10 @@ enum ProofType {
   BIND
 }
 
-enum BindDataIdentifier {
+enum BoundDataIdentifier {
   NONE,
-  USER_ADDRESS
+  USER_ADDRESS,
+  CUSTOM_DATA
 }
 
 // Add this struct to group parameters
@@ -336,13 +337,13 @@ contract ZKPassportVerifier {
     bytes calldata committedInputs,
     uint256[] calldata committedInputCounts,
     uint256 dataLength
-  ) public pure returns (bytes memory data, bytes32 expectedHash) {
+  ) public pure returns (bytes memory data) {
     uint256 offset = 0;
     bool found = false;
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
-      // The bind data circuit has 533 bytes of committed inputs
+      // The bind data circuit has 501 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == 533) {
+      if (committedInputCounts[i] == 501) {
         require(committedInputs[offset] == bytes1(uint8(ProofType.BIND)), "Invalid proof type");
         require(dataLength > 0 && dataLength <= 500, "Invalid data length");
 
@@ -352,8 +353,6 @@ contract ZKPassportVerifier {
         }
 
         data = committedInputs[offset + 1:offset + 501];
-        expectedHash = bytes32(committedInputs[offset + 501:offset + 533]);
-        require(sha256(abi.encodePacked(data)) == expectedHash, "Invalid expected hash");
         found = true;
       }
       offset += committedInputCounts[i];
@@ -361,11 +360,20 @@ contract ZKPassportVerifier {
     require(found, "Bind data proof inputs not found");
   }
 
-  function getBindData(bytes calldata data) public pure returns (address senderAddress) {
-    for (uint256 i = 0; i < 500; i++) {
-      if (data[i] == bytes1(uint8(BindDataIdentifier.USER_ADDRESS))) {
-        uint8 addressLength = uint8(data[i + 1]);
-        senderAddress = address(bytes20(data[i + 2:i + 2 + addressLength]));
+  function getBoundData(
+    bytes calldata data
+  ) public pure returns (address senderAddress, string memory customData) {
+    uint256 offset = 0;
+    while (offset < 500) {
+      if (data[offset] == bytes1(uint8(BoundDataIdentifier.USER_ADDRESS))) {
+        uint16 addressLength = uint16(bytes2(data[offset + 1:offset + 3]));
+        senderAddress = address(bytes20(data[offset + 3:offset + 3 + addressLength]));
+        offset += 2 + addressLength + 1;
+      } else if (data[offset] == bytes1(uint8(BoundDataIdentifier.CUSTOM_DATA))) {
+        uint16 customDataLength = uint16(bytes2(data[offset + 1:offset + 3]));
+        customData = string(data[offset + 3:offset + 3 + customDataLength]);
+        offset += 2 + customDataLength + 1;
+      } else {
         break;
       }
     }
