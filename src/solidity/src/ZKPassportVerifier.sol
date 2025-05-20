@@ -335,8 +335,7 @@ contract ZKPassportVerifier {
 
   function getBindProofInputs(
     bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
-    uint256 dataLength
+    uint256[] calldata committedInputCounts
   ) public pure returns (bytes memory data) {
     uint256 offset = 0;
     bool found = false;
@@ -345,6 +344,32 @@ contract ZKPassportVerifier {
       // The first byte is the proof type
       if (committedInputCounts[i] == 501) {
         require(committedInputs[offset] == bytes1(uint8(ProofType.BIND)), "Invalid proof type");
+        // Get the length of the data from the tag length encoded in the data
+        // The developer should check on their side the actual data returned before
+        // the padding bytes by asserting the values returned from getBoundData meets
+        // what they expect
+        uint256 dataLength = 0;
+        while (dataLength < 500) {
+          if (
+            committedInputs[offset + 1 + dataLength] ==
+            bytes1(uint8(BoundDataIdentifier.USER_ADDRESS))
+          ) {
+            uint16 addressLength = uint16(
+              bytes2(committedInputs[offset + 1 + dataLength + 1:offset + 1 + dataLength + 3])
+            );
+            dataLength += 2 + addressLength + 1;
+          } else if (
+            committedInputs[offset + 1 + dataLength] ==
+            bytes1(uint8(BoundDataIdentifier.CUSTOM_DATA))
+          ) {
+            uint16 customDataLength = uint16(
+              bytes2(committedInputs[offset + 1 + dataLength + 1:offset + 1 + dataLength + 3])
+            );
+            dataLength += 2 + customDataLength + 1;
+          } else {
+            break;
+          }
+        }
         require(dataLength > 0 && dataLength <= 500, "Invalid data length");
 
         // Verify all padding bytes are zeros

@@ -153,8 +153,7 @@ contract ZKPassportVerifierTest is TestUtils {
     vm.startSnapshotGas("ZKPassportVerifier getBindProofInputs");
     bytes memory data = zkPassportVerifier.getBindProofInputs(
       committedInputs,
-      committedInputCounts,
-      68
+      committedInputCounts
     );
     uint256 gasUsedGetBindProofInputs = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier getBindProofInputs");
@@ -167,46 +166,6 @@ contract ZKPassportVerifierTest is TestUtils {
     console.log(gasUsedGetBoundData);
     assertEq(senderAddress, 0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8);
     assertEq(customData, "email:test@test.com,customer_id:1234567890");
-  }
-
-  function test_VerifyValidProof_InvalidPadding_BindProof() public {
-    // Load proof and public inputs from files
-    bytes memory proof = loadBytesFromFile(PROOF_PATH);
-    bytes32[] memory publicInputs = loadBytes32FromFile(PUBLIC_INPUTS_PATH);
-    bytes memory committedInputs = loadBytesFromFile(COMMITTED_INPUTS_PATH);
-    // Contains in order the number of bytes of committed inputs for each disclosure proofs
-    // that was verified by the final recursive proof
-    uint256[] memory committedInputCounts = new uint256[](2);
-    committedInputCounts[0] = 181;
-    committedInputCounts[1] = 501;
-
-    // Set the timestamp to 2025-05-20 09:22:15 UTC
-    vm.warp(1747732935);
-    ProofVerificationParams memory params = ProofVerificationParams({
-      vkeyHash: VKEY_HASH,
-      proof: proof,
-      publicInputs: publicInputs,
-      committedInputs: committedInputs,
-      committedInputCounts: committedInputCounts,
-      validityPeriodInDays: 7,
-      scope: "zkpassport.id",
-      subscope: "bigproof",
-      devMode: false
-    });
-    (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
-    assertEq(result, true);
-    assertEq(
-      scopedNullifier,
-      bytes32(0x08e728ced3c0ae721742755e62018c14be91a47da5dbfe392fb098cee6d31025)
-    );
-
-    vm.startSnapshotGas("ZKPassportVerifier getBindProofInputs");
-    vm.expectRevert("Invalid padding");
-    bytes memory data = zkPassportVerifier.getBindProofInputs(
-      committedInputs,
-      committedInputCounts,
-      65
-    );
   }
 
   function test_VerifyAllSubproofsProof() public {
