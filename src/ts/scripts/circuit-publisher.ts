@@ -65,30 +65,63 @@ class CircuitPublisher {
     circuitName: string,
     hash: string,
   ): Promise<void> {
-    const artifactKey = `artifacts/${circuitName}_${hash}.json.gz`
+    const fileKey = `artifacts/${circuitName}_${hash}.json.gz`
     try {
-      // Check if this circuit has been uploaded already
+      // Check if already uploaded
       await this.s3.send(
         new HeadObjectCommand({
           Bucket: this.bucket,
-          Key: artifactKey,
+          Key: fileKey,
         }),
       )
       console.log(`Artifact ${circuitName}_${hash} already exists, skipping`)
     } catch {
-      // Upload new circuit
+      // Upload file to S3
       const content = await fs.readFile(filePath)
       const gzippedContent = await gzipAsync(content)
       await this.s3.send(
         new PutObjectCommand({
           Bucket: this.bucket,
-          Key: artifactKey,
+          Key: fileKey,
           Body: gzippedContent,
           ContentType: "application/json",
           ContentEncoding: "gzip",
         }),
       )
       console.log(`Uploaded ${path.basename(filePath)} to artifacts/${circuitName}_${hash}.json.gz`)
+    }
+  }
+
+  // TODO: Also symlink to manifests/latest.json
+  private async uploadCircuitManifest(filePath: string): Promise<void> {
+    // Get circuits root from circuit manifest
+    const content = await fs.readFile(filePath, "utf8")
+    const json = JSON.parse(content)
+    const circuitsRoot = json.root
+    const fileKey = `manifests/${circuitsRoot}.json`
+    try {
+      // Check if already uploaded
+      await this.s3.send(
+        new HeadObjectCommand({
+          Bucket: this.bucket,
+          Key: fileKey,
+        }),
+      )
+      console.log(`Manifest for ${circuitsRoot} already exists, skipping`)
+    } catch {
+      // Upload file to S3
+      const content = await fs.readFile(filePath)
+      const gzippedContent = await gzipAsync(content)
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: fileKey,
+          Body: gzippedContent,
+          ContentType: "application/json",
+          ContentEncoding: "gzip",
+        }),
+      )
+      console.log(`Uploaded ${path.basename(filePath)} to manifests/${circuitsRoot}.json`)
     }
   }
 
@@ -183,47 +216,55 @@ class CircuitPublisher {
 
     // Upload artifacts with controlled concurrency
     const pool = new PromisePool(concurrency)
-    console.log(`Uploading artifacts with concurrency ${concurrency}...`)
-    let processedCount = 0
-    const totalCount = artifacts.length
-    for (const artifact of artifacts) {
-      const currentCount = ++processedCount
-      const shortHash = artifact.hash.substring(0, 16)
-      await pool.add(async () => {
-        try {
-          console.log(`Uploading artifact ${artifact.name} (${currentCount}/${totalCount})...`)
-          await this.uploadIfNotExists(artifact.path, artifact.name, shortHash)
-        } catch (error) {
-          console.error(`Error uploading ${artifact.name}: ${error}`)
-        }
-      })
-    }
-    // Wait for all uploads to complete
-    await pool.await()
+    // console.log(`Uploading artifacts with concurrency ${concurrency}...`)
+    // let processedCount = 0
+    // const totalCount = artifacts.length
+    // for (const artifact of artifacts) {
+    //   const currentCount = ++processedCount
+    //   const shortHash = artifact.hash.substring(0, 16)
+    //   await pool.add(async () => {
+    //     try {
+    //       console.log(`Uploading artifact ${artifact.name} (${currentCount}/${totalCount})...`)
+    //       await this.uploadIfNotExists(artifact.path, artifact.name, shortHash)
+    //     } catch (error) {
+    //       console.error(`Error uploading ${artifact.name}: ${error}`)
+    //     }
+    //   })
+    // }
+    // // Wait for all uploads to complete
+    // await pool.await()
 
-    // Create version symlinks
-    console.log(`Creating version ${version} symlinks...`)
-    // Reset for symlink creation
-    processedCount = 0
-    for (const artifact of artifacts) {
-      const currentCount = ++processedCount
-      const shortHash = artifact.hash.substring(0, 16)
-      await pool.add(async () => {
-        try {
-          console.log(`Creating symlinks for ${artifact.name} (${currentCount}/${totalCount})...`)
-          await this.createVersionSymlink(version, artifact.name, shortHash)
-          await this.createHashSymlink(artifact.hash, artifact.name)
-        } catch (error) {
-          console.error(`Error creating symlinks for ${artifact.name}: ${error}`)
-        }
-      })
-    }
-    // Wait for all symlink creations to complete
-    await pool.await()
+    // // Create version symlinks
+    // console.log(`Creating version ${version} symlinks...`)
+    // // Reset for symlink creation
+    // processedCount = 0
+    // for (const artifact of artifacts) {
+    //   const currentCount = ++processedCount
+    //   const shortHash = artifact.hash.substring(0, 16)
+    //   await pool.add(async () => {
+    //     try {
+    //       console.log(`Creating symlinks for ${artifact.name} (${currentCount}/${totalCount})...`)
+    //       await this.createVersionSymlink(version, artifact.name, shortHash)
+    //       await this.createHashSymlink(artifact.hash, artifact.name)
+    //     } catch (error) {
+    //       console.error(`Error creating symlinks for ${artifact.name}: ${error}`)
+    //     }
+    //   })
+    // }
+    // // Wait for all symlink creations to complete
+    // await pool.await()
 
-    // Invalidate CloudFront cache for the version
-    console.log("Invalidating CloudFront cache...")
-    await this.invalidateCache(version)
+    // // Invalidate CloudFront cache for the version
+    // console.log("Invalidating CloudFront cache...")
+    // await this.invalidateCache(version)
+
+    // Upload circuit manifest
+    try {
+      console.log(`Uploading circuit manifest...`)
+      await this.uploadCircuitManifest("target/packaged/manifest.json")
+    } catch (error) {
+      console.error(`Error uploading manifest: ${error}`)
+    }
 
     const duration = (Date.now() - startTime) / 1000 // convert to seconds
     const minutes = Math.floor(duration / 60)
@@ -294,10 +335,10 @@ if (require.main === module) {
   const bucket = process.env.CIRCUIT_BUCKET
   const distributionId = process.env.CLOUDFRONT_DISTRIBUTION_ID
   const region = process.env.AWS_REGION
-  console.log(
-    `Publishing circuits to ${bucket} with distribution ${distributionId} in region ${region}`,
-  )
-  console.log(`Using packaged circuits version: ${version}`)
+  // console.log(
+  //   `Publishing circuits to ${bucket} with distribution ${distributionId} in region ${region}`,
+  // )
+  // console.log(`Using packaged circuits version: ${version}`)
 
   await waitForEnterKey("Press Enter to publish or Esc to exit")
 

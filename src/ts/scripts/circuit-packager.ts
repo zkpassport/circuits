@@ -5,7 +5,7 @@ import { promisify } from "util"
 import { poseidon2Hash } from "@zkpassport/poseidon2"
 import { snakeToPascal } from "../utils"
 import { execSync } from "child_process"
-import { PromisePool } from "@zkpassport/utils"
+import { PromisePool, calculateCircuitsRootFromVKeyHashes } from "@zkpassport/utils"
 
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
@@ -83,14 +83,14 @@ const processFile = async (
     }
 
     // Run bb command to get bb version and generate circuit vkey
-    const bbVersion = (await execPromise("bb --version")).stdout.trim()
-    console.log(`Generating vkey for ${file}...`)
+    const bbVersion = (await execPromise("bb --version")).stdout.trim().replace(/^v/i, "")
+    console.log(`Generating vkey: ${file}`)
     fs.mkdirSync(vkeyPath, { recursive: true })
-    await execPromise(
-      `bb write_vk --scheme ultra_honk ${recursive ? "--recursive --init_kzg_accumulator" : ""} ${
-        evm ? "--oracle_hash keccak" : ""
-      } --honk_recursion 1 --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
-    )
+    const bbCmdWriteVk = `bb write_vk --scheme ultra_honk${recursive ? " --recursive --init_kzg_accumulator" : ""} ${
+      evm ? " --oracle_hash keccak" : ""
+    } --honk_recursion 1 --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`
+    console.log("bbCmdWriteVk:", bbCmdWriteVk)
+    await execPromise(bbCmdWriteVk)
     await execPromise(`bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`)
     if (generateSolidityVerifier) {
       await execPromise(
@@ -101,8 +101,9 @@ const processFile = async (
     // Get Poseidon2 hash of vkey
     const vkeyAsFieldsJson = JSON.parse(fs.readFileSync(`${vkeyPath}/vk_fields.json`, "utf-8"))
     const vkeyAsFields = vkeyAsFieldsJson.map((v: any) => BigInt(v))
-    const vkeyHash = `0x${poseidon2Hash(vkeyAsFields).toString(16)}`
+    const vkeyHash = `0x${poseidon2Hash(vkeyAsFields).toString(16).padStart(64, "0")}`
     const vkey = Buffer.from(fs.readFileSync(`${vkeyPath}/vk`)).toString("base64")
+
     // Clean up vkey files
     fs.unlinkSync(`${vkeyPath}/vk`)
     fs.unlinkSync(`${vkeyPath}/vk_fields.json`)
@@ -313,7 +314,7 @@ interface CircuitManifest {
   }
 }
 
-function generateCircuitManifest(files: string[]) {
+async function generateCircuitManifest(files: string[]) {
   const circuitManifestPath = path.join(PACKAGED_DIR, "manifest.json")
   console.log(`Generating circuit manifest for ${files.length} circuits`)
 
@@ -335,10 +336,18 @@ function generateCircuitManifest(files: string[]) {
     })
     .sort((a, b) => a.name.localeCompare(b.name))
 
-  // Calculate circuits root hash
-  const circuitHashes = circuits.map((circuit) => BigInt(circuit.hash))
-  manifest.root = `0x${poseidon2Hash(circuitHashes).toString(16)}`
-  console.log("Circuits root:", manifest.root)
+  console.log(
+    JSON.stringify(
+      circuits.map((l) => `${l.name} - ${l.hash}`),
+      null,
+      2,
+    ),
+  )
+
+  // Calculate circuit root
+  const circuitHashes = circuits.map((circuit) => circuit.hash)
+  manifest.root = await calculateCircuitsRootFromVKeyHashes(circuitHashes)
+  console.log("Circuit root:", manifest.root)
 
   for (const circuit of circuits) {
     manifest.circuits[circuit.name] = {
@@ -352,25 +361,30 @@ function generateCircuitManifest(files: string[]) {
   console.log(`Saved circuit manifest: ${circuitManifestPath}`)
 }
 
-// Start timing
-const startTime = Date.now()
-
-// Run the async process
-processFiles()
-  .catch((error) => {
+async function main() {
+  // Start timing
+  const startTime = Date.now()
+  try {
+    await processFiles()
+    // Generate manifest
+    const packagedFiles = fs
+      .readdirSync(PACKAGED_CIRCUITS_DIR)
+      .filter((file) => file.endsWith(".json"))
+    await generateCircuitManifest(packagedFiles)
+  } catch (error) {
     console.error("Fatal error:", error)
     process.exit(1)
-  })
-  .finally(() => {
+  } finally {
+    // Print total time taken
     const duration = (Date.now() - startTime) / 1000 // convert to seconds
     const minutes = Math.floor(duration / 60)
     const seconds = Math.floor(duration % 60)
-
     if (minutes > 0) {
       console.log(`Total time taken: ${minutes}m ${seconds}s`)
     } else if (seconds >= 0) {
       console.log(`Total time taken: ${seconds}s`)
     }
-    // Generate manifest
-    generateCircuitManifest(files)
-  })
+  }
+}
+
+main()
