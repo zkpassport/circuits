@@ -1,17 +1,37 @@
-import fs from "fs"
-import path from "path"
-import { exec } from "child_process"
-import { promisify } from "util"
 import { poseidon2Hash } from "@zkpassport/poseidon2"
+import { PromisePool } from "@zkpassport/utils"
+import { calculateCircuitRoot } from "@zkpassport/utils/registry"
+import { exec, execSync } from "child_process"
+import fs from "fs"
+import type { Blockstore } from "interface-blockstore"
+import { importer } from "ipfs-unixfs-importer"
+import path from "path"
+import { promisify } from "util"
 import { snakeToPascal } from "../utils"
-import { execSync } from "child_process"
-import { PromisePool, calculateCircuitsRootFromVKeyHashes } from "@zkpassport/utils"
 
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
 const PACKAGED_CIRCUITS_DIR = path.join(TARGET_DIR, "packaged/circuits")
 const MAX_CONCURRENT_PROCESSES = 10
 const DEPLOY_SOL_PATH = "src/solidity/script/Deploy.s.sol"
+
+/**
+ * Calculate the IPFS CIDv0 of some data
+ * @param data Data to calculate the IPFS CIDv0 for
+ * @returns IPFS CID v0
+ */
+async function getIpfsCidv0(data: Buffer): Promise<string> {
+  // Create a mock memory blockstore that does nothing
+  const blockstore: Blockstore = { get: async () => {}, put: async () => {} } as any
+  for await (const result of importer([{ content: data }], blockstore, {
+    cidVersion: 0,
+    rawLeaves: false,
+    wrapWithDirectory: false,
+  })) {
+    return result.cid.toString()
+  }
+  throw new Error("Failed to generate CIDv0")
+}
 
 function checkBBVersion() {
   try {
@@ -86,11 +106,11 @@ const processFile = async (
     const bbVersion = (await execPromise("bb --version")).stdout.trim().replace(/^v/i, "")
     console.log(`Generating vkey: ${file}`)
     fs.mkdirSync(vkeyPath, { recursive: true })
-    const bbCmdWriteVk = `bb write_vk --scheme ultra_honk${recursive ? " --recursive --init_kzg_accumulator" : ""} ${
-      evm ? " --oracle_hash keccak" : ""
-    } --honk_recursion 1 --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`
-    console.log("bbCmdWriteVk:", bbCmdWriteVk)
-    await execPromise(bbCmdWriteVk)
+    await execPromise(
+      `bb write_vk --scheme ultra_honk${recursive ? " --recursive --init_kzg_accumulator" : ""}${
+        evm ? " --oracle_hash keccak" : ""
+      } --honk_recursion 1 --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
+    )
     await execPromise(`bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`)
     if (generateSolidityVerifier) {
       await execPromise(
@@ -111,7 +131,6 @@ const processFile = async (
 
     // Read and parse the input file
     const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
-
     const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
     const gateCount = gateCountFileContent.functions[0].circuit_size
     fs.unlinkSync(gateCountPath)
@@ -310,6 +329,7 @@ interface CircuitManifest {
     [key: string]: {
       hash: string
       size: string
+      cid: string
     }
   }
 }
@@ -319,42 +339,36 @@ async function generateCircuitManifest(files: string[]) {
   console.log(`Generating circuit manifest for ${files.length} circuits`)
 
   // Get version from package.json
-  const packageJson = JSON.parse(
-    fs.readFileSync(path.join(__dirname, "../../../package.json"), "utf-8"),
-  )
-  const version = packageJson.version
+  const packageJsonFile = path.join(__dirname, "../../../package.json")
+  const { version } = JSON.parse(fs.readFileSync(packageJsonFile, "utf-8"))
 
+  // Add circuits to manifest
   let manifest: CircuitManifest = { version, root: "", circuits: {} }
-  const circuits = files
-    .map((file) => {
-      const json = JSON.parse(fs.readFileSync(path.join(PACKAGED_CIRCUITS_DIR, file), "utf-8"))
+  const circuits = await Promise.all(
+    files.map(async (file) => {
+      const circuitBuffer = fs.readFileSync(path.join(PACKAGED_CIRCUITS_DIR, file))
+      const json = JSON.parse(circuitBuffer.toString("utf-8"))
+      const cid = await getIpfsCidv0(circuitBuffer)
       return {
         name: json.name,
         hash: json.vkey_hash,
+        cid,
         size: json.size,
       }
-    })
-    .sort((a, b) => a.name.localeCompare(b.name))
-
-  console.log(
-    JSON.stringify(
-      circuits.map((l) => `${l.name} - ${l.hash}`),
-      null,
-      2,
-    ),
+    }),
   )
-
-  // Calculate circuit root
-  const circuitHashes = circuits.map((circuit) => circuit.hash)
-  manifest.root = await calculateCircuitsRootFromVKeyHashes(circuitHashes)
-  console.log("Circuit root:", manifest.root)
-
+  circuits.sort((a, b) => a.name.localeCompare(b.name))
   for (const circuit of circuits) {
     manifest.circuits[circuit.name] = {
       hash: circuit.hash,
+      cid: circuit.cid,
       size: circuit.size,
     }
   }
+  // Calculate circuit root
+  const circuitHashes = circuits.map((circuit) => circuit.hash)
+  manifest.root = await calculateCircuitRoot({ hashes: circuitHashes })
+  console.log("Circuit root:", manifest.root)
 
   // Save circuit manifest
   fs.writeFileSync(circuitManifestPath, JSON.stringify(manifest, null, 2))
@@ -387,4 +401,4 @@ async function main() {
   }
 }
 
-main()
+await main()

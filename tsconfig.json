@@ -6,7 +6,7 @@
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "target": "esnext",
-    "module": "ESNext",
+    "module": "esnext",
     "lib": ["esnext"],
     "moduleResolution": "node",
     "baseUrl": ".",
