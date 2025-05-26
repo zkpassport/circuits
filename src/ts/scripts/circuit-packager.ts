@@ -1,47 +1,36 @@
-import fs from "fs"
-import path from "path"
-import { exec } from "child_process"
-import { promisify } from "util"
 import { poseidon2Hash } from "@zkpassport/poseidon2"
+import { PromisePool } from "@zkpassport/utils"
+import { calculateCircuitRoot } from "@zkpassport/utils/registry"
+import { exec, execSync } from "child_process"
+import fs from "fs"
+import type { Blockstore } from "interface-blockstore"
+import { importer } from "ipfs-unixfs-importer"
+import path from "path"
+import { promisify } from "util"
 import { snakeToPascal } from "../utils"
-import { execSync } from "child_process"
 
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
+const PACKAGED_CIRCUITS_DIR = path.join(TARGET_DIR, "packaged/circuits")
 const MAX_CONCURRENT_PROCESSES = 10
 const DEPLOY_SOL_PATH = "src/solidity/script/Deploy.s.sol"
 
-// Promise pool for controlled concurrency
-class PromisePool {
-  private queue: (() => Promise<void>)[] = []
-  private activePromises = 0
-
-  constructor(private maxConcurrent: number) {}
-
-  async add(fn: () => Promise<void>) {
-    if (this.activePromises >= this.maxConcurrent) {
-      // Queue the task if we're at max concurrency
-      await new Promise<void>((resolve) => {
-        this.queue.push(async () => {
-          await fn()
-          resolve()
-        })
-      })
-    } else {
-      // Execute immediately if under the concurrency limit
-      this.activePromises++
-      try {
-        await fn()
-      } finally {
-        this.activePromises--
-        // Process next queued task if any
-        if (this.queue.length > 0) {
-          const next = this.queue.shift()!
-          this.add(next)
-        }
-      }
-    }
+/**
+ * Calculate the IPFS CIDv0 of some data
+ * @param data Data to calculate the IPFS CIDv0 for
+ * @returns IPFS CID v0
+ */
+async function getIpfsCidv0(data: Buffer): Promise<string> {
+  // Create a mock memory blockstore that does nothing
+  const blockstore: Blockstore = { get: async () => {}, put: async () => {} } as any
+  for await (const result of importer([{ content: data }], blockstore, {
+    cidVersion: 0,
+    rawLeaves: false,
+    wrapWithDirectory: false,
+  })) {
+    return result.cid.toString()
   }
+  throw new Error("Failed to generate CIDv0")
 }
 
 function checkBBVersion() {
@@ -78,8 +67,8 @@ function checkBBVersion() {
 checkBBVersion()
 
 // Create packaged directory if it doesn't exist
-if (!fs.existsSync(PACKAGED_DIR)) {
-  fs.mkdirSync(PACKAGED_DIR, { recursive: true })
+if (!fs.existsSync(PACKAGED_CIRCUITS_DIR)) {
+  fs.mkdirSync(PACKAGED_CIRCUITS_DIR, { recursive: true })
 }
 
 // Get all JSON files from target directory
@@ -99,8 +88,8 @@ const processFile = async (
   generateSolidityVerifier: boolean = false,
 ): Promise<boolean> => {
   const inputPath = path.join(TARGET_DIR, file)
-  const outputPath = path.join(PACKAGED_DIR, `${outputName}.json`)
-  const vkeyPath = path.join(TARGET_DIR, `${outputName}.vkey.json`)
+  const outputPath = path.join(PACKAGED_CIRCUITS_DIR, `${outputName}.json`)
+  const vkeyPath = path.join(TARGET_DIR, `${outputName}_vkey`)
   const gateCountPath = path.join(TARGET_DIR, `${outputName}.size.json`)
   const solidityVerifierPath = path.join(
     "src/solidity/src",
@@ -109,17 +98,17 @@ const processFile = async (
   try {
     // Skip if output file already exists
     if (fs.existsSync(outputPath)) {
-      console.log(`Skipping ${file} - output file already exists at ${outputPath}`)
+      console.log(`Skipping ${file} (already packaged)`)
       return true
     }
 
     // Run bb command to get bb version and generate circuit vkey
-    const bbVersion = (await execPromise("bb --version")).stdout.trim()
-    console.log(`Generating vkey for ${file}...`)
-    await execPromise(`mkdir -p ${vkeyPath}`)
+    const bbVersion = (await execPromise("bb --version")).stdout.trim().replace(/^v/i, "")
+    console.log(`Generating vkey: ${file}`)
+    fs.mkdirSync(vkeyPath, { recursive: true })
     await execPromise(
-      `bb write_vk --scheme ultra_honk ${recursive ? "--recursive --init_kzg_accumulator" : ""} ${
-        evm ? "--oracle_hash keccak" : ""
+      `bb write_vk --scheme ultra_honk${recursive ? " --recursive --init_kzg_accumulator" : ""}${
+        evm ? " --oracle_hash keccak" : ""
       } --honk_recursion 1 --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
     )
     await execPromise(`bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`)
@@ -132,14 +121,16 @@ const processFile = async (
     // Get Poseidon2 hash of vkey
     const vkeyAsFieldsJson = JSON.parse(fs.readFileSync(`${vkeyPath}/vk_fields.json`, "utf-8"))
     const vkeyAsFields = vkeyAsFieldsJson.map((v: any) => BigInt(v))
-    const vkeyHash = `0x${poseidon2Hash(vkeyAsFields).toString(16)}`
+    const vkeyHash = `0x${poseidon2Hash(vkeyAsFields).toString(16).padStart(64, "0")}`
     const vkey = Buffer.from(fs.readFileSync(`${vkeyPath}/vk`)).toString("base64")
+
     // Clean up vkey files
-    await execPromise(`rm -rf ${vkeyPath}`)
+    fs.unlinkSync(`${vkeyPath}/vk`)
+    fs.unlinkSync(`${vkeyPath}/vk_fields.json`)
+    fs.rmdirSync(vkeyPath)
 
     // Read and parse the input file
     const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
-
     const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
     const gateCount = gateCountFileContent.functions[0].circuit_size
     fs.unlinkSync(gateCountPath)
@@ -182,7 +173,9 @@ const getOuterEvmVkeyHashes = (): { count: number; hash: string }[] => {
 
   try {
     // Get all packaged JSON files
-    const packagedFiles = fs.readdirSync(PACKAGED_DIR).filter((file) => file.endsWith(".json"))
+    const packagedFiles = fs
+      .readdirSync(PACKAGED_CIRCUITS_DIR)
+      .filter((file) => file.endsWith(".json"))
 
     // Filter for outer_evm_count files and extract their vkey hashes
     for (const file of packagedFiles) {
@@ -190,7 +183,7 @@ const getOuterEvmVkeyHashes = (): { count: number; hash: string }[] => {
         const countMatch = file.match(/outer_evm_count_(\d+)\.json/)
         if (countMatch && countMatch[1]) {
           const count = parseInt(countMatch[1])
-          const filePath = path.join(PACKAGED_DIR, file)
+          const filePath = path.join(PACKAGED_CIRCUITS_DIR, file)
 
           // Read the packaged circuit file
           const fileContent = fs.readFileSync(filePath, "utf-8")
@@ -250,7 +243,7 @@ const updateDeploySol = () => {
     const newVkeyHashesContent = outerEvmVkeyHashes
       .map(
         ({ count, hash }) =>
-          `        // Outer (${count} subproofs)\n        bytes32(hex"${hash
+          `    // Outer (${count} subproofs)\n    bytes32(hex"${hash
             .substring(2)
             .padStart(64, "0")}")`,
       )
@@ -259,7 +252,7 @@ const updateDeploySol = () => {
     // Replace the old vkey hashes with the new ones
     const updatedContent = deploySolContent.replace(
       vkeyHashesRegex,
-      (match, prefix, _, suffix) => `${prefix}\n${newVkeyHashesContent}\n${suffix}`,
+      (match, prefix, _, suffix) => `${prefix}\n${newVkeyHashesContent}\n  ${suffix}`,
     )
 
     // Write the updated file
@@ -308,20 +301,16 @@ const processFiles = async () => {
   if (otherFiles.length > 0) {
     console.log(`Processing ${otherFiles.length} regular circuits with concurrency...`)
     const pool = new PromisePool(MAX_CONCURRENT_PROCESSES)
-    const promises: Promise<void>[] = []
-
-    for (const file of otherFiles) {
-      const promise = pool.add(async () => {
-        const success = await processFile(file)
-        if (!success) {
-          hasErrors = true
-        }
-      })
-      promises.push(promise)
-    }
-
-    // Wait for all other files to be processed
-    await Promise.all(promises)
+    await Promise.all(
+      otherFiles.map(async (file) => {
+        await pool.add(async () => {
+          const success = await processFile(file)
+          if (!success) hasErrors = true
+        })
+      }),
+    )
+    // Wait for all files to be processed
+    await pool.drain()
   }
 
   // Update Deploy.s.sol with the vkey hashes
@@ -333,23 +322,83 @@ const processFiles = async () => {
   }
 }
 
-// Start timing
-const startTime = Date.now()
+interface CircuitManifest {
+  version: string
+  root: string
+  circuits: {
+    [key: string]: {
+      hash: string
+      size: string
+      cid: string
+    }
+  }
+}
 
-// Run the async process
-processFiles()
-  .catch((error) => {
+async function generateCircuitManifest(files: string[]) {
+  const circuitManifestPath = path.join(PACKAGED_DIR, "manifest.json")
+  console.log(`Generating circuit manifest for ${files.length} circuits`)
+
+  // Get version from package.json
+  const packageJsonFile = path.join(__dirname, "../../../package.json")
+  const { version } = JSON.parse(fs.readFileSync(packageJsonFile, "utf-8"))
+
+  // Add circuits to manifest
+  let manifest: CircuitManifest = { version, root: "", circuits: {} }
+  const circuits = await Promise.all(
+    files.map(async (file) => {
+      const circuitBuffer = fs.readFileSync(path.join(PACKAGED_CIRCUITS_DIR, file))
+      const json = JSON.parse(circuitBuffer.toString("utf-8"))
+      const cid = await getIpfsCidv0(circuitBuffer)
+      return {
+        name: json.name,
+        hash: json.vkey_hash,
+        cid,
+        size: json.size,
+      }
+    }),
+  )
+  circuits.sort((a, b) => a.name.localeCompare(b.name))
+  for (const circuit of circuits) {
+    manifest.circuits[circuit.name] = {
+      hash: circuit.hash,
+      cid: circuit.cid,
+      size: circuit.size,
+    }
+  }
+  // Calculate circuit root
+  const circuitHashes = circuits.map((circuit) => circuit.hash)
+  manifest.root = await calculateCircuitRoot({ hashes: circuitHashes })
+  console.log("Circuit root:", manifest.root)
+
+  // Save circuit manifest
+  fs.writeFileSync(circuitManifestPath, JSON.stringify(manifest, null, 2))
+  console.log(`Saved circuit manifest: ${circuitManifestPath}`)
+}
+
+async function main() {
+  // Start timing
+  const startTime = Date.now()
+  try {
+    await processFiles()
+    // Generate manifest
+    const packagedFiles = fs
+      .readdirSync(PACKAGED_CIRCUITS_DIR)
+      .filter((file) => file.endsWith(".json"))
+    await generateCircuitManifest(packagedFiles)
+  } catch (error) {
     console.error("Fatal error:", error)
     process.exit(1)
-  })
-  .finally(() => {
+  } finally {
+    // Print total time taken
     const duration = (Date.now() - startTime) / 1000 // convert to seconds
     const minutes = Math.floor(duration / 60)
     const seconds = Math.floor(duration % 60)
-
     if (minutes > 0) {
       console.log(`Total time taken: ${minutes}m ${seconds}s`)
-    } else if (seconds > 0) {
+    } else if (seconds >= 0) {
       console.log(`Total time taken: ${seconds}s`)
     }
-  })
+  }
+}
+
+await main()
