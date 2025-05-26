@@ -243,7 +243,7 @@ const updateDeploySol = () => {
     const newVkeyHashesContent = outerEvmVkeyHashes
       .map(
         ({ count, hash }) =>
-          `        // Outer (${count} subproofs)\n        bytes32(hex"${hash
+          `    // Outer (${count} subproofs)\n    bytes32(hex"${hash
             .substring(2)
             .padStart(64, "0")}")`,
       )
@@ -252,7 +252,7 @@ const updateDeploySol = () => {
     // Replace the old vkey hashes with the new ones
     const updatedContent = deploySolContent.replace(
       vkeyHashesRegex,
-      (match, prefix, _, suffix) => `${prefix}\n${newVkeyHashesContent}\n${suffix}`,
+      (match, prefix, _, suffix) => `${prefix}\n${newVkeyHashesContent}\n  ${suffix}`,
     )
 
     // Write the updated file
