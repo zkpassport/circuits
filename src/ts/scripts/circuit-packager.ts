@@ -3,35 +3,15 @@ import { PromisePool } from "@zkpassport/utils"
 import { calculateCircuitRoot } from "@zkpassport/utils/registry"
 import { exec, execSync } from "child_process"
 import fs from "fs"
-import type { Blockstore } from "interface-blockstore"
-import { importer } from "ipfs-unixfs-importer"
 import path from "path"
 import { promisify } from "util"
-import { snakeToPascal } from "../utils"
+import { getIpfsCidv0, snakeToPascal } from "../utils"
 
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
 const PACKAGED_CIRCUITS_DIR = path.join(TARGET_DIR, "packaged/circuits")
 const MAX_CONCURRENT_PROCESSES = 10
 const DEPLOY_SOL_PATH = "src/solidity/script/Deploy.s.sol"
-
-/**
- * Calculate the IPFS CIDv0 of some data
- * @param data Data to calculate the IPFS CIDv0 for
- * @returns IPFS CID v0
- */
-async function getIpfsCidv0(data: Buffer): Promise<string> {
-  // Create a mock memory blockstore that does nothing
-  const blockstore: Blockstore = { get: async () => {}, put: async () => {} } as any
-  for await (const result of importer([{ content: data }], blockstore, {
-    cidVersion: 0,
-    rawLeaves: false,
-    wrapWithDirectory: false,
-  })) {
-    return result.cid.toString()
-  }
-  throw new Error("Failed to generate CIDv0")
-}
 
 function checkBBVersion() {
   try {
@@ -348,7 +328,7 @@ async function generateCircuitManifest(files: string[]) {
     files.map(async (file) => {
       const circuitBuffer = fs.readFileSync(path.join(PACKAGED_CIRCUITS_DIR, file))
       const json = JSON.parse(circuitBuffer.toString("utf-8"))
-      const cid = await getIpfsCidv0(circuitBuffer)
+      const cid = await getIpfsCidv0(circuitBuffer, { gzip: true })
       return {
         name: json.name,
         hash: json.vkey_hash,

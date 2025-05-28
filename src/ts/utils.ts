@@ -1,9 +1,39 @@
+import { compile_program, createFileManager } from "@noir-lang/noir_wasm"
 import { CompiledCircuit } from "@noir-lang/types"
-import { readFile } from "fs/promises"
-import { createFileManager, compile_program } from "@noir-lang/noir_wasm"
 import { AsnSerializer } from "@peculiar/asn1-schema"
 import { PackagedCircuit } from "@zkpassport/utils"
+import { readFile } from "fs/promises"
+import type { Blockstore } from "interface-blockstore"
+import { importer } from "ipfs-unixfs-importer"
 import path from "path"
+import { promisify } from "util"
+import { gzip } from "zlib"
+
+const gzipAsync = promisify(gzip)
+
+/**
+ * Calculates the IPFS CIDv0 of the given data
+ * @param data The input data used to calculate the IPFS CIDv0
+ * @param options Options for calculating the IPFS CIDv0
+ * @param options.gzip Whether to gzip the data before calculating the CIDv0
+ * @returns The resulting IPFS CIDv0
+ */
+export async function getIpfsCidv0(
+  data: Buffer,
+  { gzip = false }: { gzip?: boolean } = {},
+): Promise<string> {
+  if (gzip) data = await gzipAsync(data)
+  // Create a mock memory blockstore that does nothing
+  const blockstore: Blockstore = { get: async () => {}, put: async () => {} } as any
+  for await (const result of importer([{ content: data }], blockstore, {
+    cidVersion: 0,
+    rawLeaves: false,
+    wrapWithDirectory: false,
+  })) {
+    return result.cid.toString()
+  }
+  throw new Error("Failed to generate CIDv0")
+}
 
 /**
  * Loads a circuit manifest from a JSON file.
