@@ -1,9 +1,13 @@
+import { compile_program, createFileManager } from "@noir-lang/noir_wasm"
 import { CompiledCircuit } from "@noir-lang/types"
-import { readFile } from "fs/promises"
-import { createFileManager, compile_program } from "@noir-lang/noir_wasm"
 import { AsnSerializer } from "@peculiar/asn1-schema"
 import { PackagedCircuit } from "@zkpassport/utils"
+import { readFile } from "fs/promises"
 import path from "path"
+import { promisify } from "util"
+import { gzip } from "zlib"
+
+export const gzipAsync = promisify(gzip)
 
 /**
  * Loads a circuit manifest from a JSON file.

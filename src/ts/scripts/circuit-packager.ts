@@ -7,7 +7,7 @@ import type { Blockstore } from "interface-blockstore"
 import { importer } from "ipfs-unixfs-importer"
 import path from "path"
 import { promisify } from "util"
-import { snakeToPascal } from "../utils"
+import { snakeToPascal, gzipAsync } from "../utils"
 
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
@@ -16,11 +16,17 @@ const MAX_CONCURRENT_PROCESSES = 10
 const DEPLOY_SOL_PATH = "src/solidity/script/Deploy.s.sol"
 
 /**
- * Calculate the IPFS CIDv0 of some data
- * @param data Data to calculate the IPFS CIDv0 for
- * @returns IPFS CID v0
+ * Calculates the IPFS CIDv0 of the given data
+ * @param data The input data used to calculate the IPFS CIDv0
+ * @param options Options for calculating the IPFS CIDv0
+ * @param options.gzip Whether to gzip the data before calculating the CIDv0
+ * @returns The resulting IPFS CIDv0
  */
-async function getIpfsCidv0(data: Buffer): Promise<string> {
+async function getIpfsCidv0(
+  data: Buffer,
+  { gzip = false }: { gzip?: boolean } = {},
+): Promise<string> {
+  if (gzip) data = await gzipAsync(data)
   // Create a mock memory blockstore that does nothing
   const blockstore: Blockstore = { get: async () => {}, put: async () => {} } as any
   for await (const result of importer([{ content: data }], blockstore, {
@@ -348,7 +354,7 @@ async function generateCircuitManifest(files: string[]) {
     files.map(async (file) => {
       const circuitBuffer = fs.readFileSync(path.join(PACKAGED_CIRCUITS_DIR, file))
       const json = JSON.parse(circuitBuffer.toString("utf-8"))
-      const cid = await getIpfsCidv0(circuitBuffer)
+      const cid = await getIpfsCidv0(circuitBuffer, { gzip: true })
       return {
         name: json.name,
         hash: json.vkey_hash,
