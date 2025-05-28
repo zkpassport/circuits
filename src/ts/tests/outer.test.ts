@@ -9,6 +9,7 @@ import {
   getBindCircuitInputs,
   getBirthdateCircuitInputs,
   getCertificateRegistryRootFromOuterProof,
+  getCircuitMerkleProof,
   getCommitmentFromDSCProof,
   getCommitmentInFromDisclosureProof,
   getCommitmentInFromIDDataProof,
@@ -43,6 +44,7 @@ import { generateSigningCertificates, loadKeypairFromFile, signSod } from "../pa
 import { generateSod, wrapSodInContentInfo } from "../sod-generator"
 import { TestHelper } from "../test-helper"
 import { createUTCDate, serializeAsn } from "../utils"
+import circuitManifest from "./fixtures/circuit-manifest.json"
 
 describe("outer proof", () => {
   const helper = new TestHelper()
@@ -241,24 +243,42 @@ describe("outer proof", () => {
     "4 subproofs",
     async () => {
       const circuit = Circuit.from("outer_count_4")
+      const { path: cscToDscTreeHashPath, index: cscToDscTreeIndex } = await getCircuitMerkleProof(
+        subproofs.get(0)?.vkeyHash as string,
+        circuitManifest,
+      )
+      const { path: idDataToIntegrityTreeHashPath, index: idDataToIntegrityTreeIndex } =
+        await getCircuitMerkleProof(subproofs.get(1)?.vkeyHash as string, circuitManifest)
+      const { path: integrityCheckTreeHashPath, index: integrityCheckTreeIndex } =
+        await getCircuitMerkleProof(subproofs.get(2)?.vkeyHash as string, circuitManifest)
+      const { path: discloseTreeHashPath, index: discloseTreeIndex } = await getCircuitMerkleProof(
+        subproofs.get(3)?.vkeyHash as string,
+        circuitManifest,
+      )
       const inputs = await getOuterCircuitInputs(
         {
           proof: subproofs.get(0)?.proof as string[],
           publicInputs: subproofs.get(0)?.publicInputs as string[],
           vkey: subproofs.get(0)?.vkey as string[],
           keyHash: subproofs.get(0)?.vkeyHash as string,
+          treeHashPath: cscToDscTreeHashPath,
+          treeIndex: cscToDscTreeIndex.toString(),
         },
         {
           proof: subproofs.get(1)?.proof as string[],
           publicInputs: subproofs.get(1)?.publicInputs as string[],
           vkey: subproofs.get(1)?.vkey as string[],
           keyHash: subproofs.get(1)?.vkeyHash as string,
+          treeHashPath: idDataToIntegrityTreeHashPath,
+          treeIndex: idDataToIntegrityTreeIndex.toString(),
         },
         {
           proof: subproofs.get(2)?.proof as string[],
           publicInputs: subproofs.get(2)?.publicInputs as string[],
           vkey: subproofs.get(2)?.vkey as string[],
           keyHash: subproofs.get(2)?.vkeyHash as string,
+          treeHashPath: integrityCheckTreeHashPath,
+          treeIndex: integrityCheckTreeIndex.toString(),
         },
         [
           {
@@ -266,8 +286,11 @@ describe("outer proof", () => {
             publicInputs: subproofs.get(3)?.publicInputs as string[],
             vkey: subproofs.get(3)?.vkey as string[],
             keyHash: subproofs.get(3)?.vkeyHash as string,
+            treeHashPath: discloseTreeHashPath,
+            treeIndex: discloseTreeIndex.toString(),
           },
         ],
+        circuitManifest.root,
       )
       const proof = await circuit.prove(inputs, {
         useCli: true,
@@ -339,24 +362,48 @@ describe("outer proof", () => {
 
       // Outer proof
       const outerProofCircuit = Circuit.from("outer_count_6")
+      const { path: cscToDscTreeHashPath, index: cscToDscTreeIndex } = await getCircuitMerkleProof(
+        subproofs.get(0)?.vkeyHash as string,
+        circuitManifest,
+      )
+      const { path: idDataToIntegrityTreeHashPath, index: idDataToIntegrityTreeIndex } =
+        await getCircuitMerkleProof(subproofs.get(1)?.vkeyHash as string, circuitManifest)
+      const { path: integrityCheckTreeHashPath, index: integrityCheckTreeIndex } =
+        await getCircuitMerkleProof(subproofs.get(2)?.vkeyHash as string, circuitManifest)
+      const { path: discloseTreeHashPath, index: discloseTreeIndex } = await getCircuitMerkleProof(
+        subproofs.get(3)?.vkeyHash as string,
+        circuitManifest,
+      )
+      const { path: nationalityTreeHashPath, index: nationalityTreeIndex } =
+        await getCircuitMerkleProof(nationalityVkeyHash as string, circuitManifest)
+      const { path: ageTreeHashPath, index: ageTreeIndex } = await getCircuitMerkleProof(
+        ageVkeyHash as string,
+        circuitManifest,
+      )
       const inputs = await getOuterCircuitInputs(
         {
           proof: subproofs.get(0)?.proof as string[],
           publicInputs: subproofs.get(0)?.publicInputs as string[],
           vkey: subproofs.get(0)?.vkey as string[],
           keyHash: subproofs.get(0)?.vkeyHash as string,
+          treeHashPath: cscToDscTreeHashPath,
+          treeIndex: cscToDscTreeIndex.toString(),
         },
         {
           proof: subproofs.get(1)?.proof as string[],
           publicInputs: subproofs.get(1)?.publicInputs as string[],
           vkey: subproofs.get(1)?.vkey as string[],
           keyHash: subproofs.get(1)?.vkeyHash as string,
+          treeHashPath: idDataToIntegrityTreeHashPath,
+          treeIndex: idDataToIntegrityTreeIndex.toString(),
         },
         {
           proof: subproofs.get(2)?.proof as string[],
           publicInputs: subproofs.get(2)?.publicInputs as string[],
           vkey: subproofs.get(2)?.vkey as string[],
           keyHash: subproofs.get(2)?.vkeyHash as string,
+          treeHashPath: integrityCheckTreeHashPath,
+          treeIndex: integrityCheckTreeIndex.toString(),
         },
         [
           {
@@ -364,20 +411,27 @@ describe("outer proof", () => {
             publicInputs: subproofs.get(3)?.publicInputs as string[],
             vkey: subproofs.get(3)?.vkey as string[],
             keyHash: subproofs.get(3)?.vkeyHash as string,
+            treeHashPath: discloseTreeHashPath,
+            treeIndex: discloseTreeIndex.toString(),
           },
           {
             proof: nationalityProof.proof.map((f) => `0x${f}`) as string[],
             publicInputs: nationalityProof.publicInputs as string[],
             vkey: nationalityVkey,
             keyHash: nationalityVkeyHash,
+            treeHashPath: nationalityTreeHashPath,
+            treeIndex: nationalityTreeIndex.toString(),
           },
           {
             proof: ageProof.proof.map((f) => `0x${f}`) as string[],
             publicInputs: ageProof.publicInputs as string[],
             vkey: ageVkey,
             keyHash: ageVkeyHash,
+            treeHashPath: ageTreeHashPath,
+            treeIndex: ageTreeIndex.toString(),
           },
         ],
+        circuitManifest.root,
       )
 
       const proof = await outerProofCircuit.prove(inputs, {
@@ -648,24 +702,46 @@ describe("outer proof - evm optimised", () => {
       // We can use the regular outer_count_5 rather than outer_evm_count_5
       // since only the vkey changes and we don't use it here
       const circuit = Circuit.from("outer_count_5")
+      const { path: cscToDscTreeHashPath, index: cscToDscTreeIndex } = await getCircuitMerkleProof(
+        subproofs.get(0)?.vkeyHash as string,
+        circuitManifest,
+      )
+      const { path: idDataToIntegrityTreeHashPath, index: idDataToIntegrityTreeIndex } =
+        await getCircuitMerkleProof(subproofs.get(1)?.vkeyHash as string, circuitManifest)
+      const { path: integrityCheckTreeHashPath, index: integrityCheckTreeIndex } =
+        await getCircuitMerkleProof(subproofs.get(2)?.vkeyHash as string, circuitManifest)
+      const { path: discloseTreeHashPath, index: discloseTreeIndex } = await getCircuitMerkleProof(
+        subproofs.get(3)?.vkeyHash as string,
+        circuitManifest,
+      )
+      const { path: bindTreeHashPath, index: bindTreeIndex } = await getCircuitMerkleProof(
+        bindVkeyHash as string,
+        circuitManifest,
+      )
       const inputs = await getOuterCircuitInputs(
         {
           proof: subproofs.get(0)?.proof as string[],
           publicInputs: subproofs.get(0)?.publicInputs as string[],
           vkey: subproofs.get(0)?.vkey as string[],
           keyHash: subproofs.get(0)?.vkeyHash as string,
+          treeHashPath: cscToDscTreeHashPath,
+          treeIndex: cscToDscTreeIndex.toString(),
         },
         {
           proof: subproofs.get(1)?.proof as string[],
           publicInputs: subproofs.get(1)?.publicInputs as string[],
           vkey: subproofs.get(1)?.vkey as string[],
           keyHash: subproofs.get(1)?.vkeyHash as string,
+          treeHashPath: idDataToIntegrityTreeHashPath,
+          treeIndex: idDataToIntegrityTreeIndex.toString(),
         },
         {
           proof: subproofs.get(2)?.proof as string[],
           publicInputs: subproofs.get(2)?.publicInputs as string[],
           vkey: subproofs.get(2)?.vkey as string[],
           keyHash: subproofs.get(2)?.vkeyHash as string,
+          treeHashPath: integrityCheckTreeHashPath,
+          treeIndex: integrityCheckTreeIndex.toString(),
         },
         [
           {
@@ -673,14 +749,19 @@ describe("outer proof - evm optimised", () => {
             publicInputs: subproofs.get(3)?.publicInputs as string[],
             vkey: subproofs.get(3)?.vkey as string[],
             keyHash: subproofs.get(3)?.vkeyHash as string,
+            treeHashPath: discloseTreeHashPath,
+            treeIndex: discloseTreeIndex.toString(),
           },
           {
             proof: bindProof.proof.map((f) => `0x${f}`) as string[],
             publicInputs: bindProof.publicInputs as string[],
             vkey: bindVkey,
             keyHash: bindVkeyHash,
+            treeHashPath: bindTreeHashPath,
+            treeIndex: bindTreeIndex.toString(),
           },
         ],
+        circuitManifest.root,
       )
       const proof = await circuit.prove(inputs, {
         useCli: true,
@@ -1005,24 +1086,58 @@ describe("outer proof - evm optimised", () => {
       // We can use the regular outer_count_11 rather than outer_evm_count_11
       // since only the vkey changes and we don't use it here
       const outerProofCircuit = Circuit.from("outer_count_11")
+      const { path: cscToDscTreeHashPath, index: cscToDscTreeIndex } = await getCircuitMerkleProof(
+        subproofs.get(0)?.vkeyHash as string,
+        circuitManifest,
+      )
+      const { path: idDataToIntegrityTreeHashPath, index: idDataToIntegrityTreeIndex } =
+        await getCircuitMerkleProof(subproofs.get(1)?.vkeyHash as string, circuitManifest)
+      const { path: integrityCheckTreeHashPath, index: integrityCheckTreeIndex } =
+        await getCircuitMerkleProof(subproofs.get(2)?.vkeyHash as string, circuitManifest)
+      const { path: discloseTreeHashPath, index: discloseTreeIndex } = await getCircuitMerkleProof(
+        subproofs.get(3)?.vkeyHash as string,
+        circuitManifest,
+      )
+      const { path: nationalityExclusionTreeHashPath, index: nationalityExclusionTreeIndex } =
+        await getCircuitMerkleProof(nationalityExclusionVkeyHash as string, circuitManifest)
+      const { path: nationalityInclusionTreeHashPath, index: nationalityInclusionTreeIndex } =
+        await getCircuitMerkleProof(nationalityInclusionVkeyHash as string, circuitManifest)
+      const { path: issuingCountryExclusionTreeHashPath, index: issuingCountryExclusionTreeIndex } =
+        await getCircuitMerkleProof(issuingCountryExclusionVkeyHash as string, circuitManifest)
+      const { path: issuingCountryInclusionTreeHashPath, index: issuingCountryInclusionTreeIndex } =
+        await getCircuitMerkleProof(issuingCountryInclusionVkeyHash as string, circuitManifest)
+      const { path: ageTreeHashPath, index: ageTreeIndex } = await getCircuitMerkleProof(
+        ageVkeyHash as string,
+        circuitManifest,
+      )
+      const { path: expiryDateTreeHashPath, index: expiryDateTreeIndex } =
+        await getCircuitMerkleProof(expiryDateVkeyHash as string, circuitManifest)
+      const { path: birthDateTreeHashPath, index: birthDateTreeIndex } =
+        await getCircuitMerkleProof(birthDateVkeyHash as string, circuitManifest)
       const inputs = await getOuterCircuitInputs(
         {
           proof: subproofs.get(0)?.proof as string[],
           publicInputs: subproofs.get(0)?.publicInputs as string[],
           vkey: subproofs.get(0)?.vkey as string[],
           keyHash: subproofs.get(0)?.vkeyHash as string,
+          treeHashPath: cscToDscTreeHashPath,
+          treeIndex: cscToDscTreeIndex.toString(),
         },
         {
           proof: subproofs.get(1)?.proof as string[],
           publicInputs: subproofs.get(1)?.publicInputs as string[],
           vkey: subproofs.get(1)?.vkey as string[],
           keyHash: subproofs.get(1)?.vkeyHash as string,
+          treeHashPath: idDataToIntegrityTreeHashPath,
+          treeIndex: idDataToIntegrityTreeIndex.toString(),
         },
         {
           proof: subproofs.get(2)?.proof as string[],
           publicInputs: subproofs.get(2)?.publicInputs as string[],
           vkey: subproofs.get(2)?.vkey as string[],
           keyHash: subproofs.get(2)?.vkeyHash as string,
+          treeHashPath: integrityCheckTreeHashPath,
+          treeIndex: integrityCheckTreeIndex.toString(),
         },
         [
           {
@@ -1030,50 +1145,67 @@ describe("outer proof - evm optimised", () => {
             publicInputs: subproofs.get(3)?.publicInputs as string[],
             vkey: subproofs.get(3)?.vkey as string[],
             keyHash: subproofs.get(3)?.vkeyHash as string,
+            treeHashPath: discloseTreeHashPath,
+            treeIndex: discloseTreeIndex.toString(),
           },
           {
             proof: nationalityInclusionProof.proof.map((f) => `0x${f}`) as string[],
             publicInputs: nationalityInclusionProof.publicInputs as string[],
             vkey: nationalityInclusionVkey,
             keyHash: nationalityInclusionVkeyHash,
+            treeHashPath: nationalityInclusionTreeHashPath,
+            treeIndex: nationalityInclusionTreeIndex.toString(),
           },
           {
             proof: nationalityExclusionProof.proof.map((f) => `0x${f}`) as string[],
             publicInputs: nationalityExclusionProof.publicInputs as string[],
             vkey: nationalityExclusionVkey,
             keyHash: nationalityExclusionVkeyHash,
+            treeHashPath: nationalityExclusionTreeHashPath,
+            treeIndex: nationalityExclusionTreeIndex.toString(),
           },
           {
             proof: issuingCountryInclusionProof.proof.map((f) => `0x${f}`) as string[],
             publicInputs: issuingCountryInclusionProof.publicInputs as string[],
             vkey: issuingCountryInclusionVkey,
             keyHash: issuingCountryInclusionVkeyHash,
+            treeHashPath: issuingCountryInclusionTreeHashPath,
+            treeIndex: issuingCountryInclusionTreeIndex.toString(),
           },
           {
             proof: issuingCountryExclusionProof.proof.map((f) => `0x${f}`) as string[],
             publicInputs: issuingCountryExclusionProof.publicInputs as string[],
             vkey: issuingCountryExclusionVkey,
             keyHash: issuingCountryExclusionVkeyHash,
+            treeHashPath: issuingCountryExclusionTreeHashPath,
+            treeIndex: issuingCountryExclusionTreeIndex.toString(),
           },
           {
             proof: ageProof.proof.map((f) => `0x${f}`) as string[],
             publicInputs: ageProof.publicInputs as string[],
             vkey: ageVkey,
             keyHash: ageVkeyHash,
+            treeHashPath: ageTreeHashPath,
+            treeIndex: ageTreeIndex.toString(),
           },
           {
             proof: expiryDateProof.proof.map((f) => `0x${f}`) as string[],
             publicInputs: expiryDateProof.publicInputs as string[],
             vkey: expiryDateVkey,
             keyHash: expiryDateVkeyHash,
+            treeHashPath: expiryDateTreeHashPath,
+            treeIndex: expiryDateTreeIndex.toString(),
           },
           {
             proof: birthDateProof.proof.map((f) => `0x${f}`) as string[],
             publicInputs: birthDateProof.publicInputs as string[],
             vkey: birthDateVkey,
             keyHash: birthDateVkeyHash,
+            treeHashPath: birthDateTreeHashPath,
+            treeIndex: birthDateTreeIndex.toString(),
           },
         ],
+        circuitManifest.root,
       )
 
       const proof = await outerProofCircuit.prove(inputs, {
@@ -1083,7 +1215,7 @@ describe("outer proof - evm optimised", () => {
         evm: true,
       })
       expect(proof).toBeDefined()
-      console.log("Outer 11 subproofs")
+      /*console.log("Outer 11 subproofs")
       console.log(
         JSON.stringify({
           proof: proof.proof.slice(16).join(""),
@@ -1091,7 +1223,7 @@ describe("outer proof - evm optimised", () => {
         }),
       )
       console.log("committed inputs")
-      console.log(compressedCommittedInputs)
+      console.log(compressedCommittedInputs)*/
       const currentDate = getCurrentDateFromOuterProof(proof)
       expect(currentDate).toEqual(globalCurrentDate)
       const nullifier = getNullifierFromOuterProof(proof)

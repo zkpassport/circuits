@@ -39,12 +39,11 @@ pub struct CSCtoDSCProof {
     // which is passed separately
     pub public_inputs: [Field; 1],
     pub key_hash: Field,
-    // TODO: enable it when the circuit registry is ready
     // Hash path for circuit A key hash in the sub-circuit merkle tree
     // Allows for up to 4,096 leaves
-    // tree_hash_path: [Field; 12],
+    pub tree_hash_path: [Field; 12],
     // Index of circuit A key hash in the sub-circuit merkle tree
-    // tree_index: Field,
+    pub tree_index: Field,
 }
 
 pub struct DSCtoIDDataProof {
@@ -52,11 +51,10 @@ pub struct DSCtoIDDataProof {
     pub proof: [Field; PROOF_SIZE],
     pub public_inputs: [Field; 2],
     pub key_hash: Field,
-    // TODO: enable it when the circuit registry is ready
     // Hash path for circuit B key hash in the sub-circuit merkle tree
-    // tree_hash_path: [Field; 12],
+    pub tree_hash_path: [Field; 12],
     // Index of circuit B key hash in the sub-circuit merkle tree
-    // tree_index: Field,
+    pub tree_index: Field,
 }
 
 pub struct IntegrityCheckProof {
@@ -64,11 +62,10 @@ pub struct IntegrityCheckProof {
     pub proof: [Field; PROOF_SIZE],
     pub public_inputs: [Field; 2],
     pub key_hash: Field,
-    // TODO: enable it when the circuit registry is ready
     // Hash path for circuit C key hash in the sub-circuit merkle tree
-    // tree_hash_path: [Field; 12],
+    pub tree_hash_path: [Field; 12],
     // Index of circuit C key hash in the sub-circuit merkle tree
-    // tree_index: Field,
+    pub tree_index: Field,
 }
 
 pub struct DisclosureProof {
@@ -76,9 +73,8 @@ pub struct DisclosureProof {
     pub proof: [Field; PROOF_SIZE],
     pub public_inputs: [Field; 1],
     pub key_hash: Field,
-    // TODO: enable it when the circuit registry is ready
     // Hash path for circuit D key hash in the sub-circuit merkle tree
-    // tree_hash_path: [Field; 12],
+    pub tree_hash_path: [Field; 12],
     // Index of circuit D key hash in the sub-circuit merkle tree
-    // tree_index: Field,
+    pub tree_index: Field,
 }
