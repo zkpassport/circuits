@@ -3,15 +3,41 @@ import { PromisePool } from "@zkpassport/utils"
 import { calculateCircuitRoot } from "@zkpassport/utils/registry"
 import { exec, execSync } from "child_process"
 import fs from "fs"
+import type { Blockstore } from "interface-blockstore"
+import { importer } from "ipfs-unixfs-importer"
 import path from "path"
 import { promisify } from "util"
-import { getIpfsCidv0, snakeToPascal } from "../utils"
+import { snakeToPascal, gzipAsync } from "../utils"
 
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
 const PACKAGED_CIRCUITS_DIR = path.join(TARGET_DIR, "packaged/circuits")
 const MAX_CONCURRENT_PROCESSES = 10
 const DEPLOY_SOL_PATH = "src/solidity/script/Deploy.s.sol"
+
+/**
+ * Calculates the IPFS CIDv0 of the given data
+ * @param data The input data used to calculate the IPFS CIDv0
+ * @param options Options for calculating the IPFS CIDv0
+ * @param options.gzip Whether to gzip the data before calculating the CIDv0
+ * @returns The resulting IPFS CIDv0
+ */
+async function getIpfsCidv0(
+  data: Buffer,
+  { gzip = false }: { gzip?: boolean } = {},
+): Promise<string> {
+  if (gzip) data = await gzipAsync(data)
+  // Create a mock memory blockstore that does nothing
+  const blockstore: Blockstore = { get: async () => {}, put: async () => {} } as any
+  for await (const result of importer([{ content: data }], blockstore, {
+    cidVersion: 0,
+    rawLeaves: false,
+    wrapWithDirectory: false,
+  })) {
+    return result.cid.toString()
+  }
+  throw new Error("Failed to generate CIDv0")
+}
 
 function checkBBVersion() {
   try {
