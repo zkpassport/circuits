@@ -17,9 +17,9 @@ contract SampleContractTest is TestUtils {
   string constant PUBLIC_INPUTS_PATH = "./test/fixtures/all_subproofs_public_inputs.json";
   string constant COMMITTED_INPUTS_PATH = "./test/fixtures/all_subproofs_committed_inputs.hex";
   bytes32 constant VKEY_HASH =
-    bytes32(uint256(0x069f039e7d9a3a64d963797f9a7232380dab2c2cd294c1d7864105b7caa6ea00));
+    bytes32(uint256(0x0de666646c1b8789226f13a0dbdd172e2f2787612420a2e2815d7d0ff32d5610));
   bytes32 constant CERTIFICATE_REGISTRY_ROOT =
-    bytes32(uint256(0x2721d9fef89710b8bc936da5c06b92573eb54caefb52854ee867f72380ffa4ab));
+    bytes32(uint256(0x09c02ff4c03e8256250691c572bf9cf25e2af8dfec60ed741f1f29ec8db81ecc));
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
@@ -61,8 +61,8 @@ contract SampleContractTest is TestUtils {
     vm.expectRevert("User is not verified");
     sampleContract.doStuff();
 
-    // Set the timestamp to 2025-05-11 13:46:16 UTC
-    vm.warp(1746971176);
+    // Set the timestamp to 2025-05-29 14:58:54 UTC
+    vm.warp(1748530734);
     ProofVerificationParams memory params = ProofVerificationParams({
       vkeyHash: VKEY_HASH,
       proof: proof,

@@ -5,7 +5,8 @@
     "lint": "tsc --project src/ts/tsconfig.json --noEmit",
     "test": "jest",
     "generate": "tsx src/ts/scripts/circuit-builder.ts generate",
-    "compile": "tsx src/ts/scripts/circuit-builder.ts generate compile"
+    "compile": "tsx src/ts/scripts/circuit-builder.ts generate compile",
+    "test-contracts": "cd src/solidity && forge test -vv --fork-url $SEPOLIA_RPC_URL --chain-id 31337 --block-number 8432737 && cd ../.."
   },
   "dependencies": {
     "@aws-sdk/client-cloudfront": "^3.730.0",

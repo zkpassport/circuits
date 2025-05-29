@@ -4,7 +4,9 @@ import type { PackagedCertificate, Query } from "@zkpassport/utils"
 import {
   Binary,
   DisclosedData,
+  ProofType,
   convertPemToPackagedCertificate,
+  formatBoundData,
   getAgeCircuitInputs,
   getBindCircuitInputs,
   getBirthdateCircuitInputs,
@@ -16,6 +18,7 @@ import {
   getCommitmentInFromIntegrityProof,
   getCommitmentOutFromIDDataProof,
   getCommitmentOutFromIntegrityProof,
+  getCountryFromWeightedSum,
   getCurrentDateFromIntegrityProof,
   getCurrentDateFromOuterProof,
   getDiscloseCircuitInputs,
@@ -45,6 +48,8 @@ import { generateSod, wrapSodInContentInfo } from "../sod-generator"
 import { TestHelper } from "../test-helper"
 import { createUTCDate, serializeAsn } from "../utils"
 import circuitManifest from "./fixtures/circuit-manifest.json"
+
+const DEBUG_OUTPUT = true
 
 describe("outer proof", () => {
   const helper = new TestHelper()
@@ -672,12 +677,14 @@ describe("outer proof - evm optimised", () => {
       inputs.disclose_mask,
       disclosedBytes,
     )
-    /*console.log("Disclose compressedCommittedInputs")
-    console.log(
-      ProofType.DISCLOSE.toString(16).padStart(2, "0") +
-        inputs.disclose_mask.map((x: number) => x.toString(16).padStart(2, "0")).join("") +
-        disclosedBytes.map((x: number) => x.toString(16).padStart(2, "0")).join(""),
-    )*/
+    if (DEBUG_OUTPUT) {
+      console.log("Disclose compressedCommittedInputs")
+      console.log(
+        ProofType.DISCLOSE.toString(16).padStart(2, "0") +
+          inputs.disclose_mask.map((x: number) => x.toString(16).padStart(2, "0")).join("") +
+          disclosedBytes.map((x: number) => x.toString(16).padStart(2, "0")).join(""),
+      )
+    }
     expect(paramCommitment).toEqual(calculatedParamCommitment)
     // Verify the disclosed data
     const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
@@ -752,14 +759,16 @@ describe("outer proof - evm optimised", () => {
       )}`
       await bindCircuit.destroy()
 
-      /*const bindCommittedInputs =
+      const bindCommittedInputs =
         ProofType.BIND.toString(16).padStart(2, "0") +
         rightPadArrayWithZeros(formatBoundData(bindQuery.bind!), 500)
           .map((x) => x.toString(16).padStart(2, "0"))
           .join("")
 
-      console.log("Bind committed inputs")
-      console.log(bindCommittedInputs)*/
+      if (DEBUG_OUTPUT) {
+        console.log("Bind committed inputs")
+        console.log(bindCommittedInputs)
+      }
 
       // We can use the regular outer_count_5 rather than outer_evm_count_5
       // since only the vkey changes and we don't use it here
@@ -832,13 +841,15 @@ describe("outer proof - evm optimised", () => {
         evm: true,
       })
       expect(proof).toBeDefined()
-      /*console.log("Outer 5 subproofs")
-      console.log(
-        JSON.stringify({
-          proof: proof.proof.slice(16).join(""),
-          publicInputs: proof.publicInputs.concat(proof.proof.slice(0, 16).map((f) => `0x${f}`)),
-        }),
-      )*/
+      if (DEBUG_OUTPUT) {
+        console.log("Outer 5 subproofs")
+        console.log(
+          JSON.stringify({
+            proof: proof.proof.slice(16).join(""),
+            publicInputs: proof.publicInputs.concat(proof.proof.slice(0, 16).map((f) => `0x${f}`)),
+          }),
+        )
+      }
       const currentDate = getCurrentDateFromOuterProof(proof)
       expect(currentDate).toEqual(globalCurrentDate)
       const nullifier = getNullifierFromOuterProof(proof)
@@ -896,16 +907,18 @@ describe("outer proof - evm optimised", () => {
       ).toString(16)}`
       await nationalityInclusionCircuit.destroy()
 
-      /*compressedCommittedInputs +=
-        ProofType.NATIONALITY_INCLUSION.toString(16).padStart(2, "0") +
-        rightPadArrayWithZeros(
-          nationalityInclusionInputs.country_list
-            .map((c: string) => Array.from(new TextEncoder().encode(c)))
-            .flat(),
-          600,
-        )
-          .map((x) => x.toString(16).padStart(2, "0"))
-          .join("")*/
+      if (DEBUG_OUTPUT) {
+        compressedCommittedInputs +=
+          ProofType.NATIONALITY_INCLUSION.toString(16).padStart(2, "0") +
+          rightPadArrayWithZeros(
+            nationalityInclusionInputs.country_list
+              .map((c: string) => Array.from(new TextEncoder().encode(c)))
+              .flat(),
+            600,
+          )
+            .map((x) => x.toString(16).padStart(2, "0"))
+            .join("")
+      }
 
       // 3rd disclosure proof
       const nationalityExclusionCircuit = Circuit.from("exclusion_check_nationality_evm")
@@ -944,16 +957,20 @@ describe("outer proof - evm optimised", () => {
       ).toString(16)}`
       await nationalityExclusionCircuit.destroy()
 
-      /*compressedCommittedInputs +=
-        ProofType.NATIONALITY_EXCLUSION.toString(16).padStart(2, "0") +
-        rightPadArrayWithZeros(
-          nationalityExclusionInputs.country_list
-            .map((c: number) => Array.from(new TextEncoder().encode(getCountryFromWeightedSum(c))))
-            .flat(),
-          600,
-        )
-          .map((x) => x.toString(16).padStart(2, "0"))
-          .join("")*/
+      if (DEBUG_OUTPUT) {
+        compressedCommittedInputs +=
+          ProofType.NATIONALITY_EXCLUSION.toString(16).padStart(2, "0") +
+          rightPadArrayWithZeros(
+            nationalityExclusionInputs.country_list
+              .map((c: number) =>
+                Array.from(new TextEncoder().encode(getCountryFromWeightedSum(c))),
+              )
+              .flat(),
+            600,
+          )
+            .map((x) => x.toString(16).padStart(2, "0"))
+            .join("")
+      }
 
       // 4th disclosure proof
       const issuingCountryInclusionCircuit = Circuit.from("inclusion_check_issuing_country_evm")
@@ -992,16 +1009,18 @@ describe("outer proof - evm optimised", () => {
         await poseidon2HashAsync(issuingCountryInclusionVkey.map((x) => BigInt(x)))
       ).toString(16)}`
       await issuingCountryInclusionCircuit.destroy()
-      /*compressedCommittedInputs +=
-        ProofType.ISSUING_COUNTRY_INCLUSION.toString(16).padStart(2, "0") +
-        rightPadArrayWithZeros(
-          issuingCountryInclusionInputs.country_list
-            .map((c: string) => Array.from(new TextEncoder().encode(c)))
-            .flat(),
-          600,
-        )
-          .map((x) => x.toString(16).padStart(2, "0"))
-          .join("")*/
+      if (DEBUG_OUTPUT) {
+        compressedCommittedInputs +=
+          ProofType.ISSUING_COUNTRY_INCLUSION.toString(16).padStart(2, "0") +
+          rightPadArrayWithZeros(
+            issuingCountryInclusionInputs.country_list
+              .map((c: string) => Array.from(new TextEncoder().encode(c)))
+              .flat(),
+            600,
+          )
+            .map((x) => x.toString(16).padStart(2, "0"))
+            .join("")
+      }
 
       // 5th disclosure proof
       const issuingCountryExclusionCircuit = Circuit.from("exclusion_check_issuing_country_evm")
@@ -1040,16 +1059,20 @@ describe("outer proof - evm optimised", () => {
         await poseidon2HashAsync(issuingCountryExclusionVkey.map((x) => BigInt(x)))
       ).toString(16)}`
       await issuingCountryExclusionCircuit.destroy()
-      /*compressedCommittedInputs +=
-        ProofType.ISSUING_COUNTRY_EXCLUSION.toString(16).padStart(2, "0") +
-        rightPadArrayWithZeros(
-          issuingCountryExclusionInputs.country_list
-            .map((c: number) => Array.from(new TextEncoder().encode(getCountryFromWeightedSum(c))))
-            .flat(),
-          600,
-        )
-          .map((x) => x.toString(16).padStart(2, "0"))
-          .join("")*/
+      if (DEBUG_OUTPUT) {
+        compressedCommittedInputs +=
+          ProofType.ISSUING_COUNTRY_EXCLUSION.toString(16).padStart(2, "0") +
+          rightPadArrayWithZeros(
+            issuingCountryExclusionInputs.country_list
+              .map((c: number) =>
+                Array.from(new TextEncoder().encode(getCountryFromWeightedSum(c))),
+              )
+              .flat(),
+            600,
+          )
+            .map((x) => x.toString(16).padStart(2, "0"))
+            .join("")
+      }
 
       // 6th disclosure proof
       const ageQuery: Query = {
@@ -1082,13 +1105,15 @@ describe("outer proof - evm optimised", () => {
         16,
       )}`
       await ageCircuit.destroy()
-      /*compressedCommittedInputs +=
-        ProofType.AGE.toString(16).padStart(2, "0") +
-        Array.from(new TextEncoder().encode(ageInputs.current_date))
-          .map((x: number) => x.toString(16).padStart(2, "0"))
-          .join("") +
-        ageInputs.min_age_required.toString(16).padStart(2, "0") +
-        ageInputs.max_age_required.toString(16).padStart(2, "0")*/
+      if (DEBUG_OUTPUT) {
+        compressedCommittedInputs +=
+          ProofType.AGE.toString(16).padStart(2, "0") +
+          Array.from(new TextEncoder().encode(ageInputs.current_date))
+            .map((x: number) => x.toString(16).padStart(2, "0"))
+            .join("") +
+          ageInputs.min_age_required.toString(16).padStart(2, "0") +
+          ageInputs.max_age_required.toString(16).padStart(2, "0")
+      }
 
       // 7th disclosure proof
       const expiryDateCircuit = Circuit.from("compare_expiry_evm")
@@ -1122,17 +1147,19 @@ describe("outer proof - evm optimised", () => {
         await poseidon2HashAsync(expiryDateVkey.map((x) => BigInt(x)))
       ).toString(16)}`
       await expiryDateCircuit.destroy()
-      /*compressedCommittedInputs +=
-        ProofType.EXPIRY_DATE.toString(16).padStart(2, "0") +
-        Array.from(new TextEncoder().encode(expiryDateInputs.current_date))
-          .map((x: number) => x.toString(16).padStart(2, "0"))
-          .join("") +
-        Array.from(new TextEncoder().encode(expiryDateInputs.min_date))
-          .map((x: number) => x.toString(16).padStart(2, "0"))
-          .join("") +
-        Array.from(new TextEncoder().encode(expiryDateInputs.max_date))
-          .map((x: number) => x.toString(16).padStart(2, "0"))
-          .join("")*/
+      if (DEBUG_OUTPUT) {
+        compressedCommittedInputs +=
+          ProofType.EXPIRY_DATE.toString(16).padStart(2, "0") +
+          Array.from(new TextEncoder().encode(expiryDateInputs.current_date))
+            .map((x: number) => x.toString(16).padStart(2, "0"))
+            .join("") +
+          Array.from(new TextEncoder().encode(expiryDateInputs.min_date))
+            .map((x: number) => x.toString(16).padStart(2, "0"))
+            .join("") +
+          Array.from(new TextEncoder().encode(expiryDateInputs.max_date))
+            .map((x: number) => x.toString(16).padStart(2, "0"))
+            .join("")
+      }
 
       // 8th disclosure proof
       const birthDateCircuit = Circuit.from("compare_birthdate_evm")
@@ -1166,17 +1193,19 @@ describe("outer proof - evm optimised", () => {
         await poseidon2HashAsync(birthDateVkey.map((x) => BigInt(x)))
       ).toString(16)}`
       await birthDateCircuit.destroy()
-      /*compressedCommittedInputs +=
-        ProofType.BIRTHDATE.toString(16).padStart(2, "0") +
-        Array.from(new TextEncoder().encode(birthDateInputs.current_date))
-          .map((x: number) => x.toString(16).padStart(2, "0"))
-          .join("") +
-        Array.from(new TextEncoder().encode(birthDateInputs.min_date))
-          .map((x: number) => x.toString(16).padStart(2, "0"))
-          .join("") +
-        Array.from(new TextEncoder().encode(birthDateInputs.max_date))
-          .map((x: number) => x.toString(16).padStart(2, "0"))
-          .join("")*/
+      if (DEBUG_OUTPUT) {
+        compressedCommittedInputs +=
+          ProofType.BIRTHDATE.toString(16).padStart(2, "0") +
+          Array.from(new TextEncoder().encode(birthDateInputs.current_date))
+            .map((x: number) => x.toString(16).padStart(2, "0"))
+            .join("") +
+          Array.from(new TextEncoder().encode(birthDateInputs.min_date))
+            .map((x: number) => x.toString(16).padStart(2, "0"))
+            .join("") +
+          Array.from(new TextEncoder().encode(birthDateInputs.max_date))
+            .map((x: number) => x.toString(16).padStart(2, "0"))
+            .join("")
+      }
 
       // Outer proof
       // We can use the regular outer_count_11 rather than outer_evm_count_11
@@ -1311,15 +1340,17 @@ describe("outer proof - evm optimised", () => {
         evm: true,
       })
       expect(proof).toBeDefined()
-      /*console.log("Outer 11 subproofs")
-      console.log(
-        JSON.stringify({
-          proof: proof.proof.slice(16).join(""),
-          publicInputs: proof.publicInputs.concat(proof.proof.slice(0, 16).map((f) => `0x${f}`)),
-        }),
-      )
-      console.log("committed inputs")
-      console.log(compressedCommittedInputs)*/
+      if (DEBUG_OUTPUT) {
+        console.log("Outer 11 subproofs")
+        console.log(
+          JSON.stringify({
+            proof: proof.proof.slice(16).join(""),
+            publicInputs: proof.publicInputs.concat(proof.proof.slice(0, 16).map((f) => `0x${f}`)),
+          }),
+        )
+        console.log("committed inputs")
+        console.log(compressedCommittedInputs)
+      }
       const currentDate = getCurrentDateFromOuterProof(proof)
       expect(currentDate).toEqual(globalCurrentDate)
       const nullifier = getNullifierFromOuterProof(proof)
