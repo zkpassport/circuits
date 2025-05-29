@@ -354,7 +354,7 @@ async function generateCircuitManifest(files: string[]) {
     files.map(async (file) => {
       const circuitBuffer = fs.readFileSync(path.join(PACKAGED_CIRCUITS_DIR, file))
       const json = JSON.parse(circuitBuffer.toString("utf-8"))
-      const cid = await getIpfsCidv0(circuitBuffer, { gzip: true })
+      const cid = await getIpfsCidv0(circuitBuffer)
       return {
         name: json.name,
         hash: json.vkey_hash,
