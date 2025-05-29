@@ -114,7 +114,13 @@ describe("outer proof", () => {
     certificateRegistryRoot = getMerkleRootFromDSCProof(cscToDscProof)
     expect(certificateRegistryRoot).toBeDefined()
     const cscToDscCommitment = getCommitmentFromDSCProof(cscToDscProof)
-    const cscToDscVkey = ultraVkToFields(await cscToDscCircuit.getVerificationKey(true))
+    const cscToDscVkey = ultraVkToFields(
+      await cscToDscCircuit.getVerificationKey({
+        recursive: true,
+        evm: false,
+        useCli: true,
+      }),
+    )
     const cscToDscVkeyHash = `0x${(
       await poseidon2HashAsync(cscToDscVkey.map((x) => BigInt(x)))
     ).toString(16)}`
@@ -140,7 +146,11 @@ describe("outer proof", () => {
     const dscToIdDataCommitment = getCommitmentOutFromIDDataProof(idDataToIntegrityProof)
     expect(idDataCommitmentIn).toEqual(cscToDscCommitment)
     const idDataToIntegrityVkey = ultraVkToFields(
-      await idDataToIntegrityCircuit.getVerificationKey(true),
+      await idDataToIntegrityCircuit.getVerificationKey({
+        recursive: true,
+        evm: false,
+        useCli: true,
+      }),
     )
     const idDataToIntegrityVkeyHash = `0x${(
       await poseidon2HashAsync(idDataToIntegrityVkey.map((x) => BigInt(x)))
@@ -166,7 +176,13 @@ describe("outer proof", () => {
     const currentDate = getCurrentDateFromIntegrityProof(integrityProof)
     expect(integrityCheckCommitmentIn).toEqual(dscToIdDataCommitment)
     expect(currentDate).toEqual(globalCurrentDate)
-    const integrityVkey = ultraVkToFields(await integrityCircuit.getVerificationKey(true))
+    const integrityVkey = ultraVkToFields(
+      await integrityCircuit.getVerificationKey({
+        recursive: true,
+        evm: false,
+        useCli: true,
+      }),
+    )
     const integrityVkeyHash = `0x${(
       await poseidon2HashAsync(integrityVkey.map((x) => BigInt(x)))
     ).toString(16)}`
@@ -225,7 +241,13 @@ describe("outer proof", () => {
     )
     const discloseCommitmentIn = getCommitmentInFromDisclosureProof(proof)
     expect(discloseCommitmentIn).toEqual(integrityCheckToDisclosureCommitment)
-    const discloseVkey = ultraVkToFields(await discloseCircuit.getVerificationKey(true))
+    const discloseVkey = ultraVkToFields(
+      await discloseCircuit.getVerificationKey({
+        recursive: true,
+        evm: false,
+        useCli: true,
+      }),
+    )
     const discloseVkeyHash = `0x${(
       await poseidon2HashAsync(discloseVkey.map((x) => BigInt(x)))
     ).toString(16)}`
@@ -334,7 +356,13 @@ describe("outer proof", () => {
       })
       expect(nationalityProof).toBeDefined()
       const nationalityParamCommitment = getParameterCommitmentFromDisclosureProof(nationalityProof)
-      const nationalityVkey = ultraVkToFields(await nationalityCircuit.getVerificationKey(true))
+      const nationalityVkey = ultraVkToFields(
+        await nationalityCircuit.getVerificationKey({
+          recursive: true,
+          evm: false,
+          useCli: true,
+        }),
+      )
       const nationalityVkeyHash = `0x${(
         await poseidon2HashAsync(nationalityVkey.map((x) => BigInt(x)))
       ).toString(16)}`
@@ -354,7 +382,13 @@ describe("outer proof", () => {
       })
       expect(ageProof).toBeDefined()
       const ageParamCommitment = getParameterCommitmentFromDisclosureProof(ageProof)
-      const ageVkey = ultraVkToFields(await ageCircuit.getVerificationKey(true))
+      const ageVkey = ultraVkToFields(
+        await ageCircuit.getVerificationKey({
+          recursive: true,
+          evm: false,
+          useCli: true,
+        }),
+      )
       const ageVkeyHash = `0x${(await poseidon2HashAsync(ageVkey.map((x) => BigInt(x)))).toString(
         16,
       )}`
@@ -526,7 +560,13 @@ describe("outer proof - evm optimised", () => {
     certificateRegistryRoot = getMerkleRootFromDSCProof(cscToDscProof)
     expect(certificateRegistryRoot).toBeDefined()
     const cscToDscCommitment = getCommitmentFromDSCProof(cscToDscProof)
-    const cscToDscVkey = ultraVkToFields(await cscToDscCircuit.getVerificationKey(true))
+    const cscToDscVkey = ultraVkToFields(
+      await cscToDscCircuit.getVerificationKey({
+        recursive: true,
+        evm: false,
+        useCli: true,
+      }),
+    )
     const cscToDscVkeyHash = `0x${(
       await poseidon2HashAsync(cscToDscVkey.map((x) => BigInt(x)))
     ).toString(16)}`
@@ -552,7 +592,11 @@ describe("outer proof - evm optimised", () => {
     const dscToIdDataCommitment = getCommitmentOutFromIDDataProof(idDataToIntegrityProof)
     expect(idDataCommitmentIn).toEqual(cscToDscCommitment)
     const idDataToIntegrityVkey = ultraVkToFields(
-      await idDataToIntegrityCircuit.getVerificationKey(true),
+      await idDataToIntegrityCircuit.getVerificationKey({
+        recursive: true,
+        evm: false,
+        useCli: true,
+      }),
     )
     const idDataToIntegrityVkeyHash = `0x${(
       await poseidon2HashAsync(idDataToIntegrityVkey.map((x) => BigInt(x)))
@@ -578,7 +622,13 @@ describe("outer proof - evm optimised", () => {
     const currentDate = getCurrentDateFromIntegrityProof(integrityProof)
     expect(integrityCheckCommitmentIn).toEqual(dscToIdDataCommitment)
     expect(currentDate).toEqual(globalCurrentDate)
-    const integrityVkey = ultraVkToFields(await integrityCircuit.getVerificationKey(true))
+    const integrityVkey = ultraVkToFields(
+      await integrityCircuit.getVerificationKey({
+        recursive: true,
+        evm: false,
+        useCli: true,
+      }),
+    )
     const integrityVkeyHash = `0x${(
       await poseidon2HashAsync(integrityVkey.map((x) => BigInt(x)))
     ).toString(16)}`
@@ -645,7 +695,13 @@ describe("outer proof - evm optimised", () => {
     )
     const discloseCommitmentIn = getCommitmentInFromDisclosureProof(proof)
     expect(discloseCommitmentIn).toEqual(integrityCheckToDisclosureCommitment)
-    const discloseVkey = ultraVkToFields(await discloseCircuit.getVerificationKey(true))
+    const discloseVkey = ultraVkToFields(
+      await discloseCircuit.getVerificationKey({
+        recursive: true,
+        evm: false,
+        useCli: true,
+      }),
+    )
     const discloseVkeyHash = `0x${(
       await poseidon2HashAsync(discloseVkey.map((x) => BigInt(x)))
     ).toString(16)}`
@@ -684,7 +740,13 @@ describe("outer proof - evm optimised", () => {
       })
       expect(bindProof).toBeDefined()
       const bindParamCommitment = getParameterCommitmentFromDisclosureProof(bindProof)
-      const bindVkey = ultraVkToFields(await bindCircuit.getVerificationKey(true))
+      const bindVkey = ultraVkToFields(
+        await bindCircuit.getVerificationKey({
+          recursive: true,
+          evm: false,
+          useCli: true,
+        }),
+      )
       const bindVkeyHash = `0x${(await poseidon2HashAsync(bindVkey.map((x) => BigInt(x)))).toString(
         16,
       )}`
@@ -823,7 +885,11 @@ describe("outer proof - evm optimised", () => {
       const nationalityInclusionParamCommitment =
         getParameterCommitmentFromDisclosureProof(nationalityInclusionProof)
       const nationalityInclusionVkey = ultraVkToFields(
-        await nationalityInclusionCircuit.getVerificationKey(true),
+        await nationalityInclusionCircuit.getVerificationKey({
+          recursive: true,
+          evm: false,
+          useCli: true,
+        }),
       )
       const nationalityInclusionVkeyHash = `0x${(
         await poseidon2HashAsync(nationalityInclusionVkey.map((x) => BigInt(x)))
@@ -867,7 +933,11 @@ describe("outer proof - evm optimised", () => {
       const nationalityExclusionParamCommitment =
         getParameterCommitmentFromDisclosureProof(nationalityExclusionProof)
       const nationalityExclusionVkey = ultraVkToFields(
-        await nationalityExclusionCircuit.getVerificationKey(true),
+        await nationalityExclusionCircuit.getVerificationKey({
+          recursive: true,
+          evm: false,
+          useCli: true,
+        }),
       )
       const nationalityExclusionVkeyHash = `0x${(
         await poseidon2HashAsync(nationalityExclusionVkey.map((x) => BigInt(x)))
@@ -912,7 +982,11 @@ describe("outer proof - evm optimised", () => {
         issuingCountryInclusionProof,
       )
       const issuingCountryInclusionVkey = ultraVkToFields(
-        await issuingCountryInclusionCircuit.getVerificationKey(true),
+        await issuingCountryInclusionCircuit.getVerificationKey({
+          recursive: true,
+          evm: false,
+          useCli: true,
+        }),
       )
       const issuingCountryInclusionVkeyHash = `0x${(
         await poseidon2HashAsync(issuingCountryInclusionVkey.map((x) => BigInt(x)))
@@ -956,7 +1030,11 @@ describe("outer proof - evm optimised", () => {
         issuingCountryExclusionProof,
       )
       const issuingCountryExclusionVkey = ultraVkToFields(
-        await issuingCountryExclusionCircuit.getVerificationKey(true),
+        await issuingCountryExclusionCircuit.getVerificationKey({
+          recursive: true,
+          evm: false,
+          useCli: true,
+        }),
       )
       const issuingCountryExclusionVkeyHash = `0x${(
         await poseidon2HashAsync(issuingCountryExclusionVkey.map((x) => BigInt(x)))
@@ -993,7 +1071,13 @@ describe("outer proof - evm optimised", () => {
       })
       expect(ageProof).toBeDefined()
       const ageParamCommitment = getParameterCommitmentFromDisclosureProof(ageProof)
-      const ageVkey = ultraVkToFields(await ageCircuit.getVerificationKey(true))
+      const ageVkey = ultraVkToFields(
+        await ageCircuit.getVerificationKey({
+          recursive: true,
+          evm: false,
+          useCli: true,
+        }),
+      )
       const ageVkeyHash = `0x${(await poseidon2HashAsync(ageVkey.map((x) => BigInt(x)))).toString(
         16,
       )}`
@@ -1027,7 +1111,13 @@ describe("outer proof - evm optimised", () => {
       })
       expect(expiryDateProof).toBeDefined()
       const expiryDateParamCommitment = getParameterCommitmentFromDisclosureProof(expiryDateProof)
-      const expiryDateVkey = ultraVkToFields(await expiryDateCircuit.getVerificationKey(true))
+      const expiryDateVkey = ultraVkToFields(
+        await expiryDateCircuit.getVerificationKey({
+          recursive: true,
+          evm: false,
+          useCli: true,
+        }),
+      )
       const expiryDateVkeyHash = `0x${(
         await poseidon2HashAsync(expiryDateVkey.map((x) => BigInt(x)))
       ).toString(16)}`
@@ -1065,7 +1155,13 @@ describe("outer proof - evm optimised", () => {
       })
       expect(birthDateProof).toBeDefined()
       const birthDateParamCommitment = getParameterCommitmentFromDisclosureProof(birthDateProof)
-      const birthDateVkey = ultraVkToFields(await birthDateCircuit.getVerificationKey(true))
+      const birthDateVkey = ultraVkToFields(
+        await birthDateCircuit.getVerificationKey({
+          recursive: true,
+          evm: false,
+          useCli: true,
+        }),
+      )
       const birthDateVkeyHash = `0x${(
         await poseidon2HashAsync(birthDateVkey.map((x) => BigInt(x)))
       ).toString(16)}`

@@ -120,7 +120,7 @@ fn verify_subproofs(
 }
 
 fn main(
-    // Root of the certificate merkle tree
+    // Root of the certificate registry merkle tree
     certificate_registry_root: pub Field,
     // Root of the circuit registry merkle tree
     circuit_registry_root: pub Field,

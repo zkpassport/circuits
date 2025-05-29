@@ -123,12 +123,58 @@ export class Circuit {
     })
   }
 
-  async getVerificationKey(recursive: boolean = false, evm: boolean = false) {
-    await this.init(recursive)
-    if (!this.backend) throw new Error("Backend not initialized")
-    return await this.backend.getVerificationKey({
-      keccak: evm,
-    })
+  async getVerificationKey(options?: { recursive?: boolean; evm?: boolean; useCli?: boolean }) {
+    const recursive = options?.recursive ?? false
+    const evm = options?.evm ?? false
+
+    if (options?.useCli) {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "vkey-"))
+      const circuitPath = path.join(tempDir, "circuit.json")
+      const vkeyPath = path.join(tempDir, "vkey")
+
+      try {
+        // Write circuit manifest to temp file
+        await writeFileAsync(circuitPath, JSON.stringify(this.manifest))
+
+        // Create vkey directory`
+        fs.mkdirSync(vkeyPath, { recursive: true })
+
+        // Run bb write_vk command
+        const writeVkCommand = `bb write_vk --scheme ultra_honk${
+          recursive ? " --recursive --init_kzg_accumulator" : ""
+        }${
+          evm ? " --oracle_hash keccak" : ""
+        } --honk_recursion 1 --output_format bytes -b "${circuitPath}" -o "${vkeyPath}"`
+
+        await execAsync(writeVkCommand, {
+          cwd: tempDir,
+        })
+
+        // Check if vkey file was created
+        const vkeyFilePath = path.join(vkeyPath, "vk")
+        if (!fs.existsSync(vkeyFilePath)) {
+          throw new Error("Verification key file was not created")
+        }
+
+        // Read the verification key file
+        const vkey = fs.readFileSync(vkeyFilePath)
+
+        // Clean up temp files
+        fs.rmSync(tempDir, { recursive: true, force: true })
+
+        return vkey
+      } catch (error) {
+        // Clean up temp files on error
+        fs.rmSync(tempDir, { recursive: true, force: true })
+        throw error
+      }
+    } else {
+      await this.init(recursive)
+      if (!this.backend) throw new Error("Backend not initialized")
+      return await this.backend.getVerificationKey({
+        keccak: evm,
+      })
+    }
   }
 
   static from(fileName: string): Circuit {
