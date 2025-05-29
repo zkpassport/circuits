@@ -49,7 +49,7 @@ import { TestHelper } from "../test-helper"
 import { createUTCDate, serializeAsn } from "../utils"
 import circuitManifest from "./fixtures/circuit-manifest.json"
 
-const DEBUG_OUTPUT = true
+const DEBUG_OUTPUT = false
 
 describe("outer proof", () => {
   const helper = new TestHelper()
