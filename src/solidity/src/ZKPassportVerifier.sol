@@ -177,8 +177,8 @@ contract ZKPassportVerifier {
     uint256 validityPeriodInDays
   ) internal view returns (bool) {
     bytes memory currentDate = new bytes(8);
-    for (uint256 i = 1; i < 9; i++) {
-      currentDate[i - 1] = bytes1(publicInputs[i] << 248);
+    for (uint256 i = 2; i < 10; i++) {
+      currentDate[i - 2] = bytes1(publicInputs[i] << 248);
     }
     return DateUtils.isDateValid(currentDate, validityPeriodInDays);
   }
@@ -417,7 +417,7 @@ contract ZKPassportVerifier {
     bytes32 subscopeHash = StringUtils.isEmpty(subscope)
       ? bytes32(0)
       : sha256(abi.encodePacked(subscope)) >> 8;
-    return publicInputs[9] == scopeHash && publicInputs[10] == subscopeHash;
+    return publicInputs[10] == scopeHash && publicInputs[11] == subscopeHash;
   }
 
   function verifyCommittedInputs(
@@ -452,8 +452,6 @@ contract ZKPassportVerifier {
     );
   }
 
-  // TODO: use this function when the circuit registry inclusion is done
-  // in the outer proofs
   function _validateCircuitRoot(bytes32 circuitRoot) internal view {
     require(
       rootRegistry.isRootValid(CIRCUIT_REGISTRY_ID, circuitRoot),
@@ -479,6 +477,9 @@ contract ZKPassportVerifier {
     // Validate certificate registry root
     _validateCertificateRoot(params.publicInputs[0]);
 
+    // Validate circuit registry root
+    _validateCircuitRoot(params.publicInputs[1]);
+
     // Checks the date of the proof
     require(
       checkDate(params.publicInputs, params.validityPeriodInDays),
@@ -491,7 +492,7 @@ contract ZKPassportVerifier {
     // Verifies the commitments against the committed inputs
     verifyCommittedInputs(
       // Extracts the commitments from the public inputs
-      params.publicInputs[11:actualPublicInputCount - 1],
+      params.publicInputs[12:actualPublicInputCount - 1],
       params.committedInputs,
       params.committedInputCounts
     );

@@ -11,35 +11,35 @@ contract Deploy is Script {
 
   bytes32[] public vkeyHashes = [
     // Outer (4 subproofs)
-    bytes32(hex"008eb40d971a28de3157941b06eca6a9d97984855c415e1e6759b2c0f03b5540"),
+    bytes32(hex"1419578b1eae95680b6e68a5e60513c9f2dc5bb28d03bc24e27f3496a6c2910f"),
     // Outer (5 subproofs)
-    bytes32(hex"0c8c35f5c432db69fa4fca78209915f6d04684cd14bccc8f930f9fb8d3998bbc"),
+    bytes32(hex"12b3086822e91aff819188d124a396b23d3ebdf9ab3e6fbb209585e3fcdebc5e"),
     // Outer (6 subproofs)
-    bytes32(hex"18b5a54dd4dbf07fa45d6a98b99e4059bb0451815893353cba0ed23a35db645a"),
+    bytes32(hex"05653ebab1ea4f706c1d46458774649515f6641311d9d107e126a4b486160095"),
     // Outer (7 subproofs)
-    bytes32(hex"0a74b6f0d9229f0b8cf21e7b4ed4062dc173366fc8accb3ea09c5758643aa516"),
+    bytes32(hex"00932ef8d4286f5bed849bdd0d8d057ee1896070697898cfb7863ee5777c6e1a"),
     // Outer (8 subproofs)
-    bytes32(hex"10dc3ff4352429ba0cb98915698aeb9461e4c929860df9ce324b887c68d78e08"),
+    bytes32(hex"156d0cae8e80c75d64bec7ce4e242c3a685bccab2e5503de3f3177fa05edd9cd"),
     // Outer (9 subproofs)
-    bytes32(hex"1ad5e890551debb76e722e977143df02b409607fc6271d37f3ba1e38532859ad"),
+    bytes32(hex"2c4eb7dc99a3d333619565ee4271f33f5c7d2967d74ad4da1d784cf72f6a6628"),
     // Outer (10 subproofs)
-    bytes32(hex"133b430a9eb889e77185dae5b0505ec9fa0c27e4e8e5b0887c7914954b9b8440"),
+    bytes32(hex"04d9b824eb8f5281877525ddddc3eaa20346cc3dc113c8b30ea6c17c6e5e3037"),
     // Outer (11 subproofs)
-    bytes32(hex"069f039e7d9a3a64d963797f9a7232380dab2c2cd294c1d7864105b7caa6ea00"),
+    bytes32(hex"0de666646c1b8789226f13a0dbdd172e2f2787612420a2e2815d7d0ff32d5610"),
     // Outer (12 subproofs)
-    bytes32(hex"0f4fa787b5033e1c36b21e2a5408947993bf160986b11bbf2f8e9a4bac24309b")
+    bytes32(hex"240ec977633696dd2d3be0df8badd70247630625589d70150e39614cf91726b3")
   ];
 
   address[] public verifierAddresses = [
-    address(0x54D7862040FE1DC9d725673C1bb9188b4d22aEC5),
-    address(0x19d2E6D1E08c9Dbf999eeCA91F0F63789874aC05),
-    address(0x8ac98c8eD23Af17664a358a0256B7D554Be541b9),
-    address(0xFc1399ee5379A5187ed87f534B0Fc4Ffd8eE065c),
-    address(0x6309cc0bB4A81B4d486BD78ef55716947acdDE8F),
-    address(0xDDd5864BC4b466b9DfFD8d676319d2E85ceD62b4),
-    address(0x31Fe0B6d343Ba034C4a42BAc9F2709e5C864dC7C),
-    address(0x98b94FcF3df6522EE86a1FC18Bbd8BeD6958089A),
-    address(0x56879bFEfE37C5ccF7A66d3247D6Aa40D03BEa45)
+    address(0x090182EB9088456F65AfE22d5a61C22884D64A42),
+    address(0x02622888c339798905d9C64565560f38FC77c121),
+    address(0xDd2a5dD6548b433C533a2b20861A2c7F78cdD7B0),
+    address(0x5EC848eccB05BfCe45F4A287343858b0e94E8E1f),
+    address(0x7B34489CCf615b07608A5CcF09ac64D764Eea61a),
+    address(0xfc4DbCd1B00235640D8749682094d02FA16dC1d1),
+    address(0xd07B187D98CD4Ca9bca28c43256Fba1Ee430F3d9),
+    address(0xD503FeCac436D7Fd3c1da5789199899D6dE5EAd5),
+    address(0x84a6Bfb31885f5Ee9e2d2A68Ab2040C254ed5787)
   ];
 
   function run() public {

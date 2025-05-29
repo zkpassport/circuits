@@ -393,6 +393,7 @@ const OUTER_CIRCUIT_TEMPLATE = (
 # Inputs/Outputs
 ############################################################
 certificate_registry_root -> The root of the certificate registry merkle tree
+circuit_registry_root -> The root of the circuit registry merkle tree
 current_date -> The current date as a string, e.g. 20241103 (used by the integrity check subproof)
 service_scope -> The service scope
 service_subscope -> The service subscope
@@ -404,7 +405,7 @@ integrity_check_proof -> The proof of the integrity check circuit
 disclosure_proofs -> The proofs of the disclosure circuits
 */
 
-//use common::compute_merkle_root;
+use common::compute_merkle_root;
 use outer_lib::{
     CSCtoDSCProof, DisclosureProof, DSCtoIDDataProof, IntegrityCheckProof,
     prepare_disclosure_inputs, prepare_integrity_check_inputs,
@@ -413,11 +414,10 @@ use std::verify_proof_with_type;
 global HONK_IDENTIFIER: u32 = 1;
 
 fn verify_subproofs(
-    // Root of the sub-circuit merkle tree
-    // TODO: enable it when the circuit registry is ready
-    // circuit_registry_root: Field,
     // Root of the certificate merkle tree
     certificate_registry_root: Field,
+    // Root of the circuit registry merkle tree
+    circuit_registry_root: Field,
     // Current date as a string, e.g. 20241103
     current_date: str<8>,
     // The commitments over the parameters of the disclosure circuits
@@ -433,16 +433,14 @@ fn verify_subproofs(
     integrity_check_proof: IntegrityCheckProof,
     disclosure_proofs: [DisclosureProof; ${disclosure_proofs_count}],
 ) {
-    // Verify that sub-circuit a, b, c, and d vkey hashes exist in the circuit tree
-    // TODO: enable it when the circuit registry is ready
-    /*let root = compute_merkle_root(proof_a.key_hash, proof_a.tree_index, proof_a.tree_hash_path);
-    assert(root == circuit_registry_root);
-    let root = compute_merkle_root(proof_b.key_hash, proof_b.tree_index, proof_b.tree_hash_path);
-    assert(root == circuit_registry_root);
-    let root = compute_merkle_root(proof_c.key_hash, proof_c.tree_index, proof_c.tree_hash_path);
-    assert(root == circuit_registry_root);
-    let root = compute_merkle_root(proof_d.key_hash, proof_d.tree_index, proof_d.tree_hash_path);
-    assert(root == circuit_registry_root);*/
+    // Verify that all subproofs vkey hashes exist in the circuit tree
+    // This way we know for sure that the proofs were generated with valid circuits
+    assert_eq(circuit_registry_root, compute_merkle_root(csc_to_dsc_proof.key_hash, csc_to_dsc_proof.tree_index, csc_to_dsc_proof.tree_hash_path));
+    assert_eq(circuit_registry_root, compute_merkle_root(dsc_to_id_data_proof.key_hash, dsc_to_id_data_proof.tree_index, dsc_to_id_data_proof.tree_hash_path));
+    assert_eq(circuit_registry_root, compute_merkle_root(integrity_check_proof.key_hash, integrity_check_proof.tree_index, integrity_check_proof.tree_hash_path));
+    for i in 0..disclosure_proofs.len() {
+        assert_eq(circuit_registry_root, compute_merkle_root(disclosure_proofs[i].key_hash, disclosure_proofs[i].tree_index, disclosure_proofs[i].tree_hash_path));
+    }
 
     verify_proof_with_type(
         csc_to_dsc_proof.vkey,
@@ -505,9 +503,10 @@ fn verify_subproofs(
 }
 
 ${unconstrained ? "unconstrained " : ""}fn main(
-    // TODO: enable it when the circuit registry is ready
-    // circuit_registry_root: pub Field,
+    // Root of the certificate registry merkle tree
     certificate_registry_root: pub Field,
+    // Root of the circuit registry merkle tree
+    circuit_registry_root: pub Field,
     current_date: pub str<8>,
     service_scope: pub Field,
     service_subscope: pub Field,
@@ -520,6 +519,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
 ) {
     verify_subproofs(
         certificate_registry_root,
+        circuit_registry_root,
         current_date,
         param_commitments,
         service_scope,
