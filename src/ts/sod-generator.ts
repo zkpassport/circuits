@@ -23,7 +23,7 @@ import {
   BitString,
   OctetString,
 } from "@peculiar/asn1-schema"
-import { id_sha256, id_sha384, id_sha512 } from "@peculiar/asn1-rsa"
+import { id_sha1, id_sha256, id_sha384, id_sha512 } from "@peculiar/asn1-rsa"
 import {
   AlgorithmIdentifier,
   AttributeTypeAndValue,
@@ -46,6 +46,8 @@ import { HashAlgorithm } from "./passport-generator"
 
 function getHashAlgorithmIdentifier(hashAlgorithm: HashAlgorithm) {
   switch (hashAlgorithm) {
+    case "SHA-1":
+      return id_sha1
     case "SHA-256":
       return id_sha256
     case "SHA-384":

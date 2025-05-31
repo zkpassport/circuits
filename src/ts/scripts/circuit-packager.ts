@@ -2,7 +2,7 @@ import { poseidon2Hash } from "@zkpassport/poseidon2"
 import { PromisePool } from "@zkpassport/utils"
 import { calculateCircuitRoot } from "@zkpassport/utils/registry"
 import { exec, execSync } from "child_process"
-import fs from "fs"
+import fs, { copyFileSync } from "fs"
 import type { Blockstore } from "interface-blockstore"
 import { importer } from "ipfs-unixfs-importer"
 import path from "path"
@@ -14,6 +14,9 @@ const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
 const PACKAGED_CIRCUITS_DIR = path.join(TARGET_DIR, "packaged/circuits")
 const MAX_CONCURRENT_PROCESSES = 10
 const DEPLOY_SOL_PATH = "src/solidity/script/Deploy.s.sol"
+const ADD_VERIFIERS_SOL_PATH = "src/solidity/script/AddVerifiers.s.sol"
+const DEPLOY_WITH_EXISTING_VERIFIERS_SOL_PATH =
+  "src/solidity/script/DeployWithExistingVerifiers.s.sol"
 
 /**
  * Calculates the IPFS CIDv0 of the given data
@@ -226,8 +229,7 @@ const getOuterEvmVkeyHashes = (): { count: number; hash: string }[] => {
   }
 }
 
-// Update Deploy.s.sol file with vkey hashes
-const updateDeploySol = () => {
+const updateVkeyHashesInSolidityDeployScript = (filePath: string) => {
   // Get vkey hashes from packaged files
   const outerEvmVkeyHashes = getOuterEvmVkeyHashes()
 
@@ -240,7 +242,7 @@ const updateDeploySol = () => {
 
   try {
     // Read the Deploy.s.sol file
-    const deploySolContent = fs.readFileSync(DEPLOY_SOL_PATH, "utf-8")
+    const content = fs.readFileSync(filePath, "utf-8")
 
     // Find the vkeyHashes array section
     const vkeyHashesRegex = /(bytes32\[\] public vkeyHashes = \[)([\s\S]*?)(\];)/
@@ -256,17 +258,30 @@ const updateDeploySol = () => {
       .join(",\n")
 
     // Replace the old vkey hashes with the new ones
-    const updatedContent = deploySolContent.replace(
+    const updatedContent = content.replace(
       vkeyHashesRegex,
       (match, prefix, _, suffix) => `${prefix}\n${newVkeyHashesContent}\n  ${suffix}`,
     )
 
     // Write the updated file
-    fs.writeFileSync(DEPLOY_SOL_PATH, updatedContent)
-    console.log(`Updated vkey hashes in ${DEPLOY_SOL_PATH}`)
+    fs.writeFileSync(filePath, updatedContent)
+    console.log(`Updated vkey hashes in ${filePath}`)
   } catch (error) {
-    console.error("Error updating Deploy.s.sol:", error)
+    console.error(`Error updating ${filePath}:`, error)
   }
+}
+
+// Update Deploy.s.sol file with vkey hashes
+const updateDeploySol = () => {
+  updateVkeyHashesInSolidityDeployScript(DEPLOY_SOL_PATH)
+}
+
+const updateAddVerifiersSol = () => {
+  updateVkeyHashesInSolidityDeployScript(ADD_VERIFIERS_SOL_PATH)
+}
+
+const updateDeployWithExistingVerifiersSol = () => {
+  updateVkeyHashesInSolidityDeployScript(DEPLOY_WITH_EXISTING_VERIFIERS_SOL_PATH)
 }
 
 // Process files with controlled concurrency
@@ -321,6 +336,10 @@ const processFiles = async () => {
 
   // Update Deploy.s.sol with the vkey hashes
   updateDeploySol()
+  // Update AddVerifiers.s.sol with the vkey hashes
+  updateAddVerifiersSol()
+  // Update DeployWithExistingVerifiers.s.sol with the vkey hashes
+  updateDeployWithExistingVerifiersSol()
 
   // Exit with error code if any file failed to process
   if (hasErrors) {

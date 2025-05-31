@@ -1,10 +1,11 @@
 use bignum::{params::BigNumParams, RuntimeBigNum};
 use common::{
-    sha256_and_check_data_to_sign, sha384_and_check_data_to_sign, sha512_and_check_data_to_sign,
+    sha1_and_check_data_to_sign, sha256_and_check_data_to_sign, sha384_and_check_data_to_sign,
+    sha512_and_check_data_to_sign,
 };
 use rsa::rsa::{
-    verify_sha256_pkcs1v15, verify_sha256_pss, verify_sha384_pkcs1v15, verify_sha384_pss,
-    verify_sha512_pkcs1v15, verify_sha512_pss,
+    verify_sha1_pkcs1v15, verify_sha1_pss, verify_sha256_pkcs1v15, verify_sha256_pss,
+    verify_sha384_pkcs1v15, verify_sha384_pss, verify_sha512_pkcs1v15, verify_sha512_pss,
 };
 
 pub fn verify_signature<let SIG_BYTES: u32, let IS_PSS: u32, let DATA_TO_SIGN_LEN: u32, let HASH_BYTE_SIZE: u32>(
@@ -28,7 +29,10 @@ pub fn verify_signature<let SIG_BYTES: u32, let IS_PSS: u32, let DATA_TO_SIGN_LE
     let signature = RuntimeBigNum::from_be_bytes(params, sig_bytes);
 
     if (IS_PSS == 1) {
-        if (HASH_BYTE_SIZE == 32) {
+        if (HASH_BYTE_SIZE == 20) {
+            let msg_hash = sha1_and_check_data_to_sign(data_to_sign, data_to_sign_len);
+            verify_sha1_pss::<_, SIG_BYTES * 8>(msg_hash, signature, exponent)
+        } else if (HASH_BYTE_SIZE == 32) {
             let msg_hash = sha256_and_check_data_to_sign(data_to_sign, data_to_sign_len);
             verify_sha256_pss::<_, SIG_BYTES * 8>(msg_hash, signature, exponent)
         } else if (HASH_BYTE_SIZE == 48) {
@@ -41,7 +45,10 @@ pub fn verify_signature<let SIG_BYTES: u32, let IS_PSS: u32, let DATA_TO_SIGN_LE
             false
         }
     } else {
-        if (HASH_BYTE_SIZE == 32) {
+        if (HASH_BYTE_SIZE == 20) {
+            let msg_hash = sha1_and_check_data_to_sign(data_to_sign, data_to_sign_len);
+            verify_sha1_pkcs1v15::<_, SIG_BYTES * 8>(msg_hash, signature, exponent)
+        } else if (HASH_BYTE_SIZE == 32) {
             let msg_hash = sha256_and_check_data_to_sign(data_to_sign, data_to_sign_len);
             verify_sha256_pkcs1v15::<_, SIG_BYTES * 8>(msg_hash, signature, exponent)
         } else if (HASH_BYTE_SIZE == 48) {

@@ -28,6 +28,7 @@ use outer_lib::{
     prepare_disclosure_inputs, prepare_integrity_check_inputs,
 };
 use std::verify_proof_with_type;
+use std::hash::poseidon2::Poseidon2;
 global HONK_IDENTIFIER: u32 = 1;
 
 fn verify_subproofs(
@@ -57,6 +58,14 @@ fn verify_subproofs(
     assert_eq(circuit_registry_root, compute_merkle_root(integrity_check_proof.key_hash, integrity_check_proof.tree_index, integrity_check_proof.tree_hash_path));
     for i in 0..disclosure_proofs.len() {
         assert_eq(circuit_registry_root, compute_merkle_root(disclosure_proofs[i].key_hash, disclosure_proofs[i].tree_index, disclosure_proofs[i].tree_hash_path));
+    }
+      
+    // Verify that the vkey hashes are correct
+    assert_eq(Poseidon2::hash(csc_to_dsc_proof.vkey, 128), csc_to_dsc_proof.key_hash);
+    assert_eq(Poseidon2::hash(dsc_to_id_data_proof.vkey, 128), dsc_to_id_data_proof.key_hash);
+    assert_eq(Poseidon2::hash(integrity_check_proof.vkey, 128), integrity_check_proof.key_hash);
+    for i in 0..disclosure_proofs.len() {
+        assert_eq(Poseidon2::hash(disclosure_proofs[i].vkey, 128), disclosure_proofs[i].key_hash);
     }
 
     verify_proof_with_type(

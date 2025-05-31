@@ -21,7 +21,7 @@ cryptoProvider.set(crypto as any)
 
 export type EcdsaCurve = "P-256" | "P-384" | "P-521"
 
-export type HashAlgorithm = "SHA-256" | "SHA-384" | "SHA-512"
+export type HashAlgorithm = "SHA-1" | "SHA-256" | "SHA-384" | "SHA-512"
 
 export type KeyPair = {
   publicKey: Uint8Array
