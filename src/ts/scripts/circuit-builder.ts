@@ -2,7 +2,13 @@ import * as fs from "fs"
 import * as path from "path"
 import { exec, execSync } from "child_process"
 import { compileCircuit } from "../utils"
-import { CERTIFICATE_REGISTRY_HEIGHT } from "@zkpassport/utils"
+import {
+  CERTIFICATE_REGISTRY_HEIGHT,
+  HASH_ALGORITHM_SHA1,
+  HASH_ALGORITHM_SHA256,
+  HASH_ALGORITHM_SHA384,
+  HASH_ALGORITHM_SHA512,
+} from "@zkpassport/utils"
 
 // Function to ensure directory exists
 function ensureDirectoryExistence(filePath: string) {
@@ -16,8 +22,10 @@ const generatedCircuits: {
   path: string
 }[] = []
 
-function getHashAlgorithmByteSize(hash_algorithm: "sha256" | "sha384" | "sha512") {
-  if (hash_algorithm === "sha256") {
+function getHashAlgorithmByteSize(hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512") {
+  if (hash_algorithm === "sha1") {
+    return 20
+  } else if (hash_algorithm === "sha256") {
     return 32
   } else if (hash_algorithm === "sha384") {
     return 48
@@ -132,7 +140,7 @@ const DSC_ECDSA_TEMPLATE = (
   curve_name: string,
   bit_size: number,
   tbs_max_len: number,
-  hash_algorithm: "sha256" | "sha384" | "sha512",
+  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_dsc;
@@ -180,7 +188,7 @@ const DSC_RSA_TEMPLATE = (
   rsa_type: "pss" | "pkcs",
   bit_size: number,
   tbs_max_len: number,
-  hash_algorithm: "sha256" | "sha384" | "sha512",
+  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use sig_check_rsa::verify_signature;
@@ -230,7 +238,7 @@ const ID_DATA_ECDSA_TEMPLATE = (
   curve_name: string,
   bit_size: number,
   tbs_max_len: number,
-  hash_algorithm: "sha256" | "sha384" | "sha512",
+  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_id;
@@ -285,7 +293,7 @@ const ID_DATA_RSA_TEMPLATE = (
   rsa_type: "pss" | "pkcs",
   bit_size: number,
   tbs_max_len: number,
-  hash_algorithm: "sha256" | "sha384" | "sha512",
+  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use sig_check_rsa::verify_signature;
@@ -332,7 +340,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
 `
 
 const DATA_INTEGRITY_CHECK_TEMPLATE = (
-  hash_algorithm: "sha256" | "sha384" | "sha512",
+  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_disclosure;
@@ -411,6 +419,7 @@ use outer_lib::{
     prepare_disclosure_inputs, prepare_integrity_check_inputs,
 };
 use std::verify_proof_with_type;
+use std::hash::poseidon2::Poseidon2;
 global HONK_IDENTIFIER: u32 = 1;
 
 fn verify_subproofs(
@@ -440,6 +449,14 @@ fn verify_subproofs(
     assert_eq(circuit_registry_root, compute_merkle_root(integrity_check_proof.key_hash, integrity_check_proof.tree_index, integrity_check_proof.tree_hash_path));
     for i in 0..disclosure_proofs.len() {
         assert_eq(circuit_registry_root, compute_merkle_root(disclosure_proofs[i].key_hash, disclosure_proofs[i].tree_index, disclosure_proofs[i].tree_hash_path));
+    }
+      
+    // Verify that the vkey hashes are correct
+    assert_eq(Poseidon2::hash(csc_to_dsc_proof.vkey, 128), csc_to_dsc_proof.key_hash);
+    assert_eq(Poseidon2::hash(dsc_to_id_data_proof.vkey, 128), dsc_to_id_data_proof.key_hash);
+    assert_eq(Poseidon2::hash(integrity_check_proof.vkey, 128), integrity_check_proof.key_hash);
+    for i in 0..disclosure_proofs.len() {
+        assert_eq(Poseidon2::hash(disclosure_proofs[i].vkey, 128), disclosure_proofs[i].key_hash);
     }
 
     verify_proof_with_type(
@@ -537,7 +554,7 @@ function generateDscEcdsaCircuit(
   curve_name: string,
   bit_size: number,
   tbs_max_len: number,
-  hash_algorithm: "sha256" | "sha384" | "sha512",
+  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) {
   const noirFile = DSC_ECDSA_TEMPLATE(
@@ -569,7 +586,7 @@ function generateDscRsaCircuit(
   rsa_type: "pss" | "pkcs",
   bit_size: number,
   tbs_max_len: number,
-  hash_algorithm: "sha256" | "sha384" | "sha512",
+  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) {
   const noirFile = DSC_RSA_TEMPLATE(rsa_type, bit_size, tbs_max_len, hash_algorithm, unconstrained)
@@ -593,7 +610,7 @@ function generateIdDataEcdsaCircuit(
   curve_name: string,
   bit_size: number,
   tbs_max_len: number,
-  hash_algorithm: "sha256" | "sha384" | "sha512",
+  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) {
   const noirFile = ID_DATA_ECDSA_TEMPLATE(
@@ -625,7 +642,7 @@ function generateIdDataRsaCircuit(
   rsa_type: "pss" | "pkcs",
   bit_size: number,
   tbs_max_len: number,
-  hash_algorithm: "sha256" | "sha384" | "sha512",
+  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) {
   const noirFile = ID_DATA_RSA_TEMPLATE(
@@ -652,7 +669,7 @@ function generateIdDataRsaCircuit(
 }
 
 function generateDataIntegrityCheckCircuit(
-  hash_algorithm: "sha256" | "sha384" | "sha512",
+  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) {
   const noirFile = DATA_INTEGRITY_CHECK_TEMPLATE(hash_algorithm, unconstrained)
@@ -715,7 +732,7 @@ const SIGNATURE_ALGORITHMS_SUPPORTED: {
 
 const TBS_MAX_LENGTHS = [700, 1000, 1200, 1500]
 
-const HASH_ALGORITHMS_SUPPORTED = ["sha256", "sha384", "sha512"]
+const HASH_ALGORITHMS_SUPPORTED = ["sha1", "sha256", "sha384", "sha512"]
 
 const generateDscCircuits = ({ unconstrained = false }: { unconstrained: boolean }) => {
   console.log("Generating DSC circuits...")
@@ -728,7 +745,7 @@ const generateDscCircuits = ({ unconstrained = false }: { unconstrained: boolean
             curve_name!,
             bit_size,
             tbs_max_len,
-            hash_algorithm as "sha256" | "sha384" | "sha512",
+            hash_algorithm as "sha1" | "sha256" | "sha384" | "sha512",
             unconstrained,
           )
         } else {
@@ -740,7 +757,7 @@ const generateDscCircuits = ({ unconstrained = false }: { unconstrained: boolean
             family as "pss" | "pkcs",
             bit_size,
             tbs_max_len,
-            hash_algorithm as "sha256" | "sha384" | "sha512",
+            hash_algorithm as "sha1" | "sha256" | "sha384" | "sha512",
             unconstrained,
           )
         }
@@ -760,7 +777,7 @@ const generateIdDataCircuits = ({ unconstrained = false }: { unconstrained: bool
             curve_name!,
             bit_size,
             tbs_max_len,
-            hash_algorithm as "sha256" | "sha384" | "sha512",
+            hash_algorithm as "sha1" | "sha256" | "sha384" | "sha512",
             unconstrained,
           )
         } else {
@@ -772,7 +789,7 @@ const generateIdDataCircuits = ({ unconstrained = false }: { unconstrained: bool
             family as "pss" | "pkcs",
             bit_size,
             tbs_max_len,
-            hash_algorithm as "sha256" | "sha384" | "sha512",
+            hash_algorithm as "sha1" | "sha256" | "sha384" | "sha512",
             unconstrained,
           )
         }
@@ -789,7 +806,7 @@ const generateDataIntegrityCheckCircuits = ({
   console.log("Generating data integrity check circuits...")
   HASH_ALGORITHMS_SUPPORTED.forEach((hash_algorithm) => {
     generateDataIntegrityCheckCircuit(
-      hash_algorithm as "sha256" | "sha384" | "sha512",
+      hash_algorithm as "sha1" | "sha256" | "sha384" | "sha512",
       unconstrained,
     )
   })
@@ -1037,11 +1054,12 @@ if (args.includes("compile")) {
   compileCircuitsWithNargo({ forceCompilation, printStdErr, concurrency })
 }
 
-function hashAlgorithmToId(hash_algorithm: "sha256" | "sha384" | "sha512") {
+function hashAlgorithmToId(hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512") {
   const hashMap: Record<string, number> = {
-    sha256: 2,
-    sha384: 3,
-    sha512: 5,
+    sha1: HASH_ALGORITHM_SHA1,
+    sha256: HASH_ALGORITHM_SHA256,
+    sha384: HASH_ALGORITHM_SHA384,
+    sha512: HASH_ALGORITHM_SHA512,
   }
   if (hashMap[hash_algorithm] === undefined) {
     throw new Error(`Unsupported hash algorithm: ${hash_algorithm}`)
