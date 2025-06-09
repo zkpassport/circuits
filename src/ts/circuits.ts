@@ -97,7 +97,8 @@ export class Circuit {
       proof = getProofData(proofHex, getNumberOfPublicInputs(options?.circuitName ?? ""))
     } else {
       if (options?.recursive) {
-        proof = await this.backend!.generateProofForRecursiveAggregation(witness)
+        //proof = await this.backend!.generateProofForRecursiveAggregation(witness)
+        throw new Error("Recursive proof not supported")
       } else {
         const result = await this.backend!.generateProof(witness, {
           keccak: (options && options.evm) ?? false,
