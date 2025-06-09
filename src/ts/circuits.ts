@@ -77,6 +77,7 @@ export class Circuit {
       const witnessPath = path.join(tempDir, "witness.gz")
       const circuitPath = path.join(tempDir, "circuit.json")
       const proofPath = path.join(tempDir, "proof")
+      const publicInputsPath = path.join(tempDir, "public_inputs")
       await writeFileAsync(witnessPath, witness)
       await writeFileAsync(circuitPath, JSON.stringify(this.manifest))
       const proveCommand = `bb prove --scheme ultra_honk ${
@@ -92,9 +93,13 @@ export class Circuit {
       if (!fs.existsSync(proofPath)) {
         throw new Error("Proof file was not created")
       }
-      // Read the proof file and encode as base64
+      // Read the proof and public inputs files and encode as hex
       const proofHex = fs.readFileSync(proofPath).toString("hex")
-      proof = getProofData(proofHex, getNumberOfPublicInputs(options?.circuitName ?? ""))
+      const publicInputs = fs.readFileSync(publicInputsPath).toString("hex")
+      proof = {
+        proof: proofHex.match(/.{1,64}/g)?.map((x) => `0x${x}`) ?? [],
+        publicInputs: publicInputs.match(/.{1,64}/g)?.map((x) => `0x${x}`) ?? [],
+      }
     } else {
       if (options?.recursive) {
         //proof = await this.backend!.generateProofForRecursiveAggregation(witness)
