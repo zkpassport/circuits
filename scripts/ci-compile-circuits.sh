@@ -22,6 +22,7 @@ CIRCUITS=(
     "sig_check_id_data_tbs_700_ecdsa_nist_p256_sha256"
     "sig_check_dsc_tbs_700_ecdsa_nist_p521_sha512"
     "sig_check_id_data_tbs_700_ecdsa_nist_p384_sha384"
+    "sig_check_id_data_tbs_700_ecdsa_brainpool_512r1_sha512"
     "data_check_integrity_sha1"
     "data_check_integrity_sha256"
     "data_check_integrity_sha384"
