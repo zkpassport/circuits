@@ -80,6 +80,11 @@ pub global PROOF_TYPE_ISSUING_COUNTRY_INCLUSION: u8 = 6;
 pub global PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION: u8 = 7;
 pub global PROOF_TYPE_BIND: u8 = 8;
 
+// D<<
+global GERMANY_PASSPORT_CODE: [u8; 3] = [68, 60, 60];
+// DEU
+global GERMANY_ISO_CODE: [u8; 3] = [68, 69, 85];
+
 pub struct IDData {
     // Regroups the hashes of all the data groups plus some padding
     // at the start and in between each data group hashes
@@ -466,6 +471,11 @@ pub fn get_nationality_from_mrz(dg1: [u8; 95]) -> [u8; 3] {
         );
     }
 
+    // Handle the special case of Germany
+    if (country_bytes == GERMANY_PASSPORT_CODE) {
+        country_bytes = GERMANY_ISO_CODE;
+    }
+
     country_bytes
 }
 
@@ -473,11 +483,18 @@ pub fn get_issuing_country_from_mrz(dg1: [u8; 95]) -> [u8; 3] {
     let mrz = get_mrz_from_dg1(dg1);
     // No need to check if it's an ID card since the issuing country
     // is always at the same index for both passports and ID cards
-    get_array_slice(
+    let mut country_bytes = get_array_slice(
         mrz,
         PASSPORT_MRZ_COUNTRY_INDEX,
         PASSPORT_MRZ_COUNTRY_INDEX + 3,
-    )
+    );
+
+    // Handle the special case of Germany
+    if (country_bytes == GERMANY_PASSPORT_CODE) {
+        country_bytes = GERMANY_ISO_CODE;
+    }
+
+    country_bytes
 }
 
 global TEST_BYTES: [u8; 512] = [
