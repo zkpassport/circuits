@@ -1,6 +1,6 @@
 {
-  "version": "0.4.0",
-  "root": "0x2f645d9afa64a50aacfda7eaa79c191626d7e3f3132601b39a8d4eb4c8e31001",
+  "version": "0.4.3",
+  "root": "0x115fad403d6d2c16659cfa1f8ebba00fb55d9bfa70f17c33d786f6c6b8ba7cf7",
   "circuits": {
     "bind": {
       "hash": "0x25fcb8e6161e8840d3d24000a672bf0523b9f0f95aea8abdb9aeb0696ccc514a",
@@ -48,28 +48,28 @@
       "size": 38902
     },
     "data_check_expiry": {
-      "hash": "0x0836d6195f43f356a26032c0e6679a45861b6ce1b7b637babb15e3feb9b8c493",
-      "cid": "QmeLXKPYvVyqJVTSoHctMCYSP95NsyECokHjUnUcFtfmaY",
+      "hash": "0x279bbd0ec5f4e8ef591a937d0399a810045b18bc9b993618bc5c4382cb7e6445",
+      "cid": "QmZA9vVQTvhEh5CVnwGfNF7LcEwhso8RA3YqZTnBA2oNP7",
       "size": 5752
     },
     "data_check_integrity_sha1": {
-      "hash": "0x11e8287c59975e06d91a9fbc9900717afb3dc8cc360a773a9f7cb62e28331776",
-      "cid": "QmQ14znGEDhUhhct57DZNbpN5e7eGmbtsCTaQYY4DivD2A",
+      "hash": "0x0db840742522e725ea96ee31889c7f4c38c433b73853c131fe85f5d4245003ca",
+      "cid": "Qmcu7pqq2Axq22YQ2SK1CuGZ5ao51mm93cUNgPyjFpaS5n",
       "size": 197510
     },
     "data_check_integrity_sha256": {
-      "hash": "0x2f462873103385c16614f78f8af893ae6eafa5b44f4af8c63e89065641f12b0e",
-      "cid": "QmRWuMuBNoDHbGss94ZXG6KLudU4TDPXz4VdTDSJTceL6i",
+      "hash": "0x0b227d145b7f1882f0033fc39abe4658969b091998eca7b52565bc77a62e3708",
+      "cid": "QmTcYnzMdnTmdknL1fPaERtgsAFnq8WNxKxw3MkkV6v6ZX",
       "size": 99316
     },
     "data_check_integrity_sha384": {
-      "hash": "0x2a0561a31ef6ef6e69bf6617a8382579fdc580eba6cedbe8eda4185334336e99",
-      "cid": "QmdxZ4gYRVBQ1qNthReysbvg3Her7hy8k95jpwrCCb6vsn",
+      "hash": "0x0314510efdde67c6dbdf23ba9bd4f0683a06fa0b77271af5f17e51f64107b37b",
+      "cid": "QmPEULFUqcgbVHys8uU9jHVf51qKxY6Do6m6gBjJG5NG8M",
       "size": 261998
     },
     "data_check_integrity_sha512": {
-      "hash": "0x08dae82a724dee03a5e031ed77534353c39326cfe8a1b5bc3d5c8652043b98e7",
-      "cid": "Qma4VFKVrxzujKJwnRDTPxcP5w5FTqJko78xuAjLPF7wPH",
+      "hash": "0x12882727c29191cdfadf5527852fd3ca50332f242c7516a710786c606c6d688e",
+      "cid": "QmZWUDBeXjFX44sMvbRwdGfykyszrPQhbTztKbKzwRk4ya",
       "size": 262150
     },
     "disclose_bytes": {

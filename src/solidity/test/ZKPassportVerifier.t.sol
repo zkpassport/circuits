@@ -27,9 +27,9 @@ contract ZKPassportVerifierTest is TestUtils {
   bytes32 constant OUTER_PROOF_11_VKEY_HASH =
     bytes32(uint256(0x2f55019d8fd28cf77000af567e4d8fcb54ef0d4853825d61b14911904b20d1c5));
   bytes32 constant CERTIFICATE_REGISTRY_ROOT =
-    bytes32(uint256(0x2b1f25de1b7773f09f5a2ca4fce954101abc36db2701b69115c2404a95c81d18));
+    bytes32(uint256(0x273fa00b2f76e40a69684d4e86e3f4aebcdb4e7de31224048050d8c0e3010332));
   bytes32 constant CERTIFICATE_REGISTRY_ROOT_2 =
-    bytes32(uint256(0x2c7d26e6fe59c18a810ace75e939f198a7e182f20f91ca0f4fc30e6780133eb8));
+    bytes32(uint256(0x25c10335fa4d99460aca8ee21a0491b5e3971825836dcb9f41f8e75c7808ffd7));
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
