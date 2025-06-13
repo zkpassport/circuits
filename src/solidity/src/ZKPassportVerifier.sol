@@ -34,8 +34,8 @@ struct ProofVerificationParams {
   bytes committedInputs;
   uint256[] committedInputCounts;
   uint256 validityPeriodInDays;
+  string domain;
   string scope;
-  string subscope;
   bool devMode;
 }
 
@@ -406,17 +406,21 @@ contract ZKPassportVerifier {
 
   function verifyScopes(
     bytes32[] calldata publicInputs,
-    string calldata scope,
-    string calldata subscope
+    string calldata domain,
+    string calldata scope
   ) public view returns (bool) {
     // One byte is dropped at the end
     string memory chainId = StringUtils.toString(block.chainid);
-    bytes32 scopeHash = StringUtils.isEmpty(scope)
+    // What we call scope internally is derived from the domain
+    // and chain id for onchain verification
+    bytes32 scopeHash = StringUtils.isEmpty(domain)
       ? bytes32(0)
-      : sha256(abi.encodePacked(scope, ":chain-", chainId)) >> 8;
-    bytes32 subscopeHash = StringUtils.isEmpty(subscope)
+      : sha256(abi.encodePacked(domain, ":chain-", chainId)) >> 8;
+    // What we call the subscope internally is the scope specified
+    // manually in the SDK
+    bytes32 subscopeHash = StringUtils.isEmpty(scope)
       ? bytes32(0)
-      : sha256(abi.encodePacked(subscope)) >> 8;
+      : sha256(abi.encodePacked(scope)) >> 8;
     return publicInputs[10] == scopeHash && publicInputs[11] == subscopeHash;
   }
 
@@ -487,7 +491,7 @@ contract ZKPassportVerifier {
     );
 
     // Validate scopes if provided
-    require(verifyScopes(params.publicInputs, params.scope, params.subscope), "Invalid scopes");
+    require(verifyScopes(params.publicInputs, params.domain, params.scope), "Invalid scopes");
 
     // Verifies the commitments against the committed inputs
     verifyCommittedInputs(
@@ -498,9 +502,9 @@ contract ZKPassportVerifier {
     );
 
     // Allow mock proofs in dev mode
-    // Mock proofs are recognisable by their unique identifier set to 0
+    // Mock proofs are recognisable by their unique identifier set to 1
     require(
-      params.publicInputs[actualPublicInputCount - 1] != bytes32(0) || params.devMode,
+      params.publicInputs[actualPublicInputCount - 1] != bytes32(uint256(1)) || params.devMode,
       "Mock proofs are only allowed in dev mode"
     );
 

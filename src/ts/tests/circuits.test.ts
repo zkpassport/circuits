@@ -2511,8 +2511,8 @@ describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
       expect(isNaN(disclosedData.dateOfBirth.getTime())).toBe(true)
       expect(isNaN(disclosedData.dateOfExpiry.getTime())).toBe(true)
       expect(disclosedData.gender).toBe("")
-      // The nullifier must be 0 for mock countries like ZKR
-      expect(nullifier).toEqual(0n)
+      // The nullifier must be 1 for mock countries like ZKR
+      expect(nullifier).toEqual(1n)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
