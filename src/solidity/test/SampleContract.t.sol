@@ -70,8 +70,8 @@ contract SampleContractTest is TestUtils {
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
       validityPeriodInDays: 7,
-      scope: "zkpassport.id",
-      subscope: "bigproof",
+      domain: "zkpassport.id",
+      scope: "bigproof",
       // Set to true to accept mock proofs from the ZKR
       devMode: false
     });

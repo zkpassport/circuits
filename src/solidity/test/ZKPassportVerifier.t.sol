@@ -72,8 +72,8 @@ contract ZKPassportVerifierTest is TestUtils {
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
       validityPeriodInDays: 7,
-      scope: "zkpassport.id",
-      subscope: "bigproof",
+      domain: "zkpassport.id",
+      scope: "bigproof",
       devMode: false
     });
     (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
@@ -139,8 +139,8 @@ contract ZKPassportVerifierTest is TestUtils {
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
       validityPeriodInDays: 7,
-      scope: "zkpassport.id",
-      subscope: "bigproof",
+      domain: "zkpassport.id",
+      scope: "bigproof",
       devMode: false
     });
     (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
@@ -197,8 +197,8 @@ contract ZKPassportVerifierTest is TestUtils {
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
       validityPeriodInDays: 7,
-      scope: "zkpassport.id",
-      subscope: "bigproof",
+      domain: "zkpassport.id",
+      scope: "bigproof",
       devMode: false
     });
     (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
@@ -276,8 +276,8 @@ contract ZKPassportVerifierTest is TestUtils {
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
       validityPeriodInDays: 7,
-      scope: "zkpassport.id",
-      subscope: "bigproof",
+      domain: "zkpassport.id",
+      scope: "bigproof",
       devMode: false
     });
     (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
