@@ -730,7 +730,7 @@ const SIGNATURE_ALGORITHMS_SUPPORTED: {
   { type: "rsa", family: "pkcs", bit_size: 4096 },
 ]
 
-const TBS_MAX_LENGTHS = [700, 1000, 1200, 1500]
+const TBS_MAX_LENGTHS = [700, 1000, 1200, 1500, 1600]
 
 const HASH_ALGORITHMS_SUPPORTED = ["sha1", "sha256", "sha384", "sha512"]
 

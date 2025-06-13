@@ -7,7 +7,16 @@ import type { Blockstore } from "interface-blockstore"
 import { importer } from "ipfs-unixfs-importer"
 import path from "path"
 import { promisify } from "util"
-import { snakeToPascal, gzipAsync } from "../utils"
+import {
+  snakeToPascal,
+  gzipAsync,
+  getGateCount,
+  initBarretenberg,
+  destroyBarretenberg,
+} from "../utils"
+import { Barretenberg } from "@aztec/bb.js"
+
+let barretenberg: Barretenberg
 
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
@@ -120,7 +129,11 @@ const processFile = async (
         evm ? " --oracle_hash keccak" : ""
       } --honk_recursion 1 --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
     )
-    await execPromise(`bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`)
+    if (file.startsWith("outer")) {
+      await execPromise(
+        `bb gates --scheme ultra_honk --honk_recursion 1 -b "${inputPath}" > "${gateCountPath}"`,
+      )
+    }
     if (generateSolidityVerifier) {
       await execPromise(
         `bb write_solidity_verifier --scheme ultra_honk -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
@@ -140,9 +153,15 @@ const processFile = async (
 
     // Read and parse the input file
     const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
-    const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
-    const gateCount = gateCountFileContent.functions[0].circuit_size
-    fs.unlinkSync(gateCountPath)
+    let gateCount = 0
+    // For outer circuit we use the cli as they're too big for wasm
+    if (file.startsWith("outer")) {
+      const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
+      gateCount = gateCountFileContent.functions[0].circuit_size
+      fs.unlinkSync(gateCountPath)
+    } else {
+      gateCount = await getGateCount(barretenberg!, jsonContent.bytecode)
+    }
 
     // Create packaged circuit object
     const packagedCircuit: {
@@ -404,6 +423,7 @@ async function main() {
   // Start timing
   const startTime = Date.now()
   try {
+    barretenberg = await initBarretenberg()
     await processFiles()
     // Generate manifest
     const packagedFiles = fs
@@ -423,6 +443,7 @@ async function main() {
     } else if (seconds >= 0) {
       console.log(`Total time taken: ${seconds}s`)
     }
+    await destroyBarretenberg(barretenberg)
   }
 }
 
