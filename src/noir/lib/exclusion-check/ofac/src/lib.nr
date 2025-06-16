@@ -21,7 +21,7 @@ global NAME_AND_YOB_SMT_ROOT: Field =
 
 // TOOD: combine into one tree and perform all checks in one go
 // TODO: include series of fuzzy matches for the names into the merkle tree?
-struct OFACSparseMerkleTrees {
+pub struct OFACSparseMerkleTrees {
     pub passportNoAndNationalitySMTRoot: Field,
     pub nameAndDobSMTRoot: Field,
     pub nameAndYobSMTRoot: Field,
@@ -40,7 +40,7 @@ impl OFACSparseMerkleTrees {
     }
 }
 
-struct OFACMerkleProof {
+pub struct OFACMerkleProof {
     pub leaf_value: Field,
     pub siblings: OFACSparseMerkleTreeProof,
 }
@@ -51,7 +51,7 @@ impl OFACMerkleProof {
     }
 }
 
-struct OFACSparseMerkleTreeProofs {
+pub struct OFACSparseMerkleTreeProofs {
     pub passportNoAndNationalitySMTProof: OFACMerkleProof,
     pub nameAndDobSMTProof: OFACMerkleProof,
     pub nameAndYobSMTProof: OFACMerkleProof,

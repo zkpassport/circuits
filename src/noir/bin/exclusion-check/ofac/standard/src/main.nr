@@ -1,5 +1,5 @@
 use commitment::nullify;
-use exclusion_check_ofac::{check_ofac_exclusion, OFACSparseMerkleTrees, OFACSparseMerkleTreeProofs};
+use exclusion_check_ofac::{OFACSparseMerkleTrees, OFACSparseMerkleTreeProofs};
 
 fn main(
     comm_in: pub Field,
