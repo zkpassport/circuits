@@ -577,6 +577,7 @@ members = [
     "src/noir/lib/data-check/tbs-pubkey",
     "src/noir/lib/disclose",
     "src/noir/lib/exclusion-check/country",
+    "src/noir/lib/exclusion-check/ofac",
     "src/noir/lib/inclusion-check/country",
     "src/noir/lib/sig-check/common",
     "src/noir/lib/sig-check/ecdsa",

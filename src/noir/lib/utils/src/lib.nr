@@ -80,6 +80,12 @@ pub global PROOF_TYPE_ISSUING_COUNTRY_INCLUSION: u8 = 6;
 pub global PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION: u8 = 7;
 pub global PROOF_TYPE_BIND: u8 = 8;
 
+pub type MRZName = [u8; 39];
+pub type MRZDOB = [u8; 6];
+pub type MRZYOB = [u8; 2];
+pub type MRZDocumentNumber = [u8; 9];
+pub type MRZNationality = [u8; 3];
+
 // D<<
 global GERMANY_PASSPORT_CODE: [u8; 3] = [68, 60, 60];
 // DEU
@@ -495,6 +501,39 @@ pub fn get_issuing_country_from_mrz(dg1: [u8; 95]) -> [u8; 3] {
     }
 
     country_bytes
+}
+
+pub fn get_name_from_mrz(dg1: [u8; 95]) -> MRZName {
+    let mrz = get_mrz_from_dg1(dg1);
+    get_array_slice(mrz, PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_INDEX + 39)
+}
+
+pub fn get_dob_from_mrz(dg1: [u8; 95]) -> MRZDOB {
+    let mrz = get_mrz_from_dg1(dg1);
+    get_array_slice(
+        mrz,
+        PASSPORT_MRZ_BIRTHDATE_INDEX,
+        PASSPORT_MRZ_BIRTHDATE_INDEX + 6,
+    )
+}
+
+pub fn get_yob_from_mrz(dg1: [u8; 95]) -> MRZYOB {
+    let mrz = get_mrz_from_dg1(dg1);
+    get_array_slice(
+        mrz,
+        PASSPORT_MRZ_BIRTHDATE_INDEX,
+        PASSPORT_MRZ_BIRTHDATE_INDEX + 2,
+    )
+}
+
+pub fn get_document_number_from_mrz(dg1: [u8; 95]) -> MRZDocumentNumber {
+    // TODO: make all of these an object to decrease gate counts -> single DG1 to MRZ conversion and slice from there
+    let mrz = get_mrz_from_dg1(dg1);
+    get_array_slice(
+        mrz,
+        PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
+        PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX + 9,
+    )
 }
 
 global TEST_BYTES: [u8; 512] = [
