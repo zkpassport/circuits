@@ -1,8 +1,8 @@
 // This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_dsc;
+use sig_check_common::sha1_and_check_data_to_sign;
 use sig_check_ecdsa::verify_nist_p384;
 use utils::{concat_array, split_array};
-use sig_check_common::sha1_and_check_data_to_sign;
 
 fn main(
     certificate_registry_root: pub Field,
@@ -19,13 +19,7 @@ fn main(
 ) -> pub Field {
     let (r, s) = split_array(dsc_signature);
     let msg_hash = sha1_and_check_data_to_sign(tbs_certificate, tbs_certificate_len);
-    assert(verify_nist_p384(
-        csc_pubkey_x,
-        csc_pubkey_y,
-        r,
-        s,
-        msg_hash,
-    ));
+    assert(verify_nist_p384(csc_pubkey_x, csc_pubkey_y, r, s, msg_hash));
     let comm_out = commit_to_dsc(
         certificate_registry_root,
         certificate_registry_index,

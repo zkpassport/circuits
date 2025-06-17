@@ -27,4 +27,3 @@ pub fn verify_ecdsa_pubkey_in_tbs<let DSC_KEY_SIZE: u32, let TBS_CERT_SIZE: u32>
         assert(tbs_certificate[i + pubkey_offset + DSC_KEY_SIZE] == dsc_pubkey_y[i]);
     }
 }
-
