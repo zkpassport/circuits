@@ -94,14 +94,14 @@ jobs:
       - run:
           name: Run ci-info-circuits.sh
           command: bash ~/repo/scripts/ci-info-circuits.sh
-      - when:
-          condition:
-            equal: [ main, << pipeline.git.branch >> ]
-          steps:
-            - save_cache:
-                paths:
-                  - ~/repo/nargo-info/main_opcodes.json
-                key: nargo-cache-<< pipeline.parameters.noir_version >>-main-opcodes
+      # - when:
+      #     condition:
+      #       equal: [ main, << pipeline.git.branch >> ]
+      #     steps:
+      - save_cache:
+          paths:
+            - ~/repo/nargo-info/main_opcodes.json
+          key: nargo-cache-<< pipeline.parameters.noir_version >>-main-opcodes
 
   compare_circuit_opcodes:
     <<: *defaults
