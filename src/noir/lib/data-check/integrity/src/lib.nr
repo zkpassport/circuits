@@ -1,10 +1,10 @@
 use sha1::sha1;
 use sha256;
 use sha512::{sha384, sha512};
-use utils::is_id_card;
+use utils::{dg1::DG1, DG1_LENGTH, DG1_LENGTH_WITHOUT_PADDING};
 
 pub fn check_integrity_of_data_sha1(
-    dg1: [u8; 95],
+    dg1: DG1,
     signed_attributes: [u8; 200],
     signed_attributes_size: u32,
     e_content: [u8; 700],
@@ -12,15 +12,15 @@ pub fn check_integrity_of_data_sha1(
     dg1_offset_in_e_content: u32,
 ) {
     // For passports we ignore the last padding characters
-    let mut dg1_size: u64 = 93;
+    let mut dg1_size: u32 = DG1_LENGTH_WITHOUT_PADDING;
 
     // If it's an ID card then the array should not have any padding
     // character
-    if is_id_card(dg1) {
-        dg1_size = 95;
+    if dg1.is_id_card() {
+        dg1_size = DG1_LENGTH;
     }
 
-    let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size as u32);
+    let dg1_bounded_vec = BoundedVec::from_parts(dg1.get_dg1(), dg1_size as u32);
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
     let dg1_hash = sha1::sha1_var(dg1_bounded_vec);
@@ -50,7 +50,7 @@ pub fn check_integrity_of_data_sha1(
 * of the MRZ to build subsequent proofs (age, citizenship, etc.)
 */
 pub fn check_integrity_of_data_sha256(
-    dg1: [u8; 95],
+    dg1: DG1,
     signed_attributes: [u8; 200],
     signed_attributes_size: u32,
     e_content: [u8; 700],
@@ -58,17 +58,17 @@ pub fn check_integrity_of_data_sha256(
     dg1_offset_in_e_content: u32,
 ) {
     // For passports we ignore the last padding characters
-    let mut dg1_size: u64 = 93;
+    let mut dg1_size: u32 = DG1_LENGTH_WITHOUT_PADDING;
 
     // If it's an ID card then the array should not have any padding
     // character
-    if is_id_card(dg1) {
-        dg1_size = 95;
+    if dg1.is_id_card() {
+        dg1_size = DG1_LENGTH;
     }
 
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
-    let dg1_hash = sha256::sha256_var(dg1, dg1_size as u64);
+    let dg1_hash = sha256::sha256_var(dg1.get_dg1(), dg1_size as u64);
 
     for i in 0..32 {
         // Check the hash of dg1 is indeed in the e_content
@@ -85,7 +85,7 @@ pub fn check_integrity_of_data_sha256(
 }
 
 pub fn check_integrity_of_data_sha384(
-    dg1: [u8; 95],
+    dg1: DG1,
     signed_attributes: [u8; 200],
     signed_attributes_size: u32,
     e_content: [u8; 700],
@@ -93,15 +93,15 @@ pub fn check_integrity_of_data_sha384(
     dg1_offset_in_e_content: u32,
 ) {
     // For passports we ignore the last padding characters
-    let mut dg1_size: u64 = 93;
+    let mut dg1_size: u32 = DG1_LENGTH_WITHOUT_PADDING;
 
     // If it's an ID card then the array should not have any padding
     // character
-    if is_id_card(dg1) {
-        dg1_size = 95;
+    if dg1.is_id_card() {
+        dg1_size = DG1_LENGTH;
     }
 
-    let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size as u32);
+    let dg1_bounded_vec = BoundedVec::from_parts(dg1.get_dg1(), dg1_size as u32);
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
     let dg1_hash = sha384::sha384_var(dg1_bounded_vec);
@@ -123,7 +123,7 @@ pub fn check_integrity_of_data_sha384(
 }
 
 pub fn check_integrity_of_data_sha512(
-    dg1: [u8; 95],
+    dg1: DG1,
     signed_attributes: [u8; 200],
     signed_attributes_size: u32,
     e_content: [u8; 700],
@@ -131,15 +131,15 @@ pub fn check_integrity_of_data_sha512(
     dg1_offset_in_e_content: u32,
 ) {
     // For passports we ignore the last padding characters
-    let mut dg1_size: u64 = 93;
+    let mut dg1_size: u32 = DG1_LENGTH_WITHOUT_PADDING;
 
     // If it's an ID card then the array should not have any padding
     // character
-    if is_id_card(dg1) {
-        dg1_size = 95;
+    if dg1.is_id_card() {
+        dg1_size = DG1_LENGTH;
     }
 
-    let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size as u32);
+    let dg1_bounded_vec = BoundedVec::from_parts(dg1.get_dg1(), dg1_size as u32);
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
     let dg1_hash = sha512::sha512_var(dg1_bounded_vec);

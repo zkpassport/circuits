@@ -46,6 +46,8 @@ pub global PASSPORT_MRZ_DOCUMENT_TYPE_INDEX: u32 = 0;
 pub global PASSPORT_MRZ_NAME_INDEX: u32 = 5;
 // Length of the DG1
 pub global DG1_LENGTH: u32 = 95;
+// Length of the DG1 with padding
+pub global DG1_LENGTH_WITHOUT_PADDING: u32 = 93;
 // Length of the MRZ
 pub global MRZ_LENGTH: u32 = 90;
 // Length of the MRZ on a passport
