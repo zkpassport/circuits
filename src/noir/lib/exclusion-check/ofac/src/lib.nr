@@ -1,16 +1,16 @@
 pub mod smt;
+pub mod types;
 
 use crate::smt::smt_verify;
+use utils::test::DG1Builder;
 use std::hash::poseidon2::Poseidon2;
+
+use types::{OFACMerkleProof, OFACSparseMerkleTreeProofs};
 
 use utils::{
     get_dob_from_mrz, get_document_number_from_mrz, get_name_from_mrz, get_nationality_from_mrz,
-    get_yob_from_mrz, MRZDOB, MRZDocumentNumber, MRZName, MRZNationality, MRZYOB,
-    PASSPORT_MRZ_BIRTHDATE_INDEX, PASSPORT_MRZ_COUNTRY_INDEX, PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
-    PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NATIONALITY_INDEX,
+    get_yob_from_mrz, MRZDOB, MRZDocumentNumber, MRZName, MRZNationality, MRZYOB, array_concat_as_field, DG1Data
 };
-
-type OFACSparseMerkleTreeProof = [Field; 254];
 
 global PASSPORT_NO_AND_NATIONALITY_SMT_ROOT: Field =
     16848446384455121992563997739935529719802501789913623635566264898903689098267;
@@ -19,8 +19,15 @@ global NAME_AND_DOB_SMT_ROOT: Field =
 global NAME_AND_YOB_SMT_ROOT: Field =
     21214931644386285663256497249965874333059934725605058568752759284223990155398;
 
-// TOOD: combine into one tree and perform all checks in one go
-// TODO: include series of fuzzy matches for the names into the merkle tree?
+
+/// The OFAC sparse merkle trees
+/// This is a collection of the three trees that are used to check the OFAC exclusion
+/// for passports and ID cards
+///
+/// The trees are:
+/// 1. Passport No and Nationality
+/// 2. Name and DOB
+/// 3. Name and YOB
 pub struct OFACSparseMerkleTrees {
     pub passportNoAndNationalitySMTRoot: Field,
     pub nameAndDobSMTRoot: Field,
@@ -40,35 +47,14 @@ impl OFACSparseMerkleTrees {
     }
 }
 
-pub struct OFACMerkleProof {
-    pub leaf_value: Field,
-    pub siblings: OFACSparseMerkleTreeProof,
-}
-
-impl OFACMerkleProof {
-    pub fn new(leaf_value: Field, siblings: OFACSparseMerkleTreeProof) -> Self {
-        Self { leaf_value, siblings }
-    }
-}
-
-pub struct OFACSparseMerkleTreeProofs {
-    pub passportNoAndNationalitySMTProof: OFACMerkleProof,
-    pub nameAndDobSMTProof: OFACMerkleProof,
-    pub nameAndYobSMTProof: OFACMerkleProof,
-}
-
-impl OFACSparseMerkleTreeProofs {
-    pub fn new(
-        passportNoAndNationalitySMTProof: OFACMerkleProof,
-        nameAndDobSMTProof: OFACMerkleProof,
-        nameAndYobSMTProof: OFACMerkleProof,
-    ) -> Self {
-        Self { passportNoAndNationalitySMTProof, nameAndDobSMTProof, nameAndYobSMTProof }
-    }
-}
-
 impl OFACSparseMerkleTrees {
-    pub fn check_ofac_exclusion(self: Self, dg1: [u8; 95], proofs: OFACSparseMerkleTreeProofs) {
+    /// Check the OFAC exclusion for a given DG1
+    ///
+    /// # Arguments
+    ///
+    /// * `dg1` - The DG1 of the passport or ID card
+    /// * `proofs` - The proofs for the OFAC sparse merkle trees
+    pub fn check_ofac_exclusion(self: Self, dg1: DG1Data, proofs: OFACSparseMerkleTreeProofs) {
         // Calculate the hashes
         let name: MRZName = get_name_from_mrz(dg1);
         let dob: MRZDOB = get_dob_from_mrz(dg1);
@@ -108,22 +94,6 @@ fn smt_exculsion_check(hash: Field, root: Field, proof: OFACMerkleProof) {
     assert(smt_verify(hash, proof.leaf_value, root, proof.siblings, false));
 }
 
-/**
- * Concatenate two arrays (of different sizes) into one array
- */
-fn array_concat_as_field<let N: u32, let M: u32>(
-    array1: [u8; N],
-    array2: [u8; M],
-) -> [Field; N + M] {
-    let mut result = [0 as Field; N + M];
-    for i in 0..N {
-        result[i] = array1[i] as Field;
-    }
-    for i in 0..M {
-        result[N + i] = array2[i] as Field;
-    }
-    result
-}
 
 #[test]
 fn test_tree_non_inclusion() {
@@ -166,50 +136,6 @@ fn test_tree_non_inclusion() {
         trees.passportNoAndNationalitySMTRoot,
         proof,
     );
-}
-
-struct DG1Builder {
-    dg1: [u8; 95],
-}
-
-impl DG1Builder {
-    pub fn new(dg1: [u8; 95]) -> Self {
-        Self { dg1 }
-    }
-
-    pub fn build(mut self: Self) -> [u8; 95] {
-        self.dg1
-    }
-
-    pub fn with_country_code(mut self: Self, country_code: [u8; 3]) -> Self {
-        for i in 0..3 {
-            // - 5 as it goes through an mrz decoding
-            self.dg1[PASSPORT_MRZ_NATIONALITY_INDEX + i + 5] = country_code[i];
-            self.dg1[PASSPORT_MRZ_COUNTRY_INDEX + i + 5] = country_code[i];
-        }
-        self
-    }
-
-    pub fn with_document_number(mut self: Self, document_number: [u8; 9]) -> Self {
-        for i in 0..9 {
-            self.dg1[PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX + i + 5] = document_number[i];
-        }
-        self
-    }
-
-    pub fn with_name(mut self: Self, name: [u8; 39]) -> Self {
-        for i in 0..39 {
-            self.dg1[PASSPORT_MRZ_NAME_INDEX + i + 5] = name[i];
-        }
-        self
-    }
-
-    pub fn with_dob(mut self: Self, dob: [u8; 6]) -> Self {
-        for i in 0..6 {
-            self.dg1[PASSPORT_MRZ_BIRTHDATE_INDEX + i + 5] = dob[i];
-        }
-        self
-    }
 }
 
 #[test]

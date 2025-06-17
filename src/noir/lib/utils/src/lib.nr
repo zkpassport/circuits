@@ -3,6 +3,8 @@
 * are defined in the ICAO (International Civil Aviation Organization) 9303 document available here:
 * https://www.icao.int/publications/pages/publication.aspx?docnum=9303
 */
+pub mod test;
+pub mod types;
 
 /**
 * The structure of the MRZ is well defined and standardized by the ICAO
@@ -14,6 +16,8 @@
 // we need to generate various proofs of identity from the MRZ
 // The structure of the MRZ is slightly different between passports
 // and ID cards so we need to define indices for both types
+
+use types::{DG1Data, MRZData, MRZName, MRZDOB, MRZYOB, MRZDocumentNumber, MRZNationality, MRZIssuingCountry};
 
 // Index for the country of issuance of the passport
 pub global PASSPORT_MRZ_COUNTRY_INDEX: u32 = 2;
@@ -80,11 +84,6 @@ pub global PROOF_TYPE_ISSUING_COUNTRY_INCLUSION: u8 = 6;
 pub global PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION: u8 = 7;
 pub global PROOF_TYPE_BIND: u8 = 8;
 
-pub type MRZName = [u8; 39];
-pub type MRZDOB = [u8; 6];
-pub type MRZYOB = [u8; 2];
-pub type MRZDocumentNumber = [u8; 9];
-pub type MRZNationality = [u8; 3];
 
 // D<<
 global GERMANY_PASSPORT_CODE: [u8; 3] = [68, 60, 60];
@@ -110,7 +109,7 @@ pub struct IDData {
     // 95 bytes for passports, 93 bytes for ID cards
     // Including 88 bytes of MRZ and 5 bytes of padding for passports
     // and 90 bytes of MRZ and 5 bytes of padding for ID cards
-    pub dg1: [u8; 95],
+    pub dg1: DG1Data,
     // The signature over the data groups
     pub sod_signature: [u8; 512],
     pub sod_signature_size: u32,
@@ -226,7 +225,7 @@ pub fn dynamic_insert_into_array<let N: u32, let M: u32>(
     arr
 }
 
-pub fn is_id_card(dg1: [u8; 95]) -> bool {
+pub fn is_id_card(dg1: DG1Data) -> bool {
     // For passport, the last two bytes are 0
     // since the real length is 93 for passports
     // while it is 95 for ID cards
@@ -419,8 +418,8 @@ fn test_pack_be_bytes_into_fields() {
     );
 }
 
-pub fn get_mrz_from_dg1(dg1: [u8; 95]) -> [u8; 90] {
-    let mut mrz = [0 as u8; 90];
+pub fn get_mrz_from_dg1(dg1: DG1Data) -> MRZData {
+    let mut mrz: MRZData = [0 as u8; 90];
     for i in 0..90 {
         mrz[i] = dg1[i + 5];
     }
@@ -446,6 +445,23 @@ pub fn concat_array<let N: u32>(array_x: [u8; N], array_y: [u8; N]) -> [u8; N * 
     array
 }
 
+/**
+ * Concatenate two arrays (of different sizes) into one array
+ */
+pub fn array_concat_as_field<let N: u32, let M: u32>(
+    array1: [u8; N],
+    array2: [u8; M],
+) -> [Field; N + M] {
+    let mut result = [0 as Field; N + M];
+    for i in 0..N {
+        result[i] = array1[i] as Field;
+    }
+    for i in 0..M {
+        result[N + i] = array2[i] as Field;
+    }
+    result
+}
+
 pub fn check_zero_padding<let N: u32, T>(padded_array: [T; N], len: u32)
 where
     T: Eq,
@@ -458,10 +474,10 @@ where
     }
 }
 
-pub fn get_nationality_from_mrz(dg1: [u8; 95]) -> [u8; 3] {
+pub fn get_nationality_from_mrz(dg1: DG1Data) -> MRZNationality {
     let mrz = get_mrz_from_dg1(dg1);
 
-    let mut country_bytes: [u8; 3] = [0; 3];
+    let mut country_bytes: MRZNationality = [0; 3];
 
     if is_id_card(dg1) {
         country_bytes = get_array_slice(
@@ -485,7 +501,7 @@ pub fn get_nationality_from_mrz(dg1: [u8; 95]) -> [u8; 3] {
     country_bytes
 }
 
-pub fn get_issuing_country_from_mrz(dg1: [u8; 95]) -> [u8; 3] {
+pub fn get_issuing_country_from_mrz(dg1: DG1Data) -> MRZIssuingCountry {
     let mrz = get_mrz_from_dg1(dg1);
     // No need to check if it's an ID card since the issuing country
     // is always at the same index for both passports and ID cards
@@ -503,12 +519,12 @@ pub fn get_issuing_country_from_mrz(dg1: [u8; 95]) -> [u8; 3] {
     country_bytes
 }
 
-pub fn get_name_from_mrz(dg1: [u8; 95]) -> MRZName {
+pub fn get_name_from_mrz(dg1: DG1Data) -> MRZName {
     let mrz = get_mrz_from_dg1(dg1);
     get_array_slice(mrz, PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_INDEX + 39)
 }
 
-pub fn get_dob_from_mrz(dg1: [u8; 95]) -> MRZDOB {
+pub fn get_dob_from_mrz(dg1: DG1Data) -> MRZDOB {
     let mrz = get_mrz_from_dg1(dg1);
     get_array_slice(
         mrz,
@@ -517,7 +533,7 @@ pub fn get_dob_from_mrz(dg1: [u8; 95]) -> MRZDOB {
     )
 }
 
-pub fn get_yob_from_mrz(dg1: [u8; 95]) -> MRZYOB {
+pub fn get_yob_from_mrz(dg1: DG1Data) -> MRZYOB {
     let mrz = get_mrz_from_dg1(dg1);
     get_array_slice(
         mrz,
@@ -526,7 +542,7 @@ pub fn get_yob_from_mrz(dg1: [u8; 95]) -> MRZYOB {
     )
 }
 
-pub fn get_document_number_from_mrz(dg1: [u8; 95]) -> MRZDocumentNumber {
+pub fn get_document_number_from_mrz(dg1: DG1Data) -> MRZDocumentNumber {
     // TODO: make all of these an object to decrease gate counts -> single DG1 to MRZ conversion and slice from there
     let mrz = get_mrz_from_dg1(dg1);
     get_array_slice(
