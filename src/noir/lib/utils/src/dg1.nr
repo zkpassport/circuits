@@ -63,7 +63,6 @@ impl DG1 {
         country_bytes
     }
 
-
     pub fn get_issuing_country(self) -> MRZIssuingCountry {
         let mut country_bytes = if self.is_id_card() {
             self.get_issuing_country_id_card()

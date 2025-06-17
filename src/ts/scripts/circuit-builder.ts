@@ -346,13 +346,15 @@ const DATA_INTEGRITY_CHECK_TEMPLATE = (
 use commitment::commit_to_disclosure;
 use data_check_expiry::check_expiry;
 use data_check_integrity::check_integrity_of_data_${hash_algorithm};
+use utils::dg1::DG1;
+use utils::types::DG1Data;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     current_date: pub str<8>,
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,
-    dg1: [u8; 95],
+    dg1: DG1Data,
     signed_attributes: [u8; 200],
     signed_attributes_size: u32,
     e_content: [u8; 700],
@@ -360,11 +362,12 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     dg1_offset_in_e_content: u32,
     private_nullifier: Field,
 ) -> pub Field {
+    let dg1_data = DG1::new(dg1);
     // Check the ID is not expired first
-    check_expiry(dg1, current_date.as_bytes());
+    check_expiry(dg1_data, current_date.as_bytes());
     // Check the integrity of the data
     check_integrity_of_data_${hash_algorithm}(
-        dg1,
+        dg1_data,
         signed_attributes,
         signed_attributes_size,
         e_content,
@@ -678,6 +681,7 @@ function generateDataIntegrityCheckCircuit(
     { name: "data_check_integrity", path: "../../../../lib/data-check/integrity" },
     { name: "data_check_expiry", path: "../../../../lib/data-check/expiry" },
     { name: "commitment", path: "../../../../lib/commitment/integrity-to-disclosure" },
+    { name: "utils", path: "../../../../lib/utils" },
   ])
   const folderPath = `./src/noir/bin/data-check/integrity/${hash_algorithm}`
   const noirFilePath = `${folderPath}/src/main.nr`
