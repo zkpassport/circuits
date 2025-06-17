@@ -82,6 +82,10 @@ jobs:
           name: Integration tests
           command: |
             npm test circuits.test.ts
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - target
 
   info_circuits:
     <<: *defaults
