@@ -1,7 +1,7 @@
 use sha1::sha1;
 use sha256;
 use sha512::{sha384, sha512};
-use utils::check_zero_padding;
+use utils::array::check_zero_padding;
 
 pub fn sha1_and_check_data_to_sign<let DATA_TO_SIGN_LEN: u32>(
     data_to_sign: [u8; DATA_TO_SIGN_LEN],

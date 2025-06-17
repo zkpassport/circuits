@@ -48,6 +48,10 @@ CIRCUITS=(
     "bind_evm"
 )
 
+# Format generated files
+echo "Formatting generated files"
+nargo fmt
+
 for circuit in "${CIRCUITS[@]}"; do
     nargo compile --force --package "$circuit"
 done

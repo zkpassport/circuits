@@ -1,5 +1,5 @@
 use std::hash::poseidon2::Poseidon2;
-use utils::{get_issuing_country_from_mrz, get_nationality_from_mrz};
+use utils::dg1::DG1;
 
 unconstrained fn get_index<let N: u32>(list: [str<3>; N], value: [u8; 3]) -> i32 {
     let mut index: i32 = -1;
@@ -18,8 +18,8 @@ unconstrained fn get_index<let N: u32>(list: [str<3>; N], value: [u8; 3]) -> i32
 ///
 /// * `dg1`: The MRZ
 /// * `country_list`: The list of countries
-pub fn check_nationality_inclusion<let N: u32>(dg1: [u8; 95], country_list: [str<3>; N]) {
-    let nationality_bytes = get_nationality_from_mrz(dg1);
+pub fn check_nationality_inclusion<let N: u32>(dg1: DG1, country_list: [str<3>; N]) {
+    let nationality_bytes = dg1.get_nationality();
 
     // Safety: get the index of the country in the list from an unconstrained function
     let country_index = unsafe { get_index(country_list, nationality_bytes) };
@@ -40,8 +40,8 @@ pub fn check_nationality_inclusion<let N: u32>(dg1: [u8; 95], country_list: [str
 ///
 /// * `dg1`: The MRZ
 /// * `country_list`: The list of countries
-pub fn check_issuing_country_inclusion<let N: u32>(dg1: [u8; 95], country_list: [str<3>; N]) {
-    let issuing_country_bytes = get_issuing_country_from_mrz(dg1);
+pub fn check_issuing_country_inclusion<let N: u32>(dg1: DG1, country_list: [str<3>; N]) {
+    let issuing_country_bytes = dg1.get_issuing_country();
 
     // Safety: get the index of the country in the list from an unconstrained function
     let country_index = unsafe { get_index(country_list, issuing_country_bytes) };
@@ -118,5 +118,5 @@ pub fn calculate_param_commitment_sha2<let N: u32>(
         params[i * 3 + 3] = country_code[2];
     }
     let hash = sha256::sha256_var(params, (N * 3 + 1) as u64);
-    utils::pack_be_bytes_into_field::<32, 31>(hash)
+    utils::packing::pack_be_bytes_into_field::<32, 31>(hash)
 }

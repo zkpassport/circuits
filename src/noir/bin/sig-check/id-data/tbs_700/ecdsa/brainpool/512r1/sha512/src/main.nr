@@ -3,7 +3,7 @@ use commitment::commit_to_id;
 use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
 use sig_check_common::sha512_and_check_data_to_sign;
 use sig_check_ecdsa::verify_brainpool_512r1;
-use utils::split_array;
+use utils::array::split_array;
 
 fn main(
     comm_in: pub Field,

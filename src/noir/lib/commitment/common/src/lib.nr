@@ -1,5 +1,6 @@
 //use std::hash::pedersen_hash;
 use std::hash::poseidon2::Poseidon2;
+use utils::packing::pack_be_bytes_into_fields;
 use utils::PASSPORT_MRZ_COUNTRY_INDEX;
 
 pub global CSC_CERT_TYPE: u8 = 1;
@@ -32,8 +33,8 @@ pub fn calculate_certificate_registry_leaf<let N: u32>(
     // Prepare and hash Poseidon2 inputs
     let mut poseidon_inputs: [Field; 2 + (N + 30) / 31] = [0; 2 + (N + 30) / 31];
     poseidon_inputs[0] = tags;
-    poseidon_inputs[1] = utils::pack_be_bytes_into_fields::<5, 1, 31>(unpacked_bytes)[0];
-    let packed_pubkey = utils::pack_be_bytes_into_fields::<N, (N + 30) / 31, 31>(public_key);
+    poseidon_inputs[1] = pack_be_bytes_into_fields::<5, 1, 31>(unpacked_bytes)[0];
+    let packed_pubkey = pack_be_bytes_into_fields::<N, (N + 30) / 31, 31>(public_key);
     for i in 0..packed_pubkey.len() {
         poseidon_inputs[2 + i] = packed_pubkey[i] as Field;
     }

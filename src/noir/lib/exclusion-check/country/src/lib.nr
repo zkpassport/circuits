@@ -1,5 +1,5 @@
 use std::hash::poseidon2::Poseidon2;
-use utils::{get_issuing_country_from_mrz, get_nationality_from_mrz};
+use utils::dg1::DG1;
 
 unconstrained fn get_closest_index<let N: u32>(sorted_list: [u32; N], value: u32) -> i64 {
     let mut index: i64 = -1;
@@ -34,8 +34,8 @@ unconstrained fn get_last_index<let N: u32>(sorted_list: [u32; N]) -> i64 {
 /// * `country_list` - The sorted list of countries to check against, must be formatted as a list of u32
 /// which are the Alpha-3 codes of the countries with each letter ASCII code put together using a weighted sum.
 /// e.g. for "FRA", the sum is 70 * 2^16 (0x10000) + 82 * 2^8 (0x100) + 65 = 4587520 + 20992 + 65 = 4608577
-pub fn check_nationality_exclusion<let N: u32>(dg1: [u8; 95], country_list: [u32; N]) {
-    let nationality_bytes = get_nationality_from_mrz(dg1);
+pub fn check_nationality_exclusion<let N: u32>(dg1: DG1, country_list: [u32; N]) {
+    let nationality_bytes = dg1.get_nationality();
     let nationality_sum: u32 = nationality_bytes[0] as u32 * 0x10000
         + nationality_bytes[1] as u32 * 0x100
         + nationality_bytes[2] as u32;
@@ -75,8 +75,8 @@ pub fn check_nationality_exclusion<let N: u32>(dg1: [u8; 95], country_list: [u32
 /// The list of countries is assumed to be sorted in ascending order
 /// So it must come either from a public input that can be independently checked
 /// or from a previous in-circuit check that the list is sorted
-pub fn check_issuing_country_exclusion<let N: u32>(dg1: [u8; 95], country_list: [u32; N]) {
-    let issuing_country_bytes = get_issuing_country_from_mrz(dg1);
+pub fn check_issuing_country_exclusion<let N: u32>(dg1: DG1, country_list: [u32; N]) {
+    let issuing_country_bytes = dg1.get_issuing_country();
     let issuing_country_sum: u32 = issuing_country_bytes[0] as u32 * 0x10000
         + issuing_country_bytes[1] as u32 * 0x100
         + issuing_country_bytes[2] as u32;
@@ -159,5 +159,5 @@ pub fn calculate_param_commitment_sha2<let N: u32>(
         params[i * 3 + 3] = (country_list[i] & 0xFF) as u8;
     }
     let hash = sha256::sha256_var(params, (N * 3 + 1) as u64);
-    utils::pack_be_bytes_into_field::<32, 31>(hash)
+    utils::packing::pack_be_bytes_into_field::<32, 31>(hash)
 }
