@@ -49,13 +49,11 @@ impl DG1 {
     }
 
     pub fn get_nationality(self) -> MRZNationality {
-        let mut country_bytes: MRZNationality = [0; 3];
-
-        if is_id_card(self.dg1) {
-            country_bytes = self.get_nationality_id_card();
+        let mut country_bytes = if self.is_id_card() {
+            self.get_nationality_id_card()
         } else {
-            country_bytes = self.get_nationality_passport();
-        }
+            self.get_nationality_passport()
+        };
 
         // Handle the special case of Germany
         if (country_bytes == GERMANY_PASSPORT_CODE) {
@@ -65,8 +63,13 @@ impl DG1 {
         country_bytes
     }
 
+
     pub fn get_issuing_country(self) -> MRZIssuingCountry {
-        let mut country_bytes = self.get_issuing_country_passport();
+        let mut country_bytes = if self.is_id_card() {
+            self.get_issuing_country_id_card()
+        } else {
+            self.get_issuing_country_passport()
+        };
 
         // Handle the special case of Germany
         if (country_bytes == GERMANY_PASSPORT_CODE) {
@@ -203,32 +206,6 @@ impl DG1 {
             ID_CARD_MRZ_BIRTHDATE_INDEX,
             ID_CARD_MRZ_BIRTHDATE_INDEX + 6,
         )
-    }
-
-    // Which one of these to use??
-    pub fn get_birthdate_2(self, current_date: [u8; 8]) -> Date {
-        let mut birthdate_bytes: MRZDate = [0 as u8; 6];
-
-        // Get the slice of the MRZ representing the birthdate
-        if is_id_card(self.dg1) {
-            birthdate_bytes = get_array_slice(
-                self.mrz,
-                ID_CARD_MRZ_BIRTHDATE_INDEX,
-                ID_CARD_MRZ_BIRTHDATE_INDEX + 6,
-            );
-        } else {
-            // Otherwise it's an ID card
-            birthdate_bytes = get_array_slice(
-                self.mrz,
-                PASSPORT_MRZ_BIRTHDATE_INDEX,
-                PASSPORT_MRZ_BIRTHDATE_INDEX + 6,
-            );
-        }
-
-        // Create a Date object from the birthdate using the current date as
-        // the pivot year to differentiate between 20th and 21st centuries
-        // as the format is "YYMMDD"
-        Date::from_bytes_short_year(birthdate_bytes, [current_date[2], current_date[3]])
     }
 
     pub fn get_expiry_date(self, current_date: [u8; 8]) -> Date {

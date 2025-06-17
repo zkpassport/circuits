@@ -1,4 +1,3 @@
-use std::hash::keccak256;
 use std::hash::poseidon2::Poseidon2;
 use utils::dg1::DG1;
 use utils::{DisclosedData, DiscloseFlags, PROOF_TYPE_DISCLOSE};
