@@ -1,12 +1,14 @@
 use commitment::nullify;
 use inclusion_check_country::{calculate_param_commitment, check_issuing_country_inclusion};
+use utils::dg1::DG1;
 use utils::PROOF_TYPE_ISSUING_COUNTRY_INCLUSION;
+use utils::types::DG1Data;
 
 fn main(
     comm_in: pub Field,
     salt: Field,
     private_nullifier: Field,
-    dg1: [u8; 95],
+    dg1: DG1Data,
     // @committed
     // There are roughly 200 countries in the world
     // so we can safely pad it to 200
@@ -15,7 +17,8 @@ fn main(
     service_subscope: pub Field,
 ) -> pub (Field, Field) {
     // Check that the issuing country of the passport is in the list of countries
-    check_issuing_country_inclusion(dg1, country_list);
+    let dg1_data = DG1::new(dg1);
+    check_issuing_country_inclusion(dg1_data, country_list);
     let nullifier = nullify(
         comm_in,
         salt,

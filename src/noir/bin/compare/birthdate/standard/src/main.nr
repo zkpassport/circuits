@@ -1,12 +1,14 @@
 use commitment::nullify;
-use compare_date_lib::{calculate_param_commitment, compare_date, get_birthdate};
+use compare_date_lib::{calculate_param_commitment, compare_date};
+use utils::dg1::DG1;
 use utils::PROOF_TYPE_BIRTHDATE;
+use utils::types::DG1Data;
 
 fn main(
     comm_in: pub Field,
     salt: Field,
     private_nullifier: Field,
-    dg1: [u8; 95],
+    dg1: DG1Data,
     // @committed
     // The current date is public (via the parameter commitment) so verifiers can check the date
     // provided to the proof is correct
@@ -24,7 +26,8 @@ fn main(
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field) {
-    let birthdate = get_birthdate(dg1, current_date.as_bytes());
+    let dg1_data = DG1::new(dg1);
+    let birthdate = dg1_data.get_birthdate(current_date.as_bytes());
     // Verify the birthdate of the ID holder
     compare_date(birthdate, min_date.as_bytes(), max_date.as_bytes());
     let nullifier = nullify(

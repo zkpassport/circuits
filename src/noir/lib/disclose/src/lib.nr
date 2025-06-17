@@ -1,26 +1,10 @@
 use std::hash::keccak256;
 use std::hash::poseidon2::Poseidon2;
-use utils::{
-    DisclosedData, DiscloseFlags, get_mrz_from_dg1, ID_CARD_MRZ_BIRTHDATE_INDEX,
-    ID_CARD_MRZ_COUNTRY_INDEX, ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX, ID_CARD_MRZ_DOCUMENT_TYPE_INDEX,
-    ID_CARD_MRZ_EXPIRY_DATE_INDEX, ID_CARD_MRZ_GENDER_INDEX, ID_CARD_MRZ_LENGTH,
-    ID_CARD_MRZ_NAME_INDEX, ID_CARD_MRZ_NATIONALITY_INDEX, IDData, is_id_card,
-    PASSPORT_MRZ_BIRTHDATE_INDEX, PASSPORT_MRZ_COUNTRY_INDEX, PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
-    PASSPORT_MRZ_DOCUMENT_TYPE_INDEX, PASSPORT_MRZ_EXPIRY_DATE_INDEX, PASSPORT_MRZ_GENDER_INDEX,
-    PASSPORT_MRZ_LENGTH, PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NATIONALITY_INDEX,
-    PROOF_TYPE_DISCLOSE,
-};
+use utils::dg1::DG1;
+use utils::{DisclosedData, DiscloseFlags, PROOF_TYPE_DISCLOSE};
+use utils::packing::pack_be_bytes_into_field;
 
-fn get_array_slice<let N: u32, let M: u32>(array: [u8; N], start: u32, end: u32) -> [u8; M] {
-    let mut slice = [0 as u8; M];
-    for i in 0..M {
-        slice[i] = array[start + i];
-    }
-    slice
-}
-
-pub fn get_disclosed_data(dg1: [u8; 95], flags: DiscloseFlags) -> DisclosedData {
-    let mrz = get_mrz_from_dg1(dg1);
+pub fn get_disclosed_data(dg1: DG1, flags: DiscloseFlags) -> DisclosedData {
     let mut disclosed_data = DisclosedData {
         issuing_country: [0 as u8; 3],
         date_of_birth: [0 as u8; 6],
@@ -32,119 +16,64 @@ pub fn get_disclosed_data(dg1: [u8; 95], flags: DiscloseFlags) -> DisclosedData 
         gender: [0 as u8; 1],
     };
 
-    if is_id_card(dg1) {
+    if dg1.is_id_card() {
         if flags.issuing_country {
-            disclosed_data.issuing_country = get_array_slice(
-                mrz,
-                ID_CARD_MRZ_COUNTRY_INDEX,
-                ID_CARD_MRZ_COUNTRY_INDEX + 3,
-            );
+            disclosed_data.issuing_country = dg1.get_issuing_country_id_card();
         }
         if flags.date_of_birth {
-            disclosed_data.date_of_birth = get_array_slice(
-                mrz,
-                ID_CARD_MRZ_BIRTHDATE_INDEX,
-                ID_CARD_MRZ_BIRTHDATE_INDEX + 6,
-            );
+            disclosed_data.date_of_birth = dg1.get_date_of_birth_id_card();
         }
         if flags.nationality {
-            disclosed_data.nationality = get_array_slice(
-                mrz,
-                ID_CARD_MRZ_NATIONALITY_INDEX,
-                ID_CARD_MRZ_NATIONALITY_INDEX + 3,
-            );
+            disclosed_data.nationality = dg1.get_nationality();
         }
         if flags.name {
-            disclosed_data.name =
-                get_array_slice(mrz, ID_CARD_MRZ_NAME_INDEX, ID_CARD_MRZ_NAME_INDEX + 30);
+            disclosed_data.name = dg1.get_name_id_card();
         }
         if flags.document_number {
-            disclosed_data.document_number = get_array_slice(
-                mrz,
-                ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX,
-                ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX + 9,
-            );
+            disclosed_data.document_number = dg1.get_document_number_id_card();
         }
         if flags.date_of_expiry {
-            disclosed_data.date_of_expiry = get_array_slice(
-                mrz,
-                ID_CARD_MRZ_EXPIRY_DATE_INDEX,
-                ID_CARD_MRZ_EXPIRY_DATE_INDEX + 6,
-            );
+            disclosed_data.date_of_expiry = dg1.get_expiry_date_id_card();
         }
         if flags.document_type {
-            disclosed_data.document_type = get_array_slice(
-                mrz,
-                ID_CARD_MRZ_DOCUMENT_TYPE_INDEX,
-                ID_CARD_MRZ_DOCUMENT_TYPE_INDEX + 2,
-            );
+            disclosed_data.document_type = dg1.get_document_type_id_card();
         }
         if flags.gender {
-            disclosed_data.gender =
-                get_array_slice(mrz, ID_CARD_MRZ_GENDER_INDEX, ID_CARD_MRZ_GENDER_INDEX + 1);
+            disclosed_data.gender = dg1.get_gender_id_card();
         }
     } else {
         if flags.issuing_country {
-            disclosed_data.issuing_country = get_array_slice(
-                mrz,
-                PASSPORT_MRZ_COUNTRY_INDEX,
-                PASSPORT_MRZ_COUNTRY_INDEX + 3,
-            );
+            disclosed_data.issuing_country = dg1.get_issuing_country_passport();
         }
         if flags.date_of_birth {
-            disclosed_data.date_of_birth = get_array_slice(
-                mrz,
-                PASSPORT_MRZ_BIRTHDATE_INDEX,
-                PASSPORT_MRZ_BIRTHDATE_INDEX + 6,
-            );
+            disclosed_data.date_of_birth = dg1.get_date_of_birth_passport();
         }
         if flags.nationality {
-            disclosed_data.nationality = get_array_slice(
-                mrz,
-                PASSPORT_MRZ_NATIONALITY_INDEX,
-                PASSPORT_MRZ_NATIONALITY_INDEX + 3,
-            );
+            disclosed_data.nationality = dg1.get_nationality_passport();
         }
         if flags.name {
-            disclosed_data.name =
-                get_array_slice(mrz, PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_INDEX + 39);
+            disclosed_data.name = dg1.get_name_passport();
         }
         if flags.document_number {
-            disclosed_data.document_number = get_array_slice(
-                mrz,
-                PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
-                PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX + 9,
-            );
+            disclosed_data.document_number = dg1.get_document_number_passport();
         }
         if flags.date_of_expiry {
-            disclosed_data.date_of_expiry = get_array_slice(
-                mrz,
-                PASSPORT_MRZ_EXPIRY_DATE_INDEX,
-                PASSPORT_MRZ_EXPIRY_DATE_INDEX + 6,
-            );
+            disclosed_data.date_of_expiry = dg1.get_expiry_date_passport();
         }
         if flags.document_type {
-            disclosed_data.document_type = get_array_slice(
-                mrz,
-                PASSPORT_MRZ_DOCUMENT_TYPE_INDEX,
-                PASSPORT_MRZ_DOCUMENT_TYPE_INDEX + 2,
-            );
+            disclosed_data.document_type = dg1.get_document_type_passport();
         }
         if flags.gender {
-            disclosed_data.gender = get_array_slice(
-                mrz,
-                PASSPORT_MRZ_GENDER_INDEX,
-                PASSPORT_MRZ_GENDER_INDEX + 1,
-            );
+            disclosed_data.gender = dg1.get_gender_passport();
         }
     }
 
     disclosed_data
 }
 
-pub fn get_disclosed_bytes(dg1: [u8; 95], mask: [u8; 90]) -> [u8; 90] {
+pub fn get_disclosed_bytes(dg1: DG1, mask: [u8; 90]) -> [u8; 90] {
     let mut disclosed_bytes = [0 as u8; 90];
-    let mrz = get_mrz_from_dg1(dg1);
+    let mrz = dg1.get_mrz();
     for i in 0..90 {
         disclosed_bytes[i] = mask[i] * mrz[i];
     }
@@ -200,5 +129,5 @@ pub fn calculate_param_commitment_sha2(
         params[i] = disclosed_bytes[i - 91];
     }
     let hash = sha256::sha256_var(params, 181);
-    utils::pack_be_bytes_into_field::<32, 31>(hash)
+    pack_be_bytes_into_field::<32, 31>(hash)
 }

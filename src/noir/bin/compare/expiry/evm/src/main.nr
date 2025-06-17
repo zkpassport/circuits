@@ -1,12 +1,14 @@
 use commitment::nullify;
-use compare_date_lib::{calculate_param_commitment_sha2, compare_date, get_expiry_date};
+use compare_date_lib::{calculate_param_commitment_sha2, compare_date};
+use utils::dg1::DG1;
 use utils::PROOF_TYPE_EXPIRY_DATE;
+use utils::types::DG1Data;
 
 fn main(
     comm_in: pub Field,
     salt: Field,
     private_nullifier: Field,
-    dg1: [u8; 95],
+    dg1: DG1Data,
     // @committed
     // The current date is public so verifiers can check the date
     // provided to the proof is correct
@@ -24,7 +26,8 @@ fn main(
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field) {
-    let expiry_date = get_expiry_date(dg1, current_date.as_bytes());
+    let dg1_data = DG1::new(dg1);
+    let expiry_date = dg1_data.get_expiry_date(current_date.as_bytes());
     // Verify the expiry date of the ID holder
     compare_date(expiry_date, min_date.as_bytes(), max_date.as_bytes());
     // Use SHA2-256 to calculate the parameter commitment so the parameter commitment can be

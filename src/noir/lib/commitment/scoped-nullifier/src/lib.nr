@@ -1,5 +1,6 @@
 use common::{calculate_scoped_nullifier, hash_salt_dg1_private_nullifier};
-use utils::get_issuing_country_from_mrz;
+use utils::dg1::DG1;
+use utils::types::DG1Data;
 
 // The ZKR (or Zero Knowledge Republic) is a mock country used for testing purposes
 global ZKR_COUNTRY_CODE_BYTES: [u8; 3] = [90, 75, 82];
@@ -30,7 +31,7 @@ scoped_nullifier    `H(private_nullifier, service_scope, service_subscope)`
 pub fn nullify(
     comm_in: Field,
     salt: Field,
-    dg1: [u8; 95],
+    dg1: DG1Data,
     private_nullifier: Field,
     service_scope: Field,
     service_subscope: Field,
@@ -38,7 +39,9 @@ pub fn nullify(
     assert(comm_in == hash_salt_dg1_private_nullifier(salt, dg1, private_nullifier));
     let mut scoped_nullifier =
         calculate_scoped_nullifier(private_nullifier, service_scope, service_subscope);
-    let issuing_country = get_issuing_country_from_mrz(dg1);
+
+    let dg1_data = DG1::new(dg1);
+    let issuing_country = dg1_data.get_issuing_country();
     // Doesn't matter if we already calculated the scoped nullifier above
     // cause it's ZK all branches will be evaluated anyway
     if issuing_country == ZKR_COUNTRY_CODE_BYTES {
