@@ -2,8 +2,8 @@
 use commitment::commit_to_disclosure;
 use data_check_expiry::check_expiry;
 use data_check_integrity::check_integrity_of_data_sha384;
-use utils::types::DG1Data;
 use utils::dg1::DG1;
+use utils::types::DG1Data;
 
 fn main(
     current_date: pub str<8>,
