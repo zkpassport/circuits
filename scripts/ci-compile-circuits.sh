@@ -11,7 +11,7 @@ ROOT=$(git rev-parse --show-toplevel)
 ./node_modules/.bin/tsx src/ts/scripts/circuit-builder.ts generate unconstrained
 
 # Circuits list provided by ci-circuits.sh
-mapfile -t CIRCUITS < "$ROOT/scripts/helpers/ci-circuits.sh"
+mapfile -t CIRCUITS < "$ROOT/scripts/helpers/ci-circuits.txt"
 
 echo "Circuits: ${CIRCUITS[@]}"
 

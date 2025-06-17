@@ -11,7 +11,7 @@ if [ ! -d "$ROOT/target" ]; then
 fi
 
 # Circuits list provided by ci-circuits.sh
-mapfile -t CIRCUITS < "$ROOT/scripts/helpers/ci-circuits.sh"
+mapfile -t CIRCUITS < "$ROOT/scripts/helpers/ci-circuits.txt"
 
 
 mkdir -p "$ROOT/nargo-info"
