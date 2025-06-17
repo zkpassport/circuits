@@ -83,6 +83,63 @@ jobs:
           command: |
             npm test circuits.test.ts
 
+    info_circuits:
+      <<: *defaults
+      steps:
+        - restore_cache:
+            keys:
+              - nargo-cache-<< pipeline.parameters.noir_version >>
+        - attach_workspace:
+            at: ~/repo
+        - run:
+            name: Run ci-info-circuits.sh
+            command: bash ~/repo/circuits/scripts/ci-info-circuits.sh
+        - save_cache:
+            paths:
+              - ~/repo/circuits/nargo-info/main_opcodes.json
+            key: nargo-cache-<< pipeline.parameters.noir_version >>-main-opcodes
+            when: << pipeline.git.branch >> == "main"
+
+  compare_circuit_opcodes:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: Install jq and gh
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y jq
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt-get update
+            sudo apt-get install gh -y
+      - run:
+          name: Run ci-info-circuits.sh on PR branch
+          command: bash ~/repo/circuits/scripts/ci-info-circuits.sh
+      - run:
+          name: Save PR branch main_opcodes.json
+          command: cp ~/repo/circuits/nargo-info/main_opcodes.json /tmp/main_opcodes_pr.json
+      - restore_cache:
+          keys:
+            - nargo-cache-<< pipeline.parameters.noir_version >>-main-opcodes
+      - run:
+          name: Compare opcode counts and comment on PR if different
+          command: |
+            set +e
+            diff_output=$(diff -u /tmp/main_opcodes.json /tmp/main_opcodes_pr.json)
+            set -e
+            if [ -n "$diff_output" ]; then
+              echo "Opcode counts differ, posting comment to PR..."
+              PR_NUMBER=$(echo $CIRCLE_PULL_REQUEST | awk -F'/' '{print $NF}')
+              echo $GITHUB_TOKEN | gh auth login --with-token
+              gh pr comment $PR_NUMBER --body "### :warning: Circuit opcode counts changed\n\
+\`\`\`diff\n$diff_output\n\`\`\`"
+            else
+              echo "No opcode count changes detected."
+            fi
+
 workflows:
   version: 2
 
@@ -95,3 +152,10 @@ workflows:
       - test_circuits:
           requires:
             - lint
+      - info_circuits:
+          requires:
+            - test_circuits
+      - compare_circuit_opcodes:
+          requires:
+            - info_circuits
+          when: << pipeline.git.branch >> != "main"

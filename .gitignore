@@ -1,5 +1,6 @@
 crs
 target
+nargo-info
 proofs
 Prover.toml
 Verifier.toml
