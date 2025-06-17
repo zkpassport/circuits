@@ -2,7 +2,7 @@
 use commitment::commit_to_dsc;
 use sig_check_common::sha256_and_check_data_to_sign;
 use sig_check_ecdsa::verify_nist_p521;
-use utils::{concat_array, split_array};
+use utils::array::{concat_array, split_array};
 
 fn main(
     certificate_registry_root: pub Field,

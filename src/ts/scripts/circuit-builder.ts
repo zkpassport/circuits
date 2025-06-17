@@ -145,7 +145,7 @@ const DSC_ECDSA_TEMPLATE = (
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_dsc;
 use sig_check_ecdsa::verify_${curve_family}_${curve_name};
-use utils::{concat_array, split_array};
+use utils::array::{concat_array, split_array};
 use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
@@ -244,7 +244,7 @@ const ID_DATA_ECDSA_TEMPLATE = (
 use commitment::commit_to_id;
 use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
 use sig_check_ecdsa::verify_${curve_family}_${curve_name};
-use utils::split_array;
+use utils::array::split_array;
 use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 
 ${unconstrained ? "unconstrained " : ""}fn main(

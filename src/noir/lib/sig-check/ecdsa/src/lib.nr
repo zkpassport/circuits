@@ -28,10 +28,11 @@ use ecdsa::ecdsa::{
 };
 use std::ecdsa_secp256r1;
 use utils::{
-    check_zero_padding, concat_array, ECDSA_CURVE_BRAINPOOL_B256R1, ECDSA_CURVE_BRAINPOOL_B256T1,
+    ECDSA_CURVE_BRAINPOOL_B256R1, ECDSA_CURVE_BRAINPOOL_B256T1,
     ECDSA_CURVE_BRAINPOOL_B384R1, ECDSA_CURVE_BRAINPOOL_B384T1, ECDSA_CURVE_BRAINPOOL_B512R1,
     ECDSA_CURVE_BRAINPOOL_B512T1, ECDSA_CURVE_P384, ECDSA_CURVE_P521,
 };
+use utils::array::{check_zero_padding, concat_array};
 
 pub fn verify_nist_p256_blackbox<let DATA_TO_SIGN_LEN: u32, let HASH_BYTE_SIZE: u32>(
     pubkey_x: [u8; 32],
