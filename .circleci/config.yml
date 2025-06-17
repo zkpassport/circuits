@@ -97,7 +97,8 @@ jobs:
           at: ~/repo
       - run:
           name: Run ci-info-circuits.sh
-          command: bash ~/repo/scripts/ci-info-circuits.sh
+          command: |
+            PATH=/home/circleci/.nargo/bin:$PATH ~/repo/scripts/ci-info-circuits.sh
       # - when:
       #     condition:
       #       equal: [ main, << pipeline.git.branch >> ]
@@ -128,7 +129,8 @@ jobs:
             sudo apt-get install gh -y
       - run:
           name: Run ci-info-circuits.sh on PR branch
-          command: bash ~/repo/scripts/ci-info-circuits.sh
+          command: |
+            PATH=/home/circleci/.nargo/bin:$PATH ~/repo/scripts/ci-info-circuits.sh
       - run:
           name: Save PR branch main_opcodes.json
           command: cp ~/repo/nargo-info/main_opcodes.json /tmp/main_opcodes_pr.json
