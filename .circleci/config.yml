@@ -106,6 +106,10 @@ jobs:
           paths:
             - ~/repo/nargo-info/main_opcodes.json
           key: nargo-cache-<< pipeline.parameters.noir_version >>-main-opcodes
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - nargo-info
 
   compare_circuit_opcodes:
     <<: *defaults
