@@ -134,8 +134,11 @@ jobs:
               echo "Opcode counts differ, posting comment to PR..."
               PR_NUMBER=$(echo $CIRCLE_PULL_REQUEST | awk -F'/' '{print $NF}')
               echo $GITHUB_TOKEN | gh auth login --with-token
-              gh pr comment $PR_NUMBER --body "### :warning: Circuit opcode counts changed\n\
-\`\`\`diff\n$diff_output\n\`\`\`"
+              gh pr comment $PR_NUMBER --body "### :warning: Circuit opcode counts changed
+
+\`\`\`diff
+$diff_output
+\`\`\`"
             else
               echo "No opcode count changes detected."
             fi

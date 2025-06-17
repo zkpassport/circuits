@@ -19,10 +19,15 @@ mkdir -p "$ROOT/nargo-info"
 export ROOT
 export -f
 
-for circuit in "${CIRCUITS[@]}"; do
-    echo "Info $circuit"
-    nargo info --package "$circuit" --json > "$ROOT/nargo-info/$circuit.json"
-done
+# for circuit in "${CIRCUITS[@]}"; do
+#     echo "Info $circuit"
+#     nargo info --package "$circuit" --json > "$ROOT/nargo-info/$circuit.json"
+# done
+
+parallel --halt soon,fail=1 --jobs 0 '
+    echo "Info {}"
+    nargo info --package "{}" --json > "$ROOT/nargo-info/{}.json"
+' ::: "${CIRCUITS[@]}"
 
 # Generate a json file with main opcode counts for each circuit
 OUTFILE="$ROOT/nargo-info/main_opcodes.json"
