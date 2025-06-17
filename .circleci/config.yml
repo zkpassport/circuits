@@ -83,22 +83,25 @@ jobs:
           command: |
             npm test circuits.test.ts
 
-    info_circuits:
-      <<: *defaults
-      steps:
-        - restore_cache:
-            keys:
-              - nargo-cache-<< pipeline.parameters.noir_version >>
-        - attach_workspace:
-            at: ~/repo
-        - run:
-            name: Run ci-info-circuits.sh
-            command: bash ~/repo/circuits/scripts/ci-info-circuits.sh
-        - save_cache:
-            paths:
-              - ~/repo/circuits/nargo-info/main_opcodes.json
-            key: nargo-cache-<< pipeline.parameters.noir_version >>-main-opcodes
-            when: << pipeline.git.branch >> == "main"
+  info_circuits:
+    <<: *defaults
+    steps:
+      - restore_cache:
+          keys:
+            - nargo-cache-<< pipeline.parameters.noir_version >>
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: Run ci-info-circuits.sh
+          command: bash ~/repo/scripts/ci-info-circuits.sh
+      - when:
+          condition:
+            equal: [ main, << pipeline.git.branch >> ]
+          steps:
+            - save_cache:
+                paths:
+                  - ~/repo/nargo-info/main_opcodes.json
+                key: nargo-cache-<< pipeline.parameters.noir_version >>-main-opcodes
 
   compare_circuit_opcodes:
     <<: *defaults
@@ -117,10 +120,10 @@ jobs:
             sudo apt-get install gh -y
       - run:
           name: Run ci-info-circuits.sh on PR branch
-          command: bash ~/repo/circuits/scripts/ci-info-circuits.sh
+          command: bash ~/repo/scripts/ci-info-circuits.sh
       - run:
           name: Save PR branch main_opcodes.json
-          command: cp ~/repo/circuits/nargo-info/main_opcodes.json /tmp/main_opcodes_pr.json
+          command: cp ~/repo/nargo-info/main_opcodes.json /tmp/main_opcodes_pr.json
       - restore_cache:
           keys:
             - nargo-cache-<< pipeline.parameters.noir_version >>-main-opcodes
@@ -128,24 +131,22 @@ jobs:
           name: Compare opcode counts and comment on PR if different
           command: |
             set +e
-            diff_output=$(diff -u /tmp/main_opcodes.json /tmp/main_opcodes_pr.json)
+            diff_output=$(diff -u ~/repo/nargo-info/main_opcodes.json /tmp/main_opcodes_pr.json)
             set -e
             if [ -n "$diff_output" ]; then
               echo "Opcode counts differ, posting comment to PR..."
               PR_NUMBER=$(echo $CIRCLE_PULL_REQUEST | awk -F'/' '{print $NF}')
               echo $GITHUB_TOKEN | gh auth login --with-token
-              gh pr comment $PR_NUMBER --body "### :warning: Circuit opcode counts changed
-
-\`\`\`diff
-$diff_output
-\`\`\`"
+              echo "### Circuit opcode counts changed" > /tmp/pr_comment.txt
+              echo "" >> /tmp/pr_comment.txt
+              echo "$diff_output" >> /tmp/pr_comment.txt
+              gh pr comment $PR_NUMBER --body-file /tmp/pr_comment.txt
             else
               echo "No opcode count changes detected."
             fi
 
 workflows:
   version: 2
-
   test:
     jobs:
       - checkout
@@ -154,11 +155,13 @@ workflows:
             - checkout
       - test_circuits:
           requires:
-            - lint
+            - checkout
       - info_circuits:
           requires:
             - test_circuits
       - compare_circuit_opcodes:
           requires:
             - info_circuits
-          when: << pipeline.git.branch >> != "main"
+          filters:
+            branches:
+              ignore: main
