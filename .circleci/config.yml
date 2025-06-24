@@ -115,6 +115,9 @@ jobs:
   compare_circuit_opcodes:
     <<: *defaults
     steps:
+      - restore_cache:
+          keys:
+            - nargo-cache-<< pipeline.parameters.noir_version >>
       - attach_workspace:
           at: ~/repo
       - run:
