@@ -59,8 +59,13 @@ pub fn smt_verify<let N: u32>(
 
     //move the last "depth" number of bits from path_in_bits to the starting of path
     assert(depth < N);
-    for i in 0..depth {
-        path[i] = path_in_bits[path_in_bits.len() - depth + i];
+    for i in 0..path_in_bits.len() {
+        // TODO: inefficient - fix up
+        if i < depth {
+            path[i] = path_in_bits[path_in_bits.len() - depth + i];
+        } else {
+            path[i] = 0;
+        }
     }
     let leaf = std::hash::poseidon2::Poseidon2::hash([value, 1, 1], 3);
 

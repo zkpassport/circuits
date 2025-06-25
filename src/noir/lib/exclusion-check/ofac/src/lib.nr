@@ -9,7 +9,8 @@ use types::{OFACMerkleProof, OFACSparseMerkleTreeProofs};
 
 use utils::{
     get_dob_from_mrz, get_document_number_from_mrz, get_name_from_mrz, get_nationality_from_mrz,
-    get_yob_from_mrz, MRZDOB, MRZDocumentNumber, MRZName, MRZNationality, MRZYOB, array_concat_as_field, DG1Data
+    get_yob_from_mrz, array_concat_as_field,
+    types::{MRZDOB, MRZDocumentNumber, MRZName, MRZNationality, MRZYOB, DG1Data},
 };
 
 global PASSPORT_NO_AND_NATIONALITY_SMT_ROOT: Field =

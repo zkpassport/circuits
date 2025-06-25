@@ -1,8 +1,6 @@
 
 type OFACSparseMerkleTreeProof = [Field; 254];
 
-
-
 /// A proof for a single OFAC sparse merkle tree
 pub struct OFACMerkleProof {
     /// The leaf value used for a non inclusion check (common root)
