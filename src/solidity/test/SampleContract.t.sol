@@ -17,7 +17,7 @@ contract SampleContractTest is TestUtils {
   string constant PUBLIC_INPUTS_PATH = "./test/fixtures/all_subproofs_public_inputs.json";
   string constant COMMITTED_INPUTS_PATH = "./test/fixtures/all_subproofs_committed_inputs.hex";
   bytes32 constant VKEY_HASH = 0x1fdff1847be0a0ac3af37e59d0f83b2a400c15be4049954dc82aba099b0c9924;
-  bytes32 constant CERTIFICATE_REGISTRY_ROOT = 0x2f47530fee55de2b2cee224b4a744ebcdbfd5ae1128830f62e5c530eebd9ac30;
+  bytes32 constant CERTIFICATE_REGISTRY_ROOT = 0x13e52b40a5fe83c97ad836461189cea329a3b4cca2d34f2886d40de327e1f4cb;
   bytes32 constant CIRCUIT_REGISTRY_ROOT = 0x1cec98bdbc92ca83904e96bd19237a770c6b32d8c96909c25731b15851580d52;
 
   function setUp() public {

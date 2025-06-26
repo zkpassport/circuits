@@ -18,6 +18,7 @@ import {
   getCommitmentInFromDisclosureProof,
   getCurrentDateFromIntegrityProof,
   getDiscloseCircuitInputs,
+  OFACBuilder,
   getIssuingCountryExclusionCircuitInputs,
   getIssuingCountryInclusionCircuitInputs,
   getParameterCommitmentFromDisclosureProof,
@@ -72,7 +73,6 @@ describe("subcircuits - RSA PKCS", () => {
     0,
     0,
   )
-
 
   beforeAll(async () => {
     // Add CSCA certificate test fixtures
@@ -545,16 +545,24 @@ describe("subcircuits - RSA PKCS", () => {
 
     test("ofac exclusion check", async () => {
       const circuit = Circuit.from("exclusion_check_ofac")
-      const inputs = await getOFACExclusionCheckCircuitInputs(helper.passport as any, SALT)
+      const ofac = await OFACBuilder.create();
+      const inputs = await getOFACExclusionCheckCircuitInputs(helper.passport as any, SALT, undefined, undefined, ofac)
       if (!inputs) throw new Error("Unable to generate ofac circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `exclusion_check_ofac`,
       });
       expect(proof).toBeDefined()
+      const calculatedParamCommitment = await ofac.getOFACParameterCommitment()
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(nullifier).toEqual(
+        EXPECTED_NULLIFIER,
+      )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
     }, 10000)
-
-      // TOOD: cannot generate proof if passport is on list
 
   })
 
@@ -624,18 +632,27 @@ describe("subcircuits - RSA PKCS", () => {
     }, 30000)
 
     test("ofac exclusion check", async () => {
+      const ofac = await OFACBuilder.create();
       const circuit = Circuit.from("exclusion_check_ofac_evm")
-      const inputs = await getOFACExclusionCheckCircuitInputs(helper.passport as any, SALT)
+
+      const inputs = await getOFACExclusionCheckCircuitInputs(helper.passport as any, SALT, undefined, undefined, ofac)
       if (!inputs) throw new Error("Unable to generate ofac circuit inputs")
       const proof = await circuit.prove(inputs, {
-        circuitName: `exclusion_check_ofac`,
+        circuitName: `exclusion_check_ofac_evm`,
       });
       expect(proof).toBeDefined()
+
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await ofac.getOFACEvmParameterCommitment()
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(nullifier).toEqual(
+        EXPECTED_NULLIFIER,
+      )
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
     }, 10000)
-
-      // TOOD: cannot generate proof if passport is on list
-
   })
 
   describe("compare-age", () => {

@@ -517,6 +517,13 @@ contract ZKPassportVerifier {
       "Mock proofs are only allowed in dev mode"
     );
 
+    console.log("proof");
+    console.logBytes(params.proof);
+    console.log("public inputs");
+    for (uint i; i < params.publicInputs.length; ++i){
+      console.logBytes32(params.publicInputs[i]);
+    }
+
     return (
       IVerifier(verifier).verify(params.proof, params.publicInputs),
       params.publicInputs[actualPublicInputCount - 1]
