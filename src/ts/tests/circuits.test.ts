@@ -138,10 +138,10 @@ describe("subcircuits - RSA PKCS", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity_sha256")
+      const circuit = Circuit.from("data_check_integrity_sa_sha256_dg_sha256")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs, {
-        circuitName: `data_check_integrity_sha256`,
+        circuitName: `data_check_integrity_sa_sha256_dg_sha256`,
       })
       expect(proof).toBeDefined()
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
@@ -1363,10 +1363,10 @@ describe("subcircuits - RSA PKCS - SHA-1", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity_sha1")
+      const circuit = Circuit.from("data_check_integrity_sa_sha1_dg_sha1")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs, {
-        circuitName: `data_check_integrity_sha256`,
+        circuitName: `data_check_integrity_sa_sha1_dg_sha1`,
       })
       expect(proof).toBeDefined()
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
@@ -1561,10 +1561,10 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity_sha384")
+      const circuit = Circuit.from("data_check_integrity_sa_sha384_dg_sha384")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs, {
-        circuitName: `data_check_integrity_sha384`,
+        circuitName: `data_check_integrity_sa_sha384_dg_sha384`,
       })
       expect(proof).toBeDefined()
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
@@ -1756,10 +1756,10 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity_sha512")
+      const circuit = Circuit.from("data_check_integrity_sa_sha512_dg_sha512")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs, {
-        circuitName: `data_check_integrity_sha512`,
+        circuitName: `data_check_integrity_sa_sha512_dg_sha512`,
       })
       expect(proof).toBeDefined()
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
@@ -1949,10 +1949,10 @@ describe("subcircuits - ECDSA NIST P-384 and P-256 - SHA-1", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity_sha1")
+      const circuit = Circuit.from("data_check_integrity_sa_sha1_dg_sha1")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs, {
-        circuitName: `data_check_integrity_sha384`,
+        circuitName: `data_check_integrity_sa_sha1_dg_sha1`,
       })
       expect(proof).toBeDefined()
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
@@ -2145,10 +2145,10 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity_sha512")
+      const circuit = Circuit.from("data_check_integrity_sa_sha512_dg_sha512")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs, {
-        circuitName: `data_check_integrity_sha512`,
+        circuitName: `data_check_integrity_sa_sha512_dg_sha512`,
       })
       expect(proof).toBeDefined()
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
@@ -2451,10 +2451,10 @@ describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity_sha256")
+      const circuit = Circuit.from("data_check_integrity_sa_sha256_dg_sha256")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs, {
-        circuitName: `data_check_integrity_sha256`,
+        circuitName: `data_check_integrity_sa_sha256_dg_sha256`,
       })
       expect(proof).toBeDefined()
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
