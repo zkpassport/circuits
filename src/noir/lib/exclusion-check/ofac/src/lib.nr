@@ -1,5 +1,6 @@
 pub mod smt;
 pub mod types;
+pub mod param_commit;
 
 use crate::smt::smt_verify;
 use utils::test::DG1Builder;
@@ -45,6 +46,10 @@ impl OFACSparseMerkleTrees {
             nameAndDobSMTRoot: NAME_AND_DOB_SMT_ROOT,
             nameAndYobSMTRoot: NAME_AND_YOB_SMT_ROOT,
         }
+    }
+
+    pub fn root_hash(self: Self) -> Field {
+        Poseidon2::hash([self.passportNoAndNationalitySMTRoot, self.nameAndDobSMTRoot, self.nameAndYobSMTRoot], 3)
     }
 }
 

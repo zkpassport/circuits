@@ -7,6 +7,7 @@
     "generate": "tsx src/ts/scripts/circuit-builder.ts generate",
     "compile": "tsx src/ts/scripts/circuit-builder.ts generate compile",
     "test-contracts": "cd src/solidity && forge test -vv --fork-url $SEPOLIA_RPC_URL --chain-id 31337 --block-number 8483191 && cd ../..",
+    "circuit-packager": "bun run src/ts/scripts/circuit-packager.ts",
     "generate-sanction-trees": "tsx src/ts/sanctions/bin/generate_trees.ts",
     "generate-sanction-test-data": "tsx src/ts/sanctions/bin/generate_test_data.ts"
   },
