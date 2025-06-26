@@ -3,14 +3,11 @@ use sha256;
 use sha512::{sha384, sha512};
 use utils::is_id_card;
 
-pub fn check_integrity_of_data_sha1(
-    dg1: [u8; 95],
-    signed_attributes: [u8; 200],
-    signed_attributes_size: u32,
-    e_content: [u8; 700],
-    e_content_size: u32,
-    dg1_offset_in_e_content: u32,
-) {
+/**
+* Computes the hash (using SHA1) of the first data group (containing the MRZ) and checks it is the same as the one
+* included in eContent at the offset provided (along with the rest of the data group hashes)
+*/
+pub fn check_dg1_sha1(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_content: u32) {
     // For passports we ignore the last padding characters
     let mut dg1_size: u64 = 93;
 
@@ -29,7 +26,18 @@ pub fn check_integrity_of_data_sha1(
         // Check the hash of dg1 is indeed in the e_content
         assert(dg1_hash[i] == e_content[dg1_offset_in_e_content + i]);
     }
+}
 
+/**
+* Computes the hash (using SHA1) of eContent (containing the hashes of the data groups) and checks it is the same as the one
+* included in the signed_attributes, which is the message signed by the Document Signing Certificate (DSC)
+*/
+pub fn check_signed_attributes_sha1(
+    signed_attributes: [u8; 200],
+    signed_attributes_size: u32,
+    e_content: [u8; 700],
+    e_content_size: u32,
+) {
     let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size as u32);
 
     let computed_final_hash = sha1::sha1_var(e_content_bounded_vec);
@@ -42,21 +50,10 @@ pub fn check_integrity_of_data_sha1(
 }
 
 /**
-* Computes the hash of the MRZ (Data Group 1) and checks it is the same as the one
-* provided in the SOD file of the ID and then use it along with the rest of the
-* hashes of the remaining data groups to compute the final hash contained in the last 32 bytes of
-* eContent that is then signed by the Document Signing Certificate (DSC)
-* This lets us make sure the data is authentic and has not been tampered with, so we can use the data
-* of the MRZ to build subsequent proofs (age, citizenship, etc.)
+* Computes the hash (using SHA2-256) of the first data group (containing the MRZ) and checks it is the same as the one
+* included in eContent at the offset provided (along with the rest of the data group hashes)
 */
-pub fn check_integrity_of_data_sha256(
-    dg1: [u8; 95],
-    signed_attributes: [u8; 200],
-    signed_attributes_size: u32,
-    e_content: [u8; 700],
-    e_content_size: u32,
-    dg1_offset_in_e_content: u32,
-) {
+pub fn check_dg1_sha256(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_content: u32) {
     // For passports we ignore the last padding characters
     let mut dg1_size: u64 = 93;
 
@@ -74,7 +71,18 @@ pub fn check_integrity_of_data_sha256(
         // Check the hash of dg1 is indeed in the e_content
         assert(dg1_hash[i] == e_content[dg1_offset_in_e_content + i]);
     }
+}
 
+/**
+* Computes the hash (using SHA2-256) of eContent (containing the hashes of the data groups) and checks it is the same as the one
+* included in the signed_attributes, which is the message signed by the Document Signing Certificate (DSC)
+*/
+pub fn check_signed_attributes_sha256(
+    signed_attributes: [u8; 200],
+    signed_attributes_size: u32,
+    e_content: [u8; 700],
+    e_content_size: u32,
+) {
     let computed_final_hash = sha256::sha256_var(e_content, e_content_size as u64);
 
     for i in 0..32 {
@@ -84,14 +92,11 @@ pub fn check_integrity_of_data_sha256(
     }
 }
 
-pub fn check_integrity_of_data_sha384(
-    dg1: [u8; 95],
-    signed_attributes: [u8; 200],
-    signed_attributes_size: u32,
-    e_content: [u8; 700],
-    e_content_size: u32,
-    dg1_offset_in_e_content: u32,
-) {
+/**
+* Computes the hash (using SHA2-384) of the first data group (containing the MRZ) and checks it is the same as the one
+* included in eContent at the offset provided (along with the rest of the data group hashes)
+*/
+pub fn check_dg1_sha384(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_content: u32) {
     // For passports we ignore the last padding characters
     let mut dg1_size: u64 = 93;
 
@@ -110,7 +115,18 @@ pub fn check_integrity_of_data_sha384(
         // Check the hash of dg1 is indeed in the e_content
         assert(dg1_hash[i] == e_content[dg1_offset_in_e_content + i]);
     }
+}
 
+/**
+* Computes the hash (using SHA2-384) of eContent (containing the hashes of the data groups) and checks it is the same as the one
+* included in the signed_attributes, which is the message signed by the Document Signing Certificate (DSC)
+*/
+pub fn check_signed_attributes_sha384(
+    signed_attributes: [u8; 200],
+    signed_attributes_size: u32,
+    e_content: [u8; 700],
+    e_content_size: u32,
+) {
     let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size as u32);
 
     let computed_final_hash = sha384::sha384_var(e_content_bounded_vec);
@@ -122,14 +138,11 @@ pub fn check_integrity_of_data_sha384(
     }
 }
 
-pub fn check_integrity_of_data_sha512(
-    dg1: [u8; 95],
-    signed_attributes: [u8; 200],
-    signed_attributes_size: u32,
-    e_content: [u8; 700],
-    e_content_size: u32,
-    dg1_offset_in_e_content: u32,
-) {
+/**
+* Computes the hash (using SHA2-512) of the first data group (containing the MRZ) and checks it is the same as the one
+* included in eContent at the offset provided (along with the rest of the data group hashes)
+*/
+pub fn check_dg1_sha512(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_content: u32) {
     // For passports we ignore the last padding characters
     let mut dg1_size: u64 = 93;
 
@@ -148,7 +161,18 @@ pub fn check_integrity_of_data_sha512(
         // Check the hash of dg1 is indeed in the e_content
         assert(dg1_hash[i] == e_content[dg1_offset_in_e_content + i]);
     }
+}
 
+/**
+* Computes the hash (using SHA2-512) of eContent (containing the hashes of the data groups) and checks it is the same as the one
+* included in the signed_attributes, which is the message signed by the Document Signing Certificate (DSC)
+*/
+pub fn check_signed_attributes_sha512(
+    signed_attributes: [u8; 200],
+    signed_attributes_size: u32,
+    e_content: [u8; 700],
+    e_content_size: u32,
+) {
     let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size as u32);
 
     let computed_final_hash = sha512::sha512_var(e_content_bounded_vec);

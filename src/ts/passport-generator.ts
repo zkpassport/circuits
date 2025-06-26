@@ -19,7 +19,16 @@ import fs from "fs"
 const crypto = new Crypto()
 cryptoProvider.set(crypto as any)
 
-export type EcdsaCurve = "P-256" | "P-384" | "P-521"
+export type EcdsaCurve =
+  | "P-256"
+  | "P-384"
+  | "P-521"
+  | "brainpoolP256r1"
+  | "brainpoolP256t1"
+  | "brainpoolP384r1"
+  | "brainpoolP384t1"
+  | "brainpoolP512r1"
+  | "brainpoolP512t1"
 
 export type HashAlgorithm = "SHA-1" | "SHA-256" | "SHA-384" | "SHA-512"
 

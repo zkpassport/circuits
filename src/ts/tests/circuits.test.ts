@@ -140,10 +140,10 @@ describe("subcircuits - RSA PKCS", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity_sha256")
+      const circuit = Circuit.from("data_check_integrity_sa_sha256_dg_sha256")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs, {
-        circuitName: `data_check_integrity_sha256`,
+        circuitName: `data_check_integrity_sa_sha256_dg_sha256`,
         useCli: true,
       })
       expect(proof).toBeDefined()
@@ -1399,10 +1399,10 @@ describe("subcircuits - RSA PKCS - SHA-1", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity_sha1")
+      const circuit = Circuit.from("data_check_integrity_sa_sha1_dg_sha1")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs, {
-        circuitName: `data_check_integrity_sha256`,
+        circuitName: `data_check_integrity_sa_sha1_dg_sha1`,
         useCli: true,
       })
       expect(proof).toBeDefined()
@@ -1602,10 +1602,10 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity_sha384")
+      const circuit = Circuit.from("data_check_integrity_sa_sha384_dg_sha384")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs, {
-        circuitName: `data_check_integrity_sha384`,
+        circuitName: `data_check_integrity_sa_sha384_dg_sha384`,
         useCli: true,
       })
       expect(proof).toBeDefined()
@@ -1802,10 +1802,10 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity_sha512")
+      const circuit = Circuit.from("data_check_integrity_sa_sha512_dg_sha512")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs, {
-        circuitName: `data_check_integrity_sha512`,
+        circuitName: `data_check_integrity_sa_sha512_dg_sha512`,
         useCli: true,
       })
       expect(proof).toBeDefined()
@@ -2000,10 +2000,10 @@ describe("subcircuits - ECDSA NIST P-384 and P-256 - SHA-1", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity_sha1")
+      const circuit = Circuit.from("data_check_integrity_sa_sha1_dg_sha1")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs, {
-        circuitName: `data_check_integrity_sha384`,
+        circuitName: `data_check_integrity_sa_sha1_dg_sha1`,
         useCli: true,
       })
       expect(proof).toBeDefined()
@@ -2116,6 +2116,318 @@ describe("subcircuits - ECDSA NIST P-384 and P-256 - SHA-1", () => {
   })
 })
 
+describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
+  const helper = new TestHelper()
+  const cscaCerts: PackagedCertificate[] = []
+  const MAX_TBS_LENGTH = 700
+  let dscCommitment: bigint
+  let idDataCommitment: bigint
+  let integrityCheckCommitment: bigint
+  const globalCurrentDate = new Date(
+    new Date().getFullYear(),
+    new Date().getMonth(),
+    new Date().getDate(),
+    0,
+    0,
+    0,
+    0,
+  )
+  // We need to store the nullifier
+  // as we cannot compare to a constant value
+  // since ECDSA signatures are not deterministic
+  let globalNullifier: bigint
+
+  beforeAll(async () => {
+    // Johnny Silverhand's MRZ
+    const mrz =
+      "P<D<<SILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_D<<881112_M300101_<CYBERCITY<<<<<<"
+    const dg1 = Binary.fromHex("615B5F1F58").concat(Binary.from(mrz))
+
+    // Generate CSC and DSC signing certificates
+    const { cscPem, csc, dsc, dscKeys } = await generateSigningCertificates({
+      cscSigningHashAlgorithm: "SHA-512",
+      cscKeyType: "ECDSA",
+      cscCurve: "P-521",
+      dscSigningHashAlgorithm: "SHA-512",
+      dscKeyType: "ECDSA",
+      dscCurve: "brainpoolP512r1",
+      issuingCountry: "DE",
+    })
+    // Generate SOD and sign it with DSC keypair
+    const { sod } = await generateSod(dg1, [dsc], "SHA-512")
+    const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-512")
+    // Add newly generated CSC to masterlist
+    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+    // Load passport data into helper
+    const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
+    await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
+    helper.setCertificates(cscaCerts)
+  })
+
+  describe("dsc", () => {
+    test("ecdsa nist p-521", async () => {
+      const circuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p521_sha512`)
+      const inputs = await helper.generateCircuitInputs("dsc")
+      const proof = await circuit.prove(inputs, {
+        circuitName: `sig_check_dsc_tbs_${MAX_TBS_LENGTH}_ecdsa_nist_p521_sha512`,
+      })
+      expect(proof).toBeDefined()
+      expect(proof.publicInputs.length).toEqual(2)
+      const merkleRoot = getMerkleRootFromDSCProof(proof)
+      expect(merkleRoot).toBeDefined()
+      dscCommitment = getCommitmentFromDSCProof(proof)
+      await circuit.destroy()
+    }, 60000)
+  })
+
+  describe("id", () => {
+    test("ecdsa brainpool p-512r1", async () => {
+      const circuit = Circuit.from(
+        `sig_check_id_data_tbs_${MAX_TBS_LENGTH}_ecdsa_brainpool_512r1_sha512`,
+      )
+      const inputs = await helper.generateCircuitInputs("id")
+      const proof = await circuit.prove(inputs, {
+        circuitName: `sig_check_id_data_tbs_${MAX_TBS_LENGTH}_ecdsa_brainpool_512r1_sha512`,
+      })
+      expect(proof).toBeDefined()
+      const commitmentIn = getCommitmentInFromIDDataProof(proof)
+      idDataCommitment = getCommitmentOutFromIDDataProof(proof)
+      expect(commitmentIn).toEqual(dscCommitment)
+      await circuit.destroy()
+    }, 30000)
+  })
+
+  describe("integrity", () => {
+    test("data integrity check", async () => {
+      const circuit = Circuit.from("data_check_integrity_sa_sha512_dg_sha512")
+      const inputs = await helper.generateCircuitInputs("integrity")
+      const proof = await circuit.prove(inputs, {
+        circuitName: `data_check_integrity_sa_sha512_dg_sha512`,
+      })
+      expect(proof).toBeDefined()
+      const commitmentIn = getCommitmentInFromIntegrityProof(proof)
+      integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
+      const currentDate = getCurrentDateFromIntegrityProof(proof)
+      expect(commitmentIn).toEqual(idDataCommitment)
+      expect(currentDate).toEqual(globalCurrentDate)
+      await circuit.destroy()
+    }, 30000)
+  })
+
+  describe("disclose", () => {
+    let circuit: Circuit
+    beforeAll(async () => {
+      circuit = Circuit.from("disclose_bytes")
+    })
+    afterAll(async () => {
+      await circuit.destroy()
+    })
+
+    test("disclose all bytes", async () => {
+      const query: Query = {
+        issuing_country: { disclose: true },
+        nationality: { disclose: true },
+        document_type: { disclose: true },
+        document_number: { disclose: true },
+        fullname: { disclose: true },
+        birthdate: { disclose: true },
+        expiry_date: { disclose: true },
+        gender: { disclose: true },
+      }
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
+      if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
+      const proof = await circuit.prove(inputs, {
+        witness: await circuit.solve(inputs),
+
+        circuitName: `disclose_bytes`,
+      })
+      expect(proof).toBeDefined()
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const disclosedBytes = getDisclosedBytesFromMrzAndMask(
+        helper.passport.mrz,
+        inputs.disclose_mask,
+      )
+      const calculatedParamCommitment = await getDiscloseParameterCommitment(
+        inputs.disclose_mask,
+        disclosedBytes,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
+      // Verify the disclosed data
+      const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
+      globalNullifier = getNullifierFromDisclosureProof(proof)
+      expect(disclosedData.issuingCountry).toBe("D<<")
+      expect(disclosedData.nationality).toBe("D<<")
+      expect(disclosedData.documentType).toBe("passport")
+      expect(disclosedData.documentNumber).toBe("PA1234567")
+      expect(disclosedData.name).toBe("JOHNNY SILVERHAND")
+      expect(disclosedData.firstName).toBe("JOHNNY")
+      expect(disclosedData.lastName).toBe("SILVERHAND")
+      expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1988, 10, 12))
+      expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2030, 0, 1))
+      expect(disclosedData.gender).toBe("M")
+      expect(globalNullifier).toBeDefined()
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+    })
+
+    test("disclose some bytes", async () => {
+      const query: Query = {
+        nationality: { disclose: true },
+      }
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
+      if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
+      const proof = await circuit.prove(inputs, {
+        witness: await circuit.solve(inputs),
+
+        circuitName: `disclose_bytes`,
+      })
+      expect(proof).toBeDefined()
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const disclosedBytes = getDisclosedBytesFromMrzAndMask(
+        helper.passport.mrz,
+        inputs.disclose_mask,
+      )
+      const calculatedParamCommitment = await getDiscloseParameterCommitment(
+        inputs.disclose_mask,
+        disclosedBytes,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
+      // Verify the disclosed data
+      const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(disclosedData.issuingCountry).toBe("")
+      expect(disclosedData.nationality).toBe("D<<")
+      expect(disclosedData.documentType).toBe("other")
+      expect(disclosedData.documentNumber).toBe("")
+      expect(disclosedData.name).toBe("")
+      expect(disclosedData.firstName).toBe("")
+      expect(disclosedData.lastName).toBe("")
+      expect(isNaN(disclosedData.dateOfBirth.getTime())).toBe(true)
+      expect(isNaN(disclosedData.dateOfExpiry.getTime())).toBe(true)
+      expect(disclosedData.gender).toBe("")
+      expect(nullifier).toEqual(globalNullifier)
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+    })
+  })
+
+  describe("inclusion-check", () => {
+    test("nationality", async () => {
+      const circuit = Circuit.from("inclusion_check_nationality")
+      const query: Query = {
+        nationality: { in: ["DEU", "FRA", "USA", "GBR"] },
+      }
+      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, 3n)
+      if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
+      const proof = await circuit.prove(inputs, {
+        circuitName: `inclusion_check_nationality`,
+      })
+      expect(proof).toBeDefined()
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getCountryParameterCommitment(
+        ProofType.NATIONALITY_INCLUSION,
+        ["DEU", "FRA", "USA", "GBR"],
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(nullifier).toEqual(globalNullifier)
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      await circuit.destroy()
+    })
+
+    test("issuing country", async () => {
+      const circuit = Circuit.from("inclusion_check_issuing_country")
+      const query: Query = {
+        issuing_country: { in: ["DEU", "FRA", "USA", "GBR"] },
+      }
+      const inputs = await getIssuingCountryInclusionCircuitInputs(
+        helper.passport as any,
+        query,
+        3n,
+      )
+      if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
+      const proof = await circuit.prove(inputs, {
+        circuitName: `inclusion_check_issuing_country`,
+      })
+      expect(proof).toBeDefined()
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      const calculatedParamCommitment = await getCountryParameterCommitment(
+        ProofType.ISSUING_COUNTRY_INCLUSION,
+        ["DEU", "FRA", "USA", "GBR"],
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(nullifier).toEqual(globalNullifier)
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      await circuit.destroy()
+    })
+  })
+
+  describe("exclusion-check", () => {
+    test("nationality", async () => {
+      const circuit = Circuit.from("exclusion_check_nationality")
+      const query: Query = {
+        nationality: { out: ["FRA", "USA", "GBR"] },
+      }
+      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, 3n)
+      if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
+      const proof = await circuit.prove(inputs, {
+        circuitName: `exclusion_check_nationality`,
+      })
+      expect(proof).toBeDefined()
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      // Note that the order is in ascending order
+      // while the original query was not
+      // Before being passed to the circuit, the list is sorted in ascending order
+      const calculatedParamCommitment = await getCountryParameterCommitment(
+        ProofType.NATIONALITY_EXCLUSION,
+        ["FRA", "GBR", "USA"],
+        true,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(nullifier).toEqual(globalNullifier)
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      await circuit.destroy()
+    })
+
+    test("issuing country", async () => {
+      const circuit = Circuit.from("exclusion_check_issuing_country")
+      const query: Query = {
+        issuing_country: { out: ["FRA", "USA", "GBR"] },
+      }
+      const inputs = await getIssuingCountryExclusionCircuitInputs(
+        helper.passport as any,
+        query,
+        3n,
+      )
+      if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
+      const proof = await circuit.prove(inputs, {
+        circuitName: `exclusion_check_issuing_country`,
+      })
+      expect(proof).toBeDefined()
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      // Note that the order is in ascending order
+      // while the original query was not
+      // Before being passed to the circuit, the list is sorted in ascending order
+      const calculatedParamCommitment = await getCountryParameterCommitment(
+        ProofType.ISSUING_COUNTRY_EXCLUSION,
+        ["FRA", "GBR", "USA"],
+        true,
+      )
+      expect(paramCommitment).toEqual(calculatedParamCommitment)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(nullifier).toEqual(globalNullifier)
+      const commitmentIn = getCommitmentInFromDisclosureProof(proof)
+      expect(commitmentIn).toEqual(integrityCheckCommitment)
+      await circuit.destroy()
+    })
+  })
+})
+
 describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
   const helper = new TestHelper()
   const cscaCerts: PackagedCertificate[] = []
@@ -2195,10 +2507,10 @@ describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
 
   describe("integrity", () => {
     test("data integrity check", async () => {
-      const circuit = Circuit.from("data_check_integrity_sha256")
+      const circuit = Circuit.from("data_check_integrity_sa_sha256_dg_sha256")
       const inputs = await helper.generateCircuitInputs("integrity")
       const proof = await circuit.prove(inputs, {
-        circuitName: `data_check_integrity_sha256`,
+        circuitName: `data_check_integrity_sa_sha256_dg_sha256`,
         useCli: true,
       })
       expect(proof).toBeDefined()
@@ -2257,8 +2569,8 @@ describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
       expect(isNaN(disclosedData.dateOfBirth.getTime())).toBe(true)
       expect(isNaN(disclosedData.dateOfExpiry.getTime())).toBe(true)
       expect(disclosedData.gender).toBe("")
-      // The nullifier must be 0 for mock countries like ZKR
-      expect(nullifier).toEqual(0n)
+      // The nullifier must be 1 for mock countries like ZKR
+      expect(nullifier).toEqual(1n)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })

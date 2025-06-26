@@ -97,7 +97,12 @@ pub fn get_country_from_dg1(dg1: [u8; 95]) -> str<3> {
     for i in 0..3 {
         country_bytes[i] = dg1[country_offset + i];
     }
-    country_bytes.as_str_unchecked()
+    let mut country = country_bytes.as_str_unchecked();
+    // A special case for Germany
+    if (country == "D<<") {
+        country = "DEU";
+    }
+    country
 }
 
 pub fn hash_salt_country_tbs<let TBS_MAX_SIZE: u32>(

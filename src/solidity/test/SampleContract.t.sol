@@ -19,7 +19,7 @@ contract SampleContractTest is TestUtils {
   bytes32 constant VKEY_HASH =
     bytes32(uint256(0x2f55019d8fd28cf77000af567e4d8fcb54ef0d4853825d61b14911904b20d1c5));
   bytes32 constant CERTIFICATE_REGISTRY_ROOT =
-    bytes32(uint256(0x130b5775fe59204b0490bdfcdd02bd7cc2bbf5fe3f3fee34cee13c3a3f9b7bbb));
+    bytes32(uint256(0x199bde8cd68ae08db5377c8f6e67e87de63edbf613d2f385fb978a5698c98977));
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
@@ -61,8 +61,8 @@ contract SampleContractTest is TestUtils {
     vm.expectRevert("User is not verified");
     sampleContract.doStuff();
 
-    // Set the timestamp to 2025-06-05 15:34:45 UTC
-    vm.warp(1749137685);
+    // Set the timestamp to 2025-06-26 09:03:56 UTC
+    vm.warp(1750928636);
     ProofVerificationParams memory params = ProofVerificationParams({
       vkeyHash: VKEY_HASH,
       proof: proof,
@@ -70,8 +70,8 @@ contract SampleContractTest is TestUtils {
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
       validityPeriodInDays: 7,
-      scope: "zkpassport.id",
-      subscope: "bigproof",
+      domain: "zkpassport.id",
+      scope: "bigproof",
       // Set to true to accept mock proofs from the ZKR
       devMode: false
     });
