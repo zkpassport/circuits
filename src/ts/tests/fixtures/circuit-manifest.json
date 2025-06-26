@@ -108,14 +108,14 @@
       "size": 52687
     },
     "exclusion_check_ofac": {
-      "hash": "0x303fdfe7e8f2df2e5814fe742251d942e1d3f5863f9ed74f04c49eb30507e117",
-      "cid": "Qma8dLP24TcpuShyyJb8zsWBQdnN3cTn62AEWp9pyaA6Ps",
-      "size": 97545
+      "hash": "0x1f072fe0a9ba39d93bbc22a9dab957d55101326d6c958ed93802688a6397a39f",
+      "cid": "QmSFCGbmEFViXaTFrfPXjrA5L2G8db4gAgYP9kDS6HqNXn",
+      "size": 93559
     },
     "exclusion_check_ofac_evm": {
-      "hash": "0x1f072fe0a9ba39d93bbc22a9dab957d55101326d6c958ed93802688a6397a39f",
-      "cid": "QmY5NetnznLC9PEgm3j2hwYDGKVx6Fw3k5vMwMPH4NsC8F",
-      "size": 93559
+      "hash": "0x303fdfe7e8f2df2e5814fe742251d942e1d3f5863f9ed74f04c49eb30507e117",
+      "cid": "QmfYBFRJQ6oNtpK2KgG4PA49UyG7tZ6gKeQ6U7PfhBKX4F",
+      "size": 97545
     },
     "inclusion_check_issuing_country": {
       "hash": "0x1ffcbbdf6608dfcfd51e494a490b7315779e2394d03ef87ba68b2106c310a1c1",

@@ -15,6 +15,8 @@ abstract contract TestUtils is Test {
     try vm.readFile(filePath) returns (string memory content) {
       proofHex = content;
 
+      console.log(proofHex);
+
       // Check if content starts with 0x
       if (bytes(proofHex).length > 2 && bytes(proofHex)[0] == "0" && bytes(proofHex)[1] == "x") {
         proofHex = slice(proofHex, 2, bytes(proofHex).length - 2);

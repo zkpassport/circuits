@@ -4,28 +4,27 @@ pragma solidity >=0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ZKPassportVerifier, ProofType, ProofVerificationParams} from "../src/ZKPassportVerifier.sol";
-import {HonkVerifier as OuterVerifier11} from "../src/OuterCount11.sol";
+import {HonkVerifier as OuterVerifier12} from "../src/OuterCount12.sol";
 import {SampleContract} from "../src/SampleContract.sol";
 import {TestUtils} from "./Utils.t.sol";
 
 contract SampleContractTest is TestUtils {
-  OuterVerifier11 public verifier;
+  OuterVerifier12 public verifier;
   ZKPassportVerifier public zkPassportVerifier;
   SampleContract public sampleContract;
   // Path to the proof file - using files directly in project root
   string constant PROOF_PATH = "./test/fixtures/all_subproofs_proof.hex";
   string constant PUBLIC_INPUTS_PATH = "./test/fixtures/all_subproofs_public_inputs.json";
   string constant COMMITTED_INPUTS_PATH = "./test/fixtures/all_subproofs_committed_inputs.hex";
-  bytes32 constant VKEY_HASH =
-    bytes32(uint256(0x2f55019d8fd28cf77000af567e4d8fcb54ef0d4853825d61b14911904b20d1c5));
-  bytes32 constant CERTIFICATE_REGISTRY_ROOT =
-    bytes32(uint256(0x0701d09b69289198973e04993c9acca1b6df3f7f67be6d00cfe22c2d1b8df062));
+  bytes32 constant VKEY_HASH = 0x1fdff1847be0a0ac3af37e59d0f83b2a400c15be4049954dc82aba099b0c9924;
+  bytes32 constant CERTIFICATE_REGISTRY_ROOT = 0x2f47530fee55de2b2cee224b4a744ebcdbfd5ae1128830f62e5c530eebd9ac30;
+  bytes32 constant CIRCUIT_REGISTRY_ROOT = 0x1cec98bdbc92ca83904e96bd19237a770c6b32d8c96909c25731b15851580d52;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
     zkPassportVerifier = new ZKPassportVerifier(vm.envAddress("ROOT_REGISTRY_ADDRESS"));
     // Deploy the UltraHonkVerifier
-    verifier = new OuterVerifier11();
+    verifier = new OuterVerifier12();
 
     // Add the verifier to the ZKPassportVerifier
     bytes32[] memory vkeyHashes = new bytes32[](1);
@@ -34,6 +33,7 @@ contract SampleContractTest is TestUtils {
     verifiers[0] = address(verifier);
     zkPassportVerifier.addVerifiers(vkeyHashes, verifiers);
     zkPassportVerifier.addCertificateRegistryRoot(CERTIFICATE_REGISTRY_ROOT);
+    zkPassportVerifier.addCircuitRegistryRoot(CIRCUIT_REGISTRY_ROOT);
 
     sampleContract = new SampleContract();
     sampleContract.setZKPassportVerifier(address(zkPassportVerifier));
@@ -47,7 +47,7 @@ contract SampleContractTest is TestUtils {
 
     // Contains in order the number of bytes of committed inputs for each disclosure proofs
     // that was verified by the final recursive proof
-    uint256[] memory committedInputCounts = new uint256[](8);
+    uint256[] memory committedInputCounts = new uint256[](9);
     committedInputCounts[0] = 181;
     committedInputCounts[1] = 601;
     committedInputCounts[2] = 601;
@@ -56,13 +56,15 @@ contract SampleContractTest is TestUtils {
     committedInputCounts[5] = 11;
     committedInputCounts[6] = 25;
     committedInputCounts[7] = 25;
+    committedInputCounts[8] = 33;
 
     // The sender cannot call this function cause they are not verified
     vm.expectRevert("User is not verified");
     sampleContract.doStuff();
 
-    // Set the timestamp to 2025-06-11 10:10:53 UTC
-    vm.warp(1749636653);
+
+    // Set the timestamp to 2025-06-16 03:18:07 UTC
+    vm.warp(1750951087);
     ProofVerificationParams memory params = ProofVerificationParams({
       vkeyHash: VKEY_HASH,
       proof: proof,
@@ -75,7 +77,9 @@ contract SampleContractTest is TestUtils {
       // Set to true to accept mock proofs from the ZKR
       devMode: false
     });
+    console.log("b4 verify");
     bytes32 uniqueIdentifier = sampleContract.register(params, false);
+    console.log("after verify");
 
     // The sender can now call this function since they registered just before
     sampleContract.doStuff();

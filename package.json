@@ -9,7 +9,8 @@
     "test-contracts": "cd src/solidity && forge test -vv --fork-url $SEPOLIA_RPC_URL --chain-id 31337 --block-number 8483191 && cd ../..",
     "circuit-packager": "bun run src/ts/scripts/circuit-packager.ts",
     "generate-sanction-trees": "tsx src/ts/sanctions/bin/generate_trees.ts",
-    "generate-sanction-test-data": "tsx src/ts/sanctions/bin/generate_test_data.ts"
+    "generate-sanction-test-data": "tsx src/ts/sanctions/bin/generate_test_data.ts",
+    "update-sol-fixtures": "tsx scripts/update-sol-fixtures.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cloudfront": "^3.730.0",
@@ -47,5 +48,6 @@
     "ts-jest": "^29.1.2",
     "tsx": "^4.19.3",
     "typescript": "^5.0.0"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

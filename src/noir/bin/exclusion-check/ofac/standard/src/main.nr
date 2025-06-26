@@ -1,7 +1,7 @@
 use commitment::nullify;
 use exclusion_check_ofac::{OFACSparseMerkleTrees, types::OFACSparseMerkleTreeProofs};
 use utils::PROOF_TYPE_OFAC_EXCLUSION;
-use exclusion_check_ofac::param_commit::calculate_param_commitment_sha2;
+use exclusion_check_ofac::param_commit::calculate_param_commitment;
 
 fn main(
     comm_in: pub Field,
@@ -26,7 +26,7 @@ fn main(
         service_scope,
         service_subscope,
     );
-    let param_commitment = calculate_param_commitment_sha2(PROOF_TYPE_OFAC_EXCLUSION, root_hash);
+    let param_commitment = calculate_param_commitment(PROOF_TYPE_OFAC_EXCLUSION, root_hash);
     (param_commitment, nullifier)
 }
 

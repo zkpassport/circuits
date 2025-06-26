@@ -43,6 +43,7 @@ import {
   ultraVkToFields,
 } from "@zkpassport/utils"
 import * as path from "path"
+import * as fs from "fs"
 import { Circuit } from "../circuits"
 import { generateSigningCertificates, loadKeypairFromFile, signSod } from "../passport-generator"
 import { generateSod, wrapSodInContentInfo } from "../sod-generator"
@@ -50,7 +51,15 @@ import { TestHelper } from "../test-helper"
 import { createUTCDate, serializeAsn } from "../utils"
 import circuitManifest from "./fixtures/circuit-manifest.json"
 
-const DEBUG_OUTPUT = false
+const DEBUG_OUTPUT = process.env.DEBUG_OUTPUT === 'true'
+const fixturesOutputDir = path.join(__dirname, '../../../output-fixtures');
+
+if (DEBUG_OUTPUT) {
+  // Write fixtures to output directory
+  if (!fs.existsSync(fixturesOutputDir)) {
+    fs.mkdirSync(fixturesOutputDir, { recursive: true });
+  }
+}
 
 describe("outer proof", () => {
   const helper = new TestHelper()
@@ -680,11 +689,17 @@ describe("outer proof - evm optimised", () => {
     )
     if (DEBUG_OUTPUT) {
       console.log("Disclose compressedCommittedInputs")
-      console.log(
-        ProofType.DISCLOSE.toString(16).padStart(2, "0") +
+
+      const committedInputs = ProofType.DISCLOSE.toString(16).padStart(2, "0") +
           inputs.disclose_mask.map((x: number) => x.toString(16).padStart(2, "0")).join("") +
-          disclosedBytes.map((x: number) => x.toString(16).padStart(2, "0")).join(""),
-      )
+          disclosedBytes.map((x: number) => x.toString(16).padStart(2, "0")).join("")
+
+      console.log(committedInputs)
+
+      fs.writeFileSync(
+        path.join(fixturesOutputDir, 'disclose_committed_inputs.hex'),
+        committedInputs
+      );
     }
     expect(paramCommitment).toEqual(calculatedParamCommitment)
     // Verify the disclosed data
@@ -867,7 +882,7 @@ describe("outer proof - evm optimised", () => {
     60000 * 3,
   )
 
-  test(
+  test.only(
     "12 subproofs",
     async () => {
       let compressedCommittedInputs = ""
@@ -1160,6 +1175,7 @@ describe("outer proof - evm optimised", () => {
           Array.from(new TextEncoder().encode(expiryDateInputs.max_date))
             .map((x: number) => x.toString(16).padStart(2, "0"))
             .join("")
+          
       }
 
       // 8th disclosure proof
@@ -1236,7 +1252,11 @@ describe("outer proof - evm optimised", () => {
       ).toString(16)}`
       await ofacExclusionCircuit.destroy()
 
-      // TOOD: DEBUG
+      if (DEBUG_OUTPUT) {
+        compressedCommittedInputs +=
+          ProofType.OFAC_EXCLUSION.toString(16).padStart(2, "0") +
+          ofacExclusionInputs.root_hash.slice(2).padStart(64, "0")
+      }
 
 
       // Outer proof
@@ -1393,6 +1413,35 @@ describe("outer proof - evm optimised", () => {
         )
         console.log("committed inputs")
         console.log(compressedCommittedInputs)
+
+        // Write fixtures to output directory
+        // Read committed inputs
+        const committedInputs = fs.readFileSync(
+          path.join(fixturesOutputDir, 'disclose_committed_inputs.hex'),
+          'utf8'
+        )
+        
+        // Write committed inputs
+        fs.writeFileSync(
+          path.join(fixturesOutputDir, 'all_subproofs_committed_inputs.hex'),
+          committedInputs + compressedCommittedInputs
+        );
+        
+        // Write public inputs
+        fs.writeFileSync(
+          path.join(fixturesOutputDir, 'all_subproofs_public_inputs.json'),
+          JSON.stringify({
+            inputs: proof.publicInputs.concat(proof.proof.slice(0, 16).map((f) => `0x${f}`))
+          }, null, 2)
+        );
+        
+        // Write proof
+        fs.writeFileSync(
+          path.join(fixturesOutputDir, 'all_subproofs_proof.hex'),
+          proof.proof.slice(16).join("")
+        );
+        
+        console.log(`Fixtures written to: ${fixturesOutputDir}`);
       }
       const currentDate = getCurrentDateFromOuterProof(proof)
       expect(currentDate).toEqual(globalCurrentDate)

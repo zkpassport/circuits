@@ -8,6 +8,8 @@ import {StringUtils} from "../src/StringUtils.sol";
 import {ArrayUtils} from "../src/ArrayUtils.sol";
 import {IRootRegistry} from "../src/IRootRegistry.sol";
 
+import "forge-std/console.sol";
+
 enum ProofType {
   DISCLOSE,
   AGE,
@@ -93,6 +95,7 @@ contract ZKPassportVerifier {
   mapping(bytes32 => address) public vkeyHashToVerifier;
   // TODO: remove this when proper local testing with the root registry is done
   mapping(bytes32 => bool) public isValidCertificateRegistryRoot;
+  mapping(bytes32 => bool) public isValidCircuitRegistryRoot;
 
   // Maybe make this immutable as this should most likely not change?
   IRootRegistry public rootRegistry;
@@ -166,10 +169,17 @@ contract ZKPassportVerifier {
     emit CertificateRegistryRootAdded(certificateRegistryRoot);
   }
 
+
   // TODO: remove this when proper local testing with the root registry is done
   function removeCertificateRegistryRoot(bytes32 certificateRegistryRoot) external onlyAdmin {
     isValidCertificateRegistryRoot[certificateRegistryRoot] = false;
     emit CertificateRegistryRootRemoved(certificateRegistryRoot);
+  }
+
+  // TODO: test
+  // TODO: remove this when proper local testing with the root registry is done
+  function addCircuitRegistryRoot(bytes32 circuitRegistryRoot) external onlyAdmin {
+    isValidCircuitRegistryRoot[circuitRegistryRoot] = true;
   }
 
   function checkDate(
@@ -426,7 +436,9 @@ contract ZKPassportVerifier {
     uint256[] memory committedInputCounts
   ) internal pure {
     uint256 offset = 0;
+    console.log("committed input counts length:", committedInputCounts.length);
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
+      console.log(i);
       // One byte is dropped inside the circuit as BN254 is limited to 254 bits
       bytes32 calculatedCommitment = sha256(
         abi.encodePacked(committedInputs[offset:offset + committedInputCounts[i]])
@@ -454,7 +466,8 @@ contract ZKPassportVerifier {
 
   function _validateCircuitRoot(bytes32 circuitRoot) internal view {
     require(
-      rootRegistry.isRootValid(CIRCUIT_REGISTRY_ID, circuitRoot),
+      // Only in local testing will the mapping be populated
+      isValidCircuitRegistryRoot[circuitRoot] || rootRegistry.isRootValid(CIRCUIT_REGISTRY_ID, circuitRoot),
       "Invalid circuit registry root"
     );
   }

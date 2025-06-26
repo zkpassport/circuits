@@ -5,12 +5,12 @@ pragma solidity >=0.8.21;
 import {Test, console} from "forge-std/Test.sol";
 import {ZKPassportVerifier, ProofType, ProofVerificationParams} from "../src/ZKPassportVerifier.sol";
 import {HonkVerifier as OuterVerifier5} from "../src/OuterCount5.sol";
-import {HonkVerifier as OuterVerifier11} from "../src/OuterCount11.sol";
+import {HonkVerifier as OuterVerifier12} from "../src/OuterCount12.sol";
 import {TestUtils} from "./Utils.t.sol";
 
 contract ZKPassportVerifierTest is TestUtils {
   OuterVerifier5 public verifier5;
-  OuterVerifier11 public verifier11;
+  OuterVerifier12 public verifier11;
   ZKPassportVerifier public zkPassportVerifier;
 
   // Path to the proof file - using files directly in project root
@@ -24,7 +24,7 @@ contract ZKPassportVerifierTest is TestUtils {
     "./test/fixtures/all_subproofs_committed_inputs.hex";
   bytes32 constant VKEY_HASH =
     bytes32(uint256(0x2ab349ef31f5d516da820a3f55f93c53f9c899b0b991c93fc341199cc1e3b36c));
-  bytes32 constant OUTER_PROOF_11_VKEY_HASH =
+  bytes32 constant OUTER_PROOF_12_VKEY_HASH =
     bytes32(uint256(0x2f55019d8fd28cf77000af567e4d8fcb54ef0d4853825d61b14911904b20d1c5));
   bytes32 constant CERTIFICATE_REGISTRY_ROOT =
     bytes32(uint256(0x121bdda58fa5af5248e23d46343aea21eaeba397f3c2d8d03994d176dfe1f3a0));
@@ -36,12 +36,12 @@ contract ZKPassportVerifierTest is TestUtils {
     zkPassportVerifier = new ZKPassportVerifier(vm.envAddress("ROOT_REGISTRY_ADDRESS"));
     // Deploy the UltraHonkVerifier
     verifier5 = new OuterVerifier5();
-    verifier11 = new OuterVerifier11();
+    verifier11 = new OuterVerifier12();
 
     // Add the verifier to the ZKPassportVerifier
     bytes32[] memory vkeyHashes = new bytes32[](2);
     vkeyHashes[0] = VKEY_HASH;
-    vkeyHashes[1] = OUTER_PROOF_11_VKEY_HASH;
+    vkeyHashes[1] = OUTER_PROOF_12_VKEY_HASH;
     address[] memory verifiers = new address[](2);
     verifiers[0] = address(verifier5);
     verifiers[1] = address(verifier11);
@@ -176,7 +176,7 @@ contract ZKPassportVerifierTest is TestUtils {
 
     // Contains in order the number of bytes of committed inputs for each disclosure proofs
     // that was verified by the final recursive proof
-    uint256[] memory committedInputCounts = new uint256[](8);
+    uint256[] memory committedInputCounts = new uint256[](9);
     committedInputCounts[0] = 181;
     committedInputCounts[1] = 601;
     committedInputCounts[2] = 601;
@@ -185,13 +185,14 @@ contract ZKPassportVerifierTest is TestUtils {
     committedInputCounts[5] = 11;
     committedInputCounts[6] = 25;
     committedInputCounts[7] = 25;
+    committedInputCounts[8] = 33;
 
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
-    // Set the timestamp to 2025-06-11 10:10:53 UTC
-    vm.warp(1749636653);
+    // Set the timestamp to 2025-06-16 03:18:07 UTC
+    vm.warp(1750951087);
     ProofVerificationParams memory params = ProofVerificationParams({
-      vkeyHash: OUTER_PROOF_11_VKEY_HASH,
+      vkeyHash: OUTER_PROOF_12_VKEY_HASH,
       proof: proof,
       publicInputs: publicInputs,
       committedInputs: committedInputs,
@@ -257,7 +258,7 @@ contract ZKPassportVerifierTest is TestUtils {
 
     // Contains in order the number of bytes of committed inputs for each disclosure proofs
     // that was verified by the final recursive proof
-    uint256[] memory committedInputCounts = new uint256[](8);
+    uint256[] memory committedInputCounts = new uint256[](9);
     committedInputCounts[0] = 181;
     committedInputCounts[1] = 601;
     committedInputCounts[2] = 601;
@@ -266,11 +267,12 @@ contract ZKPassportVerifierTest is TestUtils {
     committedInputCounts[5] = 11;
     committedInputCounts[6] = 25;
     committedInputCounts[7] = 25;
+    committedInputCounts[8] = 33;
 
     // Set the timestamp to 2025-06-11 10:10:53 UTC
     vm.warp(1749636653);
     ProofVerificationParams memory params = ProofVerificationParams({
-      vkeyHash: OUTER_PROOF_11_VKEY_HASH,
+      vkeyHash: OUTER_PROOF_12_VKEY_HASH,
       proof: loadBytesFromFile(ALL_SUBPROOFS_PROOF_PATH),
       publicInputs: loadBytes32FromFile(ALL_SUBPROOFS_PUBLIC_INPUTS_PATH),
       committedInputs: committedInputs,

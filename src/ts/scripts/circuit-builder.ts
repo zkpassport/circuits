@@ -97,12 +97,12 @@ const STATIC_CIRCUITS = [
     path: "./src/noir/bin/inclusion-check/nationality/evm",
   },
   {
-    name: "inclusion_check_ofac",
-    path: "./src/noir/bin/inclusion-check/ofac/standard",
+    name: "exclusion_check_ofac",
+    path: "./src/noir/bin/exclusion-check/ofac/standard",
   },
   {
-    name: "inclusion_check_ofac_evm",
-    path: "./src/noir/bin/inclusion-check/ofac/evm",
+    name: "exclusion_check_ofac_evm",
+    path: "./src/noir/bin/exclusion-check/ofac/evm",
   },
 ]
 
