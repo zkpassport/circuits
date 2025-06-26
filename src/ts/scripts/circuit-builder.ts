@@ -96,6 +96,14 @@ const STATIC_CIRCUITS = [
     name: "inclusion_check_nationality_evm",
     path: "./src/noir/bin/inclusion-check/nationality/evm",
   },
+  {
+    name: "inclusion_check_ofac",
+    path: "./src/noir/bin/inclusion-check/ofac/standard",
+  },
+  {
+    name: "inclusion_check_ofac_evm",
+    path: "./src/noir/bin/inclusion-check/ofac/evm",
+  },
 ]
 
 const LIB_CIRCUITS = [
@@ -118,6 +126,7 @@ const LIB_CIRCUITS = [
   "src/noir/lib/sig-check/ecdsa",
   "src/noir/lib/sig-check/rsa",
   "src/noir/lib/utils",
+  "src/noir/lib/exclusion-check/ofac",
 ]
 
 const WORKSPACE_NARGO_TEMPLATE = (dependencies: string[]) => `[workspace]
@@ -814,7 +823,7 @@ const generateDataIntegrityCheckCircuits = ({
 
 const generateOuterCircuits = ({ unconstrained = false }: { unconstrained: boolean }) => {
   console.log("Generating outer circuits...")
-  for (let i = 1; i <= 9; i++) {
+  for (let i = 1; i <= 10; i++) {
     generateOuterCircuit(i, unconstrained)
   }
 }

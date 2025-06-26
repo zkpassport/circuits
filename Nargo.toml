@@ -19,10 +19,10 @@ members = [
     "src/noir/bin/inclusion-check/issuing-country/evm",
     "src/noir/bin/exclusion-check/nationality/standard",
     "src/noir/bin/exclusion-check/nationality/evm",
-    "src/noir/bin/exclusion-check/ofac/standard",
-    "src/noir/bin/exclusion-check/ofac/evm",
     "src/noir/bin/inclusion-check/nationality/standard",
     "src/noir/bin/inclusion-check/nationality/evm",
+    "src/noir/bin/inclusion-check/ofac/standard",
+    "src/noir/bin/inclusion-check/ofac/evm",
     "src/noir/bin/sig-check/dsc/tbs_700/ecdsa/nist/p256/sha1",
     "src/noir/bin/sig-check/dsc/tbs_700/ecdsa/nist/p256/sha256",
     "src/noir/bin/sig-check/dsc/tbs_700/ecdsa/nist/p256/sha384",
@@ -564,6 +564,7 @@ members = [
     "src/noir/bin/main/outer/count_10",
     "src/noir/bin/main/outer/count_11",
     "src/noir/bin/main/outer/count_12",
+    "src/noir/bin/main/outer/count_13",
 
     "src/noir/lib/bind",
     "src/noir/lib/commitment/common",
@@ -579,10 +580,10 @@ members = [
     "src/noir/lib/data-check/tbs-pubkey",
     "src/noir/lib/disclose",
     "src/noir/lib/exclusion-check/country",
-    "src/noir/lib/exclusion-check/ofac",
     "src/noir/lib/inclusion-check/country",
     "src/noir/lib/sig-check/common",
     "src/noir/lib/sig-check/ecdsa",
     "src/noir/lib/sig-check/rsa",
-    "src/noir/lib/utils"
+    "src/noir/lib/utils",
+    "src/noir/lib/exclusion-check/ofac"
 ]

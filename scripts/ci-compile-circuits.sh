@@ -38,6 +38,8 @@ CIRCUITS=(
     "inclusion_check_issuing_country_evm"
     "exclusion_check_issuing_country"
     "exclusion_check_issuing_country_evm"
+    "inclusion_check_ofac"
+    "inclusion_check_ofac_evm"
     "compare_age"
     "compare_age_evm"
     "compare_expiry"
