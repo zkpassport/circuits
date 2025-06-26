@@ -6,7 +6,7 @@
     "test": "jest",
     "generate": "tsx src/ts/scripts/circuit-builder.ts generate",
     "compile": "tsx src/ts/scripts/circuit-builder.ts generate compile",
-    "test-contracts": "cd src/solidity && forge test -vv --fork-url $SEPOLIA_RPC_URL --chain-id 31337 --block-number 8483191 && cd ../.."
+    "test-contracts": "cd src/solidity && forge test -vv --fork-url $SEPOLIA_RPC_URL --chain-id 31337 && cd ../.."
   },
   "dependencies": {
     "@aws-sdk/client-cloudfront": "^3.730.0",

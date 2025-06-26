@@ -1,6 +1,6 @@
 {
-  "version": "0.4.3",
-  "root": "0x115fad403d6d2c16659cfa1f8ebba00fb55d9bfa70f17c33d786f6c6b8ba7cf7",
+  "version": "0.5.0",
+  "root": "0x20289c0731c768ef173664632069f451da55a9d8dc8c538ac654e4aedb64cbc8",
   "circuits": {
     "bind": {
       "hash": "0x25fcb8e6161e8840d3d24000a672bf0523b9f0f95aea8abdb9aeb0696ccc514a",
@@ -52,24 +52,84 @@
       "cid": "QmZA9vVQTvhEh5CVnwGfNF7LcEwhso8RA3YqZTnBA2oNP7",
       "size": 5752
     },
-    "data_check_integrity_sha1": {
+    "data_check_integrity_sa_sha1_dg_sha1": {
       "hash": "0x0db840742522e725ea96ee31889c7f4c38c433b73853c131fe85f5d4245003ca",
-      "cid": "Qmcu7pqq2Axq22YQ2SK1CuGZ5ao51mm93cUNgPyjFpaS5n",
+      "cid": "QmSHA7hKmMGLdFPLjuZRTostzSLyUsB23SwyDBDFA73pvy",
       "size": 197510
     },
-    "data_check_integrity_sha256": {
+    "data_check_integrity_sa_sha1_dg_sha256": {
+      "hash": "0x0cd26219ee41817c19699d324d60674ae4e80eb4c33b8c3ed7feb232a6500e6a",
+      "cid": "QmdcU2R39cYcqaitvkXz23NvXLec8EPKSk4gYqUZQg2a2U",
+      "size": 189822
+    },
+    "data_check_integrity_sa_sha1_dg_sha384": {
+      "hash": "0x12a6008d33c36bce7e2938d50e43b434ca4a996922844aad253a82e25e74454c",
+      "cid": "QmVYpConfLAkWJTyGHjno6Ssrs41jbaY3t72eC3qewVk1M",
+      "size": 211075
+    },
+    "data_check_integrity_sa_sha1_dg_sha512": {
+      "hash": "0x07de2271b3c0ee494cedd4fdb3cc73396220f33cb09c4e4a4efcc97a0b05bb3f",
+      "cid": "QmWpxeWwvXqeLSZoRT4AXzsqfV45xaodPdYEC7XJrQZgmj",
+      "size": 211151
+    },
+    "data_check_integrity_sa_sha256_dg_sha1": {
+      "hash": "0x2a49e5c7d0b638c333d0b8915e470d2a576273489a8a59407bcd7cea48d5093f",
+      "cid": "QmVXM5pvnXNsTQ7NpXZvyznDBzN9XANwUQgdK2MsJRdePA",
+      "size": 118117
+    },
+    "data_check_integrity_sa_sha256_dg_sha256": {
       "hash": "0x0b227d145b7f1882f0033fc39abe4658969b091998eca7b52565bc77a62e3708",
-      "cid": "QmTcYnzMdnTmdknL1fPaERtgsAFnq8WNxKxw3MkkV6v6ZX",
+      "cid": "QmditWMU9ihK6SeXHj1tZMnz9YMpiNHJ8hi8ZdQuaP4wBV",
       "size": 99316
     },
-    "data_check_integrity_sha384": {
+    "data_check_integrity_sa_sha256_dg_sha384": {
+      "hash": "0x182a2c1a71fcd340c46a9be3cf03086cbb9835b2f911962be81098832c36082e",
+      "cid": "QmU3vSH123494buYvtDYKd2QLAykbBrhVUrP1YXDLtAvue",
+      "size": 125867
+    },
+    "data_check_integrity_sa_sha256_dg_sha512": {
+      "hash": "0x12571514d7d40048e679f7bfbc5a019edd0e094a383d28f0ff341c30764a8808",
+      "cid": "QmTJm6KeFrsGnroJvg1uDEpNhQev8CXyT5vVoVqgq2KJ1m",
+      "size": 125943
+    },
+    "data_check_integrity_sa_sha384_dg_sha1": {
+      "hash": "0x02b4164e8b73e43ee6007073017cf10c9f0a76dea625f83fc81a089d33239ef2",
+      "cid": "QmNNxf9hUdDpcosEdDETSdU8TSWzQUq8asJVv84ZhJY7Hn",
+      "size": 258106
+    },
+    "data_check_integrity_sa_sha384_dg_sha256": {
+      "hash": "0x1eab65018e242527fab384b598e31ede88cafc601b2a5b8da646f3cd08e6b0ea",
+      "cid": "QmTWaeV9U5PyHadTxXK9wdaLYHQgA3nbb9ayXryVYT8Ure",
+      "size": 244589
+    },
+    "data_check_integrity_sa_sha384_dg_sha384": {
       "hash": "0x0314510efdde67c6dbdf23ba9bd4f0683a06fa0b77271af5f17e51f64107b37b",
-      "cid": "QmPEULFUqcgbVHys8uU9jHVf51qKxY6Do6m6gBjJG5NG8M",
+      "cid": "QmTafYQfhrFDHR4uNNnLnCu83wEDropxDujyC1ds8Tzk2t",
       "size": 261998
     },
-    "data_check_integrity_sha512": {
+    "data_check_integrity_sa_sha384_dg_sha512": {
+      "hash": "0x239726b2c8c34f221627f8390b17ac82d386bf37cfb94f5f1a2a6817588ed3fa",
+      "cid": "QmQxE6ZpJxwimjSGVdWdPTCkL9Ufi7oMuDMbX883tcCK28",
+      "size": 262074
+    },
+    "data_check_integrity_sa_sha512_dg_sha1": {
+      "hash": "0x0aef5b7dca7bf24599cd59e7fb92c5c83643239bd4a8fa5c32762a5671e66445",
+      "cid": "QmVUr4CY56Dkimc9yFg3HB8DreRPRLpWUtcM93nRQE6yqc",
+      "size": 258182
+    },
+    "data_check_integrity_sa_sha512_dg_sha256": {
+      "hash": "0x2312653e8d33a121705cd536661418bb771b3202e4ce96ac53442a2465017c80",
+      "cid": "QmZPnuZeKeGaf2STjKVA8eRQaSTad98i63K6S8dybH17cX",
+      "size": 244665
+    },
+    "data_check_integrity_sa_sha512_dg_sha384": {
+      "hash": "0x089ed3762bfcd223a3a5440ee38841d6435e396312828bf658f1cf9d670506f7",
+      "cid": "QmYDQsP1wbd6z6pfateGiBYrSpiQJpETqzBpXkKVtWBuVY",
+      "size": 262074
+    },
+    "data_check_integrity_sa_sha512_dg_sha512": {
       "hash": "0x12882727c29191cdfadf5527852fd3ca50332f242c7516a710786c606c6d688e",
-      "cid": "QmZWUDBeXjFX44sMvbRwdGfykyszrPQhbTztKbKzwRk4ya",
+      "cid": "QmY5pjW84KKhBBDcyGbmtZUeYQZFeGdae9hsHZD8gPDMPv",
       "size": 262150
     },
     "disclose_bytes": {
