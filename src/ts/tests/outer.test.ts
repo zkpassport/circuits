@@ -33,6 +33,7 @@ import {
   getNationalityInclusionCircuitInputs,
   getNullifierFromDisclosureProof,
   getNullifierFromOuterProof,
+  getOFACExclusionCheckCircuitInputs,
   getOuterCircuitInputs,
   getParamCommitmentsFromOuterProof,
   getParameterCommitmentFromDisclosureProof,
@@ -867,7 +868,7 @@ describe("outer proof - evm optimised", () => {
   )
 
   test(
-    "11 subproofs",
+    "12 subproofs",
     async () => {
       let compressedCommittedInputs = ""
       // 2nd disclosure proof
@@ -1207,10 +1208,41 @@ describe("outer proof - evm optimised", () => {
             .join("")
       }
 
+      // 9 th disclosure proof
+      const ofacExclusionCircuit = Circuit.from("exclusion_check_ofac_evm")
+      const ofacExclusionInputs = await getOFACExclusionCheckCircuitInputs(
+        helper.passport as any,
+        3n,
+      )
+      if (!ofacExclusionInputs) throw new Error("Unable to generate ofac exclusion check circuit inputs")
+      if (!ofacExclusionInputs)
+        throw new Error("Unable to generate ofac exclusion check circuit inputs")
+      const ofacExclusionProof = await ofacExclusionCircuit.prove(ofacExclusionInputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `exclusion_check_ofac_evm`,
+      })
+      expect(ofacExclusionProof).toBeDefined()
+      const ofacExclusionParamCommitment = getParameterCommitmentFromDisclosureProof(ofacExclusionProof)
+      const ofacExclusionVkey = ultraVkToFields(
+        await ofacExclusionCircuit.getVerificationKey({
+          recursive: true,
+          evm: false,
+          useCli: true,
+        }),
+      )
+      const ofacExclusionVkeyHash = `0x${(
+        await poseidon2HashAsync(ofacExclusionVkey.map((x) => BigInt(x)))
+      ).toString(16)}`
+      await ofacExclusionCircuit.destroy()
+
+      // TOOD: DEBUG
+
+
       // Outer proof
-      // We can use the regular outer_count_11 rather than outer_evm_count_11
+      // We can use the regular outer_count_12 rather than outer_evm_count_12
       // since only the vkey changes and we don't use it here
-      const outerProofCircuit = Circuit.from("outer_count_11")
+      const outerProofCircuit = Circuit.from("outer_count_12")
       const { path: cscToDscTreeHashPath, index: cscToDscTreeIndex } = await getCircuitMerkleProof(
         subproofs.get(0)?.vkeyHash as string,
         circuitManifest,
@@ -1239,6 +1271,9 @@ describe("outer proof - evm optimised", () => {
         await getCircuitMerkleProof(expiryDateVkeyHash as string, circuitManifest)
       const { path: birthDateTreeHashPath, index: birthDateTreeIndex } =
         await getCircuitMerkleProof(birthDateVkeyHash as string, circuitManifest)
+      const { path: ofacExclusionTreeHashPath, index: ofacExclusionTreeIndex } =
+        await getCircuitMerkleProof(ofacExclusionVkeyHash as string, circuitManifest)
+
       const inputs = await getOuterCircuitInputs(
         {
           proof: subproofs.get(0)?.proof as string[],
@@ -1329,19 +1364,27 @@ describe("outer proof - evm optimised", () => {
             treeHashPath: birthDateTreeHashPath,
             treeIndex: birthDateTreeIndex.toString(),
           },
+          {
+            proof: ofacExclusionProof.proof.map((f) => `0x${f}`) as string[],
+            publicInputs: ofacExclusionProof.publicInputs as string[],
+            vkey: ofacExclusionVkey,
+            keyHash: ofacExclusionVkeyHash,
+            treeHashPath: ofacExclusionTreeHashPath,
+            treeIndex: ofacExclusionTreeIndex.toString(),
+          },
         ],
         circuitManifest.root,
       )
 
       const proof = await outerProofCircuit.prove(inputs, {
         useCli: true,
-        circuitName: "outer_evm_count_11",
+        circuitName: "outer_evm_count_12",
         recursive: false,
         evm: true,
       })
       expect(proof).toBeDefined()
       if (DEBUG_OUTPUT) {
-        console.log("Outer 11 subproofs")
+        console.log("Outer 12 subproofs")
         console.log(
           JSON.stringify({
             proof: proof.proof.slice(16).join(""),
@@ -1368,8 +1411,9 @@ describe("outer proof - evm optimised", () => {
       expect(ageParamCommitment).toEqual(paramCommitmentsFromProof[5])
       expect(expiryDateParamCommitment).toEqual(paramCommitmentsFromProof[6])
       expect(birthDateParamCommitment).toEqual(paramCommitmentsFromProof[7])
+      expect(ofacExclusionParamCommitment).toEqual(paramCommitmentsFromProof[8])
       await outerProofCircuit.destroy()
     },
-    60000 * 3,
+    60000 * 4,
   )
 })
