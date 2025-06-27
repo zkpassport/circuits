@@ -1,4 +1,7 @@
 #!/usr/bin/env tsx
+/**
+ * This script is used to automatically update the solidity fixtures by running the outer.test.ts for proof size 12
+ */
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';

@@ -13,7 +13,6 @@ fn main(
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field) {
-    // TODO: input roots here - so roots are not a constant
     let trees = OFACSparseMerkleTrees::default();
     assert(trees.root_hash() == root_hash);
     // Check that nationality of the passport holder is not in the list of countries

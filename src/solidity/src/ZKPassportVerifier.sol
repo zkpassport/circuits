@@ -179,7 +179,6 @@ contract ZKPassportVerifier {
     emit CertificateRegistryRootRemoved(certificateRegistryRoot);
   }
 
-  // TODO: test
   // TODO: remove this when proper local testing with the root registry is done
   function addCircuitRegistryRoot(bytes32 circuitRegistryRoot) external onlyAdmin {
     isValidCircuitRegistryRoot[circuitRegistryRoot] = true;
