@@ -33,6 +33,7 @@ import {
   getNationalityInclusionCircuitInputs,
   getNullifierFromDisclosureProof,
   getNullifierFromOuterProof,
+  getSanctionsExclusionCheckCircuitInputs,
   getOuterCircuitInputs,
   getParamCommitmentsFromOuterProof,
   getParameterCommitmentFromDisclosureProof,
@@ -42,6 +43,7 @@ import {
   ultraVkToFields,
 } from "@zkpassport/utils"
 import * as path from "path"
+import * as fs from "fs"
 import { Circuit } from "../circuits"
 import { generateSigningCertificates, loadKeypairFromFile, signSod } from "../passport-generator"
 import { generateSod, wrapSodInContentInfo } from "../sod-generator"
@@ -49,7 +51,15 @@ import { TestHelper } from "../test-helper"
 import { createUTCDate, serializeAsn } from "../utils"
 import circuitManifest from "./fixtures/circuit-manifest.json"
 
-const DEBUG_OUTPUT = false
+const DEBUG_OUTPUT = process.env.DEBUG_OUTPUT === 'true'
+const fixturesOutputDir = path.join(__dirname, '../../../output-fixtures');
+
+if (DEBUG_OUTPUT) {
+  // Write fixtures to output directory
+  if (!fs.existsSync(fixturesOutputDir)) {
+    fs.mkdirSync(fixturesOutputDir, { recursive: true });
+  }
+}
 
 describe("outer proof", () => {
   const helper = new TestHelper()
@@ -679,11 +689,17 @@ describe("outer proof - evm optimised", () => {
     )
     if (DEBUG_OUTPUT) {
       console.log("Disclose compressedCommittedInputs")
-      console.log(
-        ProofType.DISCLOSE.toString(16).padStart(2, "0") +
+
+      const committedInputs = ProofType.DISCLOSE.toString(16).padStart(2, "0") +
           inputs.disclose_mask.map((x: number) => x.toString(16).padStart(2, "0")).join("") +
-          disclosedBytes.map((x: number) => x.toString(16).padStart(2, "0")).join(""),
-      )
+          disclosedBytes.map((x: number) => x.toString(16).padStart(2, "0")).join("")
+
+      console.log(committedInputs)
+
+      fs.writeFileSync(
+        path.join(fixturesOutputDir, 'disclose_committed_inputs.hex'),
+        committedInputs
+      );
     }
     expect(paramCommitment).toEqual(calculatedParamCommitment)
     // Verify the disclosed data
@@ -866,8 +882,8 @@ describe("outer proof - evm optimised", () => {
     60000 * 3,
   )
 
-  test(
-    "11 subproofs",
+  test.only(
+    "12 subproofs",
     async () => {
       let compressedCommittedInputs = ""
       // 2nd disclosure proof
@@ -1159,6 +1175,7 @@ describe("outer proof - evm optimised", () => {
           Array.from(new TextEncoder().encode(expiryDateInputs.max_date))
             .map((x: number) => x.toString(16).padStart(2, "0"))
             .join("")
+          
       }
 
       // 8th disclosure proof
@@ -1207,10 +1224,47 @@ describe("outer proof - evm optimised", () => {
             .join("")
       }
 
+      // 9 th disclosure proof
+      const sanctionsExclusionCircuit = Circuit.from("exclusion_check_sanctions_evm")
+      const sanctionsExclusionInputs = await getSanctionsExclusionCheckCircuitInputs(
+        helper.passport as any,
+        3n,
+        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceSubscopeHash("bigproof"),
+      )
+      if (!sanctionsExclusionInputs) throw new Error("Unable to generate sanctions exclusion check circuit inputs")
+      if (!sanctionsExclusionInputs)
+        throw new Error("Unable to generate sanctions exclusion check circuit inputs")
+      const sanctionsExclusionProof = await sanctionsExclusionCircuit.prove(sanctionsExclusionInputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `exclusion_check_sanctions_evm`,
+      })
+      expect(sanctionsExclusionProof).toBeDefined()
+      const sanctionsExclusionParamCommitment = getParameterCommitmentFromDisclosureProof(sanctionsExclusionProof)
+      const sanctionsExclusionVkey = ultraVkToFields(
+        await sanctionsExclusionCircuit.getVerificationKey({
+          recursive: true,
+          evm: false,
+          useCli: true,
+        }),
+      )
+      const sanctionsExclusionVkeyHash = `0x${(
+        await poseidon2HashAsync(sanctionsExclusionVkey.map((x) => BigInt(x)))
+      ).toString(16)}`
+      await sanctionsExclusionCircuit.destroy()
+
+      if (DEBUG_OUTPUT) {
+        compressedCommittedInputs +=
+          ProofType.Sanctions_EXCLUSION.toString(16).padStart(2, "0") +
+          sanctionsExclusionInputs.root_hash.slice(2).padStart(64, "0")
+      }
+
+
       // Outer proof
-      // We can use the regular outer_count_11 rather than outer_evm_count_11
+      // We can use the regular outer_count_12 rather than outer_evm_count_12
       // since only the vkey changes and we don't use it here
-      const outerProofCircuit = Circuit.from("outer_count_11")
+      const outerProofCircuit = Circuit.from("outer_count_12")
       const { path: cscToDscTreeHashPath, index: cscToDscTreeIndex } = await getCircuitMerkleProof(
         subproofs.get(0)?.vkeyHash as string,
         circuitManifest,
@@ -1239,6 +1293,9 @@ describe("outer proof - evm optimised", () => {
         await getCircuitMerkleProof(expiryDateVkeyHash as string, circuitManifest)
       const { path: birthDateTreeHashPath, index: birthDateTreeIndex } =
         await getCircuitMerkleProof(birthDateVkeyHash as string, circuitManifest)
+      const { path: sanctionsExclusionTreeHashPath, index: sanctionsExclusionTreeIndex } =
+        await getCircuitMerkleProof(sanctionsExclusionVkeyHash as string, circuitManifest)
+
       const inputs = await getOuterCircuitInputs(
         {
           proof: subproofs.get(0)?.proof as string[],
@@ -1329,19 +1386,27 @@ describe("outer proof - evm optimised", () => {
             treeHashPath: birthDateTreeHashPath,
             treeIndex: birthDateTreeIndex.toString(),
           },
+          {
+            proof: sanctionsExclusionProof.proof.map((f) => `0x${f}`) as string[],
+            publicInputs: sanctionsExclusionProof.publicInputs as string[],
+            vkey: sanctionsExclusionVkey,
+            keyHash: sanctionsExclusionVkeyHash,
+            treeHashPath: sanctionsExclusionTreeHashPath,
+            treeIndex: sanctionsExclusionTreeIndex.toString(),
+          },
         ],
         circuitManifest.root,
       )
 
       const proof = await outerProofCircuit.prove(inputs, {
         useCli: true,
-        circuitName: "outer_evm_count_11",
+        circuitName: "outer_evm_count_12",
         recursive: false,
         evm: true,
       })
       expect(proof).toBeDefined()
       if (DEBUG_OUTPUT) {
-        console.log("Outer 11 subproofs")
+        console.log("Outer 12 subproofs")
         console.log(
           JSON.stringify({
             proof: proof.proof.slice(16).join(""),
@@ -1350,6 +1415,35 @@ describe("outer proof - evm optimised", () => {
         )
         console.log("committed inputs")
         console.log(compressedCommittedInputs)
+
+        // Write fixtures to output directory
+        // Read committed inputs
+        const committedInputs = fs.readFileSync(
+          path.join(fixturesOutputDir, 'disclose_committed_inputs.hex'),
+          'utf8'
+        )
+        
+        // Write committed inputs
+        fs.writeFileSync(
+          path.join(fixturesOutputDir, 'all_subproofs_committed_inputs.hex'),
+          committedInputs + compressedCommittedInputs
+        );
+        
+        // Write public inputs
+        fs.writeFileSync(
+          path.join(fixturesOutputDir, 'all_subproofs_public_inputs.json'),
+          JSON.stringify({
+            inputs: proof.publicInputs.concat(proof.proof.slice(0, 16).map((f) => `0x${f}`))
+          }, null, 2)
+        );
+        
+        // Write proof
+        fs.writeFileSync(
+          path.join(fixturesOutputDir, 'all_subproofs_proof.hex'),
+          proof.proof.slice(16).join("")
+        );
+        
+        console.log(`Fixtures written to: ${fixturesOutputDir}`);
       }
       const currentDate = getCurrentDateFromOuterProof(proof)
       expect(currentDate).toEqual(globalCurrentDate)
@@ -1368,8 +1462,9 @@ describe("outer proof - evm optimised", () => {
       expect(ageParamCommitment).toEqual(paramCommitmentsFromProof[5])
       expect(expiryDateParamCommitment).toEqual(paramCommitmentsFromProof[6])
       expect(birthDateParamCommitment).toEqual(paramCommitmentsFromProof[7])
+      expect(sanctionsExclusionParamCommitment).toEqual(paramCommitmentsFromProof[8])
       await outerProofCircuit.destroy()
     },
-    60000 * 3,
+    60000 * 4,
   )
 })

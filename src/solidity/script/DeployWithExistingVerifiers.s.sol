@@ -27,7 +27,9 @@ contract Deploy is Script {
     // Outer (11 subproofs)
     bytes32(hex"2f55019d8fd28cf77000af567e4d8fcb54ef0d4853825d61b14911904b20d1c5"),
     // Outer (12 subproofs)
-    bytes32(hex"1fdff1847be0a0ac3af37e59d0f83b2a400c15be4049954dc82aba099b0c9924")
+    bytes32(hex"1fdff1847be0a0ac3af37e59d0f83b2a400c15be4049954dc82aba099b0c9924"),
+    // Outer (13 subproofs)
+    bytes32(hex"1fc14cf5b71709c9e08dea91c9708686f2fd3dcf4de8172fb4130712159169ae")
   ];
 
   address[] public verifierAddresses = [
