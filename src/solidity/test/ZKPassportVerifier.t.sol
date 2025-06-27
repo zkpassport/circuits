@@ -65,8 +65,8 @@ contract ZKPassportVerifierTest is TestUtils {
 
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
-    // Set the timestamp to 2025-06-11 10:10:53 UTC
-    vm.warp(1749636653);
+    // Set the timestamp to 2025-06-26 09:03:56 UTC
+    vm.warp(1750928636);
     ProofVerificationParams memory params = ProofVerificationParams({
       vkeyHash: VKEY_HASH,
       proof: proof,
@@ -74,8 +74,8 @@ contract ZKPassportVerifierTest is TestUtils {
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
       validityPeriodInDays: 7,
-      scope: "zkpassport.id",
-      subscope: "bigproof",
+      domain: "zkpassport.id",
+      scope: "bigproof",
       devMode: false
     });
     (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
@@ -132,8 +132,8 @@ contract ZKPassportVerifierTest is TestUtils {
     committedInputCounts[0] = 181;
     committedInputCounts[1] = 501;
 
-    // Set the timestamp to 2025-06-11 10:10:53 UTC
-    vm.warp(1749636653);
+    // Set the timestamp to 2025-06-26 09:03:56 UTC
+    vm.warp(1750928636);
     ProofVerificationParams memory params = ProofVerificationParams({
       vkeyHash: VKEY_HASH,
       proof: proof,
@@ -141,8 +141,8 @@ contract ZKPassportVerifierTest is TestUtils {
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
       validityPeriodInDays: 7,
-      scope: "zkpassport.id",
-      subscope: "bigproof",
+      domain: "zkpassport.id",
+      scope: "bigproof",
       devMode: false
     });
     (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
@@ -201,8 +201,8 @@ contract ZKPassportVerifierTest is TestUtils {
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
       validityPeriodInDays: 7,
-      scope: "zkpassport.id",
-      subscope: "bigproof",
+      domain: "zkpassport.id",
+      scope: "bigproof",
       devMode: false
     });
     (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
@@ -281,8 +281,8 @@ contract ZKPassportVerifierTest is TestUtils {
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
       validityPeriodInDays: 7,
-      scope: "zkpassport.id",
-      subscope: "bigproof",
+      domain: "zkpassport.id",
+      scope: "bigproof",
       devMode: false
     });
     (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);

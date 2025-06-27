@@ -42,9 +42,11 @@ pub fn nullify(
     // Doesn't matter if we already calculated the scoped nullifier above
     // cause it's ZK all branches will be evaluated anyway
     if issuing_country == ZKR_COUNTRY_CODE_BYTES {
-        // Set the scoped nullifier to 0 to indicate the issuing country is not a real one
+        // Set the scoped nullifier to 1 to indicate the issuing country is not a real one
         // and prevent the use of these proofs in production
-        scoped_nullifier = 0;
+        // Note: ZKPassport's registries on mainnet blockchains will not include
+        // the ZKR certificates but still this distinction can be useful for testnets/devnets
+        scoped_nullifier = 1;
     }
     scoped_nullifier
 }

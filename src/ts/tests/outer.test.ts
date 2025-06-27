@@ -178,12 +178,12 @@ describe("outer proof", () => {
     })
     await idDataToIntegrityCircuit.destroy()
 
-    const integrityCircuit = Circuit.from("data_check_integrity_sha256")
+    const integrityCircuit = Circuit.from("data_check_integrity_sa_sha256_dg_sha256")
     const integrityInputs = await helper.generateCircuitInputs("integrity")
     const integrityProof = await integrityCircuit.prove(integrityInputs, {
       recursive: true,
       useCli: true,
-      circuitName: `data_check_integrity_sha256`,
+      circuitName: `data_check_integrity_sa_sha256_dg_sha256`,
     })
     expect(integrityProof).toBeDefined()
     const integrityCheckCommitmentIn = getCommitmentInFromIntegrityProof(integrityProof)
@@ -624,12 +624,12 @@ describe("outer proof - evm optimised", () => {
     })
     await idDataToIntegrityCircuit.destroy()
 
-    const integrityCircuit = Circuit.from("data_check_integrity_sha256")
+    const integrityCircuit = Circuit.from("data_check_integrity_sa_sha256_dg_sha256")
     const integrityInputs = await helper.generateCircuitInputs("integrity")
     const integrityProof = await integrityCircuit.prove(integrityInputs, {
       recursive: true,
       useCli: true,
-      circuitName: `data_check_integrity_sha256`,
+      circuitName: `data_check_integrity_sa_sha256_dg_sha256`,
     })
     expect(integrityProof).toBeDefined()
     const integrityCheckCommitmentIn = getCommitmentInFromIntegrityProof(integrityProof)

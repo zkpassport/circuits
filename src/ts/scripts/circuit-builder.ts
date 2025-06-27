@@ -349,12 +349,13 @@ ${unconstrained ? "unconstrained " : ""}fn main(
 `
 
 const DATA_INTEGRITY_CHECK_TEMPLATE = (
-  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
+  signed_attributes_hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
+  dg_hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_disclosure;
 use data_check_expiry::check_expiry;
-use data_check_integrity::check_integrity_of_data_${hash_algorithm};
+use data_check_integrity::{check_dg1_${dg_hash_algorithm}, check_signed_attributes_${signed_attributes_hash_algorithm}};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     current_date: pub str<8>,
@@ -372,13 +373,16 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     // Check the ID is not expired first
     check_expiry(dg1, current_date.as_bytes());
     // Check the integrity of the data
-    check_integrity_of_data_${hash_algorithm}(
+    check_dg1_${dg_hash_algorithm}(
         dg1,
+        e_content,
+        dg1_offset_in_e_content,
+    );
+    check_signed_attributes_${signed_attributes_hash_algorithm}(
         signed_attributes,
         signed_attributes_size,
         e_content,
         e_content_size,
-        dg1_offset_in_e_content,
     );
     let comm_out = commit_to_disclosure(
         comm_in,
@@ -678,17 +682,22 @@ function generateIdDataRsaCircuit(
 }
 
 function generateDataIntegrityCheckCircuit(
-  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
+  signed_attributes_hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
+  dg_hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) {
-  const noirFile = DATA_INTEGRITY_CHECK_TEMPLATE(hash_algorithm, unconstrained)
-  const name = `data_check_integrity_${hash_algorithm}`
+  const noirFile = DATA_INTEGRITY_CHECK_TEMPLATE(
+    signed_attributes_hash_algorithm,
+    dg_hash_algorithm,
+    unconstrained,
+  )
+  const name = `data_check_integrity_sa_${signed_attributes_hash_algorithm}_dg_${dg_hash_algorithm}`
   const nargoFile = NARGO_TEMPLATE(name, [
-    { name: "data_check_integrity", path: "../../../../lib/data-check/integrity" },
-    { name: "data_check_expiry", path: "../../../../lib/data-check/expiry" },
-    { name: "commitment", path: "../../../../lib/commitment/integrity-to-disclosure" },
+    { name: "data_check_integrity", path: "../../../../../lib/data-check/integrity" },
+    { name: "data_check_expiry", path: "../../../../../lib/data-check/expiry" },
+    { name: "commitment", path: "../../../../../lib/commitment/integrity-to-disclosure" },
   ])
-  const folderPath = `./src/noir/bin/data-check/integrity/${hash_algorithm}`
+  const folderPath = `./src/noir/bin/data-check/integrity/sa_${signed_attributes_hash_algorithm}/dg_${dg_hash_algorithm}`
   const noirFilePath = `${folderPath}/src/main.nr`
   const nargoFilePath = `${folderPath}/Nargo.toml`
   ensureDirectoryExistence(noirFilePath)
@@ -739,7 +748,7 @@ const SIGNATURE_ALGORITHMS_SUPPORTED: {
   { type: "rsa", family: "pkcs", bit_size: 4096 },
 ]
 
-const TBS_MAX_LENGTHS = [700, 1000, 1200, 1500]
+const TBS_MAX_LENGTHS = [700, 1000, 1200, 1500, 1600]
 
 const HASH_ALGORITHMS_SUPPORTED = ["sha1", "sha256", "sha384", "sha512"]
 
@@ -813,11 +822,14 @@ const generateDataIntegrityCheckCircuits = ({
   unconstrained: boolean
 }) => {
   console.log("Generating data integrity check circuits...")
-  HASH_ALGORITHMS_SUPPORTED.forEach((hash_algorithm) => {
-    generateDataIntegrityCheckCircuit(
-      hash_algorithm as "sha1" | "sha256" | "sha384" | "sha512",
-      unconstrained,
-    )
+  HASH_ALGORITHMS_SUPPORTED.forEach((signed_attributes_hash_algorithm) => {
+    HASH_ALGORITHMS_SUPPORTED.forEach((dg_hash_algorithm) => {
+      generateDataIntegrityCheckCircuit(
+        signed_attributes_hash_algorithm as "sha1" | "sha256" | "sha384" | "sha512",
+        dg_hash_algorithm as "sha1" | "sha256" | "sha384" | "sha512",
+        unconstrained,
+      )
+    })
   })
 }
 
