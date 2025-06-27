@@ -1,7 +1,7 @@
 use commitment::nullify;
-use utils::{PROOF_TYPE_OFAC_EXCLUSION};
+use utils::{PROOF_TYPE_SANCTIONS_EXCLUSION};
 use exclusion_check_sanctions::param_commit::calculate_param_commitment_sha2;
-use exclusion_check_sanctions::{OFACSparseMerkleTrees, types::OFACSparseMerkleTreeProofs};
+use exclusion_check_sanctions::{SanctionsSparseMerkleTrees, types::SanctionsSparseMerkleTreeProofs};
 
 fn main(
     comm_in: pub Field,
@@ -9,11 +9,11 @@ fn main(
     private_nullifier: Field,
     dg1: [u8; 95],
     root_hash: Field,
-    proofs: OFACSparseMerkleTreeProofs,
+    proofs: SanctionsSparseMerkleTreeProofs,
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field) {
-    let trees = OFACSparseMerkleTrees::default();
+    let trees = SanctionsSparseMerkleTrees::default();
     assert(trees.root_hash() == root_hash);
     // Check that nationality of the passport holder is not in the list of countries
     trees.check_sanctions_exclusion(dg1, proofs);
@@ -25,6 +25,6 @@ fn main(
         service_scope,
         service_subscope,
     );
-    let param_commitment = calculate_param_commitment_sha2(PROOF_TYPE_OFAC_EXCLUSION, root_hash);
+    let param_commitment = calculate_param_commitment_sha2(PROOF_TYPE_SANCTIONS_EXCLUSION, root_hash);
     (param_commitment, nullifier)
 }

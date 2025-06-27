@@ -33,7 +33,7 @@ import {
   getNationalityInclusionCircuitInputs,
   getNullifierFromDisclosureProof,
   getNullifierFromOuterProof,
-  getOFACExclusionCheckCircuitInputs,
+  getSanctionsExclusionCheckCircuitInputs,
   getOuterCircuitInputs,
   getParamCommitmentsFromOuterProof,
   getParameterCommitmentFromDisclosureProof,
@@ -1226,7 +1226,7 @@ describe("outer proof - evm optimised", () => {
 
       // 9 th disclosure proof
       const sanctionsExclusionCircuit = Circuit.from("exclusion_check_sanctions_evm")
-      const sanctionsExclusionInputs = await getOFACExclusionCheckCircuitInputs(
+      const sanctionsExclusionInputs = await getSanctionsExclusionCheckCircuitInputs(
         helper.passport as any,
         3n,
         getServiceScopeHash("zkpassport.id", 31337),
@@ -1256,7 +1256,7 @@ describe("outer proof - evm optimised", () => {
 
       if (DEBUG_OUTPUT) {
         compressedCommittedInputs +=
-          ProofType.OFAC_EXCLUSION.toString(16).padStart(2, "0") +
+          ProofType.Sanctions_EXCLUSION.toString(16).padStart(2, "0") +
           sanctionsExclusionInputs.root_hash.slice(2).padStart(64, "0")
       }
 

@@ -1,24 +1,24 @@
 import {SMT, poseidon2} from "@zkpassport/utils/merkle-tree"
 import fs from "fs"
-import NAMES_OFAC_LIST from "../inputs/names.json"
-import PASSPORTS_OFAC_LIST from "../inputs/passports.json"
+import NAMES_Sanctions_LIST from "../inputs/names.json"
+import PASSPORTS_Sanctions_LIST from "../inputs/passports.json"
 import { hashNameAndDob, hashNameAndYob, hashPassportNoAndCountry, nameToMRZ, passportToMRZ } from "../trees/generate_trees";
-import { OFACNames, OFACPassport } from "../trees/types";
+import { SanctionsNames, SanctionsPassport } from "../trees/types";
 
 
 /**
  * Steps:
- * 1. Parse the OFAC list into MRZ format
+ * 1. Parse the Sanctions list into MRZ format
  * 2. Hash the MRZ data
  * 3. Generate the leaves for the SMT
  * 4. Add the leaves to the SMT
  * 5. Export the SMT
  */
-async function generateOFACTrees() {
+async function generateSanctionsTrees() {
     console.log("Parsing Data: Starting");
-    console.log("Parsing Data: Converted OFAC list into MRZ format");
-    const mrz = nameToMRZ(NAMES_OFAC_LIST as OFACNames[])
-    const passportMRZ = passportToMRZ(PASSPORTS_OFAC_LIST as OFACPassport[])
+    console.log("Parsing Data: Converted Sanctions list into MRZ format");
+    const mrz = nameToMRZ(NAMES_Sanctions_LIST as SanctionsNames[])
+    const passportMRZ = passportToMRZ(PASSPORTS_Sanctions_LIST as SanctionsPassport[])
 
     console.log("Parsing Data: Generating leaves (hashing MRZ data)")
     const nameAndDobHashed = await hashNameAndDob(mrz);
@@ -76,4 +76,4 @@ async function generateOFACTrees() {
 }
 
 
-generateOFACTrees();
+generateSanctionsTrees();

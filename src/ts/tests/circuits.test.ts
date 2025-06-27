@@ -18,7 +18,7 @@ import {
   getCommitmentInFromDisclosureProof,
   getCurrentDateFromIntegrityProof,
   getDiscloseCircuitInputs,
-  OFACBuilder,
+  SanctionsBuilder,
   getIssuingCountryExclusionCircuitInputs,
   getIssuingCountryInclusionCircuitInputs,
   getParameterCommitmentFromDisclosureProof,
@@ -37,7 +37,7 @@ import {
   getBindParameterCommitment,
   formatBoundData,
   getBindEVMParameterCommitment,
-  getOFACExclusionCheckCircuitInputs,
+  getSanctionsExclusionCheckCircuitInputs,
 } from "@zkpassport/utils"
 import type { PackagedCertificate, Query } from "@zkpassport/utils"
 import { beforeAll, describe, expect, test } from "@jest/globals"
@@ -545,14 +545,14 @@ describe("subcircuits - RSA PKCS", () => {
 
     test("sanctions exclusion check", async () => {
       const circuit = Circuit.from("exclusion_check_sanctions")
-      const sanctions = await OFACBuilder.create();
-      const inputs = await getOFACExclusionCheckCircuitInputs(helper.passport as any, SALT, undefined, undefined, sanctions)
+      const sanctions = await SanctionsBuilder.create();
+      const inputs = await getSanctionsExclusionCheckCircuitInputs(helper.passport as any, SALT, undefined, undefined, sanctions)
       if (!inputs) throw new Error("Unable to generate sanctions circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `exclusion_check_sanctions`,
       });
       expect(proof).toBeDefined()
-      const calculatedParamCommitment = await sanctions.getOFACParameterCommitment()
+      const calculatedParamCommitment = await sanctions.getSanctionsParameterCommitment()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
@@ -632,10 +632,10 @@ describe("subcircuits - RSA PKCS", () => {
     }, 30000)
 
     test("sanctions exclusion check", async () => {
-      const sanctions = await OFACBuilder.create();
+      const sanctions = await SanctionsBuilder.create();
       const circuit = Circuit.from("exclusion_check_sanctions_evm")
 
-      const inputs = await getOFACExclusionCheckCircuitInputs(helper.passport as any, SALT, undefined, undefined, sanctions)
+      const inputs = await getSanctionsExclusionCheckCircuitInputs(helper.passport as any, SALT, undefined, undefined, sanctions)
       if (!inputs) throw new Error("Unable to generate sanctions circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `exclusion_check_sanctions_evm`,
@@ -643,7 +643,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(proof).toBeDefined()
 
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const calculatedParamCommitment = await sanctions.getOFACEvmParameterCommitment()
+      const calculatedParamCommitment = await sanctions.getSanctionsEvmParameterCommitment()
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(

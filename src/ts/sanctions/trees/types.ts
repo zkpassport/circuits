@@ -1,4 +1,4 @@
-export type OFACNames = {
+export type SanctionsNames = {
     First_Name: string
     Last_Name: string
     day: string | null
@@ -6,7 +6,7 @@ export type OFACNames = {
     year: string
 }
 
-export type OFACPassport = {
+export type SanctionsPassport = {
     Pass_No: string
     Pass_Country: string
 }

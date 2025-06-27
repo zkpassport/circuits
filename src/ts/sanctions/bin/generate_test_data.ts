@@ -4,7 +4,7 @@ import nameAndDobJson from "../outputs/NEW_nameAndDobSMT.json"
 import nameAndYobJson from "../outputs/NEW_nameAndYobSMT.json"
 import passportNoAndCountryJson from "../outputs/NEW_passportNoAndCountrySMT.json"
 import { hashNameAndDob, hashNameAndYob, hashPassportNoAndCountry, nameToMRZ, passportNoAndCountry, passportToMRZ } from "../trees/generate_trees"
-import { OFACNames, OFACPassport, PassportMRZData } from "../trees/types"
+import { SanctionsNames, SanctionsPassport, PassportMRZData } from "../trees/types"
 
 /**
  * Generate test data within exclusion-check/sanctions/src/lib.nr
@@ -24,7 +24,7 @@ async function testNonMembershipFullSets() {
 
     const passportNo = "123456789";
     const country = "United Kingdom";
-    const passport: OFACPassport = {
+    const passport: SanctionsPassport = {
         Pass_No: passportNo,
         Pass_Country: country,
     }
@@ -36,7 +36,7 @@ async function testNonMembershipFullSets() {
         day: "12",
         month: "jan",
         year: "1990",
-    } as OFACNames])
+    } as SanctionsNames])
 
     const hash = await hashPassportNoAndCountry([passportToMRZ as PassportMRZData]);
 

@@ -6,7 +6,7 @@ use crate::smt::smt_verify;
 use utils::test::DG1Builder;
 use std::hash::poseidon2::Poseidon2;
 
-use types::{OFACMerkleProof, OFACSparseMerkleTreeProofs};
+use types::{SanctionsMerkleProof, SanctionsSparseMerkleTreeProofs};
 
 use utils::{
     get_dob_from_mrz, get_document_number_from_mrz, get_name_from_mrz, get_nationality_from_mrz,
@@ -22,21 +22,21 @@ global NAME_AND_YOB_SMT_ROOT: Field =
     21214931644386285663256497249965874333059934725605058568752759284223990155398;
 
 
-/// The OFAC sparse merkle trees
-/// This is a collection of the three trees that are used to check the OFAC exclusion
+/// The Sanctions sparse merkle trees
+/// This is a collection of the three trees that are used to check the Sanctions exclusion
 /// for passports and ID cards
 ///
 /// The trees are:
 /// 1. Passport No and Nationality
 /// 2. Name and DOB
 /// 3. Name and YOB
-pub struct OFACSparseMerkleTrees {
+pub struct SanctionsSparseMerkleTrees {
     pub passportNoAndNationalitySMTRoot: Field,
     pub nameAndDobSMTRoot: Field,
     pub nameAndYobSMTRoot: Field,
 }
 
-impl OFACSparseMerkleTrees {
+impl SanctionsSparseMerkleTrees {
     /**
      * Note: default currently using the values created in our testing implementation
      */
@@ -53,14 +53,14 @@ impl OFACSparseMerkleTrees {
     }
 }
 
-impl OFACSparseMerkleTrees {
-    /// Check the OFAC exclusion for a given DG1
+impl SanctionsSparseMerkleTrees {
+    /// Check the Sanctions exclusion for a given DG1
     ///
     /// # Arguments
     ///
     /// * `dg1` - The DG1 of the passport or ID card
-    /// * `proofs` - The proofs for the OFAC sparse merkle trees
-    pub fn check_sanctions_exclusion(self: Self, dg1: DG1Data, proofs: OFACSparseMerkleTreeProofs) {
+    /// * `proofs` - The proofs for the Sanctions sparse merkle trees
+    pub fn check_sanctions_exclusion(self: Self, dg1: DG1Data, proofs: SanctionsSparseMerkleTreeProofs) {
         // Calculate the hashes
         let name: MRZName = get_name_from_mrz(dg1);
         let dob: MRZDOB = get_dob_from_mrz(dg1);
@@ -96,14 +96,14 @@ impl OFACSparseMerkleTrees {
     }
 }
 
-fn smt_exculsion_check(hash: Field, root: Field, proof: OFACMerkleProof) {
+fn smt_exculsion_check(hash: Field, root: Field, proof: SanctionsMerkleProof) {
     assert(smt_verify(hash, proof.leaf_value, root, proof.siblings, false));
 }
 
 
 #[test]
 fn test_tree_non_inclusion() {
-    let trees: OFACSparseMerkleTrees = OFACSparseMerkleTrees::default();
+    let trees: SanctionsSparseMerkleTrees = SanctionsSparseMerkleTrees::default();
 
     // 1n does not exist in each of the trees - test this
     let test_non_inclusion_of = 1;
@@ -135,7 +135,7 @@ fn test_tree_non_inclusion() {
     passport_membership_proof[10] =
         4738882917628176677488969682241605833750863904591392646515870734335960594807;
 
-    let proof = OFACMerkleProof::new(passport_matching_entry, passport_membership_proof);
+    let proof = SanctionsMerkleProof::new(passport_matching_entry, passport_membership_proof);
 
     smt_exculsion_check(
         test_non_inclusion_of,
@@ -170,7 +170,7 @@ fn non_inclusion_of_empty_dg1() {
         .with_dob(dob)
         .build();
 
-    let trees: OFACSparseMerkleTrees = OFACSparseMerkleTrees::default();
+    let trees: SanctionsSparseMerkleTrees = SanctionsSparseMerkleTrees::default();
 
     // All 3 proofs
     // Passport
@@ -196,7 +196,7 @@ fn non_inclusion_of_empty_dg1() {
     passportSiblingPath[9] =
         10508342124554657494809161963799015397745355177617267590375530235126947287045;
 
-    let passportProof = OFACMerkleProof::new(
+    let passportProof = SanctionsMerkleProof::new(
         19472559416252533469288112994110593837599677348457724900723337162843562794498,
         passportSiblingPath,
     );
@@ -229,7 +229,7 @@ fn non_inclusion_of_empty_dg1() {
     name_and_dob_sibling_path[11] =
         2031392442953363413049904193869369104983178771948117285085274801813287079146;
 
-    let name_and_dob_proof = OFACMerkleProof::new(
+    let name_and_dob_proof = SanctionsMerkleProof::new(
         14305617601987334507121318634003416308804163528067844350398755777270743444453,
         name_and_dob_sibling_path,
     );
@@ -261,13 +261,13 @@ fn non_inclusion_of_empty_dg1() {
     name_and_yob_sibling_path[11] =
         12148751839853604497868754351670223320917868688906439874619148651659155988294;
 
-    let name_and_yob_proof = OFACMerkleProof::new(
+    let name_and_yob_proof = SanctionsMerkleProof::new(
         14994561155353715731291174895414924107805673982226109022704420914564565471404,
         name_and_yob_sibling_path,
     );
 
     let smt_proofs =
-        OFACSparseMerkleTreeProofs::new(passportProof, name_and_dob_proof, name_and_yob_proof);
+        SanctionsSparseMerkleTreeProofs::new(passportProof, name_and_dob_proof, name_and_yob_proof);
 
     trees.check_sanctions_exclusion(dg1, smt_proofs);
 }

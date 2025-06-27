@@ -1,5 +1,5 @@
 import { poseidon2 } from "@zkpassport/utils";
-import { MRZData, OFACNames, OFACPassport, PassportMRZData } from "./types";
+import { MRZData, SanctionsNames, SanctionsPassport, PassportMRZData } from "./types";
 import countries from "i18n-iso-countries";
 import en from "i18n-iso-countries/langs/en.json";
 
@@ -78,7 +78,7 @@ export function stringToAsciiBigIntArray(str: string): bigint[] {
 }
 
 
-export function nameToMRZ(sanctionsList: OFACNames[]): MRZData[] {
+export function nameToMRZ(sanctionsList: SanctionsNames[]): MRZData[] {
     const processedList: MRZData[] = [];
 
     for (const item of sanctionsList) {
@@ -113,7 +113,7 @@ export function nameToMRZ(sanctionsList: OFACNames[]): MRZData[] {
 // passports
 
 // this is a temporary workaround for some of the country name,
-// will be removed once we parse the OFAC list better, starting from the XML file.
+// will be removed once we parse the Sanctions list better, starting from the XML file.
 // c.t. self/common/src/utils/trees.ts
 const normalizeCountryName = (country: string): string => {
     const mapping: Record<string, string> = {
@@ -130,7 +130,7 @@ const normalizeCountryName = (country: string): string => {
     return mapping[country.toLowerCase()] || country;
   };
 
-export function passportNoAndCountry(passportList: OFACPassport): PassportMRZData | null {
+export function passportNoAndCountry(passportList: SanctionsPassport): PassportMRZData | null {
     let passportNo = passportList.Pass_No;
     const passportCountry = passportList.Pass_Country;
 
@@ -156,7 +156,7 @@ export function passportNoAndCountry(passportList: OFACPassport): PassportMRZDat
     }
 }
 
-export function passportToMRZ(passportList: OFACPassport[]): PassportMRZData[] {
+export function passportToMRZ(passportList: SanctionsPassport[]): PassportMRZData[] {
     const processedList: PassportMRZData[] = [];
 
     for (const item of passportList) {

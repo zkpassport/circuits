@@ -5,9 +5,9 @@ import nameAndYobSMTJson from "./outputs/nameAndYobSMT.json"
 import passportNoAndNationalitySMTJson from "./outputs/passportNoAndNationalitySMT.json"
 
 /**
- * Data class containing the OFACSparseMerkleTrees
+ * Data class containing the SanctionsSparseMerkleTrees
  */
-export class OFACSparseMerkleTrees {
+export class SanctionsSparseMerkleTrees {
 
     constructor(
         public passportNoAndNationalitySMT: SMT,
@@ -16,8 +16,8 @@ export class OFACSparseMerkleTrees {
     ) {}
 
     /**
-     * Initialize the OFACSparseMerkleTrees
-     * @returns OFACSparseMerkleTrees
+     * Initialize the SanctionsSparseMerkleTrees
+     * @returns SanctionsSparseMerkleTrees
      */
     static init() {
         const passportNoAndNationalitySMT = new SMT(poseidon2, /*bigNumbers=*/ true)
@@ -27,6 +27,6 @@ export class OFACSparseMerkleTrees {
         nameAndYobSMT.import(nameAndYobSMTJson)
         nameAndDobSMT.import(nameAndDobSMTJson)
 
-        return new OFACSparseMerkleTrees(passportNoAndNationalitySMT, nameAndDobSMT, nameAndYobSMT)
+        return new SanctionsSparseMerkleTrees(passportNoAndNationalitySMT, nameAndDobSMT, nameAndYobSMT)
     }
 }
