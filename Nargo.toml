@@ -21,8 +21,8 @@ members = [
     "src/noir/bin/exclusion-check/nationality/evm",
     "src/noir/bin/inclusion-check/nationality/standard",
     "src/noir/bin/inclusion-check/nationality/evm",
-    "src/noir/bin/exclusion-check/ofac/standard",
-    "src/noir/bin/exclusion-check/ofac/evm",
+    "src/noir/bin/exclusion-check/sanctions/standard",
+    "src/noir/bin/exclusion-check/sanctions/evm",
     "src/noir/bin/sig-check/dsc/tbs_700/ecdsa/nist/p256/sha1",
     "src/noir/bin/sig-check/dsc/tbs_700/ecdsa/nist/p256/sha256",
     "src/noir/bin/sig-check/dsc/tbs_700/ecdsa/nist/p256/sha384",
@@ -585,5 +585,5 @@ members = [
     "src/noir/lib/sig-check/ecdsa",
     "src/noir/lib/sig-check/rsa",
     "src/noir/lib/utils",
-    "src/noir/lib/exclusion-check/ofac"
+    "src/noir/lib/exclusion-check/sanctions"
 ]
