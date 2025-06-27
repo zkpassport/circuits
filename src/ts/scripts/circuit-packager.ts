@@ -7,12 +7,21 @@ import type { Blockstore } from "interface-blockstore"
 import { importer } from "ipfs-unixfs-importer"
 import path from "path"
 import { promisify } from "util"
-import { snakeToPascal, gzipAsync } from "../utils"
+import {
+  snakeToPascal,
+  gzipAsync,
+  getGateCount,
+  initBarretenberg,
+  destroyBarretenberg,
+} from "../utils"
+import { Barretenberg } from "@aztec/bb.js"
+
+let barretenberg: Barretenberg
 
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
 const PACKAGED_CIRCUITS_DIR = path.join(TARGET_DIR, "packaged/circuits")
-const MAX_CONCURRENT_PROCESSES = 40
+const MAX_CONCURRENT_PROCESSES = 10
 const DEPLOY_SOL_PATH = "src/solidity/script/Deploy.s.sol"
 const ADD_VERIFIERS_SOL_PATH = "src/solidity/script/AddVerifiers.s.sol"
 const DEPLOY_WITH_EXISTING_VERIFIERS_SOL_PATH =
@@ -106,10 +115,10 @@ const processFile = async (
   )
   try {
     // Skip if output file already exists
-    // if (fs.existsSync(outputPath)) {
-    //   console.log(`Skipping ${file} (already packaged)`)
-    //   return true
-    // }
+    if (fs.existsSync(outputPath)) {
+      console.log(`Skipping ${file} (already packaged)`)
+      return true
+    }
 
     // Run bb command to get bb version and generate circuit vkey
     const bbVersion = (await execPromise("bb --version")).stdout.trim().replace(/^v/i, "")
@@ -120,11 +129,12 @@ const processFile = async (
         evm ? " --oracle_hash keccak" : ""
       } --honk_recursion 1 --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
     )
-    // await execPromise(`bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`)
+    if (file.startsWith("outer")) {
+      await execPromise(
+        `bb gates --scheme ultra_honk --honk_recursion 1 -b "${inputPath}" > "${gateCountPath}"`,
+      )
+    }
     if (generateSolidityVerifier) {
-      console.log(`Generating solidity verifier: ${file}`)
-      console.log(`${vkeyPath}/vk`)
-      console.log(`${solidityVerifierPath}`)
       await execPromise(
         `bb write_solidity_verifier --scheme ultra_honk -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
       )
@@ -143,9 +153,15 @@ const processFile = async (
 
     // Read and parse the input file
     const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
-    // const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
-    // const gateCount = gateCountFileContent.functions[0].circuit_size
-    // fs.unlinkSync(gateCountPath)
+    let gateCount = 0
+    // For outer circuit we use the cli as they're too big for wasm
+    if (file.startsWith("outer")) {
+      const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
+      gateCount = gateCountFileContent.functions[0].circuit_size
+      fs.unlinkSync(gateCountPath)
+    } else {
+      gateCount = await getGateCount(barretenberg!, jsonContent.bytecode)
+    }
 
     // Create packaged circuit object
     const packagedCircuit: {
@@ -154,7 +170,7 @@ const processFile = async (
       name: outputName,
       noir_version: jsonContent.noir_version,
       bb_version: bbVersion,
-      // size: gateCount,
+      size: gateCount,
       abi: jsonContent.abi,
       bytecode: jsonContent.bytecode,
       vkey: vkey,
@@ -407,6 +423,7 @@ async function main() {
   // Start timing
   const startTime = Date.now()
   try {
+    barretenberg = await initBarretenberg()
     await processFiles()
     // Generate manifest
     const packagedFiles = fs
@@ -426,6 +443,7 @@ async function main() {
     } else if (seconds >= 0) {
       console.log(`Total time taken: ${seconds}s`)
     }
+    await destroyBarretenberg(barretenberg)
   }
 }
 
