@@ -543,16 +543,16 @@ describe("subcircuits - RSA PKCS", () => {
       await circuit.destroy()
     })
 
-    test("ofac exclusion check", async () => {
-      const circuit = Circuit.from("exclusion_check_ofac")
-      const ofac = await OFACBuilder.create();
-      const inputs = await getOFACExclusionCheckCircuitInputs(helper.passport as any, SALT, undefined, undefined, ofac)
-      if (!inputs) throw new Error("Unable to generate ofac circuit inputs")
+    test("sanctions exclusion check", async () => {
+      const circuit = Circuit.from("exclusion_check_sanctions")
+      const sanctions = await OFACBuilder.create();
+      const inputs = await getOFACExclusionCheckCircuitInputs(helper.passport as any, SALT, undefined, undefined, sanctions)
+      if (!inputs) throw new Error("Unable to generate sanctions circuit inputs")
       const proof = await circuit.prove(inputs, {
-        circuitName: `exclusion_check_ofac`,
+        circuitName: `exclusion_check_sanctions`,
       });
       expect(proof).toBeDefined()
-      const calculatedParamCommitment = await ofac.getOFACParameterCommitment()
+      const calculatedParamCommitment = await sanctions.getOFACParameterCommitment()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
@@ -631,19 +631,19 @@ describe("subcircuits - RSA PKCS", () => {
       await circuit.destroy()
     }, 30000)
 
-    test("ofac exclusion check", async () => {
-      const ofac = await OFACBuilder.create();
-      const circuit = Circuit.from("exclusion_check_ofac_evm")
+    test("sanctions exclusion check", async () => {
+      const sanctions = await OFACBuilder.create();
+      const circuit = Circuit.from("exclusion_check_sanctions_evm")
 
-      const inputs = await getOFACExclusionCheckCircuitInputs(helper.passport as any, SALT, undefined, undefined, ofac)
-      if (!inputs) throw new Error("Unable to generate ofac circuit inputs")
+      const inputs = await getOFACExclusionCheckCircuitInputs(helper.passport as any, SALT, undefined, undefined, sanctions)
+      if (!inputs) throw new Error("Unable to generate sanctions circuit inputs")
       const proof = await circuit.prove(inputs, {
-        circuitName: `exclusion_check_ofac_evm`,
+        circuitName: `exclusion_check_sanctions_evm`,
       });
       expect(proof).toBeDefined()
 
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const calculatedParamCommitment = await ofac.getOFACEvmParameterCommitment()
+      const calculatedParamCommitment = await sanctions.getOFACEvmParameterCommitment()
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(

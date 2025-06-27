@@ -1,5 +1,5 @@
 [package]
-name = "exclusion_check_ofac_lib"
+name = "exclusion_check_sanctions_lib"
 type = "lib"
 authors = ["Theo Madzou", "Michael Elliot", "Maddiaa0"]
 compiler_version = ">=1.0.0"

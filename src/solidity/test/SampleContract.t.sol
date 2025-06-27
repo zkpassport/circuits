@@ -7,6 +7,7 @@ import {ZKPassportVerifier, ProofType, ProofVerificationParams} from "../src/ZKP
 import {HonkVerifier as OuterVerifier12} from "../src/OuterCount12.sol";
 import {SampleContract} from "../src/SampleContract.sol";
 import {TestUtils} from "./Utils.t.sol";
+import {CommittedInputLen} from "../src/Constants.sol";
 
 contract SampleContractTest is TestUtils {
   OuterVerifier12 public verifier;
@@ -17,7 +18,7 @@ contract SampleContractTest is TestUtils {
   string constant PUBLIC_INPUTS_PATH = "./test/fixtures/all_subproofs_public_inputs.json";
   string constant COMMITTED_INPUTS_PATH = "./test/fixtures/all_subproofs_committed_inputs.hex";
   bytes32 constant VKEY_HASH = 0x1fdff1847be0a0ac3af37e59d0f83b2a400c15be4049954dc82aba099b0c9924;
-  bytes32 constant CERTIFICATE_REGISTRY_ROOT = 0x13e52b40a5fe83c97ad836461189cea329a3b4cca2d34f2886d40de327e1f4cb;
+  bytes32 constant CERTIFICATE_REGISTRY_ROOT = 0x15a8f615191352fff1aa650203a541f2f7e38f9b409f1599944ec75e972f32e6;
   bytes32 constant CIRCUIT_REGISTRY_ROOT = 0x1cec98bdbc92ca83904e96bd19237a770c6b32d8c96909c25731b15851580d52;
 
   function setUp() public {
@@ -48,23 +49,23 @@ contract SampleContractTest is TestUtils {
     // Contains in order the number of bytes of committed inputs for each disclosure proofs
     // that was verified by the final recursive proof
     uint256[] memory committedInputCounts = new uint256[](9);
-    committedInputCounts[0] = 181;
-    committedInputCounts[1] = 601;
-    committedInputCounts[2] = 601;
-    committedInputCounts[3] = 601;
-    committedInputCounts[4] = 601;
-    committedInputCounts[5] = 11;
-    committedInputCounts[6] = 25;
-    committedInputCounts[7] = 25;
-    committedInputCounts[8] = 33;
+    committedInputCounts[0] = CommittedInputLen.DISCLOSE_BYTES;
+    committedInputCounts[1] = CommittedInputLen.INCL_NATIONALITY;
+    committedInputCounts[2] = CommittedInputLen.EXCL_NATIONALITY;
+    committedInputCounts[3] = CommittedInputLen.INCL_ISSUING_COUNTRY;
+    committedInputCounts[4] = CommittedInputLen.EXCL_ISSUING_COUNTRY;
+    committedInputCounts[5] = CommittedInputLen.COMPARE_AGE;
+    committedInputCounts[6] = CommittedInputLen.COMPARE_EXPIRY;
+    committedInputCounts[7] = CommittedInputLen.COMPARE_BIRTHDATE;
+    committedInputCounts[8] = CommittedInputLen.SANCTIONS;
 
     // The sender cannot call this function cause they are not verified
     vm.expectRevert("User is not verified");
     sampleContract.doStuff();
 
 
-    // Set the timestamp to 2025-06-16 03:18:07 UTC
-    vm.warp(1750951087);
+    // Set the timestamp to 2025-06-27 10:00:00 UTC
+    vm.warp(1751015400);
     ProofVerificationParams memory params = ProofVerificationParams({
       vkeyHash: VKEY_HASH,
       proof: proof,
@@ -77,9 +78,7 @@ contract SampleContractTest is TestUtils {
       // Set to true to accept mock proofs from the ZKR
       devMode: false
     });
-    console.log("b4 verify");
     bytes32 uniqueIdentifier = sampleContract.register(params, false);
-    console.log("after verify");
 
     // The sender can now call this function since they registered just before
     sampleContract.doStuff();

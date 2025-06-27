@@ -7,8 +7,7 @@ import {DateUtils} from "../src/DateUtils.sol";
 import {StringUtils} from "../src/StringUtils.sol";
 import {ArrayUtils} from "../src/ArrayUtils.sol";
 import {IRootRegistry} from "../src/IRootRegistry.sol";
-
-import "forge-std/console.sol";
+import {CommittedInputLen, SANCTIONS_TREES_ROOT} from "../src/Constants.sol";
 
 enum ProofType {
   DISCLOSE,
@@ -19,7 +18,8 @@ enum ProofType {
   NATIONALITY_EXCLUSION,
   ISSUING_COUNTRY_INCLUSION,
   ISSUING_COUNTRY_EXCLUSION,
-  BIND
+  BIND,
+  SANCTIONS
 }
 
 enum BoundDataIdentifier {
@@ -97,6 +97,8 @@ contract ZKPassportVerifier {
   mapping(bytes32 => bool) public isValidCertificateRegistryRoot;
   mapping(bytes32 => bool) public isValidCircuitRegistryRoot;
 
+  bytes32 public sanctionsTreesRoot = SANCTIONS_TREES_ROOT;
+
   // Maybe make this immutable as this should most likely not change?
   IRootRegistry public rootRegistry;
 
@@ -108,6 +110,7 @@ contract ZKPassportVerifier {
   event VerifierRemoved(bytes32 indexed vkeyHash);
   event CertificateRegistryRootAdded(bytes32 indexed certificateRegistryRoot);
   event CertificateRegistryRootRemoved(bytes32 indexed certificateRegistryRoot);
+  event SanctionsTreesRootUpdates(bytes32 indexed _sanctionsTreesRoot);
 
   /**
    * @dev Constructor
@@ -180,6 +183,11 @@ contract ZKPassportVerifier {
   // TODO: remove this when proper local testing with the root registry is done
   function addCircuitRegistryRoot(bytes32 circuitRegistryRoot) external onlyAdmin {
     isValidCircuitRegistryRoot[circuitRegistryRoot] = true;
+  }
+
+  function updateSanctionsTreesRoot(bytes32 _sanctionsTreesRoot) external onlyAdmin {
+    sanctionsTreesRoot = _sanctionsTreesRoot;
+    emit SanctionsTreesRootUpdates(_sanctionsTreesRoot);
   }
 
   function checkDate(
@@ -264,7 +272,7 @@ contract ZKPassportVerifier {
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // Disclose circuits have 181 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == 181) {
+      if (committedInputCounts[i] == CommittedInputLen.DISCLOSE_BYTES) {
         require(committedInputs[offset] == bytes1(uint8(ProofType.DISCLOSE)), "Invalid proof type");
         discloseMask = committedInputs[offset + 1:offset + 91];
         discloseBytes = committedInputs[offset + 91:offset + 181];
@@ -285,7 +293,7 @@ contract ZKPassportVerifier {
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // Date circuits have 25 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == 25 && committedInputs[offset] == bytes1(uint8(proofType))) {
+      if (committedInputCounts[i] == CommittedInputLen.COMPARE_EXPIRY && committedInputs[offset] == bytes1(uint8(proofType))) {
         currentDate = DateUtils.getTimestampFromDate(committedInputs[offset + 1:offset + 9]);
         minDate = DateUtils.getTimestampFromDate(committedInputs[offset + 9:offset + 17]);
         maxDate = DateUtils.getTimestampFromDate(committedInputs[offset + 17:offset + 25]);
@@ -305,7 +313,7 @@ contract ZKPassportVerifier {
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // The age circuit has 11 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == 11) {
+      if (committedInputCounts[i] == CommittedInputLen.COMPARE_AGE) {
         require(committedInputs[offset] == bytes1(uint8(ProofType.AGE)), "Invalid proof type");
         currentDate = DateUtils.getTimestampFromDate(committedInputs[offset + 1:offset + 9]);
         minAge = uint8(committedInputs[offset + 9]);
@@ -327,7 +335,7 @@ contract ZKPassportVerifier {
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // Country (inclusion and exclusion) circuits have 601 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == 601 && committedInputs[offset] == bytes1(uint8(proofType))) {
+      if (committedInputCounts[i] == CommittedInputLen.INCL_NATIONALITY && committedInputs[offset] == bytes1(uint8(proofType))) {
         countryList = new string[](200);
         for (uint256 j = 0; j < 200; j++) {
           if (committedInputs[offset + j * 3 + 1] == 0) {
@@ -352,7 +360,7 @@ contract ZKPassportVerifier {
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // The bind data circuit has 501 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == 501) {
+      if (committedInputCounts[i] == CommittedInputLen.BIND) {
         require(committedInputs[offset] == bytes1(uint8(ProofType.BIND)), "Invalid proof type");
         // Get the length of the data from the tag length encoded in the data
         // The developer should check on their side the actual data returned before
@@ -395,6 +403,30 @@ contract ZKPassportVerifier {
     require(found, "Bind data proof inputs not found");
   }
 
+  function getSanctionsProofInputs(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts
+  ) public pure returns (bytes32 sanctionsTreesCommitment) {
+    uint256 offset = 0;
+    bool found = false;
+    for (uint256 i = 0; i < committedInputCounts.length; ++i) {
+      if (committedInputCounts[i] == CommittedInputLen.SANCTIONS) {
+        require(committedInputs[offset] == bytes1(uint8(ProofType.SANCTIONS)), "Invalid proof type");
+
+        sanctionsTreesCommitment = bytes32(committedInputs[offset + 1:offset + 33]);
+        found = true;
+      }
+      offset += committedInputCounts[i];
+    }
+    require(found, "Sanctions proof inputs not found");
+  }
+
+  function enforceSanctionsRoot(bytes calldata committedInputs, uint256[] calldata committedInputCounts) public view {
+    bytes32 proofSanctionsRoot = getSanctionsProofInputs(committedInputs, committedInputCounts);
+    require(proofSanctionsRoot == sanctionsTreesRoot, "Invalid Sanctions Root");
+  }
+
+
   function getBoundData(
     bytes calldata data
   ) public pure returns (address senderAddress, string memory customData) {
@@ -436,9 +468,7 @@ contract ZKPassportVerifier {
     uint256[] memory committedInputCounts
   ) internal pure {
     uint256 offset = 0;
-    console.log("committed input counts length:", committedInputCounts.length);
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
-      console.log(i);
       // One byte is dropped inside the circuit as BN254 is limited to 254 bits
       bytes32 calculatedCommitment = sha256(
         abi.encodePacked(committedInputs[offset:offset + committedInputCounts[i]])
@@ -516,13 +546,6 @@ contract ZKPassportVerifier {
       params.publicInputs[actualPublicInputCount - 1] != bytes32(0) || params.devMode,
       "Mock proofs are only allowed in dev mode"
     );
-
-    console.log("proof");
-    console.logBytes(params.proof);
-    console.log("public inputs");
-    for (uint i; i < params.publicInputs.length; ++i){
-      console.logBytes32(params.publicInputs[i]);
-    }
 
     return (
       IVerifier(verifier).verify(params.proof, params.publicInputs),

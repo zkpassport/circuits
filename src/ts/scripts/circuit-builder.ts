@@ -97,12 +97,12 @@ const STATIC_CIRCUITS = [
     path: "./src/noir/bin/inclusion-check/nationality/evm",
   },
   {
-    name: "exclusion_check_ofac",
-    path: "./src/noir/bin/exclusion-check/ofac/standard",
+    name: "exclusion_check_sanctions",
+    path: "./src/noir/bin/exclusion-check/sanctions/standard",
   },
   {
-    name: "exclusion_check_ofac_evm",
-    path: "./src/noir/bin/exclusion-check/ofac/evm",
+    name: "exclusion_check_sanctions_evm",
+    path: "./src/noir/bin/exclusion-check/sanctions/evm",
   },
 ]
 
@@ -126,7 +126,7 @@ const LIB_CIRCUITS = [
   "src/noir/lib/sig-check/ecdsa",
   "src/noir/lib/sig-check/rsa",
   "src/noir/lib/utils",
-  "src/noir/lib/exclusion-check/ofac",
+  "src/noir/lib/exclusion-check/sanctions",
 ]
 
 const WORKSPACE_NARGO_TEMPLATE = (dependencies: string[]) => `[workspace]

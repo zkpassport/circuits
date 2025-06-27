@@ -78,10 +78,10 @@ export function stringToAsciiBigIntArray(str: string): bigint[] {
 }
 
 
-export function nameToMRZ(ofacList: OFACNames[]): MRZData[] {
+export function nameToMRZ(sanctionsList: OFACNames[]): MRZData[] {
     const processedList: MRZData[] = [];
 
-    for (const item of ofacList) {
+    for (const item of sanctionsList) {
         // todo: fix what has it and what does not
         let processedDob: string | null = null;
         let processedYear: string | null = null;

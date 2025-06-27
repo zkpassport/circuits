@@ -7,7 +7,7 @@ import { hashNameAndDob, hashNameAndYob, hashPassportNoAndCountry, nameToMRZ, pa
 import { OFACNames, OFACPassport, PassportMRZData } from "../trees/types"
 
 /**
- * Generate test data within exclusion-check/ofac/src/lib.nr
+ * Generate test data within exclusion-check/sanctions/src/lib.nr
  */
 async function testNonMembershipFullSets() {
     const passportNoAndCountrySMT = new SMT(poseidon2, /*bigNumbers=*/ true)

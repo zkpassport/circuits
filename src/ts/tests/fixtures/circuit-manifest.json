@@ -107,12 +107,12 @@
       "cid": "QmaeV2WPciroNRvyUYgPmuk2n5rqLFKRo9QW2dGUDqyynf",
       "size": 52687
     },
-    "exclusion_check_ofac": {
+    "exclusion_check_sanctions": {
       "hash": "0x1f072fe0a9ba39d93bbc22a9dab957d55101326d6c958ed93802688a6397a39f",
       "cid": "QmSFCGbmEFViXaTFrfPXjrA5L2G8db4gAgYP9kDS6HqNXn",
       "size": 93559
     },
-    "exclusion_check_ofac_evm": {
+    "exclusion_check_sanctions_evm": {
       "hash": "0x303fdfe7e8f2df2e5814fe742251d942e1d3f5863f9ed74f04c49eb30507e117",
       "cid": "QmfYBFRJQ6oNtpK2KgG4PA49UyG7tZ6gKeQ6U7PfhBKX4F",
       "size": 97545

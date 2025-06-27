@@ -1225,37 +1225,39 @@ describe("outer proof - evm optimised", () => {
       }
 
       // 9 th disclosure proof
-      const ofacExclusionCircuit = Circuit.from("exclusion_check_ofac_evm")
-      const ofacExclusionInputs = await getOFACExclusionCheckCircuitInputs(
+      const sanctionsExclusionCircuit = Circuit.from("exclusion_check_sanctions_evm")
+      const sanctionsExclusionInputs = await getOFACExclusionCheckCircuitInputs(
         helper.passport as any,
         3n,
+        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceSubscopeHash("bigproof"),
       )
-      if (!ofacExclusionInputs) throw new Error("Unable to generate ofac exclusion check circuit inputs")
-      if (!ofacExclusionInputs)
-        throw new Error("Unable to generate ofac exclusion check circuit inputs")
-      const ofacExclusionProof = await ofacExclusionCircuit.prove(ofacExclusionInputs, {
+      if (!sanctionsExclusionInputs) throw new Error("Unable to generate sanctions exclusion check circuit inputs")
+      if (!sanctionsExclusionInputs)
+        throw new Error("Unable to generate sanctions exclusion check circuit inputs")
+      const sanctionsExclusionProof = await sanctionsExclusionCircuit.prove(sanctionsExclusionInputs, {
         recursive: true,
         useCli: true,
-        circuitName: `exclusion_check_ofac_evm`,
+        circuitName: `exclusion_check_sanctions_evm`,
       })
-      expect(ofacExclusionProof).toBeDefined()
-      const ofacExclusionParamCommitment = getParameterCommitmentFromDisclosureProof(ofacExclusionProof)
-      const ofacExclusionVkey = ultraVkToFields(
-        await ofacExclusionCircuit.getVerificationKey({
+      expect(sanctionsExclusionProof).toBeDefined()
+      const sanctionsExclusionParamCommitment = getParameterCommitmentFromDisclosureProof(sanctionsExclusionProof)
+      const sanctionsExclusionVkey = ultraVkToFields(
+        await sanctionsExclusionCircuit.getVerificationKey({
           recursive: true,
           evm: false,
           useCli: true,
         }),
       )
-      const ofacExclusionVkeyHash = `0x${(
-        await poseidon2HashAsync(ofacExclusionVkey.map((x) => BigInt(x)))
+      const sanctionsExclusionVkeyHash = `0x${(
+        await poseidon2HashAsync(sanctionsExclusionVkey.map((x) => BigInt(x)))
       ).toString(16)}`
-      await ofacExclusionCircuit.destroy()
+      await sanctionsExclusionCircuit.destroy()
 
       if (DEBUG_OUTPUT) {
         compressedCommittedInputs +=
           ProofType.OFAC_EXCLUSION.toString(16).padStart(2, "0") +
-          ofacExclusionInputs.root_hash.slice(2).padStart(64, "0")
+          sanctionsExclusionInputs.root_hash.slice(2).padStart(64, "0")
       }
 
 
@@ -1291,8 +1293,8 @@ describe("outer proof - evm optimised", () => {
         await getCircuitMerkleProof(expiryDateVkeyHash as string, circuitManifest)
       const { path: birthDateTreeHashPath, index: birthDateTreeIndex } =
         await getCircuitMerkleProof(birthDateVkeyHash as string, circuitManifest)
-      const { path: ofacExclusionTreeHashPath, index: ofacExclusionTreeIndex } =
-        await getCircuitMerkleProof(ofacExclusionVkeyHash as string, circuitManifest)
+      const { path: sanctionsExclusionTreeHashPath, index: sanctionsExclusionTreeIndex } =
+        await getCircuitMerkleProof(sanctionsExclusionVkeyHash as string, circuitManifest)
 
       const inputs = await getOuterCircuitInputs(
         {
@@ -1385,12 +1387,12 @@ describe("outer proof - evm optimised", () => {
             treeIndex: birthDateTreeIndex.toString(),
           },
           {
-            proof: ofacExclusionProof.proof.map((f) => `0x${f}`) as string[],
-            publicInputs: ofacExclusionProof.publicInputs as string[],
-            vkey: ofacExclusionVkey,
-            keyHash: ofacExclusionVkeyHash,
-            treeHashPath: ofacExclusionTreeHashPath,
-            treeIndex: ofacExclusionTreeIndex.toString(),
+            proof: sanctionsExclusionProof.proof.map((f) => `0x${f}`) as string[],
+            publicInputs: sanctionsExclusionProof.publicInputs as string[],
+            vkey: sanctionsExclusionVkey,
+            keyHash: sanctionsExclusionVkeyHash,
+            treeHashPath: sanctionsExclusionTreeHashPath,
+            treeIndex: sanctionsExclusionTreeIndex.toString(),
           },
         ],
         circuitManifest.root,
@@ -1460,7 +1462,7 @@ describe("outer proof - evm optimised", () => {
       expect(ageParamCommitment).toEqual(paramCommitmentsFromProof[5])
       expect(expiryDateParamCommitment).toEqual(paramCommitmentsFromProof[6])
       expect(birthDateParamCommitment).toEqual(paramCommitmentsFromProof[7])
-      expect(ofacExclusionParamCommitment).toEqual(paramCommitmentsFromProof[8])
+      expect(sanctionsExclusionParamCommitment).toEqual(paramCommitmentsFromProof[8])
       await outerProofCircuit.destroy()
     },
     60000 * 4,

@@ -60,7 +60,7 @@ impl OFACSparseMerkleTrees {
     ///
     /// * `dg1` - The DG1 of the passport or ID card
     /// * `proofs` - The proofs for the OFAC sparse merkle trees
-    pub fn check_ofac_exclusion(self: Self, dg1: DG1Data, proofs: OFACSparseMerkleTreeProofs) {
+    pub fn check_sanctions_exclusion(self: Self, dg1: DG1Data, proofs: OFACSparseMerkleTreeProofs) {
         // Calculate the hashes
         let name: MRZName = get_name_from_mrz(dg1);
         let dob: MRZDOB = get_dob_from_mrz(dg1);
@@ -269,5 +269,5 @@ fn non_inclusion_of_empty_dg1() {
     let smt_proofs =
         OFACSparseMerkleTreeProofs::new(passportProof, name_and_dob_proof, name_and_yob_proof);
 
-    trees.check_ofac_exclusion(dg1, smt_proofs);
+    trees.check_sanctions_exclusion(dg1, smt_proofs);
 }
