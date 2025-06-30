@@ -28,7 +28,7 @@ use outer_lib::{
     prepare_disclosure_inputs, prepare_integrity_check_inputs, poseidon2_hash,
 };
 use std::verify_proof_with_type;
-global HONK_IDENTIFIER: u32 = 1;
+global PROOF_TYPE_HONK_ZK: u32 = 7;
 
 fn verify_subproofs(
     // Root of the certificate merkle tree
@@ -75,7 +75,7 @@ fn verify_subproofs(
             csc_to_dsc_proof.public_inputs[0], // comm_out
         ],
         csc_to_dsc_proof.key_hash,
-        HONK_IDENTIFIER,
+        PROOF_TYPE_HONK_ZK,
     );
 
     // Commitment out from CSC to DSC circuit == commitment in from DSC to ID Data circuit
@@ -89,7 +89,7 @@ fn verify_subproofs(
             dsc_to_id_data_proof.public_inputs[1], // comm_out
         ],
         dsc_to_id_data_proof.key_hash,
-        HONK_IDENTIFIER,
+        PROOF_TYPE_HONK_ZK,
     );
 
     // Commitment out from DSC to ID Data circuit == commitment in from integrity check circuit
@@ -104,7 +104,7 @@ fn verify_subproofs(
             integrity_check_proof.public_inputs[1], // comm_out
         ),
         integrity_check_proof.key_hash,
-        HONK_IDENTIFIER,
+        PROOF_TYPE_HONK_ZK,
     );
 
     for i in 0..disclosure_proofs.len() {
@@ -122,7 +122,7 @@ fn verify_subproofs(
                 scoped_nullifier,
             ),
             disclosure_proofs[i].key_hash,
-            HONK_IDENTIFIER,
+            PROOF_TYPE_HONK_ZK,
         );
     }
 }
