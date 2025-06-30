@@ -6,7 +6,8 @@
     "test": "jest",
     "generate": "tsx src/ts/scripts/circuit-builder.ts generate",
     "compile": "tsx src/ts/scripts/circuit-builder.ts generate compile",
-    "test-contracts": "cd src/solidity && forge test -vv --fork-url $SEPOLIA_RPC_URL --chain-id 31337 && cd ../.."
+    "test-contracts": "cd src/solidity && forge test -vv --fork-url $SEPOLIA_RPC_URL --chain-id 31337 && cd ../..",
+    "package-circuits": "tsx --max-old-space-size=8192 src/ts/scripts/circuit-packager && cp target/packaged/manifest.json src/ts/tests/fixtures/circuit-manifest.json"
   },
   "dependencies": {
     "@aws-sdk/client-cloudfront": "^3.730.0",

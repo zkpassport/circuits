@@ -2,15 +2,13 @@ import { poseidon2Hash } from "@zkpassport/poseidon2"
 import { PromisePool } from "@zkpassport/utils"
 import { calculateCircuitRoot } from "@zkpassport/utils/registry"
 import { exec, execSync } from "child_process"
-import fs, { copyFileSync } from "fs"
+import fs from "fs"
 import type { Blockstore } from "interface-blockstore"
-import { importer } from "ipfs-unixfs-importer"
 import path from "path"
 import { promisify } from "util"
 import {
   snakeToPascal,
   gzipAsync,
-  getGateCount,
   initBarretenberg,
   destroyBarretenberg,
 } from "../utils"
@@ -39,6 +37,9 @@ async function getIpfsCidv0(
   { gzip = false }: { gzip?: boolean } = {},
 ): Promise<string> {
   if (gzip) data = await gzipAsync(data)
+  
+  const { importer } = await import("ipfs-unixfs-importer")
+  
   // Create a mock memory blockstore that does nothing
   const blockstore: Blockstore = { get: async () => {}, put: async () => {} } as any
   for await (const result of importer([{ content: data }], blockstore, {
@@ -125,15 +126,13 @@ const processFile = async (
     console.log(`Generating vkey: ${file}`)
     fs.mkdirSync(vkeyPath, { recursive: true })
     await execPromise(
-      `bb write_vk --scheme ultra_honk${recursive ? " --recursive --init_kzg_accumulator" : ""}${
+      `bb write_vk --scheme ultra_honk${
         evm ? " --oracle_hash keccak" : ""
       } --honk_recursion 1 --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
     )
-    if (file.startsWith("outer")) {
-      await execPromise(
-        `bb gates --scheme ultra_honk --honk_recursion 1 -b "${inputPath}" > "${gateCountPath}"`,
-      )
-    }
+    await execPromise(
+      `bb gates --scheme ultra_honk --honk_recursion 1 -b "${inputPath}" > "${gateCountPath}"`,
+    )
     if (generateSolidityVerifier) {
       await execPromise(
         `bb write_solidity_verifier --scheme ultra_honk -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
@@ -154,15 +153,10 @@ const processFile = async (
     // Read and parse the input file
     const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
     let gateCount = 0
-    // For outer circuit we use the cli as they're too big for wasm
-    if (file.startsWith("outer")) {
-      const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
-      gateCount = gateCountFileContent.functions[0].circuit_size
-      fs.unlinkSync(gateCountPath)
-    } else {
-      gateCount = await getGateCount(barretenberg!, jsonContent.bytecode)
-    }
-
+    const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
+    gateCount = gateCountFileContent.functions[0].circuit_size
+    fs.unlinkSync(gateCountPath)
+    
     // Create packaged circuit object
     const packagedCircuit: {
       [key: string]: unknown
@@ -447,4 +441,7 @@ async function main() {
   }
 }
 
-await main()
+// Wrap the main function call in an IIFE to avoid top-level await issues
+;(async () => {
+  await main()
+})()
