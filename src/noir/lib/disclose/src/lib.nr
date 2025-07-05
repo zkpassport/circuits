@@ -1,5 +1,4 @@
-use std::hash::keccak256;
-use std::hash::poseidon2::Poseidon2;
+use poseidon::poseidon2::Poseidon2;
 use utils::{
     DisclosedData, DiscloseFlags, get_mrz_from_dg1, ID_CARD_MRZ_BIRTHDATE_INDEX,
     ID_CARD_MRZ_COUNTRY_INDEX, ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX, ID_CARD_MRZ_DOCUMENT_TYPE_INDEX,

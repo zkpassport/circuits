@@ -1,5 +1,4 @@
-//use std::hash::pedersen_hash;
-use std::hash::poseidon2::Poseidon2;
+use poseidon::poseidon2::Poseidon2;
 use utils::PASSPORT_MRZ_COUNTRY_INDEX;
 
 pub global CSC_CERT_TYPE: u8 = 1;
@@ -182,7 +181,7 @@ pub fn compute_merkle_root<let N: u32>(leaf: Field, index: Field, hash_path: [Fi
     let index_bits: [u1; N] = index.to_le_bits();
     let mut current = leaf;
     for i in 0..N {
-        let path_bit = index_bits[i] as bool;
+        let path_bit = index_bits[i] == 1;
         let (hash_left, hash_right) = if path_bit {
             (hash_path[i], current)
         } else {
