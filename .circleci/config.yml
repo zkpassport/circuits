@@ -43,7 +43,7 @@ jobs:
             echo 'export PATH="/home/circleci/.bb:$PATH"' >> $BASH_ENV
             source $BASH_ENV
             bbup -v << pipeline.parameters.bb_version >>
-            /home/circleci/.bb/bb -V
+            /home/circleci/.bb/bb --version
       - save_cache:
           paths:
             - /home/circleci/.bb
@@ -78,6 +78,7 @@ jobs:
       - restore_cache:
           keys:
             - nargo-cache-<< pipeline.parameters.noir_version >>
+            - bb-cache-<< pipeline.parameters.bb_version >>
       - attach_workspace:
           at: ~/repo
       - run:
@@ -90,6 +91,7 @@ jobs:
       - restore_cache:
           keys:
             - nargo-cache-<< pipeline.parameters.noir_version >>
+            - bb-cache-<< pipeline.parameters.bb_version >>
       - attach_workspace:
           at: ~/repo
       - run:
