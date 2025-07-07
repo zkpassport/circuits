@@ -78,7 +78,6 @@ jobs:
       - restore_cache:
           keys:
             - nargo-cache-<< pipeline.parameters.noir_version >>
-            - bb-cache-<< pipeline.parameters.bb_version >>
       - attach_workspace:
           at: ~/repo
       - run:
@@ -103,7 +102,7 @@ jobs:
       - run:
           name: Integration tests
           command: |
-            npm test circuits.test.ts
+            PATH=/home/circleci/.bb:$PATH npm test circuits.test.ts
 
 workflows:
   version: 2
