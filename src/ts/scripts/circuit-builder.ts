@@ -719,15 +719,19 @@ const SIGNATURE_ALGORITHMS_SUPPORTED: {
   curve_name?: string
   bit_size: number
 }[] = [
+  { type: "ecdsa", family: "nist", curve_name: "p192", bit_size: 192 },
+  { type: "ecdsa", family: "nist", curve_name: "p224", bit_size: 224 },
   { type: "ecdsa", family: "nist", curve_name: "p256", bit_size: 256 },
   { type: "ecdsa", family: "nist", curve_name: "p384", bit_size: 384 },
   { type: "ecdsa", family: "nist", curve_name: "p521", bit_size: 521 },
+  { type: "ecdsa", family: "brainpool", curve_name: "192r1", bit_size: 192 },
+  { type: "ecdsa", family: "brainpool", curve_name: "224r1", bit_size: 224 },
   { type: "ecdsa", family: "brainpool", curve_name: "256r1", bit_size: 256 },
   { type: "ecdsa", family: "brainpool", curve_name: "384r1", bit_size: 384 },
   { type: "ecdsa", family: "brainpool", curve_name: "512r1", bit_size: 512 },
-  { type: "ecdsa", family: "brainpool", curve_name: "256t1", bit_size: 256 },
+  /*{ type: "ecdsa", family: "brainpool", curve_name: "256t1", bit_size: 256 },
   { type: "ecdsa", family: "brainpool", curve_name: "384t1", bit_size: 384 },
-  { type: "ecdsa", family: "brainpool", curve_name: "512t1", bit_size: 512 },
+  { type: "ecdsa", family: "brainpool", curve_name: "512t1", bit_size: 512 },*/
   { type: "rsa", family: "pss", bit_size: 1024 },
   { type: "rsa", family: "pss", bit_size: 2048 },
   { type: "rsa", family: "pss", bit_size: 3072 },
@@ -738,7 +742,7 @@ const SIGNATURE_ALGORITHMS_SUPPORTED: {
   { type: "rsa", family: "pkcs", bit_size: 4096 },
 ]
 
-const TBS_MAX_LENGTHS = [700, 1000, 1200, 1500, 1600]
+const TBS_MAX_LENGTHS = [700, 1000, 1200, 1600]
 
 const HASH_ALGORITHMS_SUPPORTED = ["sha1", "sha256", "sha384", "sha512"]
 
