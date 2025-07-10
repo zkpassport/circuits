@@ -6,12 +6,7 @@ import fs from "fs"
 import type { Blockstore } from "interface-blockstore"
 import path from "path"
 import { promisify } from "util"
-import {
-  snakeToPascal,
-  gzipAsync,
-  initBarretenberg,
-  destroyBarretenberg,
-} from "../utils"
+import { snakeToPascal, gzipAsync, initBarretenberg, destroyBarretenberg } from "../utils"
 import { Barretenberg } from "@aztec/bb.js"
 
 let barretenberg: Barretenberg
@@ -37,9 +32,9 @@ async function getIpfsCidv0(
   { gzip = false }: { gzip?: boolean } = {},
 ): Promise<string> {
   if (gzip) data = await gzipAsync(data)
-  
+
   const { importer } = await import("ipfs-unixfs-importer")
-  
+
   // Create a mock memory blockstore that does nothing
   const blockstore: Blockstore = { get: async () => {}, put: async () => {} } as any
   for await (const result of importer([{ content: data }], blockstore, {
@@ -57,7 +52,10 @@ function checkBBVersion() {
     // Read package.json to get expected bb version
     const packageJsonPath = path.resolve(__dirname, "../../../package.json")
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
-    const expectedBBVersion = packageJson.dependencies["@aztec/bb.js"].replace(/[^0-9\.]/i, "")
+    const expectedBBVersion = packageJson.dependencies["@aztec/bb.js"].replace(
+      /[^0-9a-zA-Z\.\-]/i,
+      "",
+    )
     if (!expectedBBVersion) {
       throw new Error("Couldn't find bb version in package.json")
     }
@@ -156,7 +154,7 @@ const processFile = async (
     const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
     gateCount = gateCountFileContent.functions[0].circuit_size
     fs.unlinkSync(gateCountPath)
-    
+
     // Create packaged circuit object
     const packagedCircuit: {
       [key: string]: unknown
