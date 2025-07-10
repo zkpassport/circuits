@@ -49,7 +49,9 @@ CIRCUITS=(
 )
 
 for circuit in "${CIRCUITS[@]}"; do
+    echo "Compiling $circuit"
     nargo compile --force --package "$circuit"
+    echo "Compiled $circuit"
 done
 
 # Regenerate constrained circuits (without unconstrained entrypoint)
