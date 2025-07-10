@@ -109,9 +109,8 @@ export async function destroyBarretenberg(barretenberg: Barretenberg) {
 export async function getGateCount(
   barretenberg: Barretenberg,
   circuitBytecode: string,
-  recursive = true,
 ) {
   const constraintSystemBuf = acirToUint8Array(circuitBytecode)
-  const [gateCount] = await barretenberg.acirGetCircuitSizes(constraintSystemBuf, recursive, true)
+  const [gateCount] = await barretenberg.acirGetCircuitSizes(constraintSystemBuf, false, true)
   return gateCount
 }

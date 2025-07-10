@@ -1,4 +1,4 @@
-use std::hash::poseidon2::Poseidon2;
+use poseidon::poseidon2::Poseidon2;
 use utils::{get_issuing_country_from_mrz, get_nationality_from_mrz};
 
 unconstrained fn get_index<let N: u32>(list: [str<3>; N], value: [u8; 3]) -> i32 {
@@ -28,7 +28,7 @@ pub fn check_nationality_inclusion<let N: u32>(dg1: [u8; 95], country_list: [str
 
     // Assert that the nationality is equal to the country in the list
     // at the index found by the unconstrained function
-    let country_code = country_list[country_index].as_bytes();
+    let country_code = country_list[country_index as u32].as_bytes();
     assert_eq(nationality_bytes[0], country_code[0], "Nationality does not match the country code");
     assert_eq(nationality_bytes[1], country_code[1], "Nationality does not match the country code");
     assert_eq(nationality_bytes[2], country_code[2], "Nationality does not match the country code");
@@ -50,7 +50,7 @@ pub fn check_issuing_country_inclusion<let N: u32>(dg1: [u8; 95], country_list: 
 
     // Assert that the issuing country is equal to the country in the list
     // at the index found by the unconstrained function
-    let country_code = country_list[country_index].as_bytes();
+    let country_code = country_list[country_index as u32].as_bytes();
     assert_eq(
         issuing_country_bytes[0],
         country_code[0],

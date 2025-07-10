@@ -10,7 +10,9 @@ use rsa::rsa::{
 
 pub fn verify_signature<let SIG_BYTES: u32, let IS_PSS: u32, let DATA_TO_SIGN_LEN: u32, let HASH_BYTE_SIZE: u32>(
     pubkey_bytes: [u8; SIG_BYTES],
-    sig_bytes: [u8; SIG_BYTES],
+    // This is equivalent to sig_bytes: [u8; SIG_BYTES] but because of
+    // an issue with the expected type for from_be_bytes we need to do it like this
+    sig_bytes: [u8; (((SIG_BYTES * 8) + 7) / 8)],
     redc_param_bytes: [u8; SIG_BYTES + 1],
     exponent: u32,
     data_to_sign: [u8; DATA_TO_SIGN_LEN],

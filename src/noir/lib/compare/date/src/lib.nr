@@ -1,5 +1,5 @@
 use date::Date;
-use std::hash::poseidon2::Poseidon2;
+use poseidon::poseidon2::Poseidon2;
 use utils::{
     get_array_slice, get_mrz_from_dg1, ID_CARD_MRZ_BIRTHDATE_INDEX, ID_CARD_MRZ_EXPIRY_DATE_INDEX,
     is_id_card, PASSPORT_MRZ_BIRTHDATE_INDEX, PASSPORT_MRZ_EXPIRY_DATE_INDEX,

@@ -420,11 +420,10 @@ disclosure_proofs -> The proofs of the disclosure circuits
 use common::compute_merkle_root;
 use outer_lib::{
     CSCtoDSCProof, DisclosureProof, DSCtoIDDataProof, IntegrityCheckProof,
-    prepare_disclosure_inputs, prepare_integrity_check_inputs,
+    prepare_disclosure_inputs, prepare_integrity_check_inputs, poseidon2_hash,
 };
 use std::verify_proof_with_type;
-use std::hash::poseidon2::Poseidon2;
-global HONK_IDENTIFIER: u32 = 1;
+global PROOF_TYPE_HONK_ZK: u32 = 7;
 
 fn verify_subproofs(
     // Root of the certificate merkle tree
@@ -456,11 +455,11 @@ fn verify_subproofs(
     }
       
     // Verify that the vkey hashes are correct
-    assert_eq(Poseidon2::hash(csc_to_dsc_proof.vkey, 128), csc_to_dsc_proof.key_hash);
-    assert_eq(Poseidon2::hash(dsc_to_id_data_proof.vkey, 128), dsc_to_id_data_proof.key_hash);
-    assert_eq(Poseidon2::hash(integrity_check_proof.vkey, 128), integrity_check_proof.key_hash);
+    assert_eq(poseidon2_hash(csc_to_dsc_proof.vkey), csc_to_dsc_proof.key_hash);
+    assert_eq(poseidon2_hash(dsc_to_id_data_proof.vkey), dsc_to_id_data_proof.key_hash);
+    assert_eq(poseidon2_hash(integrity_check_proof.vkey), integrity_check_proof.key_hash);
     for i in 0..disclosure_proofs.len() {
-        assert_eq(Poseidon2::hash(disclosure_proofs[i].vkey, 128), disclosure_proofs[i].key_hash);
+        assert_eq(poseidon2_hash(disclosure_proofs[i].vkey), disclosure_proofs[i].key_hash);
     }
 
     verify_proof_with_type(
@@ -471,7 +470,7 @@ fn verify_subproofs(
             csc_to_dsc_proof.public_inputs[0], // comm_out
         ],
         csc_to_dsc_proof.key_hash,
-        HONK_IDENTIFIER,
+        PROOF_TYPE_HONK_ZK,
     );
 
     // Commitment out from CSC to DSC circuit == commitment in from DSC to ID Data circuit
@@ -485,7 +484,7 @@ fn verify_subproofs(
             dsc_to_id_data_proof.public_inputs[1], // comm_out
         ],
         dsc_to_id_data_proof.key_hash,
-        HONK_IDENTIFIER,
+        PROOF_TYPE_HONK_ZK,
     );
 
     // Commitment out from DSC to ID Data circuit == commitment in from integrity check circuit
@@ -500,7 +499,7 @@ fn verify_subproofs(
             integrity_check_proof.public_inputs[1], // comm_out
         ),
         integrity_check_proof.key_hash,
-        HONK_IDENTIFIER,
+        PROOF_TYPE_HONK_ZK,
     );
 
     for i in 0..disclosure_proofs.len() {
@@ -518,7 +517,7 @@ fn verify_subproofs(
                 scoped_nullifier,
             ),
             disclosure_proofs[i].key_hash,
-            HONK_IDENTIFIER,
+            PROOF_TYPE_HONK_ZK,
         );
     }
 }
@@ -1019,7 +1018,7 @@ function checkNargoVersion() {
     if (!installedNargoVersion) {
       throw new Error(`Failed to parse nargo version output: ${nargoVersionOutput}`)
     }
-    if (installedNargoVersion !== expectedNoirVersion) {
+    if (installedNargoVersion !== expectedNoirVersion.replace("^", "")) {
       throw new Error(
         `nargo version mismatch. Expected ${expectedNoirVersion} but found ${installedNargoVersion}. Please switch nargo versions using noirup.`,
       )

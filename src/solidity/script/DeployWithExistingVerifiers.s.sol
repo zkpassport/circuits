@@ -11,23 +11,23 @@ contract Deploy is Script {
 
   bytes32[] public vkeyHashes = [
     // Outer (4 subproofs)
-    bytes32(hex"15d407221176fb9572c702916ce0c237860ac6ac552a3afa45f9d957ec8f0621"),
+    bytes32(hex"1c9e0a53b95067a306ef0eadf8667fd624a8596fc260fd9de0f04995fcd2e52f"),
     // Outer (5 subproofs)
-    bytes32(hex"2ab349ef31f5d516da820a3f55f93c53f9c899b0b991c93fc341199cc1e3b36c"),
+    bytes32(hex"1aca3f53ebb5ab91e1d7b9885d8822f242a79fac6b85e43aa76be8b137507b1a"),
     // Outer (6 subproofs)
-    bytes32(hex"2576d3f4f0897c17b1d2b7febd1314a57bb72afeca29edf523edfb07d4c14d9a"),
+    bytes32(hex"0f953a003267c88dc065e9b7684ac1d11ef9a5686ec1a83a580755f5876217a6"),
     // Outer (7 subproofs)
-    bytes32(hex"27d0dcab9b2f13e212ceb496e7bdb2beae7dae38effc35ae2d1aa966ac9d7de1"),
+    bytes32(hex"0034095018ac7d700bee7f89f913e5964473d21461780baaef0e18c85b1d0460"),
     // Outer (8 subproofs)
-    bytes32(hex"1e3e8957ace4ffc4fe414dce90542f1ea3a04c25a50c281335ccc5e8f111feec"),
+    bytes32(hex"22044224e2eae3d918bf83aa08fcc8a4764f39c3ce03871ed0dfa9d2e3857bdb"),
     // Outer (9 subproofs)
-    bytes32(hex"0529546d079df5832a12403f9537dc026d36e5a1fb3d7760ccaa38ba8339eef3"),
+    bytes32(hex"2c3ef223ed4a13a8cd14267bd88842942f8085084493788d478b0cb0f3bd2b1c"),
     // Outer (10 subproofs)
-    bytes32(hex"22176867c431dcf4818884cf1127cb9499ddb9af8068c88b63303c66b8cade3a"),
+    bytes32(hex"163d556a18a7e9804e2c1fc281665ce3c9fe7dcbe5f91beb45c686f2dd77e207"),
     // Outer (11 subproofs)
-    bytes32(hex"2f55019d8fd28cf77000af567e4d8fcb54ef0d4853825d61b14911904b20d1c5"),
+    bytes32(hex"207f7f49e5b8a47b8194ae3b6caa5fc50e1c221693f53dd2166f626ddb9335b6"),
     // Outer (12 subproofs)
-    bytes32(hex"1fdff1847be0a0ac3af37e59d0f83b2a400c15be4049954dc82aba099b0c9924")
+    bytes32(hex"20f92c983d45ce885ca88288d5f8e2a0b182fcb0f141b2477c72aa4bb8c416df")
   ];
 
   address[] public verifierAddresses = [
