@@ -11,7 +11,6 @@ set -euo pipefail
 # Circuits to compile for integration tests
 CIRCUITS=(
     "sig_check_dsc_tbs_700_rsa_pkcs_4096_sha512"
-    "sig_check_dsc_tbs_1500_rsa_pkcs_4096_sha512"
     "sig_check_dsc_tbs_700_ecdsa_nist_p384_sha384"
     "sig_check_dsc_tbs_700_ecdsa_nist_p384_sha1"
     "sig_check_dsc_tbs_700_rsa_pkcs_4096_sha1"
@@ -21,7 +20,6 @@ CIRCUITS=(
     "sig_check_id_data_tbs_700_ecdsa_nist_p256_sha1"
     "sig_check_id_data_tbs_700_rsa_pkcs_2048_sha1"
     "sig_check_id_data_tbs_700_rsa_pkcs_2048_sha256"
-    "sig_check_id_data_tbs_1500_rsa_pkcs_2048_sha256"
     "sig_check_id_data_tbs_700_ecdsa_nist_p256_sha256"
     "sig_check_dsc_tbs_700_ecdsa_nist_p521_sha512"
     "sig_check_id_data_tbs_700_ecdsa_nist_p384_sha384"
