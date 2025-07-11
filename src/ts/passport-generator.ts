@@ -20,9 +20,15 @@ const crypto = new Crypto()
 cryptoProvider.set(crypto as any)
 
 export type EcdsaCurve =
+  | "P-192"
+  | "P-224"
   | "P-256"
   | "P-384"
   | "P-521"
+  | "brainpoolP192r1"
+  | "brainpoolP192t1"
+  | "brainpoolP224r1"
+  | "brainpoolP224t1"
   | "brainpoolP256r1"
   | "brainpoolP256t1"
   | "brainpoolP384r1"

@@ -20,23 +20,23 @@ contract Deploy is Script {
 
   bytes32[] public vkeyHashes = [
     // Outer (4 subproofs)
-    bytes32(hex"1c9e0a53b95067a306ef0eadf8667fd624a8596fc260fd9de0f04995fcd2e52f"),
+    bytes32(hex"2d05d8c59bcb034d6c0947f71b7cab4f20706f5205467f8641927aa7032035c9"),
     // Outer (5 subproofs)
-    bytes32(hex"1aca3f53ebb5ab91e1d7b9885d8822f242a79fac6b85e43aa76be8b137507b1a"),
+    bytes32(hex"0d59716a55e35e9dbf1b2169a15281a7d2c806852d899ba6992c4451a62fe5e1"),
     // Outer (6 subproofs)
-    bytes32(hex"0f953a003267c88dc065e9b7684ac1d11ef9a5686ec1a83a580755f5876217a6"),
+    bytes32(hex"2e4378a990bcdbb8068a451f336e8d6c37ef50053f6ee6dff567a9ad9d786c08"),
     // Outer (7 subproofs)
-    bytes32(hex"0034095018ac7d700bee7f89f913e5964473d21461780baaef0e18c85b1d0460"),
+    bytes32(hex"30142ef95674be7570d6896ba215f87ae8052724ff3e9f40ed82e42a40a0a4dd"),
     // Outer (8 subproofs)
-    bytes32(hex"22044224e2eae3d918bf83aa08fcc8a4764f39c3ce03871ed0dfa9d2e3857bdb"),
+    bytes32(hex"2745d0c664aa931b664fe261149c89f70331ec7b723b5b102c154e81e976568b"),
     // Outer (9 subproofs)
-    bytes32(hex"2c3ef223ed4a13a8cd14267bd88842942f8085084493788d478b0cb0f3bd2b1c"),
+    bytes32(hex"1b8b6d04a153554d3450bade2b3e2d722060a6658a34f3b0340997d8d5ed92f8"),
     // Outer (10 subproofs)
-    bytes32(hex"163d556a18a7e9804e2c1fc281665ce3c9fe7dcbe5f91beb45c686f2dd77e207"),
+    bytes32(hex"11019f15da6896d28e7030548bf432a4cf3913f5b9acf6d00ecded72a4708693"),
     // Outer (11 subproofs)
-    bytes32(hex"207f7f49e5b8a47b8194ae3b6caa5fc50e1c221693f53dd2166f626ddb9335b6"),
+    bytes32(hex"23918a2569d5ec2bc4348dc4778610204fa325ee3113ed86e6bb3537690f41e4"),
     // Outer (12 subproofs)
-    bytes32(hex"20f92c983d45ce885ca88288d5f8e2a0b182fcb0f141b2477c72aa4bb8c416df")
+    bytes32(hex"1a2efda2d85319516ed674ff53e93965b697027d0bef8aa45d0499d576bce119")
   ];
 
   function run() public {
