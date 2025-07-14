@@ -410,12 +410,10 @@ contract ZKPassportVerifier {
     string calldata scope
   ) public view returns (bool) {
     // One byte is dropped at the end
-    string memory chainId = StringUtils.toString(block.chainid);
     // What we call scope internally is derived from the domain
-    // and chain id for onchain verification
     bytes32 scopeHash = StringUtils.isEmpty(domain)
       ? bytes32(0)
-      : sha256(abi.encodePacked(domain, ":chain-", chainId)) >> 8;
+      : sha256(abi.encodePacked(domain)) >> 8;
     // What we call the subscope internally is the scope specified
     // manually in the SDK
     bytes32 subscopeHash = StringUtils.isEmpty(scope)
