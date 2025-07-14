@@ -1,0 +1,38 @@
+{
+  "generated": "2025-07-14T12:12:37.832Z",
+  "description": "US Passport test data for all TBS sizes",
+  "signatureAlgorithm": "ECDSA P-256",
+  "hashAlgorithm": "SHA-256",
+  "results": [
+    {
+      "tbsSize": 700,
+      "actualTbsSize": 700,
+      "exactMatch": true,
+      "directory": "tbs-700"
+    },
+    {
+      "tbsSize": 1000,
+      "actualTbsSize": 1000,
+      "exactMatch": true,
+      "directory": "tbs-1000"
+    },
+    {
+      "tbsSize": 1200,
+      "actualTbsSize": 1200,
+      "exactMatch": true,
+      "directory": "tbs-1200"
+    },
+    {
+      "tbsSize": 1500,
+      "actualTbsSize": 1500,
+      "exactMatch": true,
+      "directory": "tbs-1500"
+    },
+    {
+      "tbsSize": 1600,
+      "actualTbsSize": 1600,
+      "exactMatch": true,
+      "directory": "tbs-1600"
+    }
+  ]
+}

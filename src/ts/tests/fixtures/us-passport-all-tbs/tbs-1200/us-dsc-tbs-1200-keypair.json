@@ -1,0 +1,7 @@
+{
+  "publicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEwJXWmuwXgPtWhFcIYjb9Yn+EnHcYfSM7kX/Gr7SdZRBnJZJ8OXALVmCkCTV+zV1nE2ogKIsMlzvf7R8idnV96g==",
+  "privateKey": "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgvW7chw6eBJEq/ASR4Y/7pAhtlKsgkr9dgwpo87NNo8ChRANCAATAldaa7BeA+1aEVwhiNv1if4Scdxh9IzuRf8avtJ1lEGclknw5cAtWYKQJNX7NXWcTaiAoiwyXO9/tHyJ2dX3q",
+  "hashAlgorithm": "SHA-256",
+  "type": "ECDSA",
+  "curve": "P-256"
+}

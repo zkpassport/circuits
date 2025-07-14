@@ -1,0 +1,23 @@
+{
+  "description": "US Passport test data for TBS 1200",
+  "targetTbsSize": 1200,
+  "actualTbsSize": 1200,
+  "signatureAlgorithm": "ECDSA",
+  "curve": "P-256",
+  "hashAlgorithm": "SHA-256",
+  "countryCode": "USA",
+  "holder": {
+    "name": "John Paul Doe",
+    "passportNumber": "123456789",
+    "nationality": "USA",
+    "dateOfBirth": "1985-06-15",
+    "gender": "M",
+    "expiryDate": "2030-12-31"
+  },
+  "files": {
+    "csca": "../us-csca-ecdsa-p256-sha256.pem",
+    "dsc": "us-dsc-tbs-1200-ecdsa-p256-sha256.pem",
+    "sod": "john-doe-us-passport-tbs-1200.sod",
+    "dg1": "john-doe-dg1.bin"
+  }
+}
