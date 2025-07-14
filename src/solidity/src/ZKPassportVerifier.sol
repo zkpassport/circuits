@@ -23,6 +23,7 @@ enum ProofType {
 enum BoundDataIdentifier {
   NONE,
   USER_ADDRESS,
+  CHAIN_ID,
   CUSTOM_DATA
 }
 
@@ -359,6 +360,13 @@ contract ZKPassportVerifier {
             );
             dataLength += 2 + addressLength + 1;
           } else if (
+            committedInputs[offset + 1 + dataLength] == bytes1(uint8(BoundDataIdentifier.CHAIN_ID))
+          ) {
+            uint16 chainIdLength = uint16(
+              bytes2(committedInputs[offset + 1 + dataLength + 1:offset + 1 + dataLength + 3])
+            );
+            dataLength += 2 + chainIdLength + 1;
+          } else if (
             committedInputs[offset + 1 + dataLength] ==
             bytes1(uint8(BoundDataIdentifier.CUSTOM_DATA))
           ) {
@@ -387,13 +395,17 @@ contract ZKPassportVerifier {
 
   function getBoundData(
     bytes calldata data
-  ) public pure returns (address senderAddress, string memory customData) {
+  ) public pure returns (address senderAddress, uint256 chainId, string memory customData) {
     uint256 offset = 0;
     while (offset < 500) {
       if (data[offset] == bytes1(uint8(BoundDataIdentifier.USER_ADDRESS))) {
         uint16 addressLength = uint16(bytes2(data[offset + 1:offset + 3]));
         senderAddress = address(bytes20(data[offset + 3:offset + 3 + addressLength]));
         offset += 2 + addressLength + 1;
+      } else if (data[offset] == bytes1(uint8(BoundDataIdentifier.CHAIN_ID))) {
+        uint16 chainIdLength = uint16(bytes2(data[offset + 1:offset + 3]));
+        chainId = uint256(data[offset + 3:offset + 3 + chainIdLength]);
+        offset += 2 + chainIdLength + 1;
       } else if (data[offset] == bytes1(uint8(BoundDataIdentifier.CUSTOM_DATA))) {
         uint16 customDataLength = uint16(bytes2(data[offset + 1:offset + 3]));
         customData = string(data[offset + 3:offset + 3 + customDataLength]);
