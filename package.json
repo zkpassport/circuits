@@ -1,6 +1,6 @@
 {
   "name": "circuits",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "scripts": {
     "lint": "tsc --project src/ts/tsconfig.json --noEmit",
     "test": "jest",
@@ -12,7 +12,7 @@
   "dependencies": {
     "@aws-sdk/client-cloudfront": "^3.730.0",
     "@aws-sdk/client-s3": "^3.730.0",
-    "@aztec/bb.js": "1.0.0-nightly.20250710",
+    "@aztec/bb.js": "^1.0.0-nightly.20250701",
     "@babel/core": "^7.26.0",
     "@babel/preset-env": "^7.26.0",
     "@lapo/asn1js": "^2.0.4",
@@ -20,8 +20,8 @@
     "@noble/curves": "^1.6.0",
     "@noble/hashes": "^1.5.0",
     "@noble/secp256k1": "^2.1.0",
-    "@noir-lang/noir_js": "^1.0.0-beta.7",
-    "@noir-lang/noir_wasm": "^1.0.0-beta.7",
+    "@noir-lang/noir_js": "^1.0.0-beta.8",
+    "@noir-lang/noir_wasm": "^1.0.0-beta.8",
     "@peculiar/asn1-cms": "^2.3.15",
     "@peculiar/asn1-ecc": "^2.3.15",
     "@peculiar/asn1-rsa": "^2.3.15",
