@@ -1,9 +1,9 @@
 // This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_id;
 use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
+use sig_check_common::sha256_and_check_data_to_sign;
 use sig_check_ecdsa::verify_brainpool_224r1;
 use utils::split_array;
-use sig_check_common::sha256_and_check_data_to_sign;
 
 fn main(
     comm_in: pub Field,
@@ -27,13 +27,7 @@ fn main(
         tbs_certificate,
         pubkey_offset_in_tbs,
     );
-    assert(verify_brainpool_224r1(
-        dsc_pubkey_x,
-        dsc_pubkey_y,
-        r,
-        s,
-        msg_hash,
-    ));
+    assert(verify_brainpool_224r1(dsc_pubkey_x, dsc_pubkey_y, r, s, msg_hash));
     let comm_out = commit_to_id(
         comm_in,
         salt_in,

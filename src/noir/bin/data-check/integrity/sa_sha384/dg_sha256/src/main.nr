@@ -19,11 +19,7 @@ fn main(
     // Check the ID is not expired first
     check_expiry(dg1, current_date.as_bytes());
     // Check the integrity of the data
-    check_dg1_sha256(
-        dg1,
-        e_content,
-        dg1_offset_in_e_content,
-    );
+    check_dg1_sha256(dg1, e_content, dg1_offset_in_e_content);
     check_signed_attributes_sha384(
         signed_attributes,
         signed_attributes_size,

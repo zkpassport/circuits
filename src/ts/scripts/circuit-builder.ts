@@ -144,9 +144,9 @@ const DSC_ECDSA_TEMPLATE = (
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_dsc;
+use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 use sig_check_ecdsa::verify_${curve_family}_${curve_name};
 use utils::{concat_array, split_array};
-use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
@@ -163,13 +163,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
 ) -> pub Field {
     let (r, s) = split_array(dsc_signature);
     let msg_hash = ${hash_algorithm}_and_check_data_to_sign(tbs_certificate, tbs_certificate_len);
-    assert(verify_${curve_family}_${curve_name}(
-        csc_pubkey_x,
-        csc_pubkey_y,
-        r,
-        s,
-        msg_hash,
-    ));
+    assert(verify_${curve_family}_${curve_name}(csc_pubkey_x, csc_pubkey_y, r, s, msg_hash));
     let comm_out = commit_to_dsc(
         certificate_registry_root,
         certificate_registry_index,
@@ -182,7 +176,8 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         concat_array(csc_pubkey_x, csc_pubkey_y),
     );
     comm_out
-}`
+}
+`
 
 const DSC_RSA_TEMPLATE = (
   rsa_type: "pss" | "pkcs",
@@ -191,8 +186,8 @@ const DSC_RSA_TEMPLATE = (
   hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
-use sig_check_rsa::verify_signature;
 use commitment::commit_to_dsc;
+use sig_check_rsa::verify_signature;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
@@ -243,9 +238,9 @@ const ID_DATA_ECDSA_TEMPLATE = (
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_id;
 use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
+use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 use sig_check_ecdsa::verify_${curve_family}_${curve_name};
 use utils::split_array;
-use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     comm_in: pub Field,
@@ -269,13 +264,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         tbs_certificate,
         pubkey_offset_in_tbs,
     );
-    assert(verify_${curve_family}_${curve_name}(
-        dsc_pubkey_x,
-        dsc_pubkey_y,
-        r,
-        s,
-        msg_hash,
-    ));
+    assert(verify_${curve_family}_${curve_name}(dsc_pubkey_x, dsc_pubkey_y, r, s, msg_hash));
     let comm_out = commit_to_id(
         comm_in,
         salt_in,
@@ -298,9 +287,9 @@ const ID_DATA_RSA_TEMPLATE = (
   hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
-use sig_check_rsa::verify_signature;
-use data_check_tbs_pubkey::verify_rsa_pubkey_in_tbs;
 use commitment::commit_to_id;
+use data_check_tbs_pubkey::verify_rsa_pubkey_in_tbs;
+use sig_check_rsa::verify_signature;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     comm_in: pub Field,
@@ -368,11 +357,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     // Check the ID is not expired first
     check_expiry(dg1, current_date.as_bytes());
     // Check the integrity of the data
-    check_dg1_${dg_hash_algorithm}(
-        dg1,
-        e_content,
-        dg1_offset_in_e_content,
-    );
+    check_dg1_${dg_hash_algorithm}(dg1, e_content, dg1_offset_in_e_content);
     check_signed_attributes_${signed_attributes_hash_algorithm}(
         signed_attributes,
         signed_attributes_size,
@@ -424,8 +409,8 @@ disclosure_proofs -> The proofs of the disclosure circuits
 
 use common::compute_merkle_root;
 use outer_lib::{
-    CSCtoDSCProof, DisclosureProof, DSCtoIDDataProof, IntegrityCheckProof,
-    prepare_disclosure_inputs, prepare_integrity_check_inputs, poseidon2_hash,
+    CSCtoDSCProof, DisclosureProof, DSCtoIDDataProof, IntegrityCheckProof, poseidon2_hash,
+    prepare_disclosure_inputs, prepare_integrity_check_inputs,
 };
 use std::verify_proof_with_type;
 global PROOF_TYPE_HONK_ZK: u32 = 7;
@@ -452,11 +437,39 @@ fn verify_subproofs(
 ) {
     // Verify that all subproofs vkey hashes exist in the circuit tree
     // This way we know for sure that the proofs were generated with valid circuits
-    assert_eq(circuit_registry_root, compute_merkle_root(csc_to_dsc_proof.key_hash, csc_to_dsc_proof.tree_index, csc_to_dsc_proof.tree_hash_path));
-    assert_eq(circuit_registry_root, compute_merkle_root(dsc_to_id_data_proof.key_hash, dsc_to_id_data_proof.tree_index, dsc_to_id_data_proof.tree_hash_path));
-    assert_eq(circuit_registry_root, compute_merkle_root(integrity_check_proof.key_hash, integrity_check_proof.tree_index, integrity_check_proof.tree_hash_path));
+    assert_eq(
+        circuit_registry_root,
+        compute_merkle_root(
+            csc_to_dsc_proof.key_hash,
+            csc_to_dsc_proof.tree_index,
+            csc_to_dsc_proof.tree_hash_path,
+        ),
+    );
+    assert_eq(
+        circuit_registry_root,
+        compute_merkle_root(
+            dsc_to_id_data_proof.key_hash,
+            dsc_to_id_data_proof.tree_index,
+            dsc_to_id_data_proof.tree_hash_path,
+        ),
+    );
+    assert_eq(
+        circuit_registry_root,
+        compute_merkle_root(
+            integrity_check_proof.key_hash,
+            integrity_check_proof.tree_index,
+            integrity_check_proof.tree_hash_path,
+        ),
+    );
     for i in 0..disclosure_proofs.len() {
-        assert_eq(circuit_registry_root, compute_merkle_root(disclosure_proofs[i].key_hash, disclosure_proofs[i].tree_index, disclosure_proofs[i].tree_hash_path));
+        assert_eq(
+            circuit_registry_root,
+            compute_merkle_root(
+                disclosure_proofs[i].key_hash,
+                disclosure_proofs[i].tree_index,
+                disclosure_proofs[i].tree_hash_path,
+            ),
+        );
     }
 
     // Verify that the vkey hashes are correct
@@ -555,7 +568,8 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         integrity_check_proof,
         disclosure_proofs,
     );
-}`
+}
+`
 
 function generateDscEcdsaCircuit(
   curve_family: string,
