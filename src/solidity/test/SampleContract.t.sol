@@ -19,7 +19,7 @@ contract SampleContractTest is TestUtils {
   bytes32 constant VKEY_HASH =
     bytes32(uint256(0x23918a2569d5ec2bc4348dc4778610204fa325ee3113ed86e6bb3537690f41e4));
   bytes32 constant CERTIFICATE_REGISTRY_ROOT =
-    bytes32(uint256(0x157f22d1a2e89d97795cda49f1f543a3466eabb3bd62616a89abe7dd436a4f7b));
+    bytes32(uint256(0x1c272f2a7e1d2b42140cfb34b19e991c44fe564bfc41f34c744942c1ec69d2ec));
 
   function setUp() public {
     // Deploy the ZKPassportVerifier

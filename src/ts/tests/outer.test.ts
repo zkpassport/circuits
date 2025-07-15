@@ -779,6 +779,9 @@ describe("outer proof - evm optimised", () => {
         circuitName: "outer_evm_count_5",
         recursive: false,
         evm: true,
+        // Disable the fully ZK property for outer proofs meant to be verified onchain
+        // The subproofs are already ZK and it's cheaper to verify a non ZK proof onchain
+        disableZK: true,
       })
       expect(proof).toBeDefined()
       if (DEBUG_OUTPUT) {
@@ -1244,6 +1247,9 @@ describe("outer proof - evm optimised", () => {
         circuitName: "outer_evm_count_11",
         recursive: false,
         evm: true,
+        // Disable the fully ZK property for outer proofs meant to be verified onchain
+        // The subproofs are already ZK and it's cheaper to verify a non ZK proof onchain
+        disableZK: true,
       })
       expect(proof).toBeDefined()
       if (DEBUG_OUTPUT) {

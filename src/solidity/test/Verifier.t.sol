@@ -36,11 +36,11 @@ contract VerifierTest is TestUtils {
    * We expect verification to revert with SumcheckFailed
    */
   function test_VerifyWithDummyProof() public {
-    // Create a dummy proof with the exact required size (507 * 32 = 16224 bytes)
-    bytes memory proof = new bytes(16224);
+    // Create a dummy proof with the exact required size (456 * 32 = 14592 bytes)
+    bytes memory proof = new bytes(14592);
 
     // Generate some random values for the proof
-    for (uint i = 0; i < 16224; i++) {
+    for (uint i = 0; i < 14592; i++) {
       proof[i] = bytes1(uint8(i % 256));
     }
 

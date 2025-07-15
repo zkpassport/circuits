@@ -99,10 +99,10 @@ const execPromise = promisify(exec)
 // Process a single file
 const processFile = async (
   file: string,
-  recursive: boolean = true,
   evm: boolean = false,
   outputName: string = file.replace(".json", ""),
   generateSolidityVerifier: boolean = false,
+  disableZK: boolean = false,
 ): Promise<boolean> => {
   const inputPath = path.join(TARGET_DIR, file)
   const outputPath = path.join(PACKAGED_CIRCUITS_DIR, `${outputName}.json`)
@@ -126,14 +126,18 @@ const processFile = async (
     await execPromise(
       `bb write_vk --scheme ultra_honk${
         evm ? " --oracle_hash keccak" : ""
-      } --honk_recursion 1 --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
+      } --honk_recursion 1 --output_format bytes_and_fields${
+        disableZK ? " --disable_zk" : ""
+      } -b "${inputPath}" -o "${vkeyPath}"`,
     )
     await execPromise(
       `bb gates --scheme ultra_honk --honk_recursion 1 -b "${inputPath}" > "${gateCountPath}"`,
     )
     if (generateSolidityVerifier) {
       await execPromise(
-        `bb write_solidity_verifier --scheme ultra_honk -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
+        `bb write_solidity_verifier --scheme ultra_honk${
+          disableZK ? " --disable_zk" : ""
+        } -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
       )
     }
 
@@ -318,9 +322,12 @@ const processFiles = async () => {
       console.log(`Generating the EVM-optimised outer proof packaged circuit...`)
       const successEvm = await processFile(
         file,
-        false,
         true,
         file.replace("outer_count", "outer_evm_count").replace(".json", ""),
+        true,
+        // Disable the fully ZK property for outer proof circuits meant
+        // to be verified onchain as the subproofs are already ZK and it's cheaper
+        // to verify a non ZK proof onchain
         true,
       )
       if (!successEvm) {
