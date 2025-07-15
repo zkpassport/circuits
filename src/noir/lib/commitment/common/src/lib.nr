@@ -136,26 +136,31 @@ pub fn hash_salt_dg1_private_nullifier<let N: u32>(
     Poseidon2::hash(result, N + 2)
 }
 
-pub fn calculate_private_nullifier<let DG1: u32, let SIG: u32>(
+pub fn calculate_private_nullifier<let DG1: u32, let ECONTENT: u32, let SIG: u32>(
     dg1: [u8; DG1],
+    econtent: [u8; ECONTENT],
     sod_sig: [u8; SIG],
 ) -> Field {
-    let mut result: [Field; DG1 + SIG] = [0; DG1 + SIG];
+    let mut result: [Field; DG1 + ECONTENT + SIG] = [0; DG1 + ECONTENT + SIG];
     for i in 0..DG1 {
         result[i] = dg1[i] as Field;
     }
-    for i in 0..SIG {
-        result[DG1 + i] = sod_sig[i] as Field;
+    for i in 0..ECONTENT {
+        result[DG1 + i] = econtent[i] as Field;
     }
-    Poseidon2::hash(result, DG1 + SIG)
+    for i in 0..SIG {
+        result[DG1 + ECONTENT + i] = sod_sig[i] as Field;
+    }
+    Poseidon2::hash(result, DG1 + ECONTENT + SIG)
 }
 
-pub fn hash_salt_country_signed_attr_dg1_private_nullifier<let SA: u32>(
+pub fn hash_salt_country_signed_attr_dg1_econtent_private_nullifier<let SA: u32, let ECONTENT: u32>(
     salt: Field,
     country: str<3>,
     signed_attr: [u8; SA],
     signed_attr_size: Field,
     dg1: [u8; 95],
+    econtent: [u8; ECONTENT],
     private_nullifier: Field,
 ) -> Field {
     let country_bytes: [u8; 3] = country.as_bytes();
@@ -171,8 +176,12 @@ pub fn hash_salt_country_signed_attr_dg1_private_nullifier<let SA: u32>(
     for i in 0..95 {
         result[4 + SA + 1 + i] = dg1[i] as Field;
     }
-    result[4 + SA + 1 + 95] = private_nullifier;
-    Poseidon2::hash(result, SA + 101)
+    // TODO: Select first 20 bytes from dg1 hash and dg2 hash from econtent
+    for i in 0..ECONTENT {
+        result[4 + SA + 1 + 95 + i] = econtent[i] as Field;
+    }
+    result[4 + SA + 1 + 95 + ECONTENT] = private_nullifier;
+    Poseidon2::hash(result, 4 + SA + 1 + 95 + ECONTENT + 1)
 }
 
 // Returns the merkle root of the tree from the provided leaf, index and hash_path, using the Poseidon2 hash function

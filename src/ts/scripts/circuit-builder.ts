@@ -259,6 +259,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     pubkey_offset_in_tbs: u32,
     signed_attributes: [u8; 200],
     signed_attributes_size: u64,
+    econtent: [u8; 700],
 ) -> pub Field {
     let (r, s) = split_array(sod_signature);
     let msg_hash = ${hash_algorithm}_and_check_data_to_sign(signed_attributes, signed_attributes_size);
@@ -284,6 +285,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         sod_signature,
         signed_attributes,
         signed_attributes_size as Field,
+        econtent,
     );
     comm_out
 }
@@ -313,6 +315,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     signed_attributes: [u8; 200],
     signed_attributes_size: u64,
     exponent: u32,
+    econtent: [u8; 700],
 ) -> pub Field {
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate, pubkey_offset_in_tbs);
     assert(verify_signature::<${Math.ceil(bit_size / 8)}, ${
@@ -334,6 +337,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         sod_signature,
         signed_attributes,
         signed_attributes_size as Field,
+        econtent,
     );
     comm_out
 }
@@ -382,6 +386,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         dg1,
         signed_attributes,
         signed_attributes_size as Field,
+        e_content,
         private_nullifier,
     );
     comm_out
@@ -453,7 +458,7 @@ fn verify_subproofs(
     for i in 0..disclosure_proofs.len() {
         assert_eq(circuit_registry_root, compute_merkle_root(disclosure_proofs[i].key_hash, disclosure_proofs[i].tree_index, disclosure_proofs[i].tree_hash_path));
     }
-      
+
     // Verify that the vkey hashes are correct
     assert_eq(poseidon2_hash(csc_to_dsc_proof.vkey), csc_to_dsc_proof.key_hash);
     assert_eq(poseidon2_hash(dsc_to_id_data_proof.vkey), dsc_to_id_data_proof.key_hash);

@@ -58,7 +58,7 @@ fn verify_subproofs(
     for i in 0..disclosure_proofs.len() {
         assert_eq(circuit_registry_root, compute_merkle_root(disclosure_proofs[i].key_hash, disclosure_proofs[i].tree_index, disclosure_proofs[i].tree_hash_path));
     }
-      
+
     // Verify that the vkey hashes are correct
     assert_eq(poseidon2_hash(csc_to_dsc_proof.vkey), csc_to_dsc_proof.key_hash);
     assert_eq(poseidon2_hash(dsc_to_id_data_proof.vkey), dsc_to_id_data_proof.key_hash);
