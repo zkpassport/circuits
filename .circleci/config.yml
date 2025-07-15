@@ -68,9 +68,12 @@ jobs:
   lint:
     <<: *defaults
     steps:
+      - restore_cache:
+          keys:
+            - nargo-cache-<< pipeline.parameters.noir_version >>
       - attach_workspace:
           at: ~/repo
-      - run: npm run lint
+      - run: PATH=/home/circleci/.nargo/bin:$PATH npm run lint
 
   noir_tests:
     <<: *defaults
