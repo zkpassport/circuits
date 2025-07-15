@@ -2,7 +2,7 @@
   "name": "circuits",
   "version": "0.6.0",
   "scripts": {
-    "lint": "tsc --project src/ts/tsconfig.json --noEmit",
+    "lint": "tsc --project src/ts/tsconfig.json --noEmit && nargo fmt --check",
     "test": "jest",
     "generate": "tsx src/ts/scripts/circuit-builder.ts generate",
     "compile": "tsx src/ts/scripts/circuit-builder.ts generate compile",
