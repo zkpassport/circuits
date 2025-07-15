@@ -24,8 +24,8 @@ disclosure_proofs -> The proofs of the disclosure circuits
 
 use common::compute_merkle_root;
 use outer_lib::{
-    CSCtoDSCProof, DisclosureProof, DSCtoIDDataProof, IntegrityCheckProof,
-    prepare_disclosure_inputs, prepare_integrity_check_inputs, poseidon2_hash,
+    CSCtoDSCProof, DisclosureProof, DSCtoIDDataProof, IntegrityCheckProof, poseidon2_hash,
+    prepare_disclosure_inputs, prepare_integrity_check_inputs,
 };
 use std::verify_proof_with_type;
 global PROOF_TYPE_HONK_ZK: u32 = 7;
@@ -52,13 +52,41 @@ fn verify_subproofs(
 ) {
     // Verify that all subproofs vkey hashes exist in the circuit tree
     // This way we know for sure that the proofs were generated with valid circuits
-    assert_eq(circuit_registry_root, compute_merkle_root(csc_to_dsc_proof.key_hash, csc_to_dsc_proof.tree_index, csc_to_dsc_proof.tree_hash_path));
-    assert_eq(circuit_registry_root, compute_merkle_root(dsc_to_id_data_proof.key_hash, dsc_to_id_data_proof.tree_index, dsc_to_id_data_proof.tree_hash_path));
-    assert_eq(circuit_registry_root, compute_merkle_root(integrity_check_proof.key_hash, integrity_check_proof.tree_index, integrity_check_proof.tree_hash_path));
+    assert_eq(
+        circuit_registry_root,
+        compute_merkle_root(
+            csc_to_dsc_proof.key_hash,
+            csc_to_dsc_proof.tree_index,
+            csc_to_dsc_proof.tree_hash_path,
+        ),
+    );
+    assert_eq(
+        circuit_registry_root,
+        compute_merkle_root(
+            dsc_to_id_data_proof.key_hash,
+            dsc_to_id_data_proof.tree_index,
+            dsc_to_id_data_proof.tree_hash_path,
+        ),
+    );
+    assert_eq(
+        circuit_registry_root,
+        compute_merkle_root(
+            integrity_check_proof.key_hash,
+            integrity_check_proof.tree_index,
+            integrity_check_proof.tree_hash_path,
+        ),
+    );
     for i in 0..disclosure_proofs.len() {
-        assert_eq(circuit_registry_root, compute_merkle_root(disclosure_proofs[i].key_hash, disclosure_proofs[i].tree_index, disclosure_proofs[i].tree_hash_path));
+        assert_eq(
+            circuit_registry_root,
+            compute_merkle_root(
+                disclosure_proofs[i].key_hash,
+                disclosure_proofs[i].tree_index,
+                disclosure_proofs[i].tree_hash_path,
+            ),
+        );
     }
-      
+
     // Verify that the vkey hashes are correct
     assert_eq(poseidon2_hash(csc_to_dsc_proof.vkey), csc_to_dsc_proof.key_hash);
     assert_eq(poseidon2_hash(dsc_to_id_data_proof.vkey), dsc_to_id_data_proof.key_hash);
