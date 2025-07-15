@@ -146,7 +146,7 @@ pub fn calculate_private_nullifier<let DG1: u32, let ECONTENT: u32, let SIG: u32
         result[i] = dg1[i] as Field;
     }
     let packed_e_content = pack_be_bytes_into_fields::<ECONTENT, ECONTENT / 31, 31>(e_content);
-    for i in 0..ECONTENT {
+    for i in 0..ECONTENT / 31 {
         result[DG1 + i] = packed_e_content[i] as Field;
     }
     for i in 0..SIG {
@@ -178,7 +178,7 @@ pub fn hash_salt_country_signed_attr_dg1_e_content_private_nullifier<let SA: u32
         result[4 + SA + 1 + i] = dg1[i] as Field;
     }
     let packed_e_content = pack_be_bytes_into_fields::<ECONTENT, ECONTENT / 31, 31>(e_content);
-    for i in 0..ECONTENT {
+    for i in 0..ECONTENT / 31 {
         result[4 + SA + 1 + 95 + i] = packed_e_content[i] as Field;
     }
     result[4 + SA + 1 + 95 + ECONTENT / 31] = private_nullifier;
