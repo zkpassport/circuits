@@ -1,6 +1,6 @@
 use common::{
     calculate_private_nullifier, get_country_from_dg1,
-    hash_salt_country_signed_attr_dg1_econtent_private_nullifier, hash_salt_country_tbs,
+    hash_salt_country_signed_attr_dg1_e_content_private_nullifier, hash_salt_country_tbs,
 };
 
 /*
@@ -33,19 +33,19 @@ pub fn commit_to_id<let TBS_MAX_SIZE: u32, let SIG_SIZE: u32, let SA_SIZE: u32, 
     sod_signature: [u8; SIG_SIZE],
     signed_attributes: [u8; SA_SIZE],
     signed_attributes_size: Field,
-    econtent: [u8; ECONTENT_SIZE],
+    e_content: [u8; ECONTENT_SIZE],
 ) -> Field {
     let country = get_country_from_dg1(dg1);
     assert(comm_in == hash_salt_country_tbs(salt_in, country, tbs_certificate));
 
-    let private_nullifier = calculate_private_nullifier(dg1, econtent, sod_signature);
-    let comm_out = hash_salt_country_signed_attr_dg1_econtent_private_nullifier(
+    let private_nullifier = calculate_private_nullifier(dg1, e_content, sod_signature);
+    let comm_out = hash_salt_country_signed_attr_dg1_e_content_private_nullifier(
         salt_out,
         country,
         signed_attributes,
         signed_attributes_size,
         dg1,
-        econtent,
+        e_content,
         private_nullifier,
     );
     comm_out

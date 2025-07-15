@@ -17,7 +17,7 @@ fn main(
     pubkey_offset_in_tbs: u32,
     signed_attributes: [u8; 200],
     signed_attributes_size: u64,
-    econtent: [u8; 700],
+    e_content: [u8; 700],
 ) -> pub Field {
     let (r, s) = split_array(sod_signature);
     let msg_hash = sha512_and_check_data_to_sign(signed_attributes, signed_attributes_size);
@@ -43,7 +43,7 @@ fn main(
         sod_signature,
         signed_attributes,
         signed_attributes_size as Field,
-        econtent,
+        e_content,
     );
     comm_out
 }

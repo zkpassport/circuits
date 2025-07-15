@@ -1,6 +1,6 @@
 use common::{
-    calculate_private_nullifier, get_country_from_dg1, hash_salt_country_signed_attr_dg1_econtent_private_nullifier,
-    hash_salt_dg1_private_nullifier,
+    calculate_private_nullifier, get_country_from_dg1,
+    hash_salt_country_signed_attr_dg1_e_content_private_nullifier, hash_salt_dg1_private_nullifier,
 };
 
 /*
@@ -22,8 +22,8 @@ comm_out                `H(salt, dg1, private_nullifier)`
 # Checks
 ############################################################
 - Check that passport expiry date <= current date
-- Checks that the dg1 hash is present in econtent
-- Checks that the hash of econtent is present in signed_attr
+- Checks that the dg1 hash is present in e_content
+- Checks that the hash of e_content is present in signed_attr
 */
 pub fn commit_to_disclosure<let SA_SIZE: u32, let ECONTENT_SIZE: u32>(
     comm_in: Field,
@@ -38,7 +38,7 @@ pub fn commit_to_disclosure<let SA_SIZE: u32, let ECONTENT_SIZE: u32>(
     let country = get_country_from_dg1(dg1);
     assert(
         comm_in
-            == hash_salt_country_signed_attr_dg1_econtent_private_nullifier(
+            == hash_salt_country_signed_attr_dg1_e_content_private_nullifier(
                 salt_in,
                 country,
                 signed_attributes,

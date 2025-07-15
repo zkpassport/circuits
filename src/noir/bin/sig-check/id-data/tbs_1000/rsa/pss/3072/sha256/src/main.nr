@@ -16,7 +16,7 @@ fn main(
     signed_attributes: [u8; 200],
     signed_attributes_size: u64,
     exponent: u32,
-    econtent: [u8; 700],
+    e_content: [u8; 700],
 ) -> pub Field {
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate, pubkey_offset_in_tbs);
     assert(verify_signature::<384, 1, 200, 32>(
@@ -36,7 +36,7 @@ fn main(
         sod_signature,
         signed_attributes,
         signed_attributes_size as Field,
-        econtent,
+        e_content,
     );
     comm_out
 }
