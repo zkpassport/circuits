@@ -450,7 +450,7 @@ describe("outer proof", () => {
       expect(currentDate).toEqual(globalCurrentDate)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        10145717760157071414871097616712373356688301026314602642662418913725691010870n,
+        779855614087059216963642638396438072807460693353731593953501664068287689340n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
@@ -1267,7 +1267,7 @@ describe("outer proof - evm optimised", () => {
       expect(currentDate).toEqual(globalCurrentDate)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        3103314711270760631299740901773115899504879398538738529035258383108670910946n,
+        4721170378885156317428488923010239726308591232293531695919010613758228710886n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
