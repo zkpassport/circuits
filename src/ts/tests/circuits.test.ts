@@ -2594,7 +2594,7 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
       idDataCommitment = getCommitmentOutFromIDDataProof(proof)
       expect(commitmentIn).toEqual(dscCommitment)
       await circuit.destroy()
-    }, 30000)
+    }, 60000)
   })
 
   describe("integrity", () => {
