@@ -30,7 +30,6 @@ CIRCUITS=(
     "data_check_integrity_sa_sha256_dg_sha256"
     "data_check_integrity_sa_sha384_dg_sha384"
     "data_check_integrity_sa_sha512_dg_sha512"
-    "disclose_flags"
     "disclose_bytes"
     "disclose_bytes_evm"
     "inclusion_check_nationality"
