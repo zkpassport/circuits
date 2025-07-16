@@ -1,16 +1,16 @@
 {
   "chain_id": 11155111,
-  "deployment_timestamp": "1749846804",
+  "deployment_timestamp": "1752691116",
   "verifiers": {
-    "outer_count_10": "0x734Eeff3B0e848395d1A596bde92f91f50e7d77C",
-    "outer_count_11": "0xF35075143f366046E91a895418677B8593962445",
-    "outer_count_12": "0x3e79F7dAa28ad340161675077919af0b26281B5c",
-    "outer_count_4": "0x65Bd288f4318e8A306801ebD82a4162eF86eb3FC",
-    "outer_count_5": "0x43Af964E1AD9473e1F6f2191D7235150084905cF",
-    "outer_count_6": "0x83D72b75DAa56d4824Bd34e31CAE4257d50dF568",
-    "outer_count_7": "0xce9da8FF5b338e2B08984a764dE1A2CbEf8571a2",
-    "outer_count_8": "0x19B9C870cA60Cb97292fe5D6e95c8D2A51CC4b75",
-    "outer_count_9": "0x262582FA03Ac4c36aecc5fd791EE1d0992DA79F9"
+    "outer_count_10": "0x3D89d33cA7d98Ac0D5c2FFD44442367F4585D09A",
+    "outer_count_11": "0xCc4D93cdAb3cF71A64Ef5397F734089ccBeEb31E",
+    "outer_count_12": "0x9517b4319D96D8046e8973fc001D5584CbC029f9",
+    "outer_count_4": "0x7A55cAD27289Bc800e8112ecaf6012bC062Ed589",
+    "outer_count_5": "0xeC04EA391597de417462EF9581976E45981e86a0",
+    "outer_count_6": "0xAFca05797fd4Bbc3B1238bD1D3CCdBFcDdAD81Df",
+    "outer_count_7": "0xe66fa0BAF377429f16cf82FC75956015BF7A4Eb7",
+    "outer_count_8": "0x9C476a03eA54256C61edE6cB7a481BE333658665",
+    "outer_count_9": "0x6026FEad67851338339266bA934F826605497cfd"
   },
-  "zk_passport_verifier": "0xDDeFf76024052D26B78A7Fac66FFbd6fbc5bd9Ad"
+  "zk_passport_verifier": "0x62e33cC35e29130e135341586e8Cf9C2BAbFB3eE"
 }

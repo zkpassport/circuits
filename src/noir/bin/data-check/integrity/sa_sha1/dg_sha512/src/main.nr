@@ -33,6 +33,7 @@ fn main(
         dg1,
         signed_attributes,
         signed_attributes_size as Field,
+        e_content,
         private_nullifier,
     );
     comm_out
