@@ -66,6 +66,7 @@ export class Circuit {
       // Should only be used with the outer proof optimised for EVM verification
       // The subproofs must always use Poseidon2 and be recursively verifiable
       evm?: boolean
+      disableZK?: boolean
     },
   ): Promise<ProofData> {
     this.checkInputs(inputs)
@@ -92,6 +93,7 @@ export class Circuit {
       // Generate proof
       const proveCommand = `bb prove --scheme ultra_honk \
         ${options?.evm ? "--oracle_hash keccak" : ""} \
+        ${options?.disableZK ? "--disable_zk" : ""} \
         -b ${circuitPath} \
         -w ${witnessPath} \
         -k ${vkeyPath} \
@@ -142,7 +144,7 @@ export class Circuit {
     })
   }
 
-  async getVerificationKey(options?: { evm?: boolean; }) {
+  async getVerificationKey(options?: { evm?: boolean }) {
     const evm = options?.evm ?? false
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "vkey-"))
     const circuitPath = path.join(tempDir, "circuit.json")
@@ -176,7 +178,9 @@ export class Circuit {
 
       // Read the verification key file
       const vkeyBytes = fs.readFileSync(vkeyFilePath)
-      const vkeyFields = JSON.parse(fs.readFileSync(path.join(vkeyPath, "vk_fields.json")).toString("utf-8")) as string[]
+      const vkeyFields = JSON.parse(
+        fs.readFileSync(path.join(vkeyPath, "vk_fields.json")).toString("utf-8"),
+      ) as string[]
 
       // Clean up temp files
       fs.rmSync(tempDir, { recursive: true, force: true })

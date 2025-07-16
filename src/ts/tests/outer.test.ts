@@ -119,7 +119,7 @@ describe("outer proof", () => {
     certificateRegistryRoot = getMerkleRootFromDSCProof(cscToDscProof)
     expect(certificateRegistryRoot).toBeDefined()
     const cscToDscCommitment = getCommitmentFromDSCProof(cscToDscProof)
-    const cscToDscVkey = (await cscToDscCircuit.getVerificationKey({ evm: false })).vkeyFields;
+    const cscToDscVkey = (await cscToDscCircuit.getVerificationKey({ evm: false })).vkeyFields
     const cscToDscVkeyHash = `0x${(
       await poseidon2HashAsync(cscToDscVkey.map((x) => BigInt(x)))
     ).toString(16)}`
@@ -144,7 +144,9 @@ describe("outer proof", () => {
     const idDataCommitmentIn = getCommitmentInFromIDDataProof(idDataToIntegrityProof)
     const dscToIdDataCommitment = getCommitmentOutFromIDDataProof(idDataToIntegrityProof)
     expect(idDataCommitmentIn).toEqual(cscToDscCommitment)
-    const idDataToIntegrityVkey = (await idDataToIntegrityCircuit.getVerificationKey({ evm: false })).vkeyFields;
+    const idDataToIntegrityVkey = (
+      await idDataToIntegrityCircuit.getVerificationKey({ evm: false })
+    ).vkeyFields
     const idDataToIntegrityVkeyHash = `0x${(
       await poseidon2HashAsync(idDataToIntegrityVkey.map((x) => BigInt(x)))
     ).toString(16)}`
@@ -169,7 +171,7 @@ describe("outer proof", () => {
     const currentDate = getCurrentDateFromIntegrityProof(integrityProof)
     expect(integrityCheckCommitmentIn).toEqual(dscToIdDataCommitment)
     expect(currentDate).toEqual(globalCurrentDate)
-    const integrityVkey = (await integrityCircuit.getVerificationKey({ evm: false })).vkeyFields;
+    const integrityVkey = (await integrityCircuit.getVerificationKey({ evm: false })).vkeyFields
     const integrityVkeyHash = `0x${(
       await poseidon2HashAsync(integrityVkey.map((x) => BigInt(x)))
     ).toString(16)}`
@@ -228,7 +230,7 @@ describe("outer proof", () => {
     )
     const discloseCommitmentIn = getCommitmentInFromDisclosureProof(proof)
     expect(discloseCommitmentIn).toEqual(integrityCheckToDisclosureCommitment)
-    const discloseVkey = (await discloseCircuit.getVerificationKey({ evm: false })).vkeyFields;
+    const discloseVkey = (await discloseCircuit.getVerificationKey({ evm: false })).vkeyFields
     const discloseVkeyHash = `0x${(
       await poseidon2HashAsync(discloseVkey.map((x) => BigInt(x)))
     ).toString(16)}`
@@ -337,7 +339,8 @@ describe("outer proof", () => {
       })
       expect(nationalityProof).toBeDefined()
       const nationalityParamCommitment = getParameterCommitmentFromDisclosureProof(nationalityProof)
-      const nationalityVkey = (await nationalityCircuit.getVerificationKey({ evm: false })).vkeyFields;
+      const nationalityVkey = (await nationalityCircuit.getVerificationKey({ evm: false }))
+        .vkeyFields
       const nationalityVkeyHash = `0x${(
         await poseidon2HashAsync(nationalityVkey.map((x) => BigInt(x)))
       ).toString(16)}`
@@ -357,7 +360,7 @@ describe("outer proof", () => {
       })
       expect(ageProof).toBeDefined()
       const ageParamCommitment = getParameterCommitmentFromDisclosureProof(ageProof)
-      const ageVkey = (await ageCircuit.getVerificationKey({ evm: false })).vkeyFields;
+      const ageVkey = (await ageCircuit.getVerificationKey({ evm: false })).vkeyFields
       const ageVkeyHash = `0x${(await poseidon2HashAsync(ageVkey.map((x) => BigInt(x)))).toString(
         16,
       )}`
@@ -529,7 +532,7 @@ describe("outer proof - evm optimised", () => {
     certificateRegistryRoot = getMerkleRootFromDSCProof(cscToDscProof)
     expect(certificateRegistryRoot).toBeDefined()
     const cscToDscCommitment = getCommitmentFromDSCProof(cscToDscProof)
-    const cscToDscVkey = (await cscToDscCircuit.getVerificationKey({ evm: false })).vkeyFields;
+    const cscToDscVkey = (await cscToDscCircuit.getVerificationKey({ evm: false })).vkeyFields
     const cscToDscVkeyHash = `0x${(
       await poseidon2HashAsync(cscToDscVkey.map((x) => BigInt(x)))
     ).toString(16)}`
@@ -554,7 +557,9 @@ describe("outer proof - evm optimised", () => {
     const idDataCommitmentIn = getCommitmentInFromIDDataProof(idDataToIntegrityProof)
     const dscToIdDataCommitment = getCommitmentOutFromIDDataProof(idDataToIntegrityProof)
     expect(idDataCommitmentIn).toEqual(cscToDscCommitment)
-    const idDataToIntegrityVkey = (await idDataToIntegrityCircuit.getVerificationKey({ evm: false })).vkeyFields;
+    const idDataToIntegrityVkey = (
+      await idDataToIntegrityCircuit.getVerificationKey({ evm: false })
+    ).vkeyFields
     const idDataToIntegrityVkeyHash = `0x${(
       await poseidon2HashAsync(idDataToIntegrityVkey.map((x) => BigInt(x)))
     ).toString(16)}`
@@ -579,7 +584,7 @@ describe("outer proof - evm optimised", () => {
     const currentDate = getCurrentDateFromIntegrityProof(integrityProof)
     expect(integrityCheckCommitmentIn).toEqual(dscToIdDataCommitment)
     expect(currentDate).toEqual(globalCurrentDate)
-    const integrityVkey = (await integrityCircuit.getVerificationKey({ evm: false })).vkeyFields;
+    const integrityVkey = (await integrityCircuit.getVerificationKey({ evm: false })).vkeyFields
     const integrityVkeyHash = `0x${(
       await poseidon2HashAsync(integrityVkey.map((x) => BigInt(x)))
     ).toString(16)}`
@@ -604,7 +609,7 @@ describe("outer proof - evm optimised", () => {
       helper.passport as any,
       query,
       3n,
-      getServiceScopeHash("zkpassport.id", 31337),
+      getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
     )
     if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
@@ -644,11 +649,11 @@ describe("outer proof - evm optimised", () => {
     expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1988, 10, 12))
     expect(disclosedData.gender).toBe("M")
     expect(nullifier).toEqual(
-      4026926106532981026900237093488833780124730628840750106110477452749007163429n,
+      3103314711270760631299740901773115899504879398538738529035258383108670910946n,
     )
     const discloseCommitmentIn = getCommitmentInFromDisclosureProof(proof)
     expect(discloseCommitmentIn).toEqual(integrityCheckToDisclosureCommitment)
-    const discloseVkey = (await discloseCircuit.getVerificationKey({ evm: false })).vkeyFields;
+    const discloseVkey = (await discloseCircuit.getVerificationKey({ evm: false })).vkeyFields
     const discloseVkeyHash = `0x${(
       await poseidon2HashAsync(discloseVkey.map((x) => BigInt(x)))
     ).toString(16)}`
@@ -668,6 +673,7 @@ describe("outer proof - evm optimised", () => {
       const bindQuery: Query = {
         bind: {
           user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8",
+          chain: "local_anvil",
           custom_data: "email:test@test.com,customer_id:1234567890",
         },
       }
@@ -675,7 +681,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         bindQuery,
         3n,
-        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
       if (!bindCircuitInputs) throw new Error("Unable to generate bind circuit inputs")
@@ -687,7 +693,7 @@ describe("outer proof - evm optimised", () => {
       })
       expect(bindProof).toBeDefined()
       const bindParamCommitment = getParameterCommitmentFromDisclosureProof(bindProof)
-      const bindVkey = (await bindCircuit.getVerificationKey({ evm: false })).vkeyFields;
+      const bindVkey = (await bindCircuit.getVerificationKey({ evm: false })).vkeyFields
       const bindVkeyHash = `0x${(await poseidon2HashAsync(bindVkey.map((x) => BigInt(x)))).toString(
         16,
       )}`
@@ -773,14 +779,17 @@ describe("outer proof - evm optimised", () => {
         circuitName: "outer_evm_count_5",
         recursive: false,
         evm: true,
+        // Disable the fully ZK property for outer proofs meant to be verified onchain
+        // The subproofs are already ZK and it's cheaper to verify a non ZK proof onchain
+        disableZK: true,
       })
       expect(proof).toBeDefined()
       if (DEBUG_OUTPUT) {
         console.log("Outer 5 subproofs")
         console.log(
           JSON.stringify({
-            proof: proof.proof.slice(16).join(""),
-            publicInputs: proof.publicInputs.concat(proof.proof.slice(0, 16).map((f) => `0x${f}`)),
+            proof: proof.proof.map((x) => x.replace("0x", "")).join(""),
+            publicInputs: proof.publicInputs,
           }),
         )
       }
@@ -788,7 +797,7 @@ describe("outer proof - evm optimised", () => {
       expect(currentDate).toEqual(globalCurrentDate)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        4026926106532981026900237093488833780124730628840750106110477452749007163429n,
+        3103314711270760631299740901773115899504879398538738529035258383108670910946n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
@@ -813,7 +822,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         nationalityInclusionQuery,
         3n,
-        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
       if (!nationalityInclusionInputs)
@@ -829,7 +838,9 @@ describe("outer proof - evm optimised", () => {
       expect(nationalityInclusionProof).toBeDefined()
       const nationalityInclusionParamCommitment =
         getParameterCommitmentFromDisclosureProof(nationalityInclusionProof)
-      const nationalityInclusionVkey = (await nationalityInclusionCircuit.getVerificationKey({ evm: false })).vkeyFields;
+      const nationalityInclusionVkey = (
+        await nationalityInclusionCircuit.getVerificationKey({ evm: false })
+      ).vkeyFields
       const nationalityInclusionVkeyHash = `0x${(
         await poseidon2HashAsync(nationalityInclusionVkey.map((x) => BigInt(x)))
       ).toString(16)}`
@@ -857,7 +868,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         nationalityExclusionQuery,
         3n,
-        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
       if (!nationalityExclusionInputs)
@@ -873,7 +884,9 @@ describe("outer proof - evm optimised", () => {
       expect(nationalityExclusionProof).toBeDefined()
       const nationalityExclusionParamCommitment =
         getParameterCommitmentFromDisclosureProof(nationalityExclusionProof)
-      const nationalityExclusionVkey = (await nationalityExclusionCircuit.getVerificationKey({ evm: false })).vkeyFields;
+      const nationalityExclusionVkey = (
+        await nationalityExclusionCircuit.getVerificationKey({ evm: false })
+      ).vkeyFields
       const nationalityExclusionVkeyHash = `0x${(
         await poseidon2HashAsync(nationalityExclusionVkey.map((x) => BigInt(x)))
       ).toString(16)}`
@@ -903,7 +916,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         issuingCountryInclusionQuery,
         3n,
-        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
       if (!issuingCountryInclusionInputs)
@@ -920,7 +933,9 @@ describe("outer proof - evm optimised", () => {
       const issuingCountryInclusionParamCommitment = getParameterCommitmentFromDisclosureProof(
         issuingCountryInclusionProof,
       )
-      const issuingCountryInclusionVkey = (await issuingCountryInclusionCircuit.getVerificationKey({ evm: false })).vkeyFields;
+      const issuingCountryInclusionVkey = (
+        await issuingCountryInclusionCircuit.getVerificationKey({ evm: false })
+      ).vkeyFields
       const issuingCountryInclusionVkeyHash = `0x${(
         await poseidon2HashAsync(issuingCountryInclusionVkey.map((x) => BigInt(x)))
       ).toString(16)}`
@@ -947,7 +962,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         issuingCountryExclusionQuery,
         3n,
-        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
       if (!issuingCountryExclusionInputs)
@@ -964,7 +979,9 @@ describe("outer proof - evm optimised", () => {
       const issuingCountryExclusionParamCommitment = getParameterCommitmentFromDisclosureProof(
         issuingCountryExclusionProof,
       )
-      const issuingCountryExclusionVkey = (await issuingCountryExclusionCircuit.getVerificationKey({ evm: false })).vkeyFields;
+      const issuingCountryExclusionVkey = (
+        await issuingCountryExclusionCircuit.getVerificationKey({ evm: false })
+      ).vkeyFields
       const issuingCountryExclusionVkeyHash = `0x${(
         await poseidon2HashAsync(issuingCountryExclusionVkey.map((x) => BigInt(x)))
       ).toString(16)}`
@@ -993,7 +1010,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         ageQuery,
         3n,
-        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
       if (!ageInputs) throw new Error("Unable to generate compare-age greater than circuit inputs")
@@ -1004,7 +1021,7 @@ describe("outer proof - evm optimised", () => {
       })
       expect(ageProof).toBeDefined()
       const ageParamCommitment = getParameterCommitmentFromDisclosureProof(ageProof)
-      const ageVkey = (await ageCircuit.getVerificationKey({ evm: false })).vkeyFields;
+      const ageVkey = (await ageCircuit.getVerificationKey({ evm: false })).vkeyFields
       const ageVkeyHash = `0x${(await poseidon2HashAsync(ageVkey.map((x) => BigInt(x)))).toString(
         16,
       )}`
@@ -1028,7 +1045,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         expiryDateQuery,
         3n,
-        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
       if (!expiryDateInputs)
@@ -1040,7 +1057,7 @@ describe("outer proof - evm optimised", () => {
       })
       expect(expiryDateProof).toBeDefined()
       const expiryDateParamCommitment = getParameterCommitmentFromDisclosureProof(expiryDateProof)
-      const expiryDateVkey = (await expiryDateCircuit.getVerificationKey({ evm: false })).vkeyFields;
+      const expiryDateVkey = (await expiryDateCircuit.getVerificationKey({ evm: false })).vkeyFields
       const expiryDateVkeyHash = `0x${(
         await poseidon2HashAsync(expiryDateVkey.map((x) => BigInt(x)))
       ).toString(16)}`
@@ -1068,7 +1085,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         birthDateQuery,
         3n,
-        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
       if (!birthDateInputs)
@@ -1080,7 +1097,7 @@ describe("outer proof - evm optimised", () => {
       })
       expect(birthDateProof).toBeDefined()
       const birthDateParamCommitment = getParameterCommitmentFromDisclosureProof(birthDateProof)
-      const birthDateVkey = (await birthDateCircuit.getVerificationKey({ evm: false })).vkeyFields;
+      const birthDateVkey = (await birthDateCircuit.getVerificationKey({ evm: false })).vkeyFields
       const birthDateVkeyHash = `0x${(
         await poseidon2HashAsync(birthDateVkey.map((x) => BigInt(x)))
       ).toString(16)}`
@@ -1230,14 +1247,17 @@ describe("outer proof - evm optimised", () => {
         circuitName: "outer_evm_count_11",
         recursive: false,
         evm: true,
+        // Disable the fully ZK property for outer proofs meant to be verified onchain
+        // The subproofs are already ZK and it's cheaper to verify a non ZK proof onchain
+        disableZK: true,
       })
       expect(proof).toBeDefined()
       if (DEBUG_OUTPUT) {
         console.log("Outer 11 subproofs")
         console.log(
           JSON.stringify({
-            proof: proof.proof.slice(16).join(""),
-            publicInputs: proof.publicInputs.concat(proof.proof.slice(0, 16).map((f) => `0x${f}`)),
+            proof: proof.proof.map((x) => x.replace("0x", "")).join(""),
+            publicInputs: proof.publicInputs,
           }),
         )
         console.log("committed inputs")
@@ -1247,7 +1267,7 @@ describe("outer proof - evm optimised", () => {
       expect(currentDate).toEqual(globalCurrentDate)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        4026926106532981026900237093488833780124730628840750106110477452749007163429n,
+        3103314711270760631299740901773115899504879398538738529035258383108670910946n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)

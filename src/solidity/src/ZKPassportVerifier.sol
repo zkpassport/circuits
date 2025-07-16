@@ -23,6 +23,7 @@ enum ProofType {
 enum BoundDataIdentifier {
   NONE,
   USER_ADDRESS,
+  CHAIN_ID,
   CUSTOM_DATA
 }
 
@@ -359,6 +360,13 @@ contract ZKPassportVerifier {
             );
             dataLength += 2 + addressLength + 1;
           } else if (
+            committedInputs[offset + 1 + dataLength] == bytes1(uint8(BoundDataIdentifier.CHAIN_ID))
+          ) {
+            uint16 chainIdLength = uint16(
+              bytes2(committedInputs[offset + 1 + dataLength + 1:offset + 1 + dataLength + 3])
+            );
+            dataLength += 2 + chainIdLength + 1;
+          } else if (
             committedInputs[offset + 1 + dataLength] ==
             bytes1(uint8(BoundDataIdentifier.CUSTOM_DATA))
           ) {
@@ -387,13 +395,22 @@ contract ZKPassportVerifier {
 
   function getBoundData(
     bytes calldata data
-  ) public pure returns (address senderAddress, string memory customData) {
+  ) public pure returns (address senderAddress, uint256 chainId, string memory customData) {
     uint256 offset = 0;
     while (offset < 500) {
       if (data[offset] == bytes1(uint8(BoundDataIdentifier.USER_ADDRESS))) {
         uint16 addressLength = uint16(bytes2(data[offset + 1:offset + 3]));
         senderAddress = address(bytes20(data[offset + 3:offset + 3 + addressLength]));
         offset += 2 + addressLength + 1;
+      } else if (data[offset] == bytes1(uint8(BoundDataIdentifier.CHAIN_ID))) {
+        uint16 chainIdLength = uint16(bytes2(data[offset + 1:offset + 3]));
+        require(chainIdLength <= 32, "Chain id length too long");
+        // bytes32 right pads while we want to left pad
+        // so we shift the bytes to the right by 256 - (chainIdLength * 8)
+        chainId = uint256(
+          bytes32(data[offset + 3:offset + 3 + chainIdLength]) >> (256 - (chainIdLength * 8))
+        );
+        offset += 2 + chainIdLength + 1;
       } else if (data[offset] == bytes1(uint8(BoundDataIdentifier.CUSTOM_DATA))) {
         uint16 customDataLength = uint16(bytes2(data[offset + 1:offset + 3]));
         customData = string(data[offset + 3:offset + 3 + customDataLength]);
@@ -408,14 +425,12 @@ contract ZKPassportVerifier {
     bytes32[] calldata publicInputs,
     string calldata domain,
     string calldata scope
-  ) public view returns (bool) {
+  ) public pure returns (bool) {
     // One byte is dropped at the end
-    string memory chainId = StringUtils.toString(block.chainid);
     // What we call scope internally is derived from the domain
-    // and chain id for onchain verification
     bytes32 scopeHash = StringUtils.isEmpty(domain)
       ? bytes32(0)
-      : sha256(abi.encodePacked(domain, ":chain-", chainId)) >> 8;
+      : sha256(abi.encodePacked(domain)) >> 8;
     // What we call the subscope internally is the scope specified
     // manually in the SDK
     bytes32 subscopeHash = StringUtils.isEmpty(scope)
@@ -474,10 +489,6 @@ contract ZKPassportVerifier {
   ) external view whenNotPaused returns (bool, bytes32) {
     address verifier = _getVerifier(params.vkeyHash);
 
-    // We remove the last 16 public inputs from the count cause they are part of the aggregation object
-    // and not the actual public inputs of the circuit
-    uint256 actualPublicInputCount = params.publicInputs.length - 16;
-
     // Validate certificate registry root
     _validateCertificateRoot(params.publicInputs[0]);
 
@@ -496,7 +507,7 @@ contract ZKPassportVerifier {
     // Verifies the commitments against the committed inputs
     verifyCommittedInputs(
       // Extracts the commitments from the public inputs
-      params.publicInputs[12:actualPublicInputCount - 1],
+      params.publicInputs[12:params.publicInputs.length - 1],
       params.committedInputs,
       params.committedInputCounts
     );
@@ -504,13 +515,13 @@ contract ZKPassportVerifier {
     // Allow mock proofs in dev mode
     // Mock proofs are recognisable by their unique identifier set to 1
     require(
-      params.publicInputs[actualPublicInputCount - 1] != bytes32(uint256(1)) || params.devMode,
+      params.publicInputs[params.publicInputs.length - 1] != bytes32(uint256(1)) || params.devMode,
       "Mock proofs are only allowed in dev mode"
     );
 
     return (
       IVerifier(verifier).verify(params.proof, params.publicInputs),
-      params.publicInputs[actualPublicInputCount - 1]
+      params.publicInputs[params.publicInputs.length - 1]
     );
   }
 }
