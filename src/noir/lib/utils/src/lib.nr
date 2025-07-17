@@ -538,9 +538,9 @@ fn timestamp_get_number_of_days(timestamp: u32) -> u32 {
 
 #[test]
 fn test_timestamp_get_number_of_days() {
-  let timestamp = 1752721600;
-  let days = timestamp_get_number_of_days(timestamp);
-  assert(days == 20286);
+    let timestamp = 1752721600;
+    let days = timestamp_get_number_of_days(timestamp);
+    assert(days == 20286);
 }
 
 fn is_leap_year(year: i32) -> bool {
@@ -559,7 +559,11 @@ fn get_days_in_month(year: i32, month: i32) -> i32 {
     if month == 1 {
         31
     } else if month == 2 {
-        if is_leap_year(year) { 29 } else { 28 }
+        if is_leap_year(year) {
+            29
+        } else {
+            28
+        }
     } else if month == 3 {
         31
     } else if month == 4 {
@@ -581,7 +585,7 @@ fn get_days_in_month(year: i32, month: i32) -> i32 {
     } else if month == 12 {
         31
     } else {
-        0  // fallback, shouldn't happen
+        0 // fallback, shouldn't happen
     }
 }
 
@@ -651,10 +655,9 @@ fn month_or_day_to_ascii_digits(value: u32) -> [u8; 2] {
 #[test]
 fn test_month_or_day_to_ascii_digits() {
     let expected: [str<2>; 31] = [
-        "01", "02", "03", "04", "05", "06", "07", "08", "09", "10",
-        "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
-        "21", "22", "23", "24", "25", "26", "27", "28", "29", "30",
-        "31"
+        "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15",
+        "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30",
+        "31",
     ];
 
     for i in 0..31 {
