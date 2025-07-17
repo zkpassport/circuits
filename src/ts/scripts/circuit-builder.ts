@@ -163,7 +163,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
 ) -> pub Field {
     let (r, s) = split_array(dsc_signature);
     let msg_hash = ${hash_algorithm}_and_check_data_to_sign(tbs_certificate, tbs_certificate_len);
-    assert(verify_${curve_family}_${curve_name}(csc_pubkey_x, csc_pubkey_y, r, s, msg_hash));
+    assert(verify_${curve_family}_${curve_name}(csc_pubkey_x, csc_pubkey_y, r, s, msg_hash), "ECDSA signature verification failed");
     let comm_out = commit_to_dsc(
         certificate_registry_root,
         certificate_registry_index,
@@ -212,7 +212,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         exponent,
         tbs_certificate,
         tbs_certificate_len,
-    ));
+    ), "RSA signature verification failed");
     let comm_out = commit_to_dsc(
         certificate_registry_root,
         certificate_registry_index,
@@ -264,7 +264,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         tbs_certificate,
         pubkey_offset_in_tbs,
     );
-    assert(verify_${curve_family}_${curve_name}(dsc_pubkey_x, dsc_pubkey_y, r, s, msg_hash));
+    assert(verify_${curve_family}_${curve_name}(dsc_pubkey_x, dsc_pubkey_y, r, s, msg_hash), "ECDSA signature verification failed");
     let comm_out = commit_to_id(
         comm_in,
         salt_in,
@@ -316,7 +316,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         exponent,
         signed_attributes,
         signed_attributes_size,
-    ));
+    ), "RSA signature verification failed");
     let comm_out = commit_to_id(
         comm_in,
         salt_in,
@@ -360,7 +360,6 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     check_dg1_${dg_hash_algorithm}(dg1, e_content, dg1_offset_in_e_content);
     check_signed_attributes_${signed_attributes_hash_algorithm}(
         signed_attributes,
-        signed_attributes_size,
         e_content,
         e_content_size,
     );

@@ -35,7 +35,10 @@ pub fn nullify(
     service_scope: Field,
     service_subscope: Field,
 ) -> Field {
-    assert(comm_in == hash_salt_dg1_private_nullifier(salt, dg1, private_nullifier));
+    assert(
+        comm_in == hash_salt_dg1_private_nullifier(salt, dg1, private_nullifier),
+        "Commitment from 3rd subproof doesn't match in disclosure proof",
+    );
     let mut scoped_nullifier =
         calculate_scoped_nullifier(private_nullifier, service_scope, service_subscope);
     let issuing_country = get_issuing_country_from_mrz(dg1);
