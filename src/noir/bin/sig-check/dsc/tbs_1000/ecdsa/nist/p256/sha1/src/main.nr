@@ -19,7 +19,10 @@ fn main(
 ) -> pub Field {
     let (r, s) = split_array(dsc_signature);
     let msg_hash = sha1_and_check_data_to_sign(tbs_certificate, tbs_certificate_len);
-    assert(verify_nist_p256(csc_pubkey_x, csc_pubkey_y, r, s, msg_hash), "ECDSA signature verification failed");
+    assert(
+        verify_nist_p256(csc_pubkey_x, csc_pubkey_y, r, s, msg_hash),
+        "ECDSA signature verification failed",
+    );
     let comm_out = commit_to_dsc(
         certificate_registry_root,
         certificate_registry_index,

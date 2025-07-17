@@ -20,11 +20,7 @@ fn main(
     check_expiry(dg1, current_date.as_bytes());
     // Check the integrity of the data
     check_dg1_sha256(dg1, e_content, dg1_offset_in_e_content);
-    check_signed_attributes_sha1(
-        signed_attributes,
-        e_content,
-        e_content_size,
-    );
+    check_signed_attributes_sha1(signed_attributes, e_content, e_content_size);
     let comm_out = commit_to_disclosure(
         comm_in,
         salt_in,

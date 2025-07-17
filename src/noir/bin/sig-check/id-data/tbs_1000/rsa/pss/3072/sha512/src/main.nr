@@ -19,14 +19,17 @@ fn main(
     e_content: [u8; 700],
 ) -> pub Field {
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate, pubkey_offset_in_tbs);
-    assert(verify_signature::<384, 1, 200, 64>(
-        dsc_pubkey,
-        sod_signature,
-        dsc_pubkey_redc_param,
-        exponent,
-        signed_attributes,
-        signed_attributes_size,
-    ), "RSA signature verification failed");
+    assert(
+        verify_signature::<384, 1, 200, 64>(
+            dsc_pubkey,
+            sod_signature,
+            dsc_pubkey_redc_param,
+            exponent,
+            signed_attributes,
+            signed_attributes_size,
+        ),
+        "RSA signature verification failed",
+    );
     let comm_out = commit_to_id(
         comm_in,
         salt_in,
