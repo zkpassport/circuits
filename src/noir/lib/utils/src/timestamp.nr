@@ -101,7 +101,7 @@ fn test_month_or_day_to_ascii_digits() {
 
 // Converts a unix timestamp into a YYYYMMDD date string
 // e.g. 1752721600 -> "20240717"
-fn timestamp_to_date_string(timestamp: u32) -> str<8> {
+pub fn timestamp_to_date_string(timestamp: u32) -> str<8> {
     let seconds_in_day = 86400;
     let days = timestamp / seconds_in_day;
     let (year, month, day) = date_from_days(days as i32);

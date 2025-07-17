@@ -2,9 +2,10 @@
 use commitment::commit_to_disclosure;
 use data_check_expiry::check_expiry;
 use data_check_integrity::{check_dg1_sha512, check_signed_attributes_sha1};
+use utils::timestamp::timestamp_to_date_string;
 
 fn main(
-    current_date: pub str<8>,
+    timestamp: pub u32,
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,
@@ -16,6 +17,8 @@ fn main(
     dg1_offset_in_e_content: u32,
     private_nullifier: Field,
 ) -> pub Field {
+    // Convert unix timestamp to a YYYYMMDD date string
+    let current_date = timestamp_to_date_string(timestamp);
     // Check the ID is not expired first
     check_expiry(dg1, current_date.as_bytes());
     // Check the integrity of the data
