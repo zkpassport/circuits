@@ -440,6 +440,27 @@ pub fn concat_array<let N: u32>(array_x: [u8; N], array_y: [u8; N]) -> [u8; N * 
     array
 }
 
+pub unconstrained fn _find_subarray_index<let N: u32, let M: u32>(
+    array: [u8; N],
+    subarray: [u8; M],
+) -> u32 {
+    let mut index = 0;
+    for i in 0..(N - M + 1) {
+        let mut found = true;
+        for j in 0..M {
+            if array[i + j] != subarray[j] {
+                found = false;
+                break;
+            }
+        }
+        if found {
+            index = i;
+            break;
+        }
+    }
+    index
+}
+
 pub fn check_zero_padding<let N: u32, T>(padded_array: [T; N], len: u32)
 where
     T: Eq,

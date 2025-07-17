@@ -360,7 +360,6 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     check_dg1_${dg_hash_algorithm}(dg1, e_content, dg1_offset_in_e_content);
     check_signed_attributes_${signed_attributes_hash_algorithm}(
         signed_attributes,
-        signed_attributes_size,
         e_content,
         e_content_size,
     );
