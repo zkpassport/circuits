@@ -36,5 +36,5 @@ pub fn check_expiry(dg1: [u8; 95], current_date_bytes: [u8; 8]) {
         [threshold_year_bytes[2], threshold_year_bytes[3]],
     );
 
-    assert(current_date.lt(expiry_date));
+    assert(current_date.lt(expiry_date), "Document is expired");
 }
