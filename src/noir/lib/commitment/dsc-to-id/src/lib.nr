@@ -36,7 +36,10 @@ pub fn commit_to_id<let TBS_MAX_SIZE: u32, let SIG_SIZE: u32, let SA_SIZE: u32, 
     e_content: [u8; ECONTENT_SIZE],
 ) -> Field {
     let country = get_country_from_dg1(dg1);
-    assert(comm_in == hash_salt_country_tbs(salt_in, country, tbs_certificate));
+    assert(
+        comm_in == hash_salt_country_tbs(salt_in, country, tbs_certificate),
+        "Commitment from 1st subproof doesn't match in 2nd subproof",
+    );
 
     let private_nullifier = calculate_private_nullifier(dg1, e_content, sod_signature);
     let comm_out = hash_salt_country_signed_attr_dg1_e_content_private_nullifier(

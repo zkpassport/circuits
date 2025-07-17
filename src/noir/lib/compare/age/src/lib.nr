@@ -41,23 +41,32 @@ pub fn compare_age(dg1: [u8; 95], min_age: u8, max_age: u8, current_date_bytes: 
 
     let current_date = Date::from_bytes_long_year(current_date_bytes);
 
-    assert((min_age != 0) | (max_age != 0));
+    assert((min_age != 0) | (max_age != 0), "Either min or max age must be non-zero");
 
     if (min_age != 0) & (max_age == 0) {
         // Check if age is above min age
         // The minimum age is more likely to be inclusive, so we use gte
-        assert(current_date.gte(birthdate.add_years(min_age as u32)));
+        assert(
+            current_date.gte(birthdate.add_years(min_age as u32)),
+            "Age is not above or equal to min age",
+        );
     } else if (max_age != 0) & (min_age == 0) {
         // Check if age is below max age
         // The maximum age is more likely to be exclusive, so we use lt
-        assert(current_date.lt(birthdate.add_years(max_age as u32)));
+        assert(current_date.lt(birthdate.add_years(max_age as u32)), "Age is not below max age");
     } else {
-        assert(min_age <= max_age);
+        assert(min_age <= max_age, "Min age must be less than or equal to max age");
 
-        assert(current_date.gte(birthdate.add_years(min_age as u32)));
+        assert(
+            current_date.gte(birthdate.add_years(min_age as u32)),
+            "Age is not above or equal to min age",
+        );
         // This way if max_age = min_age, the proof will be valid whenever the age
         // is equal to min_age = max_age
-        assert(current_date.lt(birthdate.add_years((max_age + 1) as u32)));
+        assert(
+            current_date.lt(birthdate.add_years((max_age + 1) as u32)),
+            "Age is not below max age",
+        );
     }
 }
 

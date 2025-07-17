@@ -24,7 +24,10 @@ pub fn check_dg1_sha1(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_conte
 
     for i in 0..20 {
         // Check the hash of dg1 is indeed in the e_content
-        assert(dg1_hash[i] == e_content[dg1_offset_in_e_content + i]);
+        assert(
+            dg1_hash[i] == e_content[dg1_offset_in_e_content + i],
+            "Hash of dg1 not found in eContent",
+        );
     }
 }
 
@@ -47,7 +50,10 @@ pub fn check_signed_attributes_sha1(
     for i in 0..20 {
         // The last 20 bytes of the signed_attributes are the hash of the data groups
         // The rest is padding and the signature date, not important to check
-        assert(computed_final_hash[i] == signed_attributes[index + i]);
+        assert(
+            computed_final_hash[i] == signed_attributes[index + i],
+            "Computed final hash not found in signed attributes",
+        );
     }
 }
 
@@ -71,7 +77,10 @@ pub fn check_dg1_sha256(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_con
 
     for i in 0..32 {
         // Check the hash of dg1 is indeed in the e_content
-        assert(dg1_hash[i] == e_content[dg1_offset_in_e_content + i]);
+        assert(
+            dg1_hash[i] == e_content[dg1_offset_in_e_content + i],
+            "Hash of dg1 not found in eContent",
+        );
     }
 }
 
@@ -119,7 +128,10 @@ pub fn check_dg1_sha384(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_con
 
     for i in 0..48 {
         // Check the hash of dg1 is indeed in the e_content
-        assert(dg1_hash[i] == e_content[dg1_offset_in_e_content + i]);
+        assert(
+            dg1_hash[i] == e_content[dg1_offset_in_e_content + i],
+            "Hash of dg1 not found in eContent",
+        );
     }
 }
 
@@ -142,7 +154,10 @@ pub fn check_signed_attributes_sha384(
     for i in 0..48 {
         // The last 48 bytes of the signed_attributes are the hash of the data groups
         // The rest is padding and the signature date, not important to check
-        assert(computed_final_hash[i] == signed_attributes[index + i]);
+        assert(
+            computed_final_hash[i] == signed_attributes[index + i],
+            "Computed final hash not found in signed attributes",
+        );
     }
 }
 
@@ -167,7 +182,10 @@ pub fn check_dg1_sha512(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_con
 
     for i in 0..64 {
         // Check the hash of dg1 is indeed in the e_content
-        assert(dg1_hash[i] == e_content[dg1_offset_in_e_content + i]);
+        assert(
+            dg1_hash[i] == e_content[dg1_offset_in_e_content + i],
+            "Hash of dg1 not found in eContent",
+        );
     }
 }
 
@@ -190,6 +208,9 @@ pub fn check_signed_attributes_sha512(
     for i in 0..64 {
         // The last 64 bytes of the signed_attributes are the hash of the data groups
         // The rest is padding and the signature date, not important to check
-        assert(computed_final_hash[i] == signed_attributes[index + i]);
+        assert(
+            computed_final_hash[i] == signed_attributes[index + i],
+            "Computed final hash not found in signed attributes",
+        );
     }
 }

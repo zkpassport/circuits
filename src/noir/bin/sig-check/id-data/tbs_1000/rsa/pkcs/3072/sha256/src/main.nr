@@ -26,7 +26,7 @@ fn main(
         exponent,
         signed_attributes,
         signed_attributes_size,
-    ));
+    ), "RSA signature verification failed");
     let comm_out = commit_to_id(
         comm_in,
         salt_in,

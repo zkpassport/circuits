@@ -23,7 +23,7 @@ fn main(
         exponent,
         tbs_certificate,
         tbs_certificate_len,
-    ));
+    ), "RSA signature verification failed");
     let comm_out = commit_to_dsc(
         certificate_registry_root,
         certificate_registry_index,

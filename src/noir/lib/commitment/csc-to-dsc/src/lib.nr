@@ -51,7 +51,7 @@ pub fn commit_to_dsc<let CSC_KEY_SIZE: u32, let HASH_PATH_SIZE: u32, let TBS_CER
         certificate_registry_index,
         certificate_registry_hash_path,
     );
-    assert(root == certificate_registry_root);
+    assert(root == certificate_registry_root, "Certificate registry root mismatch");
     // Output commitment glue
     let comm_out = hash_salt_country_tbs(salt, country, tbs_certificate);
     comm_out

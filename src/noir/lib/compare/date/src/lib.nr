@@ -52,23 +52,26 @@ pub fn get_expiry_date(dg1: [u8; 95], current_date: [u8; 8]) -> Date {
 }
 
 pub fn compare_date(date_to_compare: Date, min_date_bytes: [u8; 8], max_date_bytes: [u8; 8]) {
-    assert((min_date_bytes != [49; 8]) | (max_date_bytes != [49; 8]));
+    assert(
+        (min_date_bytes != [49; 8]) | (max_date_bytes != [49; 8]),
+        "Either min or max date must be non-zero",
+    );
 
     let min_date = Date::from_bytes_long_year(min_date_bytes);
     let max_date = Date::from_bytes_long_year(max_date_bytes);
 
     if (min_date_bytes != [49; 8]) & (max_date_bytes == [49; 8]) {
         // The minimum date is more likely to be inclusive, so we use gte
-        assert(date_to_compare.gte(min_date));
+        assert(date_to_compare.gte(min_date), "Date is not above or equal to min date");
     } else if (max_date_bytes != [49; 8]) & (min_date_bytes == [49; 8]) {
         // The maximum date is more likely to be inclusive, so we use lte
-        assert(date_to_compare.lte(max_date));
+        assert(date_to_compare.lte(max_date), "Date is not below or equal to max date");
     } else {
-        assert(min_date.lte(max_date));
+        assert(min_date.lte(max_date), "Min date must be less than or equal to max date");
 
         // Check if birthdate is within the range
-        assert(date_to_compare.gte(min_date));
-        assert(date_to_compare.lte(max_date));
+        assert(date_to_compare.gte(min_date), "Date is not above or equal to min date");
+        assert(date_to_compare.lte(max_date), "Date is not below or equal to max date");
     }
 }
 

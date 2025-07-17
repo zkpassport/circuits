@@ -27,7 +27,7 @@ fn main(
         tbs_certificate,
         pubkey_offset_in_tbs,
     );
-    assert(verify_nist_p521(dsc_pubkey_x, dsc_pubkey_y, r, s, msg_hash));
+    assert(verify_nist_p521(dsc_pubkey_x, dsc_pubkey_y, r, s, msg_hash), "ECDSA signature verification failed");
     let comm_out = commit_to_id(
         comm_in,
         salt_in,
