@@ -4,8 +4,8 @@
   "scripts": {
     "lint": "tsc --project src/ts/tsconfig.json --noEmit && nargo fmt --check",
     "test": "jest",
-    "generate": "tsx src/ts/scripts/circuit-builder.ts generate",
-    "compile": "tsx src/ts/scripts/circuit-builder.ts generate compile",
+    "generate": "tsx src/ts/scripts/circuit-builder.ts generate && nargo fmt",
+    "compile": "tsx src/ts/scripts/circuit-builder.ts generate compile && nargo fmt",
     "test-contracts": "cd src/solidity && forge test -vv --fork-url $SEPOLIA_RPC_URL --chain-id 31337 && cd ../..",
     "package-circuits": "tsx --max-old-space-size=8192 src/ts/scripts/circuit-packager && cp target/packaged/manifest.json src/ts/tests/fixtures/circuit-manifest.json"
   },
