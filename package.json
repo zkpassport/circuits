@@ -1,6 +1,6 @@
 {
   "name": "circuits",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "scripts": {
     "lint": "tsc --project src/ts/tsconfig.json --noEmit && nargo fmt --check",
     "test": "jest",

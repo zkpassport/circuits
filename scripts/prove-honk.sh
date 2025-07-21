@@ -7,4 +7,4 @@ nargo execute --package $package_name ${package_name}_witness
 mkdir -p ./proofs/${package_name}_honk
 
 # Generate a Honk proof for the circuit with the witness generated just before
-time bb prove --scheme ultra_honk -b ./target/$package_name.json -w ./target/${package_name}_witness.gz -o ./proofs/${package_name}_honk
+time bb prove --scheme ultra_honk -b ./target/$package_name.json -w ./target/${package_name}_witness.gz -o ./proofs/${package_name}_honk --write_vk --verify
