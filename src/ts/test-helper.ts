@@ -39,6 +39,9 @@ export class TestHelper {
       case "integrity": {
         const inputs = await getIntegrityCheckCircuitInputs(this.passport as any, 2n, 3n)
         if (!inputs) throw new Error("Unable to generate integrity check circuit inputs")
+        // TODO: Move this into getIntegrityCheckCircuitInputs()
+        // @ts-ignore
+        inputs["timestamp"] = utcDateToUnixTimestamp(2025, 1, 1)
         return inputs
       }
       case "disclose": {
@@ -69,4 +72,8 @@ export class TestHelper {
     this.passportReader.loadPassport(dg1, sod)
     this.passport = this.passportReader.getPassportViewModel() as any
   }
+}
+
+export function utcDateToUnixTimestamp(year: number, month: number, day: number) {
+  return Math.floor(Date.UTC(year, month - 1, day) / 1000)
 }
