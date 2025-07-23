@@ -9,7 +9,7 @@ fn main(
     salt_in: Field,
     salt_out: Field,
     dg1: [u8; 95],
-    signed_attributes: [u8; 200],
+    signed_attributes: [u8; 220],
     signed_attributes_size: u32,
     e_content: [u8; 700],
     e_content_size: u32,

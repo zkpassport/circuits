@@ -15,7 +15,7 @@ fn main(
     sod_signature: [u8; 56],
     tbs_certificate: [u8; 1000],
     pubkey_offset_in_tbs: u32,
-    signed_attributes: [u8; 200],
+    signed_attributes: [u8; 220],
     signed_attributes_size: u64,
     e_content: [u8; 700],
 ) -> pub Field {

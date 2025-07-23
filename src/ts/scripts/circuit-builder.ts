@@ -17,6 +17,8 @@ function ensureDirectoryExistence(filePath: string) {
   } catch (e) {}
 }
 
+const SIGNED_ATTRIBUTES_SIZE = 220
+
 const generatedCircuits: {
   name: string
   path: string
@@ -252,7 +254,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     sod_signature: [u8; ${Math.ceil(bit_size / 8) * 2}],
     tbs_certificate: [u8; ${tbs_max_len}],
     pubkey_offset_in_tbs: u32,
-    signed_attributes: [u8; 200],
+    signed_attributes: [u8; ${SIGNED_ATTRIBUTES_SIZE}],
     signed_attributes_size: u64,
     e_content: [u8; 700],
 ) -> pub Field {
@@ -301,7 +303,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     sod_signature: [u8; ${Math.ceil(bit_size / 8)}],
     tbs_certificate: [u8; ${tbs_max_len}],
     pubkey_offset_in_tbs: u32,
-    signed_attributes: [u8; 200],
+    signed_attributes: [u8; ${SIGNED_ATTRIBUTES_SIZE}],
     signed_attributes_size: u64,
     exponent: u32,
     e_content: [u8; 700],
@@ -347,7 +349,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     salt_in: Field,
     salt_out: Field,
     dg1: [u8; 95],
-    signed_attributes: [u8; 200],
+    signed_attributes: [u8; ${SIGNED_ATTRIBUTES_SIZE}],
     signed_attributes_size: u32,
     e_content: [u8; 700],
     e_content_size: u32,
