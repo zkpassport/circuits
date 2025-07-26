@@ -1,7 +1,7 @@
 use poseidon::poseidon2::Poseidon2;
 
-global PROOF_SIZE: u32 = 507;
-global VKEY_SIZE: u32 = 112;
+global PROOF_SIZE: u32 = 508;
+global VKEY_SIZE: u32 = 115;
 
 pub fn prepare_integrity_check_inputs<let DATE_LEN: u32>(
     current_date: str<DATE_LEN>,

@@ -20,7 +20,7 @@ fn main(
 ) -> pub Field {
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate, pubkey_offset_in_tbs);
     assert(
-        verify_signature::<512, 0, 200, 48>(
+        verify_signature::<512, 0, 220, 48>(
             dsc_pubkey,
             sod_signature,
             dsc_pubkey_redc_param,

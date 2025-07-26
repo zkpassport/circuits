@@ -311,7 +311,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate, pubkey_offset_in_tbs);
     assert(verify_signature::<${Math.ceil(bit_size / 8)}, ${
   rsa_type === "pss" ? 1 : 0
-}, 200, ${getHashAlgorithmByteSize(hash_algorithm)}>(
+}, ${SIGNED_ATTRIBUTES_SIZE}, ${getHashAlgorithmByteSize(hash_algorithm)}>(
         dsc_pubkey,
         sod_signature,
         dsc_pubkey_redc_param,
