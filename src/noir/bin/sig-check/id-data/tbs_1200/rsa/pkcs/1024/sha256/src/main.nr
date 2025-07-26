@@ -13,14 +13,14 @@ fn main(
     sod_signature: [u8; 128],
     tbs_certificate: [u8; 1200],
     pubkey_offset_in_tbs: u32,
-    signed_attributes: [u8; 200],
+    signed_attributes: [u8; 220],
     signed_attributes_size: u64,
     exponent: u32,
     e_content: [u8; 700],
 ) -> pub Field {
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate, pubkey_offset_in_tbs);
     assert(
-        verify_signature::<128, 0, 200, 32>(
+        verify_signature::<128, 0, 220, 32>(
             dsc_pubkey,
             sod_signature,
             dsc_pubkey_redc_param,

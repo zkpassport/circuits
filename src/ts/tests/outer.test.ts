@@ -710,8 +710,6 @@ describe("outer proof - evm optimised", () => {
         console.log(bindCommittedInputs)
       }
 
-      // We can use the regular outer_count_5 rather than outer_evm_count_5
-      // since only the vkey changes and we don't use it here
       const circuit = Circuit.from("outer_count_5")
       const { path: cscToDscTreeHashPath, index: cscToDscTreeIndex } = await getCircuitMerkleProof(
         subproofs.get(0)?.vkeyHash as string,
@@ -776,7 +774,7 @@ describe("outer proof - evm optimised", () => {
       )
       const proof = await circuit.prove(inputs, {
         useCli: true,
-        circuitName: "outer_evm_count_5",
+        circuitName: "outer_count_5",
         recursive: false,
         evm: true,
         // Disable the fully ZK property for outer proofs meant to be verified onchain
@@ -1117,8 +1115,6 @@ describe("outer proof - evm optimised", () => {
       }
 
       // Outer proof
-      // We can use the regular outer_count_11 rather than outer_evm_count_11
-      // since only the vkey changes and we don't use it here
       const outerProofCircuit = Circuit.from("outer_count_11")
       const { path: cscToDscTreeHashPath, index: cscToDscTreeIndex } = await getCircuitMerkleProof(
         subproofs.get(0)?.vkeyHash as string,
@@ -1244,7 +1240,7 @@ describe("outer proof - evm optimised", () => {
 
       const proof = await outerProofCircuit.prove(inputs, {
         useCli: true,
-        circuitName: "outer_evm_count_11",
+        circuitName: "outer_count_11",
         recursive: false,
         evm: true,
         // Disable the fully ZK property for outer proofs meant to be verified onchain

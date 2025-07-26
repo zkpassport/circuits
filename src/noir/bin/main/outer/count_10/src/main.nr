@@ -59,6 +59,7 @@ fn verify_subproofs(
             csc_to_dsc_proof.tree_index,
             csc_to_dsc_proof.tree_hash_path,
         ),
+        "CSC to DSC proof vkey hash not found in circuit tree",
     );
     assert_eq(
         circuit_registry_root,
@@ -67,6 +68,7 @@ fn verify_subproofs(
             dsc_to_id_data_proof.tree_index,
             dsc_to_id_data_proof.tree_hash_path,
         ),
+        "DSC to ID Data proof vkey hash not found in circuit tree",
     );
     assert_eq(
         circuit_registry_root,
@@ -75,6 +77,7 @@ fn verify_subproofs(
             integrity_check_proof.tree_index,
             integrity_check_proof.tree_hash_path,
         ),
+        "Integrity check proof vkey hash not found in circuit tree",
     );
     for i in 0..disclosure_proofs.len() {
         assert_eq(
@@ -84,15 +87,32 @@ fn verify_subproofs(
                 disclosure_proofs[i].tree_index,
                 disclosure_proofs[i].tree_hash_path,
             ),
+            "Disclosure proof vkey hash not found in circuit tree",
         );
     }
 
     // Verify that the vkey hashes are correct
-    assert_eq(poseidon2_hash(csc_to_dsc_proof.vkey), csc_to_dsc_proof.key_hash);
-    assert_eq(poseidon2_hash(dsc_to_id_data_proof.vkey), dsc_to_id_data_proof.key_hash);
-    assert_eq(poseidon2_hash(integrity_check_proof.vkey), integrity_check_proof.key_hash);
+    assert_eq(
+        poseidon2_hash(csc_to_dsc_proof.vkey),
+        csc_to_dsc_proof.key_hash,
+        "CSC to DSC proof vkey hash mismatch",
+    );
+    assert_eq(
+        poseidon2_hash(dsc_to_id_data_proof.vkey),
+        dsc_to_id_data_proof.key_hash,
+        "DSC to ID Data proof vkey hash mismatch",
+    );
+    assert_eq(
+        poseidon2_hash(integrity_check_proof.vkey),
+        integrity_check_proof.key_hash,
+        "Integrity check proof vkey hash mismatch",
+    );
     for i in 0..disclosure_proofs.len() {
-        assert_eq(poseidon2_hash(disclosure_proofs[i].vkey), disclosure_proofs[i].key_hash);
+        assert_eq(
+            poseidon2_hash(disclosure_proofs[i].vkey),
+            disclosure_proofs[i].key_hash,
+            "Disclosure proof vkey hash mismatch",
+        );
     }
 
     verify_proof_with_type(
@@ -107,7 +127,11 @@ fn verify_subproofs(
     );
 
     // Commitment out from CSC to DSC circuit == commitment in from DSC to ID Data circuit
-    assert_eq(csc_to_dsc_proof.public_inputs[0], dsc_to_id_data_proof.public_inputs[0]);
+    assert_eq(
+        csc_to_dsc_proof.public_inputs[0],
+        dsc_to_id_data_proof.public_inputs[0],
+        "Commitment out from CSC to DSC circuit != commitment in from DSC to ID Data circuit",
+    );
 
     verify_proof_with_type(
         dsc_to_id_data_proof.vkey,
@@ -121,7 +145,11 @@ fn verify_subproofs(
     );
 
     // Commitment out from DSC to ID Data circuit == commitment in from integrity check circuit
-    assert_eq(dsc_to_id_data_proof.public_inputs[1], integrity_check_proof.public_inputs[0]);
+    assert_eq(
+        dsc_to_id_data_proof.public_inputs[1],
+        integrity_check_proof.public_inputs[0],
+        "Commitment out from DSC to ID Data circuit != commitment in from integrity check circuit",
+    );
 
     verify_proof_with_type(
         integrity_check_proof.vkey,
@@ -137,7 +165,11 @@ fn verify_subproofs(
 
     for i in 0..disclosure_proofs.len() {
         // Commitment out from integrity check circuit == commitment in from disclosure circuit
-        assert_eq(integrity_check_proof.public_inputs[1], disclosure_proofs[i].public_inputs[0]);
+        assert_eq(
+            integrity_check_proof.public_inputs[1],
+            disclosure_proofs[i].public_inputs[0],
+            "Commitment out from integrity check circuit != commitment in from disclosure circuit",
+        );
 
         verify_proof_with_type(
             disclosure_proofs[i].vkey,

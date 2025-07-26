@@ -619,7 +619,7 @@ class FixtureGenerator {
     const outerProof5 = await this.generateOuterProof(
       fiveSubproofsData,
       "outer_count_5",
-      "outer_evm_count_5",
+      "outer_count_5",
     )
 
     // Generate 11 subproofs fixtures
@@ -637,7 +637,7 @@ class FixtureGenerator {
     const outerProof11 = await this.generateOuterProof(
       elevenSubproofsData,
       "outer_count_11",
-      "outer_evm_count_11",
+      "outer_count_11",
     )
 
     const fixtures = {
