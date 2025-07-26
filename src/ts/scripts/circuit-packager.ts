@@ -142,14 +142,16 @@ const processFile = async (
     }
 
     // Get Poseidon2 hash of vkey
-    const vkeyAsFieldsJson = JSON.parse(fs.readFileSync(`${vkeyPath}/vk_fields.json`, "utf-8"))
-    const vkeyAsFields = vkeyAsFieldsJson.map((v: any) => BigInt(v))
-    const vkeyHash = `0x${poseidon2Hash(vkeyAsFields).toString(16).padStart(64, "0")}`
+    //const vkeyAsFieldsJson = JSON.parse(fs.readFileSync(`${vkeyPath}/vk_fields.json`, "utf-8"))
+    //const vkeyAsFields = vkeyAsFieldsJson.map((v: any) => BigInt(v))
+    const vkeyHash = JSON.parse(fs.readFileSync(`${vkeyPath}/vk_hash_fields.json`, "utf-8"))
     const vkey = Buffer.from(fs.readFileSync(`${vkeyPath}/vk`)).toString("base64")
 
     // Clean up vkey files
     fs.unlinkSync(`${vkeyPath}/vk`)
     fs.unlinkSync(`${vkeyPath}/vk_fields.json`)
+    fs.unlinkSync(`${vkeyPath}/vk_hash`)
+    fs.unlinkSync(`${vkeyPath}/vk_hash_fields.json`)
     fs.rmdirSync(vkeyPath)
 
     // Read and parse the input file
@@ -191,7 +193,7 @@ const processFile = async (
 }
 
 // Get all outer EVM vkey hashes from packaged circuit files
-const getOuterEvmVkeyHashes = (): { count: number; hash: string }[] => {
+const getOuterkeyHashes = (): { count: number; hash: string }[] => {
   console.log("Collecting vkey hashes from packaged circuit files...")
   const vkeyHashes: { count: number; hash: string }[] = []
 
@@ -203,8 +205,8 @@ const getOuterEvmVkeyHashes = (): { count: number; hash: string }[] => {
 
     // Filter for outer_evm_count files and extract their vkey hashes
     for (const file of packagedFiles) {
-      if (file.startsWith("outer_evm_count_")) {
-        const countMatch = file.match(/outer_evm_count_(\d+)\.json/)
+      if (file.startsWith("outer_count_")) {
+        const countMatch = file.match(/outer_count_(\d+)\.json/)
         if (countMatch && countMatch[1]) {
           const count = parseInt(countMatch[1])
           const filePath = path.join(PACKAGED_CIRCUITS_DIR, file)
@@ -228,7 +230,7 @@ const getOuterEvmVkeyHashes = (): { count: number; hash: string }[] => {
               count,
               hash: normalizedHash,
             })
-            console.log(`Collected vkey hash for outer_evm_count_${count}: ${normalizedHash}`)
+            console.log(`Collected vkey hash for outer_count_${count}: ${normalizedHash}`)
           }
         }
       }
@@ -246,10 +248,10 @@ const getOuterEvmVkeyHashes = (): { count: number; hash: string }[] => {
 
 const updateVkeyHashesInSolidityDeployScript = (filePath: string) => {
   // Get vkey hashes from packaged files
-  const outerEvmVkeyHashes = getOuterEvmVkeyHashes()
+  const outerVkeyHashes = getOuterkeyHashes()
 
-  if (outerEvmVkeyHashes.length === 0) {
-    console.log("No outer EVM vkey hashes found to update in Deploy.s.sol")
+  if (outerVkeyHashes.length === 0) {
+    console.log("No outer vkey hashes found to update in Deploy.s.sol")
     return
   }
 
@@ -263,7 +265,7 @@ const updateVkeyHashesInSolidityDeployScript = (filePath: string) => {
     const vkeyHashesRegex = /(bytes32\[\] public vkeyHashes = \[)([\s\S]*?)(\];)/
 
     // Generate the new vkey hashes content
-    const newVkeyHashesContent = outerEvmVkeyHashes
+    const newVkeyHashesContent = outerVkeyHashes
       .map(
         ({ count, hash }) =>
           `    // Outer (${count} subproofs)\n    bytes32(hex"${hash
@@ -319,7 +321,7 @@ const processFiles = async () => {
       if (!success) {
         hasErrors = true
       }
-      console.log(`Generating the EVM-optimised outer proof packaged circuit...`)
+      /*console.log(`Generating the EVM-optimised outer proof packaged circuit...`)
       const successEvm = await processFile(
         file,
         true,
@@ -332,7 +334,7 @@ const processFiles = async () => {
       )
       if (!successEvm) {
         hasErrors = true
-      }
+      }*/
     }
   }
 

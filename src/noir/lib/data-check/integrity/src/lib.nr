@@ -35,8 +35,8 @@ pub fn check_dg1_sha1(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_conte
 * Computes the hash (using SHA1) of eContent (containing the hashes of the data groups) and checks it is the same as the one
 * included in the signed_attributes, which is the message signed by the Document Signing Certificate (DSC)
 */
-pub fn check_signed_attributes_sha1(
-    signed_attributes: [u8; 200],
+pub fn check_signed_attributes_sha1<let SA_SIZE: u32>(
+    signed_attributes: [u8; SA_SIZE],
     e_content: [u8; 700],
     e_content_size: u32,
 ) {
@@ -88,8 +88,8 @@ pub fn check_dg1_sha256(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_con
 * Computes the hash (using SHA2-256) of eContent (containing the hashes of the data groups) and checks it is the same as the one
 * included in the signed_attributes, which is the message signed by the Document Signing Certificate (DSC)
 */
-pub fn check_signed_attributes_sha256(
-    signed_attributes: [u8; 200],
+pub fn check_signed_attributes_sha256<let SA_SIZE: u32>(
+    signed_attributes: [u8; SA_SIZE],
     e_content: [u8; 700],
     e_content_size: u32,
 ) {
@@ -139,8 +139,8 @@ pub fn check_dg1_sha384(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_con
 * Computes the hash (using SHA2-384) of eContent (containing the hashes of the data groups) and checks it is the same as the one
 * included in the signed_attributes, which is the message signed by the Document Signing Certificate (DSC)
 */
-pub fn check_signed_attributes_sha384(
-    signed_attributes: [u8; 200],
+pub fn check_signed_attributes_sha384<let SA_SIZE: u32>(
+    signed_attributes: [u8; SA_SIZE],
     e_content: [u8; 700],
     e_content_size: u32,
 ) {
@@ -193,8 +193,8 @@ pub fn check_dg1_sha512(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_con
 * Computes the hash (using SHA2-512) of eContent (containing the hashes of the data groups) and checks it is the same as the one
 * included in the signed_attributes, which is the message signed by the Document Signing Certificate (DSC)
 */
-pub fn check_signed_attributes_sha512(
-    signed_attributes: [u8; 200],
+pub fn check_signed_attributes_sha512<let SA_SIZE: u32>(
+    signed_attributes: [u8; SA_SIZE],
     e_content: [u8; 700],
     e_content_size: u32,
 ) {
