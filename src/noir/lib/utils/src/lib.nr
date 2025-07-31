@@ -15,8 +15,6 @@
 // The structure of the MRZ is slightly different between passports
 // and ID cards so we need to define indices for both types
 
-mod timestamp;
-
 // Index for the country of issuance of the passport
 pub global PASSPORT_MRZ_COUNTRY_INDEX: u32 = 2;
 // Index for the three letter code of the country of citizenship

@@ -340,7 +340,6 @@ const DATA_INTEGRITY_CHECK_TEMPLATE = (
 use commitment::commit_to_disclosure;
 use data_check_expiry::check_expiry;
 use data_check_integrity::{check_dg1_${dg_hash_algorithm}, check_signed_attributes_${signed_attributes_hash_algorithm}};
-use utils::timestamp::timestamp_to_date_string;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     timestamp: pub u32,
@@ -355,10 +354,8 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     dg1_offset_in_e_content: u32,
     private_nullifier: Field,
 ) -> pub Field {
-    // Convert unix timestamp to a YYYYMMDD date string
-    let current_date = timestamp_to_date_string(timestamp);
     // Check the ID is not expired first
-    check_expiry(dg1, current_date.as_bytes());
+    check_expiry(dg1, timestamp);
     // Check the integrity of the data
     check_dg1_${dg_hash_algorithm}(dg1, e_content, dg1_offset_in_e_content);
     check_signed_attributes_${signed_attributes_hash_algorithm}(

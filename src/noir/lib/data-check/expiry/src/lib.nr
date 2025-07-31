@@ -4,7 +4,10 @@ use utils::{
     PASSPORT_MRZ_EXPIRY_DATE_INDEX,
 };
 
-pub fn check_expiry(dg1: [u8; 95], current_date_bytes: [u8; 8]) {
+pub fn check_expiry(dg1: [u8; 95], current_date_timestamp: u32) {
+    // Convert unix timestamp to a YYYYMMDD date string (as bytes)
+    let current_date_bytes = Date::from_timestamp(current_date_timestamp as u64).to_bytes();
+
     let mrz = get_mrz_from_dg1(dg1);
 
     // We base the threshold year for the expiry date on the current date plus 30 years
