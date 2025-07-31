@@ -344,7 +344,7 @@ use data_check_expiry::check_expiry;
 use data_check_integrity::{check_dg1_${dg_hash_algorithm}, check_signed_attributes_${signed_attributes_hash_algorithm}};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
-    current_date: pub str<8>,
+    timestamp: pub u32,
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,
@@ -357,7 +357,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     private_nullifier: Field,
 ) -> pub Field {
     // Check the ID is not expired first
-    check_expiry(dg1, current_date.as_bytes());
+    check_expiry(dg1, timestamp);
     // Check the integrity of the data
     check_dg1_${dg_hash_algorithm}(dg1, e_content, dg1_offset_in_e_content);
     check_signed_attributes_${signed_attributes_hash_algorithm}(
@@ -421,8 +421,8 @@ fn verify_subproofs(
     certificate_registry_root: Field,
     // Root of the circuit registry merkle tree
     circuit_registry_root: Field,
-    // Current date as a string, e.g. 20241103
-    current_date: str<8>,
+    // Current date and time as a unix timestamp
+    timestamp: u32,
     // The commitments over the parameters of the disclosure circuits
     param_commitments: [Field; ${disclosure_proofs_count}],
     // The nullifier service scope (a Pederson hash of the domain)
@@ -517,7 +517,7 @@ fn verify_subproofs(
         integrity_check_proof.vkey,
         integrity_check_proof.proof,
         prepare_integrity_check_inputs(
-            current_date,
+            timestamp,
             integrity_check_proof.public_inputs[0], // comm_in
             integrity_check_proof.public_inputs[1], // comm_out
         ),
@@ -550,7 +550,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
     // Root of the circuit registry merkle tree
     circuit_registry_root: pub Field,
-    current_date: pub str<8>,
+    timestamp: pub u32,
     service_scope: pub Field,
     service_subscope: pub Field,
     param_commitments: pub [Field; ${disclosure_proofs_count}],
@@ -563,7 +563,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     verify_subproofs(
         certificate_registry_root,
         circuit_registry_root,
-        current_date,
+        timestamp,
         param_commitments,
         service_scope,
         service_subscope,
@@ -710,6 +710,7 @@ function generateDataIntegrityCheckCircuit(
     { name: "data_check_integrity", path: "../../../../../lib/data-check/integrity" },
     { name: "data_check_expiry", path: "../../../../../lib/data-check/expiry" },
     { name: "commitment", path: "../../../../../lib/commitment/integrity-to-disclosure" },
+    { name: "utils", path: "../../../../../lib/utils" },
   ])
   const folderPath = `./src/noir/bin/data-check/integrity/sa_${signed_attributes_hash_algorithm}/dg_${dg_hash_algorithm}`
   const noirFilePath = `${folderPath}/src/main.nr`
