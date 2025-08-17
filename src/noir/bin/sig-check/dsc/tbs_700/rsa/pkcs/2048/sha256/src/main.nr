@@ -16,17 +16,14 @@ fn main(
     dsc_signature: [u8; 256],
     exponent: u32,
 ) -> pub Field {
-    assert(
-        verify_signature::<256, 0, 700, 32>(
-            csc_pubkey,
-            dsc_signature,
-            csc_pubkey_redc_param,
-            exponent,
-            tbs_certificate,
-            tbs_certificate_len,
-        ),
-        "RSA signature verification failed",
-    );
+    assert(verify_signature::<256, 0, 700, 32>(
+        csc_pubkey,
+        dsc_signature,
+        csc_pubkey_redc_param,
+        exponent,
+        tbs_certificate,
+        tbs_certificate_len,
+    ), "RSA signature verification failed");
     let comm_out = commit_to_dsc(
         certificate_registry_root,
         certificate_registry_index,
@@ -35,7 +32,6 @@ fn main(
         country,
         tbs_certificate,
         salt,
-        2,
         csc_pubkey,
     );
     comm_out

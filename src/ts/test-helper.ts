@@ -39,9 +39,6 @@ export class TestHelper {
       case "integrity": {
         const inputs = await getIntegrityCheckCircuitInputs(this.passport as any, 2n, 3n)
         if (!inputs) throw new Error("Unable to generate integrity check circuit inputs")
-        // TODO: Move this into getIntegrityCheckCircuitInputs()
-        // @ts-ignore
-        inputs["timestamp"] = utcDateToUnixTimestamp(2025, 1, 1)
         return inputs
       }
       case "disclose": {

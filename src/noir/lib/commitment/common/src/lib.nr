@@ -16,22 +16,16 @@ pub fn calculate_certificate_registry_leaf<let N: u32>(
     tags: Field,
     cert_type: u8,
     country: str<3>,
-    hash_algorithm: u8,
     public_key: [u8; N],
 ) -> Field {
-    // Pack certificate type, country code, and hash algorithm into a single field
+    // Pack certificate type and country code into a single field
     let country_bytes: [u8; 3] = country.as_bytes();
-    let unpacked_bytes: [u8; 5] = [
-        cert_type as u8,
-        country_bytes[0],
-        country_bytes[1],
-        country_bytes[2],
-        hash_algorithm as u8,
-    ];
+    let unpacked_bytes: [u8; 4] =
+        [cert_type as u8, country_bytes[0], country_bytes[1], country_bytes[2]];
     // Prepare and hash Poseidon2 inputs
     let mut poseidon_inputs: [Field; 2 + (N + 30) / 31] = [0; 2 + (N + 30) / 31];
     poseidon_inputs[0] = tags;
-    poseidon_inputs[1] = utils::pack_be_bytes_into_fields::<5, 1, 31>(unpacked_bytes)[0];
+    poseidon_inputs[1] = utils::pack_be_bytes_into_fields::<4, 1, 31>(unpacked_bytes)[0];
     let packed_pubkey = utils::pack_be_bytes_into_fields::<N, (N + 30) / 31, 31>(public_key);
     for i in 0..packed_pubkey.len() {
         poseidon_inputs[2 + i] = packed_pubkey[i] as Field;
@@ -82,10 +76,8 @@ pub fn test_calculate_certificate_registry_leaf() {
     let tags = 0xFF00FFFFFF as Field; // ["ICAO", "DE", "NL", "ES"] = 0x00000000FF | 0x000000FF00 | 0x0000FF0000 | 0xFF00000000 = 0xFF00FFFFFF
     let cert_type = 1 as u8; // CSCA
     let country = "AUS";
-    let hash_algorithm = 2 as u8; // SHA-256
 
-    let leaf_hash =
-        calculate_certificate_registry_leaf(tags, cert_type, country, hash_algorithm, public_key);
+    let leaf_hash = calculate_certificate_registry_leaf(tags, cert_type, country, public_key);
     // Should match the result of getCertificateLeafHash()
     assert(leaf_hash == 0x039a274cdf4a006ce26b26480aaed8d1360f5c51e34bde4bc158a4d71b510518);
 }

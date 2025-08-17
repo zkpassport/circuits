@@ -174,7 +174,6 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         country,
         tbs_certificate,
         salt,
-        ${hashAlgorithmToId(hash_algorithm)},
         concat_array(csc_pubkey_x, csc_pubkey_y),
     );
     comm_out
@@ -223,7 +222,6 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         country,
         tbs_certificate,
         salt,
-        ${hashAlgorithmToId(hash_algorithm)},
         csc_pubkey,
     );
     comm_out
@@ -1092,17 +1090,4 @@ if (args.includes("compile")) {
   const printStdErr = args.includes("verbose")
   checkNargoVersion()
   compileCircuitsWithNargo({ forceCompilation, printStdErr, concurrency })
-}
-
-function hashAlgorithmToId(hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512") {
-  const hashMap: Record<string, number> = {
-    sha1: HASH_ALGORITHM_SHA1,
-    sha256: HASH_ALGORITHM_SHA256,
-    sha384: HASH_ALGORITHM_SHA384,
-    sha512: HASH_ALGORITHM_SHA512,
-  }
-  if (hashMap[hash_algorithm] === undefined) {
-    throw new Error(`Unsupported hash algorithm: ${hash_algorithm}`)
-  }
-  return hashMap[hash_algorithm]
 }
