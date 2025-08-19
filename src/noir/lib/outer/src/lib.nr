@@ -1,18 +1,17 @@
-global PROOF_SIZE: u32 = 456;
-global VKEY_SIZE: u32 = 128;
+use poseidon::poseidon2::Poseidon2;
 
-pub fn prepare_integrity_check_inputs<let DATE_LEN: u32>(
-    current_date: str<DATE_LEN>,
+global PROOF_SIZE: u32 = 508;
+global VKEY_SIZE: u32 = 115;
+
+pub fn prepare_integrity_check_inputs(
+    timestamp: u32,
     comm_in: Field,
     comm_out: Field,
-) -> [Field; DATE_LEN + 2] {
-    let date_bytes: [u8; DATE_LEN] = current_date.as_bytes();
-    let mut result: [Field; 2 + DATE_LEN] = [0; 2 + DATE_LEN];
-    for i in 0..DATE_LEN {
-        result[i] = date_bytes[i] as Field;
-    }
-    result[DATE_LEN] = comm_in;
-    result[DATE_LEN + 1] = comm_out;
+) -> [Field; 3] {
+    let mut result: [Field; 3] = [0; 3];
+    result[0] = timestamp as Field;
+    result[1] = comm_in;
+    result[2] = comm_out;
     result
 }
 
@@ -30,6 +29,10 @@ pub fn prepare_disclosure_inputs(
     result[3] = param_commitment;
     result[4] = scoped_nullifier;
     result
+}
+
+pub fn poseidon2_hash<let INPUT_LEN: u32>(input: [Field; INPUT_LEN]) -> Field {
+    Poseidon2::hash(input, INPUT_LEN)
 }
 
 pub struct CSCtoDSCProof {

@@ -1,7 +1,7 @@
 // This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
-use sig_check_rsa::verify_signature;
-use data_check_tbs_pubkey::verify_rsa_pubkey_in_tbs;
 use commitment::commit_to_id;
+use data_check_tbs_pubkey::verify_rsa_pubkey_in_tbs;
+use sig_check_rsa::verify_signature;
 
 fn main(
     comm_in: pub Field,
@@ -13,19 +13,23 @@ fn main(
     sod_signature: [u8; 256],
     tbs_certificate: [u8; 1000],
     pubkey_offset_in_tbs: u32,
-    signed_attributes: [u8; 200],
+    signed_attributes: [u8; 220],
     signed_attributes_size: u64,
     exponent: u32,
+    e_content: [u8; 700],
 ) -> pub Field {
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate, pubkey_offset_in_tbs);
-    assert(verify_signature::<256, 1, 200, 64>(
-        dsc_pubkey,
-        sod_signature,
-        dsc_pubkey_redc_param,
-        exponent,
-        signed_attributes,
-        signed_attributes_size,
-    ));
+    assert(
+        verify_signature::<256, 1, 220, 64>(
+            dsc_pubkey,
+            sod_signature,
+            dsc_pubkey_redc_param,
+            exponent,
+            signed_attributes,
+            signed_attributes_size,
+        ),
+        "RSA signature verification failed",
+    );
     let comm_out = commit_to_id(
         comm_in,
         salt_in,
@@ -35,6 +39,7 @@ fn main(
         sod_signature,
         signed_attributes,
         signed_attributes_size as Field,
+        e_content,
     );
     comm_out
 }

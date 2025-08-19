@@ -17,6 +17,8 @@ function ensureDirectoryExistence(filePath: string) {
   } catch (e) {}
 }
 
+const SIGNED_ATTRIBUTES_SIZE = 220
+
 const generatedCircuits: {
   name: string
   path: string
@@ -153,9 +155,9 @@ const DSC_ECDSA_TEMPLATE = (
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_dsc;
+use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 use sig_check_ecdsa::verify_${curve_family}_${curve_name};
 use utils::{concat_array, split_array};
-use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
@@ -172,13 +174,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
 ) -> pub Field {
     let (r, s) = split_array(dsc_signature);
     let msg_hash = ${hash_algorithm}_and_check_data_to_sign(tbs_certificate, tbs_certificate_len);
-    assert(verify_${curve_family}_${curve_name}(
-        csc_pubkey_x,
-        csc_pubkey_y,
-        r,
-        s,
-        msg_hash,
-    ));
+    assert(verify_${curve_family}_${curve_name}(csc_pubkey_x, csc_pubkey_y, r, s, msg_hash), "ECDSA signature verification failed");
     let comm_out = commit_to_dsc(
         certificate_registry_root,
         certificate_registry_index,
@@ -187,11 +183,11 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         country,
         tbs_certificate,
         salt,
-        ${hashAlgorithmToId(hash_algorithm)},
         concat_array(csc_pubkey_x, csc_pubkey_y),
     );
     comm_out
-}`
+}
+`
 
 const DSC_RSA_TEMPLATE = (
   rsa_type: "pss" | "pkcs",
@@ -200,8 +196,8 @@ const DSC_RSA_TEMPLATE = (
   hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
-use sig_check_rsa::verify_signature;
 use commitment::commit_to_dsc;
+use sig_check_rsa::verify_signature;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
@@ -226,7 +222,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         exponent,
         tbs_certificate,
         tbs_certificate_len,
-    ));
+    ), "RSA signature verification failed");
     let comm_out = commit_to_dsc(
         certificate_registry_root,
         certificate_registry_index,
@@ -235,7 +231,6 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         country,
         tbs_certificate,
         salt,
-        ${hashAlgorithmToId(hash_algorithm)},
         csc_pubkey,
     );
     comm_out
@@ -252,9 +247,9 @@ const ID_DATA_ECDSA_TEMPLATE = (
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_id;
 use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
+use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 use sig_check_ecdsa::verify_${curve_family}_${curve_name};
 use utils::split_array;
-use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     comm_in: pub Field,
@@ -266,8 +261,9 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     sod_signature: [u8; ${Math.ceil(bit_size / 8) * 2}],
     tbs_certificate: [u8; ${tbs_max_len}],
     pubkey_offset_in_tbs: u32,
-    signed_attributes: [u8; 200],
+    signed_attributes: [u8; ${SIGNED_ATTRIBUTES_SIZE}],
     signed_attributes_size: u64,
+    e_content: [u8; 700],
 ) -> pub Field {
     let (r, s) = split_array(sod_signature);
     let msg_hash = ${hash_algorithm}_and_check_data_to_sign(signed_attributes, signed_attributes_size);
@@ -277,13 +273,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         tbs_certificate,
         pubkey_offset_in_tbs,
     );
-    assert(verify_${curve_family}_${curve_name}(
-        dsc_pubkey_x,
-        dsc_pubkey_y,
-        r,
-        s,
-        msg_hash,
-    ));
+    assert(verify_${curve_family}_${curve_name}(dsc_pubkey_x, dsc_pubkey_y, r, s, msg_hash), "ECDSA signature verification failed");
     let comm_out = commit_to_id(
         comm_in,
         salt_in,
@@ -293,6 +283,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         sod_signature,
         signed_attributes,
         signed_attributes_size as Field,
+        e_content,
     );
     comm_out
 }
@@ -305,9 +296,9 @@ const ID_DATA_RSA_TEMPLATE = (
   hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
-use sig_check_rsa::verify_signature;
-use data_check_tbs_pubkey::verify_rsa_pubkey_in_tbs;
 use commitment::commit_to_id;
+use data_check_tbs_pubkey::verify_rsa_pubkey_in_tbs;
+use sig_check_rsa::verify_signature;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     comm_in: pub Field,
@@ -319,21 +310,22 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     sod_signature: [u8; ${Math.ceil(bit_size / 8)}],
     tbs_certificate: [u8; ${tbs_max_len}],
     pubkey_offset_in_tbs: u32,
-    signed_attributes: [u8; 200],
+    signed_attributes: [u8; ${SIGNED_ATTRIBUTES_SIZE}],
     signed_attributes_size: u64,
     exponent: u32,
+    e_content: [u8; 700],
 ) -> pub Field {
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate, pubkey_offset_in_tbs);
     assert(verify_signature::<${Math.ceil(bit_size / 8)}, ${
   rsa_type === "pss" ? 1 : 0
-}, 200, ${getHashAlgorithmByteSize(hash_algorithm)}>(
+}, ${SIGNED_ATTRIBUTES_SIZE}, ${getHashAlgorithmByteSize(hash_algorithm)}>(
         dsc_pubkey,
         sod_signature,
         dsc_pubkey_redc_param,
         exponent,
         signed_attributes,
         signed_attributes_size,
-    ));
+    ), "RSA signature verification failed");
     let comm_out = commit_to_id(
         comm_in,
         salt_in,
@@ -343,6 +335,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         sod_signature,
         signed_attributes,
         signed_attributes_size as Field,
+        e_content,
     );
     comm_out
 }
@@ -358,12 +351,12 @@ use data_check_expiry::check_expiry;
 use data_check_integrity::{check_dg1_${dg_hash_algorithm}, check_signed_attributes_${signed_attributes_hash_algorithm}};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
-    current_date: pub str<8>,
+    current_date: pub u32,
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,
     dg1: [u8; 95],
-    signed_attributes: [u8; 200],
+    signed_attributes: [u8; ${SIGNED_ATTRIBUTES_SIZE}],
     signed_attributes_size: u32,
     e_content: [u8; 700],
     e_content_size: u32,
@@ -371,16 +364,11 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     private_nullifier: Field,
 ) -> pub Field {
     // Check the ID is not expired first
-    check_expiry(dg1, current_date.as_bytes());
+    check_expiry(dg1, current_date);
     // Check the integrity of the data
-    check_dg1_${dg_hash_algorithm}(
-        dg1,
-        e_content,
-        dg1_offset_in_e_content,
-    );
+    check_dg1_${dg_hash_algorithm}(dg1, e_content, dg1_offset_in_e_content);
     check_signed_attributes_${signed_attributes_hash_algorithm}(
         signed_attributes,
-        signed_attributes_size,
         e_content,
         e_content_size,
     );
@@ -391,6 +379,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         dg1,
         signed_attributes,
         signed_attributes_size as Field,
+        e_content,
         private_nullifier,
     );
     comm_out
@@ -428,20 +417,19 @@ disclosure_proofs -> The proofs of the disclosure circuits
 
 use common::compute_merkle_root;
 use outer_lib::{
-    CSCtoDSCProof, DisclosureProof, DSCtoIDDataProof, IntegrityCheckProof,
+    CSCtoDSCProof, DisclosureProof, DSCtoIDDataProof, IntegrityCheckProof, poseidon2_hash,
     prepare_disclosure_inputs, prepare_integrity_check_inputs,
 };
 use std::verify_proof_with_type;
-use std::hash::poseidon2::Poseidon2;
-global HONK_IDENTIFIER: u32 = 1;
+global PROOF_TYPE_HONK_ZK: u32 = 7;
 
 fn verify_subproofs(
     // Root of the certificate merkle tree
     certificate_registry_root: Field,
     // Root of the circuit registry merkle tree
     circuit_registry_root: Field,
-    // Current date as a string, e.g. 20241103
-    current_date: str<8>,
+    // Current date and time as a unix timestamp
+    current_date: u32,
     // The commitments over the parameters of the disclosure circuits
     param_commitments: [Field; ${disclosure_proofs_count}],
     // The nullifier service scope (a Pederson hash of the domain)
@@ -457,19 +445,51 @@ fn verify_subproofs(
 ) {
     // Verify that all subproofs vkey hashes exist in the circuit tree
     // This way we know for sure that the proofs were generated with valid circuits
-    assert_eq(circuit_registry_root, compute_merkle_root(csc_to_dsc_proof.key_hash, csc_to_dsc_proof.tree_index, csc_to_dsc_proof.tree_hash_path));
-    assert_eq(circuit_registry_root, compute_merkle_root(dsc_to_id_data_proof.key_hash, dsc_to_id_data_proof.tree_index, dsc_to_id_data_proof.tree_hash_path));
-    assert_eq(circuit_registry_root, compute_merkle_root(integrity_check_proof.key_hash, integrity_check_proof.tree_index, integrity_check_proof.tree_hash_path));
+    assert_eq(
+        circuit_registry_root,
+        compute_merkle_root(
+            csc_to_dsc_proof.key_hash,
+            csc_to_dsc_proof.tree_index,
+            csc_to_dsc_proof.tree_hash_path,
+        ),
+        "CSC to DSC proof vkey hash not found in circuit tree",
+    );
+    assert_eq(
+        circuit_registry_root,
+        compute_merkle_root(
+            dsc_to_id_data_proof.key_hash,
+            dsc_to_id_data_proof.tree_index,
+            dsc_to_id_data_proof.tree_hash_path,
+        ),
+        "DSC to ID Data proof vkey hash not found in circuit tree",
+    );
+    assert_eq(
+        circuit_registry_root,
+        compute_merkle_root(
+            integrity_check_proof.key_hash,
+            integrity_check_proof.tree_index,
+            integrity_check_proof.tree_hash_path,
+        ),
+        "Integrity check proof vkey hash not found in circuit tree",
+    );
     for i in 0..disclosure_proofs.len() {
-        assert_eq(circuit_registry_root, compute_merkle_root(disclosure_proofs[i].key_hash, disclosure_proofs[i].tree_index, disclosure_proofs[i].tree_hash_path));
+        assert_eq(
+            circuit_registry_root,
+            compute_merkle_root(
+                disclosure_proofs[i].key_hash,
+                disclosure_proofs[i].tree_index,
+                disclosure_proofs[i].tree_hash_path,
+            ),
+            "Disclosure proof vkey hash not found in circuit tree",
+        );
     }
-      
+
     // Verify that the vkey hashes are correct
-    assert_eq(Poseidon2::hash(csc_to_dsc_proof.vkey, 128), csc_to_dsc_proof.key_hash);
-    assert_eq(Poseidon2::hash(dsc_to_id_data_proof.vkey, 128), dsc_to_id_data_proof.key_hash);
-    assert_eq(Poseidon2::hash(integrity_check_proof.vkey, 128), integrity_check_proof.key_hash);
+    assert_eq(poseidon2_hash(csc_to_dsc_proof.vkey), csc_to_dsc_proof.key_hash, "CSC to DSC proof vkey hash mismatch");
+    assert_eq(poseidon2_hash(dsc_to_id_data_proof.vkey), dsc_to_id_data_proof.key_hash, "DSC to ID Data proof vkey hash mismatch");
+    assert_eq(poseidon2_hash(integrity_check_proof.vkey), integrity_check_proof.key_hash, "Integrity check proof vkey hash mismatch");
     for i in 0..disclosure_proofs.len() {
-        assert_eq(Poseidon2::hash(disclosure_proofs[i].vkey, 128), disclosure_proofs[i].key_hash);
+        assert_eq(poseidon2_hash(disclosure_proofs[i].vkey), disclosure_proofs[i].key_hash, "Disclosure proof vkey hash mismatch");
     }
 
     verify_proof_with_type(
@@ -480,11 +500,11 @@ fn verify_subproofs(
             csc_to_dsc_proof.public_inputs[0], // comm_out
         ],
         csc_to_dsc_proof.key_hash,
-        HONK_IDENTIFIER,
+        PROOF_TYPE_HONK_ZK,
     );
 
     // Commitment out from CSC to DSC circuit == commitment in from DSC to ID Data circuit
-    assert_eq(csc_to_dsc_proof.public_inputs[0], dsc_to_id_data_proof.public_inputs[0]);
+    assert_eq(csc_to_dsc_proof.public_inputs[0], dsc_to_id_data_proof.public_inputs[0], "Commitment out from CSC to DSC circuit != commitment in from DSC to ID Data circuit");
 
     verify_proof_with_type(
         dsc_to_id_data_proof.vkey,
@@ -494,11 +514,11 @@ fn verify_subproofs(
             dsc_to_id_data_proof.public_inputs[1], // comm_out
         ],
         dsc_to_id_data_proof.key_hash,
-        HONK_IDENTIFIER,
+        PROOF_TYPE_HONK_ZK,
     );
 
     // Commitment out from DSC to ID Data circuit == commitment in from integrity check circuit
-    assert_eq(dsc_to_id_data_proof.public_inputs[1], integrity_check_proof.public_inputs[0]);
+    assert_eq(dsc_to_id_data_proof.public_inputs[1], integrity_check_proof.public_inputs[0], "Commitment out from DSC to ID Data circuit != commitment in from integrity check circuit");
 
     verify_proof_with_type(
         integrity_check_proof.vkey,
@@ -509,12 +529,12 @@ fn verify_subproofs(
             integrity_check_proof.public_inputs[1], // comm_out
         ),
         integrity_check_proof.key_hash,
-        HONK_IDENTIFIER,
+        PROOF_TYPE_HONK_ZK,
     );
 
     for i in 0..disclosure_proofs.len() {
         // Commitment out from integrity check circuit == commitment in from disclosure circuit
-        assert_eq(integrity_check_proof.public_inputs[1], disclosure_proofs[i].public_inputs[0]);
+        assert_eq(integrity_check_proof.public_inputs[1], disclosure_proofs[i].public_inputs[0], "Commitment out from integrity check circuit != commitment in from disclosure circuit");
 
         verify_proof_with_type(
             disclosure_proofs[i].vkey,
@@ -527,7 +547,7 @@ fn verify_subproofs(
                 scoped_nullifier,
             ),
             disclosure_proofs[i].key_hash,
-            HONK_IDENTIFIER,
+            PROOF_TYPE_HONK_ZK,
         );
     }
 }
@@ -537,7 +557,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
     // Root of the circuit registry merkle tree
     circuit_registry_root: pub Field,
-    current_date: pub str<8>,
+    current_date: pub u32,
     service_scope: pub Field,
     service_subscope: pub Field,
     param_commitments: pub [Field; ${disclosure_proofs_count}],
@@ -560,7 +580,8 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         integrity_check_proof,
         disclosure_proofs,
     );
-}`
+}
+`
 
 function generateDscEcdsaCircuit(
   curve_family: string,
@@ -696,6 +717,7 @@ function generateDataIntegrityCheckCircuit(
     { name: "data_check_integrity", path: "../../../../../lib/data-check/integrity" },
     { name: "data_check_expiry", path: "../../../../../lib/data-check/expiry" },
     { name: "commitment", path: "../../../../../lib/commitment/integrity-to-disclosure" },
+    { name: "utils", path: "../../../../../lib/utils" },
   ])
   const folderPath = `./src/noir/bin/data-check/integrity/sa_${signed_attributes_hash_algorithm}/dg_${dg_hash_algorithm}`
   const noirFilePath = `${folderPath}/src/main.nr`
@@ -729,15 +751,19 @@ const SIGNATURE_ALGORITHMS_SUPPORTED: {
   curve_name?: string
   bit_size: number
 }[] = [
+  { type: "ecdsa", family: "nist", curve_name: "p192", bit_size: 192 },
+  { type: "ecdsa", family: "nist", curve_name: "p224", bit_size: 224 },
   { type: "ecdsa", family: "nist", curve_name: "p256", bit_size: 256 },
   { type: "ecdsa", family: "nist", curve_name: "p384", bit_size: 384 },
   { type: "ecdsa", family: "nist", curve_name: "p521", bit_size: 521 },
+  { type: "ecdsa", family: "brainpool", curve_name: "192r1", bit_size: 192 },
+  { type: "ecdsa", family: "brainpool", curve_name: "224r1", bit_size: 224 },
   { type: "ecdsa", family: "brainpool", curve_name: "256r1", bit_size: 256 },
   { type: "ecdsa", family: "brainpool", curve_name: "384r1", bit_size: 384 },
   { type: "ecdsa", family: "brainpool", curve_name: "512r1", bit_size: 512 },
-  { type: "ecdsa", family: "brainpool", curve_name: "256t1", bit_size: 256 },
+  /*{ type: "ecdsa", family: "brainpool", curve_name: "256t1", bit_size: 256 },
   { type: "ecdsa", family: "brainpool", curve_name: "384t1", bit_size: 384 },
-  { type: "ecdsa", family: "brainpool", curve_name: "512t1", bit_size: 512 },
+  { type: "ecdsa", family: "brainpool", curve_name: "512t1", bit_size: 512 },*/
   { type: "rsa", family: "pss", bit_size: 1024 },
   { type: "rsa", family: "pss", bit_size: 2048 },
   { type: "rsa", family: "pss", bit_size: 3072 },
@@ -748,7 +774,7 @@ const SIGNATURE_ALGORITHMS_SUPPORTED: {
   { type: "rsa", family: "pkcs", bit_size: 4096 },
 ]
 
-const TBS_MAX_LENGTHS = [700, 1000, 1200, 1500, 1600]
+const TBS_MAX_LENGTHS = [700, 1000, 1200, 1600]
 
 const HASH_ALGORITHMS_SUPPORTED = ["sha1", "sha256", "sha384", "sha512"]
 
@@ -1028,7 +1054,7 @@ function checkNargoVersion() {
     if (!installedNargoVersion) {
       throw new Error(`Failed to parse nargo version output: ${nargoVersionOutput}`)
     }
-    if (installedNargoVersion !== expectedNoirVersion) {
+    if (installedNargoVersion !== expectedNoirVersion.replace("^", "")) {
       throw new Error(
         `nargo version mismatch. Expected ${expectedNoirVersion} but found ${installedNargoVersion}. Please switch nargo versions using noirup.`,
       )
@@ -1073,17 +1099,4 @@ if (args.includes("compile")) {
   const printStdErr = args.includes("verbose")
   checkNargoVersion()
   compileCircuitsWithNargo({ forceCompilation, printStdErr, concurrency })
-}
-
-function hashAlgorithmToId(hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512") {
-  const hashMap: Record<string, number> = {
-    sha1: HASH_ALGORITHM_SHA1,
-    sha256: HASH_ALGORITHM_SHA256,
-    sha384: HASH_ALGORITHM_SHA384,
-    sha512: HASH_ALGORITHM_SHA512,
-  }
-  if (hashMap[hash_algorithm] === undefined) {
-    throw new Error(`Unsupported hash algorithm: ${hash_algorithm}`)
-  }
-  return hashMap[hash_algorithm]
 }

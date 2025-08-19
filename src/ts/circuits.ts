@@ -66,6 +66,7 @@ export class Circuit {
       // Should only be used with the outer proof optimised for EVM verification
       // The subproofs must always use Poseidon2 and be recursively verifiable
       evm?: boolean
+      disableZK?: boolean
     },
   ): Promise<ProofData> {
     this.checkInputs(inputs)
@@ -77,13 +78,28 @@ export class Circuit {
       const witnessPath = path.join(tempDir, "witness.gz")
       const circuitPath = path.join(tempDir, "circuit.json")
       const proofPath = path.join(tempDir, "proof")
+      const publicInputsPath = path.join(tempDir, "public_inputs")
+      const vkeyPath = path.join(tempDir, "vkey")
+
       await writeFileAsync(witnessPath, witness)
       await writeFileAsync(circuitPath, JSON.stringify(this.manifest))
-      const proveCommand = `bb prove --scheme ultra_honk ${
-        options?.recursive ? "--recursive --init_kzg_accumulator" : ""
-      } ${
-        options?.evm ? "--oracle_hash keccak" : ""
-      } --honk_recursion 1 -b ${circuitPath} -w ${witnessPath} -o ${tempDir}`
+
+      // Generate VK - TODO: getVerificationKey can be configured to not deleted the file it wrote
+      const { vkeyBytes } = await this.getVerificationKey({
+        evm: options?.evm ?? false,
+      })
+      await writeFileAsync(vkeyPath, vkeyBytes)
+
+      // Generate proof
+      const proveCommand = `bb prove --scheme ultra_honk \
+        ${options?.evm ? "--oracle_hash keccak" : ""} \
+        ${options?.disableZK ? "--disable_zk" : ""} \
+        -b ${circuitPath} \
+        -w ${witnessPath} \
+        -k ${vkeyPath} \
+        -o ${tempDir}
+      `
+
       await execAsync(proveCommand, {
         cwd: tempDir,
       })
@@ -92,12 +108,17 @@ export class Circuit {
       if (!fs.existsSync(proofPath)) {
         throw new Error("Proof file was not created")
       }
-      // Read the proof file and encode as base64
+      // Read the proof and public inputs files and encode as hex
       const proofHex = fs.readFileSync(proofPath).toString("hex")
-      proof = getProofData(proofHex, getNumberOfPublicInputs(options?.circuitName ?? ""))
+      const publicInputs = fs.readFileSync(publicInputsPath).toString("hex")
+      proof = {
+        proof: proofHex.match(/.{1,64}/g)?.map((x) => `0x${x}`) ?? [],
+        publicInputs: publicInputs.match(/.{1,64}/g)?.map((x) => `0x${x}`) ?? [],
+      }
     } else {
       if (options?.recursive) {
-        proof = await this.backend!.generateProofForRecursiveAggregation(witness)
+        //proof = await this.backend!.generateProofForRecursiveAggregation(witness)
+        throw new Error("Recursive proof not supported")
       } else {
         const result = await this.backend!.generateProof(witness, {
           keccak: (options && options.evm) ?? false,
@@ -123,57 +144,52 @@ export class Circuit {
     })
   }
 
-  async getVerificationKey(options?: { recursive?: boolean; evm?: boolean; useCli?: boolean }) {
-    const recursive = options?.recursive ?? false
+  async getVerificationKey(options?: { evm?: boolean }) {
     const evm = options?.evm ?? false
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "vkey-"))
+    const circuitPath = path.join(tempDir, "circuit.json")
+    const vkeyPath = path.join(tempDir, "vkey")
 
-    if (options?.useCli) {
-      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "vkey-"))
-      const circuitPath = path.join(tempDir, "circuit.json")
-      const vkeyPath = path.join(tempDir, "vkey")
+    try {
+      // Write circuit manifest to temp file
+      await writeFileAsync(circuitPath, JSON.stringify(this.manifest))
 
-      try {
-        // Write circuit manifest to temp file
-        await writeFileAsync(circuitPath, JSON.stringify(this.manifest))
+      // Create vkey directory`
+      fs.mkdirSync(vkeyPath, { recursive: true })
 
-        // Create vkey directory`
-        fs.mkdirSync(vkeyPath, { recursive: true })
+      // Run bb write_vk command
+      const writeVkCommand = `bb write_vk --scheme ultra_honk \
+        ${evm ? " --oracle_hash keccak" : ""} \
+        --output_format bytes_and_fields \
+        --honk_recursion 1 \
+        -b "${circuitPath}" \
+        -o "${vkeyPath}"
+      `
 
-        // Run bb write_vk command
-        const writeVkCommand = `bb write_vk --scheme ultra_honk${
-          recursive ? " --recursive --init_kzg_accumulator" : ""
-        }${
-          evm ? " --oracle_hash keccak" : ""
-        } --honk_recursion 1 --output_format bytes -b "${circuitPath}" -o "${vkeyPath}"`
-
-        await execAsync(writeVkCommand, {
-          cwd: tempDir,
-        })
-
-        // Check if vkey file was created
-        const vkeyFilePath = path.join(vkeyPath, "vk")
-        if (!fs.existsSync(vkeyFilePath)) {
-          throw new Error("Verification key file was not created")
-        }
-
-        // Read the verification key file
-        const vkey = fs.readFileSync(vkeyFilePath)
-
-        // Clean up temp files
-        fs.rmSync(tempDir, { recursive: true, force: true })
-
-        return vkey
-      } catch (error) {
-        // Clean up temp files on error
-        fs.rmSync(tempDir, { recursive: true, force: true })
-        throw error
-      }
-    } else {
-      await this.init(recursive)
-      if (!this.backend) throw new Error("Backend not initialized")
-      return await this.backend.getVerificationKey({
-        keccak: evm,
+      await execAsync(writeVkCommand, {
+        cwd: tempDir,
       })
+
+      // Check if vkey file was created
+      const vkeyFilePath = path.join(vkeyPath, "vk")
+      if (!fs.existsSync(vkeyFilePath)) {
+        throw new Error("Verification key file was not created")
+      }
+
+      // Read the verification key file
+      const vkeyBytes = fs.readFileSync(vkeyFilePath)
+      const vkeyFields = JSON.parse(
+        fs.readFileSync(path.join(vkeyPath, "vk_fields.json")).toString("utf-8"),
+      ) as string[]
+
+      // Clean up temp files
+      fs.rmSync(tempDir, { recursive: true, force: true })
+
+      return { vkeyBytes, vkeyFields }
+    } catch (error) {
+      // Clean up temp files on error
+      fs.rmSync(tempDir, { recursive: true, force: true })
+      throw error
     }
   }
 

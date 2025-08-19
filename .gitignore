@@ -1,6 +1,7 @@
 crs
 target
 proofs
+vkeys
 Prover.toml
 Verifier.toml
 info

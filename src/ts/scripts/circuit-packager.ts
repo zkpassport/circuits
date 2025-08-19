@@ -2,18 +2,11 @@ import { poseidon2Hash } from "@zkpassport/poseidon2"
 import { PromisePool } from "@zkpassport/utils"
 import { calculateCircuitRoot } from "@zkpassport/utils/registry"
 import { exec, execSync } from "child_process"
-import fs, { copyFileSync } from "fs"
+import fs from "fs"
 import type { Blockstore } from "interface-blockstore"
-import { importer } from "ipfs-unixfs-importer"
 import path from "path"
 import { promisify } from "util"
-import {
-  snakeToPascal,
-  gzipAsync,
-  getGateCount,
-  initBarretenberg,
-  destroyBarretenberg,
-} from "../utils"
+import { snakeToPascal, gzipAsync, initBarretenberg, destroyBarretenberg } from "../utils"
 import { Barretenberg } from "@aztec/bb.js"
 
 let barretenberg: Barretenberg
@@ -39,6 +32,9 @@ async function getIpfsCidv0(
   { gzip = false }: { gzip?: boolean } = {},
 ): Promise<string> {
   if (gzip) data = await gzipAsync(data)
+
+  const { importer } = await import("ipfs-unixfs-importer")
+
   // Create a mock memory blockstore that does nothing
   const blockstore: Blockstore = { get: async () => {}, put: async () => {} } as any
   for await (const result of importer([{ content: data }], blockstore, {
@@ -56,7 +52,10 @@ function checkBBVersion() {
     // Read package.json to get expected bb version
     const packageJsonPath = path.resolve(__dirname, "../../../package.json")
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
-    const expectedBBVersion = packageJson.dependencies["@aztec/bb.js"].replace(/[^0-9\.]/i, "")
+    const expectedBBVersion = packageJson.dependencies["@aztec/bb.js"].replace(
+      /[^0-9a-zA-Z\.\-]/i,
+      "",
+    )
     if (!expectedBBVersion) {
       throw new Error("Couldn't find bb version in package.json")
     }
@@ -100,7 +99,6 @@ const execPromise = promisify(exec)
 // Process a single file
 const processFile = async (
   file: string,
-  recursive: boolean = true,
   evm: boolean = false,
   outputName: string = file.replace(".json", ""),
   generateSolidityVerifier: boolean = false,
@@ -125,43 +123,38 @@ const processFile = async (
     console.log(`Generating vkey: ${file}`)
     fs.mkdirSync(vkeyPath, { recursive: true })
     await execPromise(
-      `bb write_vk --scheme ultra_honk${recursive ? " --recursive --init_kzg_accumulator" : ""}${
+      `bb write_vk --scheme ultra_honk${
         evm ? " --oracle_hash keccak" : ""
       } --honk_recursion 1 --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
     )
-    if (file.startsWith("outer")) {
-      await execPromise(
-        `bb gates --scheme ultra_honk --honk_recursion 1 -b "${inputPath}" > "${gateCountPath}"`,
-      )
-    }
+    await execPromise(
+      `bb gates --scheme ultra_honk --honk_recursion 1 -b "${inputPath}" > "${gateCountPath}"`,
+    )
     if (generateSolidityVerifier) {
       await execPromise(
-        `bb write_solidity_verifier --scheme ultra_honk -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
+        `bb write_solidity_verifier --scheme ultra_honk --disable_zk -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
       )
     }
 
     // Get Poseidon2 hash of vkey
-    const vkeyAsFieldsJson = JSON.parse(fs.readFileSync(`${vkeyPath}/vk_fields.json`, "utf-8"))
-    const vkeyAsFields = vkeyAsFieldsJson.map((v: any) => BigInt(v))
-    const vkeyHash = `0x${poseidon2Hash(vkeyAsFields).toString(16).padStart(64, "0")}`
+    //const vkeyAsFieldsJson = JSON.parse(fs.readFileSync(`${vkeyPath}/vk_fields.json`, "utf-8"))
+    //const vkeyAsFields = vkeyAsFieldsJson.map((v: any) => BigInt(v))
+    const vkeyHash = JSON.parse(fs.readFileSync(`${vkeyPath}/vk_hash_fields.json`, "utf-8"))
     const vkey = Buffer.from(fs.readFileSync(`${vkeyPath}/vk`)).toString("base64")
 
     // Clean up vkey files
     fs.unlinkSync(`${vkeyPath}/vk`)
     fs.unlinkSync(`${vkeyPath}/vk_fields.json`)
+    fs.unlinkSync(`${vkeyPath}/vk_hash`)
+    fs.unlinkSync(`${vkeyPath}/vk_hash_fields.json`)
     fs.rmdirSync(vkeyPath)
 
     // Read and parse the input file
     const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
     let gateCount = 0
-    // For outer circuit we use the cli as they're too big for wasm
-    if (file.startsWith("outer")) {
-      const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
-      gateCount = gateCountFileContent.functions[0].circuit_size
-      fs.unlinkSync(gateCountPath)
-    } else {
-      gateCount = await getGateCount(barretenberg!, jsonContent.bytecode)
-    }
+    const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
+    gateCount = gateCountFileContent.functions[0].circuit_size
+    fs.unlinkSync(gateCountPath)
 
     // Create packaged circuit object
     const packagedCircuit: {
@@ -195,7 +188,7 @@ const processFile = async (
 }
 
 // Get all outer EVM vkey hashes from packaged circuit files
-const getOuterEvmVkeyHashes = (): { count: number; hash: string }[] => {
+const getOuterkeyHashes = (): { count: number; hash: string }[] => {
   console.log("Collecting vkey hashes from packaged circuit files...")
   const vkeyHashes: { count: number; hash: string }[] = []
 
@@ -207,8 +200,8 @@ const getOuterEvmVkeyHashes = (): { count: number; hash: string }[] => {
 
     // Filter for outer_evm_count files and extract their vkey hashes
     for (const file of packagedFiles) {
-      if (file.startsWith("outer_evm_count_")) {
-        const countMatch = file.match(/outer_evm_count_(\d+)\.json/)
+      if (file.startsWith("outer_count_")) {
+        const countMatch = file.match(/outer_count_(\d+)\.json/)
         if (countMatch && countMatch[1]) {
           const count = parseInt(countMatch[1])
           const filePath = path.join(PACKAGED_CIRCUITS_DIR, file)
@@ -232,7 +225,7 @@ const getOuterEvmVkeyHashes = (): { count: number; hash: string }[] => {
               count,
               hash: normalizedHash,
             })
-            console.log(`Collected vkey hash for outer_evm_count_${count}: ${normalizedHash}`)
+            console.log(`Collected vkey hash for outer_count_${count}: ${normalizedHash}`)
           }
         }
       }
@@ -250,10 +243,10 @@ const getOuterEvmVkeyHashes = (): { count: number; hash: string }[] => {
 
 const updateVkeyHashesInSolidityDeployScript = (filePath: string) => {
   // Get vkey hashes from packaged files
-  const outerEvmVkeyHashes = getOuterEvmVkeyHashes()
+  const outerVkeyHashes = getOuterkeyHashes()
 
-  if (outerEvmVkeyHashes.length === 0) {
-    console.log("No outer EVM vkey hashes found to update in Deploy.s.sol")
+  if (outerVkeyHashes.length === 0) {
+    console.log("No outer vkey hashes found to update in Deploy.s.sol")
     return
   }
 
@@ -267,7 +260,7 @@ const updateVkeyHashesInSolidityDeployScript = (filePath: string) => {
     const vkeyHashesRegex = /(bytes32\[\] public vkeyHashes = \[)([\s\S]*?)(\];)/
 
     // Generate the new vkey hashes content
-    const newVkeyHashesContent = outerEvmVkeyHashes
+    const newVkeyHashesContent = outerVkeyHashes
       .map(
         ({ count, hash }) =>
           `    // Outer (${count} subproofs)\n    bytes32(hex"${hash
@@ -319,21 +312,24 @@ const processFiles = async () => {
         `Memory intensive processing of outer proof circuit: ${file} (no concurrent processing)`,
       )
       console.log(`Generating the standard outer proof packaged circuit...`)
-      const success = await processFile(file)
+      const success = await processFile(file, true, file.replace(".json", ""), true)
       if (!success) {
         hasErrors = true
       }
-      console.log(`Generating the EVM-optimised outer proof packaged circuit...`)
+      /*console.log(`Generating the EVM-optimised outer proof packaged circuit...`)
       const successEvm = await processFile(
         file,
-        false,
         true,
         file.replace("outer_count", "outer_evm_count").replace(".json", ""),
+        true,
+        // Disable the fully ZK property for outer proof circuits meant
+        // to be verified onchain as the subproofs are already ZK and it's cheaper
+        // to verify a non ZK proof onchain
         true,
       )
       if (!successEvm) {
         hasErrors = true
-      }
+      }*/
     }
   }
 
@@ -447,4 +443,7 @@ async function main() {
   }
 }
 
-await main()
+// Wrap the main function call in an IIFE to avoid top-level await issues
+;(async () => {
+  await main()
+})()

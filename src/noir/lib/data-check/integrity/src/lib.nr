@@ -1,7 +1,7 @@
 use sha1::sha1;
 use sha256;
 use sha512::{sha384, sha512};
-use utils::is_id_card;
+use utils::{_find_subarray_index, is_id_card};
 
 /**
 * Computes the hash (using SHA1) of the first data group (containing the MRZ) and checks it is the same as the one
@@ -24,7 +24,10 @@ pub fn check_dg1_sha1(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_conte
 
     for i in 0..20 {
         // Check the hash of dg1 is indeed in the e_content
-        assert(dg1_hash[i] == e_content[dg1_offset_in_e_content + i]);
+        assert(
+            dg1_hash[i] == e_content[dg1_offset_in_e_content + i],
+            "Hash of dg1 not found in eContent",
+        );
     }
 }
 
@@ -32,20 +35,25 @@ pub fn check_dg1_sha1(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_conte
 * Computes the hash (using SHA1) of eContent (containing the hashes of the data groups) and checks it is the same as the one
 * included in the signed_attributes, which is the message signed by the Document Signing Certificate (DSC)
 */
-pub fn check_signed_attributes_sha1(
-    signed_attributes: [u8; 200],
-    signed_attributes_size: u32,
+pub fn check_signed_attributes_sha1<let SA_SIZE: u32>(
+    signed_attributes: [u8; SA_SIZE],
     e_content: [u8; 700],
     e_content_size: u32,
 ) {
     let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size as u32);
 
     let computed_final_hash = sha1::sha1_var(e_content_bounded_vec);
+    // Safety: get the index of the computed final hash in the signed attributes
+    // Then check if at that position the hash is the same as the computed final hash
+    let index = unsafe { _find_subarray_index(signed_attributes, computed_final_hash) };
 
     for i in 0..20 {
         // The last 20 bytes of the signed_attributes are the hash of the data groups
         // The rest is padding and the signature date, not important to check
-        assert(computed_final_hash[i] == signed_attributes[signed_attributes_size - 20 + i]);
+        assert(
+            computed_final_hash[i] == signed_attributes[index + i],
+            "Computed final hash not found in signed attributes",
+        );
     }
 }
 
@@ -69,7 +77,10 @@ pub fn check_dg1_sha256(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_con
 
     for i in 0..32 {
         // Check the hash of dg1 is indeed in the e_content
-        assert(dg1_hash[i] == e_content[dg1_offset_in_e_content + i]);
+        assert(
+            dg1_hash[i] == e_content[dg1_offset_in_e_content + i],
+            "Hash of dg1 not found in eContent",
+        );
     }
 }
 
@@ -77,18 +88,22 @@ pub fn check_dg1_sha256(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_con
 * Computes the hash (using SHA2-256) of eContent (containing the hashes of the data groups) and checks it is the same as the one
 * included in the signed_attributes, which is the message signed by the Document Signing Certificate (DSC)
 */
-pub fn check_signed_attributes_sha256(
-    signed_attributes: [u8; 200],
-    signed_attributes_size: u32,
+pub fn check_signed_attributes_sha256<let SA_SIZE: u32>(
+    signed_attributes: [u8; SA_SIZE],
     e_content: [u8; 700],
     e_content_size: u32,
 ) {
     let computed_final_hash = sha256::sha256_var(e_content, e_content_size as u64);
-
+    // Safety: get the index of the computed final hash in the signed attributes
+    // Then check if at that position the hash is the same as the computed final hash
+    let index = unsafe { _find_subarray_index(signed_attributes, computed_final_hash) };
     for i in 0..32 {
         // The last 32 bytes of the signed_attributes are the hash of the data groups
         // The rest is padding and the signature date, not important to check
-        assert(computed_final_hash[i] == signed_attributes[signed_attributes_size - 32 + i]);
+        assert(
+            computed_final_hash[i] == signed_attributes[index + i],
+            "Computed final hash not found in signed attributes",
+        );
     }
 }
 
@@ -113,7 +128,10 @@ pub fn check_dg1_sha384(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_con
 
     for i in 0..48 {
         // Check the hash of dg1 is indeed in the e_content
-        assert(dg1_hash[i] == e_content[dg1_offset_in_e_content + i]);
+        assert(
+            dg1_hash[i] == e_content[dg1_offset_in_e_content + i],
+            "Hash of dg1 not found in eContent",
+        );
     }
 }
 
@@ -121,20 +139,25 @@ pub fn check_dg1_sha384(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_con
 * Computes the hash (using SHA2-384) of eContent (containing the hashes of the data groups) and checks it is the same as the one
 * included in the signed_attributes, which is the message signed by the Document Signing Certificate (DSC)
 */
-pub fn check_signed_attributes_sha384(
-    signed_attributes: [u8; 200],
-    signed_attributes_size: u32,
+pub fn check_signed_attributes_sha384<let SA_SIZE: u32>(
+    signed_attributes: [u8; SA_SIZE],
     e_content: [u8; 700],
     e_content_size: u32,
 ) {
     let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size as u32);
 
     let computed_final_hash = sha384::sha384_var(e_content_bounded_vec);
+    // Safety: get the index of the computed final hash in the signed attributes
+    // Then check if at that position the hash is the same as the computed final hash
+    let index = unsafe { _find_subarray_index(signed_attributes, computed_final_hash) };
 
     for i in 0..48 {
         // The last 48 bytes of the signed_attributes are the hash of the data groups
         // The rest is padding and the signature date, not important to check
-        assert(computed_final_hash[i] == signed_attributes[signed_attributes_size - 48 + i]);
+        assert(
+            computed_final_hash[i] == signed_attributes[index + i],
+            "Computed final hash not found in signed attributes",
+        );
     }
 }
 
@@ -159,7 +182,10 @@ pub fn check_dg1_sha512(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_con
 
     for i in 0..64 {
         // Check the hash of dg1 is indeed in the e_content
-        assert(dg1_hash[i] == e_content[dg1_offset_in_e_content + i]);
+        assert(
+            dg1_hash[i] == e_content[dg1_offset_in_e_content + i],
+            "Hash of dg1 not found in eContent",
+        );
     }
 }
 
@@ -167,19 +193,24 @@ pub fn check_dg1_sha512(dg1: [u8; 95], e_content: [u8; 700], dg1_offset_in_e_con
 * Computes the hash (using SHA2-512) of eContent (containing the hashes of the data groups) and checks it is the same as the one
 * included in the signed_attributes, which is the message signed by the Document Signing Certificate (DSC)
 */
-pub fn check_signed_attributes_sha512(
-    signed_attributes: [u8; 200],
-    signed_attributes_size: u32,
+pub fn check_signed_attributes_sha512<let SA_SIZE: u32>(
+    signed_attributes: [u8; SA_SIZE],
     e_content: [u8; 700],
     e_content_size: u32,
 ) {
     let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size as u32);
 
     let computed_final_hash = sha512::sha512_var(e_content_bounded_vec);
+    // Safety: get the index of the computed final hash in the signed attributes
+    // Then check if at that position the hash is the same as the computed final hash
+    let index = unsafe { _find_subarray_index(signed_attributes, computed_final_hash) };
 
     for i in 0..64 {
         // The last 64 bytes of the signed_attributes are the hash of the data groups
         // The rest is padding and the signature date, not important to check
-        assert(computed_final_hash[i] == signed_attributes[signed_attributes_size - 64 + i]);
+        assert(
+            computed_final_hash[i] == signed_attributes[index + i],
+            "Computed final hash not found in signed attributes",
+        );
     }
 }

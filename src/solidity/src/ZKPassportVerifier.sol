@@ -25,6 +25,7 @@ enum ProofType {
 enum BoundDataIdentifier {
   NONE,
   USER_ADDRESS,
+  CHAIN_ID,
   CUSTOM_DATA
 }
 
@@ -35,7 +36,7 @@ struct ProofVerificationParams {
   bytes32[] publicInputs;
   bytes committedInputs;
   uint256[] committedInputCounts;
-  uint256 validityPeriodInDays;
+  uint256 validityPeriodInSeconds;
   string domain;
   string scope;
   bool devMode;
@@ -93,14 +94,11 @@ contract ZKPassportVerifier {
   bool public paused;
 
   mapping(bytes32 => address) public vkeyHashToVerifier;
-  // TODO: remove this when proper local testing with the root registry is done
-  mapping(bytes32 => bool) public isValidCertificateRegistryRoot;
-  mapping(bytes32 => bool) public isValidCircuitRegistryRoot;
+  // mapping(bytes32 => bool) public isValidCertificateRegistryRoot;
+  // mapping(bytes32 => bool) public isValidCircuitRegistryRoot;
 
-  bytes32 public sanctionsTreesRoot = SANCTIONS_TREES_ROOT;
+  // bytes32 public sanctionsTreesRoot = SANCTIONS_TREES_ROOT;
 
-  // Maybe make this immutable as this should most likely not change?
-  IRootRegistry public rootRegistry;
 
   // Events
   event AdminUpdated(address indexed oldAdmin, address indexed newAdmin);
@@ -166,38 +164,35 @@ contract ZKPassportVerifier {
     rootRegistry = IRootRegistry(_rootRegistry);
   }
 
-  // TODO: remove this when proper local testing with the root registry is done
-  function addCertificateRegistryRoot(bytes32 certificateRegistryRoot) external onlyAdmin {
-    isValidCertificateRegistryRoot[certificateRegistryRoot] = true;
-    emit CertificateRegistryRootAdded(certificateRegistryRoot);
-  }
+  // // TODO: remove this when proper local testing with the root registry is done
+  // function addCertificateRegistryRoot(bytes32 certificateRegistryRoot) external onlyAdmin {
+  //   isValidCertificateRegistryRoot[certificateRegistryRoot] = true;
+  //   emit CertificateRegistryRootAdded(certificateRegistryRoot);
+  // }
 
 
-  // TODO: remove this when proper local testing with the root registry is done
-  function removeCertificateRegistryRoot(bytes32 certificateRegistryRoot) external onlyAdmin {
-    isValidCertificateRegistryRoot[certificateRegistryRoot] = false;
-    emit CertificateRegistryRootRemoved(certificateRegistryRoot);
-  }
+  // // TODO: remove this when proper local testing with the root registry is done
+  // function removeCertificateRegistryRoot(bytes32 certificateRegistryRoot) external onlyAdmin {
+  //   isValidCertificateRegistryRoot[certificateRegistryRoot] = false;
+  //   emit CertificateRegistryRootRemoved(certificateRegistryRoot);
+  // }
 
-  // TODO: remove this when proper local testing with the root registry is done
-  function addCircuitRegistryRoot(bytes32 circuitRegistryRoot) external onlyAdmin {
-    isValidCircuitRegistryRoot[circuitRegistryRoot] = true;
-  }
+  // // TODO: remove this when proper local testing with the root registry is done
+  // function addCircuitRegistryRoot(bytes32 circuitRegistryRoot) external onlyAdmin {
+  //   isValidCircuitRegistryRoot[circuitRegistryRoot] = true;
+  // }
 
-  function updateSanctionsTreesRoot(bytes32 _sanctionsTreesRoot) external onlyAdmin {
-    sanctionsTreesRoot = _sanctionsTreesRoot;
-    emit SanctionsTreesRootUpdates(_sanctionsTreesRoot);
-  }
+  // function updateSanctionsTreesRoot(bytes32 _sanctionsTreesRoot) external onlyAdmin {
+  //   sanctionsTreesRoot = _sanctionsTreesRoot;
+  //   emit SanctionsTreesRootUpdates(_sanctionsTreesRoot);
+  // }
 
   function checkDate(
     bytes32[] memory publicInputs,
-    uint256 validityPeriodInDays
+    uint256 validityPeriodInSeconds
   ) internal view returns (bool) {
-    bytes memory currentDate = new bytes(8);
-    for (uint256 i = 2; i < 10; i++) {
-      currentDate[i - 2] = bytes1(publicInputs[i] << 248);
-    }
-    return DateUtils.isDateValid(currentDate, validityPeriodInDays);
+    uint256 currentDateTimeStamp = uint256(publicInputs[2]);
+    return DateUtils.isDateValid(currentDateTimeStamp, validityPeriodInSeconds);
   }
 
   function getDisclosedData(
@@ -290,12 +285,21 @@ contract ZKPassportVerifier {
     uint256 offset = 0;
     bool found = false;
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
-      // Date circuits have 25 bytes of committed inputs
+      // Date circuits have 13 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == CommittedInputLen.COMPARE_EXPIRY && committedInputs[offset] == bytes1(uint8(proofType))) {
-        currentDate = DateUtils.getTimestampFromDate(committedInputs[offset + 1:offset + 9]);
-        minDate = DateUtils.getTimestampFromDate(committedInputs[offset + 9:offset + 17]);
-        maxDate = DateUtils.getTimestampFromDate(committedInputs[offset + 17:offset + 25]);
+
+      // TMP
+      // if (committedInputCounts[i] == CommittedInputLen.COMPARE_EXPIRY && committedInputs[offset] == bytes1(uint8(proofType))) {
+      //   currentDate = DateUtils.getTimestampFromDate(committedInputs[offset + 1:offset + 9]);
+      //   minDate = DateUtils.getTimestampFromDate(committedInputs[offset + 9:offset + 17]);
+      //   maxDate = DateUtils.getTimestampFromDate(committedInputs[offset + 17:offset + 25]);
+
+      if (committedInputCounts[i] == 13 && committedInputs[offset] == bytes1(uint8(proofType))) {
+        // Get rid of the padding 0s bytes as the timestamp is contained within the first 32 bits
+        // i.e. 256 - 32 = 224
+        currentDate = uint256(bytes32(committedInputs[offset + 1:offset + 5])) >> 224;
+        minDate = uint256(bytes32(committedInputs[offset + 5:offset + 9])) >> 224;
+        maxDate = uint256(bytes32(committedInputs[offset + 9:offset + 13])) >> 224;
         found = true;
       }
       offset += committedInputCounts[i];
@@ -310,13 +314,18 @@ contract ZKPassportVerifier {
     uint256 offset = 0;
     bool found = false;
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
-      // The age circuit has 11 bytes of committed inputs
+      // The age circuit has 7 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == CommittedInputLen.COMPARE_AGE) {
+// TMP
+//       if (committedInputCounts[i] == CommittedInputLen.COMPARE_AGE) {
+// =======
+      if (committedInputCounts[i] == 7) {
         require(committedInputs[offset] == bytes1(uint8(ProofType.AGE)), "Invalid proof type");
-        currentDate = DateUtils.getTimestampFromDate(committedInputs[offset + 1:offset + 9]);
-        minAge = uint8(committedInputs[offset + 9]);
-        maxAge = uint8(committedInputs[offset + 10]);
+        // Get rid of the padding 0s bytes as the timestamp is contained within the first 32 bits
+        // i.e. 256 - 32 = 224
+        currentDate = uint256(bytes32(committedInputs[offset + 1:offset + 5])) >> 224;
+        minAge = uint8(committedInputs[offset + 5]);
+        maxAge = uint8(committedInputs[offset + 6]);
         found = true;
       }
       offset += committedInputCounts[i];
@@ -376,6 +385,13 @@ contract ZKPassportVerifier {
             );
             dataLength += 2 + addressLength + 1;
           } else if (
+            committedInputs[offset + 1 + dataLength] == bytes1(uint8(BoundDataIdentifier.CHAIN_ID))
+          ) {
+            uint16 chainIdLength = uint16(
+              bytes2(committedInputs[offset + 1 + dataLength + 1:offset + 1 + dataLength + 3])
+            );
+            dataLength += 2 + chainIdLength + 1;
+          } else if (
             committedInputs[offset + 1 + dataLength] ==
             bytes1(uint8(BoundDataIdentifier.CUSTOM_DATA))
           ) {
@@ -428,13 +444,22 @@ contract ZKPassportVerifier {
 
   function getBoundData(
     bytes calldata data
-  ) public pure returns (address senderAddress, string memory customData) {
+  ) public pure returns (address senderAddress, uint256 chainId, string memory customData) {
     uint256 offset = 0;
     while (offset < 500) {
       if (data[offset] == bytes1(uint8(BoundDataIdentifier.USER_ADDRESS))) {
         uint16 addressLength = uint16(bytes2(data[offset + 1:offset + 3]));
         senderAddress = address(bytes20(data[offset + 3:offset + 3 + addressLength]));
         offset += 2 + addressLength + 1;
+      } else if (data[offset] == bytes1(uint8(BoundDataIdentifier.CHAIN_ID))) {
+        uint16 chainIdLength = uint16(bytes2(data[offset + 1:offset + 3]));
+        require(chainIdLength <= 32, "Chain id length too long");
+        // bytes32 right pads while we want to left pad
+        // so we shift the bytes to the right by 256 - (chainIdLength * 8)
+        chainId = uint256(
+          bytes32(data[offset + 3:offset + 3 + chainIdLength]) >> (256 - (chainIdLength * 8))
+        );
+        offset += 2 + chainIdLength + 1;
       } else if (data[offset] == bytes1(uint8(BoundDataIdentifier.CUSTOM_DATA))) {
         uint16 customDataLength = uint16(bytes2(data[offset + 1:offset + 3]));
         customData = string(data[offset + 3:offset + 3 + customDataLength]);
@@ -449,20 +474,18 @@ contract ZKPassportVerifier {
     bytes32[] calldata publicInputs,
     string calldata domain,
     string calldata scope
-  ) public view returns (bool) {
+  ) public pure returns (bool) {
     // One byte is dropped at the end
-    string memory chainId = StringUtils.toString(block.chainid);
     // What we call scope internally is derived from the domain
-    // and chain id for onchain verification
     bytes32 scopeHash = StringUtils.isEmpty(domain)
       ? bytes32(0)
-      : sha256(abi.encodePacked(domain, ":chain-", chainId)) >> 8;
+      : sha256(abi.encodePacked(domain)) >> 8;
     // What we call the subscope internally is the scope specified
     // manually in the SDK
     bytes32 subscopeHash = StringUtils.isEmpty(scope)
       ? bytes32(0)
       : sha256(abi.encodePacked(scope)) >> 8;
-    return publicInputs[10] == scopeHash && publicInputs[11] == subscopeHash;
+    return publicInputs[3] == scopeHash && publicInputs[4] == subscopeHash;
   }
 
   function verifyCommittedInputs(
@@ -489,10 +512,7 @@ contract ZKPassportVerifier {
 
   function _validateCertificateRoot(bytes32 certificateRoot) internal view {
     require(
-      // Keep the legacy check for testing purposes for now
-      // Only in local testing will the mapping be populated
-      isValidCertificateRegistryRoot[certificateRoot] ||
-        rootRegistry.isRootValid(CERTIFICATE_REGISTRY_ID, certificateRoot),
+      rootRegistry.isRootValid(CERTIFICATE_REGISTRY_ID, certificateRoot),
       "Invalid certificate registry root"
     );
   }
@@ -516,10 +536,6 @@ contract ZKPassportVerifier {
   ) external view whenNotPaused returns (bool, bytes32) {
     address verifier = _getVerifier(params.vkeyHash);
 
-    // We remove the last 16 public inputs from the count cause they are part of the aggregation object
-    // and not the actual public inputs of the circuit
-    uint256 actualPublicInputCount = params.publicInputs.length - 16;
-
     // Validate certificate registry root
     _validateCertificateRoot(params.publicInputs[0]);
 
@@ -528,7 +544,7 @@ contract ZKPassportVerifier {
 
     // Checks the date of the proof
     require(
-      checkDate(params.publicInputs, params.validityPeriodInDays),
+      checkDate(params.publicInputs, params.validityPeriodInSeconds),
       "Proof expired or date is invalid"
     );
 
@@ -538,7 +554,7 @@ contract ZKPassportVerifier {
     // Verifies the commitments against the committed inputs
     verifyCommittedInputs(
       // Extracts the commitments from the public inputs
-      params.publicInputs[12:actualPublicInputCount - 1],
+      params.publicInputs[5:params.publicInputs.length - 1],
       params.committedInputs,
       params.committedInputCounts
     );
@@ -546,13 +562,13 @@ contract ZKPassportVerifier {
     // Allow mock proofs in dev mode
     // Mock proofs are recognisable by their unique identifier set to 1
     require(
-      params.publicInputs[actualPublicInputCount - 1] != bytes32(uint256(1)) || params.devMode,
+      params.publicInputs[params.publicInputs.length - 1] != bytes32(uint256(1)) || params.devMode,
       "Mock proofs are only allowed in dev mode"
     );
 
     return (
       IVerifier(verifier).verify(params.proof, params.publicInputs),
-      params.publicInputs[actualPublicInputCount - 1]
+      params.publicInputs[params.publicInputs.length - 1]
     );
   }
 }

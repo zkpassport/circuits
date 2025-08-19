@@ -4,15 +4,19 @@ version: 2.1
 parameters:
   noir_version:
     type: string
-    default: "1.0.0-beta.3"
+    default: "1.0.0-beta.8"
+  bb_version:
+    type: string
+    default: "1.0.0"
 
 defaults: &defaults
   working_directory: ~/repo
   # https://circleci.com/docs/2.0/circleci-images/#language-image-variants
   docker:
-    - image: cimg/node:23.4.0
+    - image: cimg/node:24.3.0
       environment:
         TERM: xterm # Enable colors in term
+  resource_class: large
 
 jobs:
   checkout:
@@ -31,6 +35,20 @@ jobs:
           paths:
             - /home/circleci/.nargo
           key: nargo-cache-<< pipeline.parameters.noir_version >>
+
+      - run:
+          name: Install BB
+          command: |
+            curl -L https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/master/barretenberg/bbup/install | bash || true
+            echo 'export PATH="/home/circleci/.bb:$PATH"' >> $BASH_ENV
+            source $BASH_ENV
+            bbup -v << pipeline.parameters.bb_version >>
+            /home/circleci/.bb/bb --version
+      - save_cache:
+          paths:
+            - /home/circleci/.bb
+          key: bb-cache-<< pipeline.parameters.bb_version >>
+
       - restore_cache:
           keys:
             - node-deps-{{ checksum "package-lock.json" }}
@@ -50,9 +68,12 @@ jobs:
   lint:
     <<: *defaults
     steps:
+      - restore_cache:
+          keys:
+            - nargo-cache-<< pipeline.parameters.noir_version >>
       - attach_workspace:
           at: ~/repo
-      - run: npm run lint
+      - run: PATH=/home/circleci/.nargo/bin:$PATH npm run lint
 
   noir_tests:
     <<: *defaults
@@ -72,6 +93,9 @@ jobs:
       - restore_cache:
           keys:
             - nargo-cache-<< pipeline.parameters.noir_version >>
+      - restore_cache:
+          keys:
+            - bb-cache-<< pipeline.parameters.bb_version >>
       - attach_workspace:
           at: ~/repo
       - run:
@@ -81,7 +105,7 @@ jobs:
       - run:
           name: Integration tests
           command: |
-            npm test circuits.test.ts
+            PATH=/home/circleci/.bb:$PATH npm test circuits.test.ts
 
 workflows:
   version: 2

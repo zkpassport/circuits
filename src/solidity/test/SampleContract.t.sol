@@ -17,9 +17,10 @@ contract SampleContractTest is TestUtils {
   string constant PROOF_PATH = "./test/fixtures/all_subproofs_proof.hex";
   string constant PUBLIC_INPUTS_PATH = "./test/fixtures/all_subproofs_public_inputs.json";
   string constant COMMITTED_INPUTS_PATH = "./test/fixtures/all_subproofs_committed_inputs.hex";
-  bytes32 constant VKEY_HASH = 0x1fdff1847be0a0ac3af37e59d0f83b2a400c15be4049954dc82aba099b0c9924;
-  bytes32 constant CERTIFICATE_REGISTRY_ROOT = 0x15a8f615191352fff1aa650203a541f2f7e38f9b409f1599944ec75e972f32e6;
-  bytes32 constant CIRCUIT_REGISTRY_ROOT = 0x1cec98bdbc92ca83904e96bd19237a770c6b32d8c96909c25731b15851580d52;
+  // bytes32 constant VKEY_HASH = 0x1fdff1847be0a0ac3af37e59d0f83b2a400c15be4049954dc82aba099b0c9924;
+  // bytes32 constant CERTIFICATE_REGISTRY_ROOT = 0x15a8f615191352fff1aa650203a541f2f7e38f9b409f1599944ec75e972f32e6;
+  // bytes32 constant CIRCUIT_REGISTRY_ROOT = 0x1cec98bdbc92ca83904e96bd19237a770c6b32d8c96909c25731b15851580d52;
+  uint256 constant CURRENT_DATE = 1751015400;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
@@ -33,8 +34,8 @@ contract SampleContractTest is TestUtils {
     address[] memory verifiers = new address[](1);
     verifiers[0] = address(verifier);
     zkPassportVerifier.addVerifiers(vkeyHashes, verifiers);
-    zkPassportVerifier.addCertificateRegistryRoot(CERTIFICATE_REGISTRY_ROOT);
-    zkPassportVerifier.addCircuitRegistryRoot(CIRCUIT_REGISTRY_ROOT);
+    // zkPassportVerifier.addCertificateRegistryRoot(CERTIFICATE_REGISTRY_ROOT);
+    // zkPassportVerifier.addCircuitRegistryRoot(CIRCUIT_REGISTRY_ROOT);
 
     sampleContract = new SampleContract();
     sampleContract.setZKPassportVerifier(address(zkPassportVerifier));
@@ -63,16 +64,14 @@ contract SampleContractTest is TestUtils {
     vm.expectRevert("User is not verified");
     sampleContract.doStuff();
 
-
-    // Set the timestamp to 2025-06-27 10:00:00 UTC
-    vm.warp(1751015400);
+    vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
       vkeyHash: VKEY_HASH,
       proof: proof,
       publicInputs: publicInputs,
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
-      validityPeriodInDays: 7,
+      validityPeriodInSeconds: 7 days,
       domain: "zkpassport.id",
       scope: "bigproof",
       // Set to true to accept mock proofs from the ZKR
@@ -84,7 +83,7 @@ contract SampleContractTest is TestUtils {
     sampleContract.doStuff();
     assertEq(
       uniqueIdentifier,
-      bytes32(uint256(0x08e728ced3c0ae721742755e62018c14be91a47da5dbfe392fb098cee6d31025))
+      bytes32(uint256(0x0a70167613fa7c456b46f57e91d4fc40c1a7895f55bb7d36ef0ac17ff05045e6))
     );
     assertEq(sampleContract.userNationality(uniqueIdentifier), "AUS");
     assertEq(sampleContract.isVerified(uniqueIdentifier), true);

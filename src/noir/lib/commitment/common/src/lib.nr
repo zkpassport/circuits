@@ -1,6 +1,5 @@
-//use std::hash::pedersen_hash;
-use std::hash::poseidon2::Poseidon2;
-use utils::PASSPORT_MRZ_COUNTRY_INDEX;
+use poseidon::poseidon2::Poseidon2;
+use utils::{pack_be_bytes_into_fields, PASSPORT_MRZ_COUNTRY_INDEX};
 
 pub global CSC_CERT_TYPE: u8 = 1;
 pub global DSC_CERT_TYPE: u8 = 2;
@@ -17,22 +16,16 @@ pub fn calculate_certificate_registry_leaf<let N: u32>(
     tags: Field,
     cert_type: u8,
     country: str<3>,
-    hash_algorithm: u8,
     public_key: [u8; N],
 ) -> Field {
-    // Pack certificate type, country code, and hash algorithm into a single field
+    // Pack certificate type and country code into a single field
     let country_bytes: [u8; 3] = country.as_bytes();
-    let unpacked_bytes: [u8; 5] = [
-        cert_type as u8,
-        country_bytes[0],
-        country_bytes[1],
-        country_bytes[2],
-        hash_algorithm as u8,
-    ];
+    let unpacked_bytes: [u8; 4] =
+        [cert_type as u8, country_bytes[0], country_bytes[1], country_bytes[2]];
     // Prepare and hash Poseidon2 inputs
     let mut poseidon_inputs: [Field; 2 + (N + 30) / 31] = [0; 2 + (N + 30) / 31];
     poseidon_inputs[0] = tags;
-    poseidon_inputs[1] = utils::pack_be_bytes_into_fields::<5, 1, 31>(unpacked_bytes)[0];
+    poseidon_inputs[1] = utils::pack_be_bytes_into_fields::<4, 1, 31>(unpacked_bytes)[0];
     let packed_pubkey = utils::pack_be_bytes_into_fields::<N, (N + 30) / 31, 31>(public_key);
     for i in 0..packed_pubkey.len() {
         poseidon_inputs[2 + i] = packed_pubkey[i] as Field;
@@ -83,10 +76,8 @@ pub fn test_calculate_certificate_registry_leaf() {
     let tags = 0xFF00FFFFFF as Field; // ["ICAO", "DE", "NL", "ES"] = 0x00000000FF | 0x000000FF00 | 0x0000FF0000 | 0xFF00000000 = 0xFF00FFFFFF
     let cert_type = 1 as u8; // CSCA
     let country = "AUS";
-    let hash_algorithm = 2 as u8; // SHA-256
 
-    let leaf_hash =
-        calculate_certificate_registry_leaf(tags, cert_type, country, hash_algorithm, public_key);
+    let leaf_hash = calculate_certificate_registry_leaf(tags, cert_type, country, public_key);
     // Should match the result of getCertificateLeafHash()
     assert(leaf_hash == 0x039a274cdf4a006ce26b26480aaed8d1360f5c51e34bde4bc158a4d71b510518);
 }
@@ -112,15 +103,19 @@ pub fn hash_salt_country_tbs<let TBS_MAX_SIZE: u32>(
     tbs: [u8; TBS_MAX_SIZE],
 ) -> Field {
     let country_bytes: [u8; 3] = country.as_bytes();
-    let mut result: [Field; TBS_MAX_SIZE + 4] = [0; TBS_MAX_SIZE + 4];
-    result[0] = salt as Field;
-    result[1] = country_bytes[0] as Field;
-    result[2] = country_bytes[1] as Field;
-    result[3] = country_bytes[2] as Field;
-    for i in 0..TBS_MAX_SIZE {
-        result[4 + i] = tbs[i] as Field;
+    let mut result: [Field; 2 + ((TBS_MAX_SIZE + 30) / 31)] = [0; 2 + ((TBS_MAX_SIZE + 30) / 31)];
+    result[0] = salt;
+
+    let packed_country: Field = pack_be_bytes_into_fields::<3, 1, 31>(country_bytes)[0];
+    result[1] = packed_country;
+
+    let packed_tbs: [Field; (TBS_MAX_SIZE + 30) / 31] =
+        pack_be_bytes_into_fields::<TBS_MAX_SIZE, _, 31>(tbs);
+    for i in 0..((TBS_MAX_SIZE + 30) / 31) {
+        result[2 + i] = packed_tbs[i];
     }
-    Poseidon2::hash(result, TBS_MAX_SIZE + 4)
+
+    Poseidon2::hash(result, 2 + ((TBS_MAX_SIZE + 30) / 31))
 }
 
 pub fn hash_salt_dg1_private_nullifier<let N: u32>(
@@ -128,52 +123,89 @@ pub fn hash_salt_dg1_private_nullifier<let N: u32>(
     dg1: [u8; N],
     private_nullifier: Field,
 ) -> Field {
-    let mut result: [Field; N + 2] = [0; N + 2];
-    result[0] = salt as Field;
-    for i in 0..N {
-        result[1 + i] = dg1[i] as Field;
+    let mut result: [Field; 2 + ((N + 30) / 31)] = [0; 2 + ((N + 30) / 31)];
+    result[0] = salt;
+
+    let packed_dg1: [Field; (N + 30) / 31] = pack_be_bytes_into_fields::<N, _, 31>(dg1);
+    for i in 0..((N + 30) / 31) {
+        result[1 + i] = packed_dg1[i];
     }
-    result[1 + N] = private_nullifier;
-    Poseidon2::hash(result, N + 2)
+    result[1 + ((N + 30) / 31)] = private_nullifier;
+    Poseidon2::hash(result, 2 + ((N + 30) / 31))
 }
 
-pub fn calculate_private_nullifier<let DG1: u32, let SIG: u32>(
+pub fn calculate_private_nullifier<let DG1: u32, let ECONTENT: u32, let SIG: u32>(
     dg1: [u8; DG1],
+    e_content: [u8; ECONTENT],
     sod_sig: [u8; SIG],
 ) -> Field {
-    let mut result: [Field; DG1 + SIG] = [0; DG1 + SIG];
-    for i in 0..DG1 {
-        result[i] = dg1[i] as Field;
+    let mut result: [Field; (DG1 + 30) / 31 + (ECONTENT + 30) / 31 + (SIG + 30) / 31] =
+        [0; (DG1 + 30) / 31 + (ECONTENT + 30) / 31 + (SIG + 30) / 31];
+
+    let packed_dg1: [Field; (DG1 + 30) / 31] = pack_be_bytes_into_fields::<DG1, _, 31>(dg1);
+    for i in 0..((DG1 + 30) / 31) {
+        result[i] = packed_dg1[i];
     }
-    for i in 0..SIG {
-        result[DG1 + i] = sod_sig[i] as Field;
+
+    let packed_e_content: [Field; (ECONTENT + 30) / 31] =
+        pack_be_bytes_into_fields::<ECONTENT, _, 31>(e_content);
+    for i in 0..((ECONTENT + 30) / 31) {
+        result[(DG1 + 30) / 31 + i] = packed_e_content[i];
     }
-    Poseidon2::hash(result, DG1 + SIG)
+
+    let packed_sod_sig: [Field; (SIG + 30) / 31] = pack_be_bytes_into_fields::<SIG, _, 31>(sod_sig);
+    for i in 0..((SIG + 30) / 31) {
+        result[(DG1 + 30) / 31 + ((ECONTENT + 30) / 31) + i] = packed_sod_sig[i];
+    }
+
+    Poseidon2::hash(
+        result,
+        (DG1 + 30) / 31 + ((ECONTENT + 30) / 31) + (SIG + 30) / 31,
+    )
 }
 
-pub fn hash_salt_country_signed_attr_dg1_private_nullifier<let SA: u32>(
+pub fn hash_salt_country_signed_attr_dg1_e_content_private_nullifier<let SA: u32, let ECONTENT: u32, let DG1: u32>(
     salt: Field,
     country: str<3>,
     signed_attr: [u8; SA],
     signed_attr_size: Field,
-    dg1: [u8; 95],
+    dg1: [u8; DG1],
+    e_content: [u8; ECONTENT],
     private_nullifier: Field,
 ) -> Field {
     let country_bytes: [u8; 3] = country.as_bytes();
-    let mut result: [Field; SA + 101] = [0; SA + 101];
-    result[0] = salt as Field;
-    result[1] = country_bytes[0] as Field;
-    result[2] = country_bytes[1] as Field;
-    result[3] = country_bytes[2] as Field;
-    for i in 0..SA {
-        result[4 + i] = signed_attr[i] as Field;
+
+    let mut result: [Field; 4 + (SA + 30) / 31 + ((DG1 + 30) / 31) + ((ECONTENT + 30) / 31)] =
+        [0; 4 + (SA + 30) / 31 + ((DG1 + 30) / 31) + ((ECONTENT + 30) / 31)];
+    result[0] = salt;
+
+    let packed_country: Field = pack_be_bytes_into_fields::<3, 1, 31>(country_bytes)[0];
+    result[1] = packed_country;
+
+    let packed_signed_attr: [Field; (SA + 30) / 31] =
+        pack_be_bytes_into_fields::<SA, _, 31>(signed_attr);
+    for i in 0..((SA + 30) / 31) {
+        result[2 + i] = packed_signed_attr[i];
     }
-    result[4 + SA] = signed_attr_size;
-    for i in 0..95 {
-        result[4 + SA + 1 + i] = dg1[i] as Field;
+
+    result[2 + (SA + 30) / 31] = signed_attr_size;
+
+    let packed_dg1: [Field; (DG1 + 30) / 31] = pack_be_bytes_into_fields::<DG1, _, 31>(dg1);
+    for i in 0..((DG1 + 30) / 31) {
+        result[3 + (SA + 30) / 31 + i] = packed_dg1[i];
     }
-    result[4 + SA + 1 + 95] = private_nullifier;
-    Poseidon2::hash(result, SA + 101)
+
+    let packed_e_content: [Field; (ECONTENT + 30) / 31] =
+        pack_be_bytes_into_fields::<ECONTENT, _, 31>(e_content);
+    for i in 0..((ECONTENT + 30) / 31) {
+        result[3 + (SA + 30) / 31 + ((DG1 + 30) / 31) + i] = packed_e_content[i];
+    }
+    result[3 + (SA + 30) / 31 + ((DG1 + 30) / 31) + ((ECONTENT + 30) / 31)] = private_nullifier;
+
+    Poseidon2::hash(
+        result,
+        4 + (SA + 30) / 31 + ((DG1 + 30) / 31) + ((ECONTENT + 30) / 31),
+    )
 }
 
 // Returns the merkle root of the tree from the provided leaf, index and hash_path, using the Poseidon2 hash function
@@ -182,7 +214,7 @@ pub fn compute_merkle_root<let N: u32>(leaf: Field, index: Field, hash_path: [Fi
     let index_bits: [u1; N] = index.to_le_bits();
     let mut current = leaf;
     for i in 0..N {
-        let path_bit = index_bits[i] as bool;
+        let path_bit = index_bits[i] == 1;
         let (hash_left, hash_right) = if path_bit {
             (hash_path[i], current)
         } else {
