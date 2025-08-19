@@ -8,25 +8,25 @@ fn main(
     private_nullifier: Field,
     dg1: [u8; 95],
     // @committed
-    // The current date is public (via the parameter commitment) so verifiers can check the date
+    // The current date timestamp is public (via the parameter commitment) so verifiers can check the date
     // provided to the proof is correct
-    current_date: str<8>,
+    current_date: u32,
     // @committed
     // The minimum date required is public (via the parameter commitment) so verifiers can check
     // the date provided to the proof is correct
-    // If the minimum date is a string of 1 (i.e. "11111111") it is not checked
-    min_date: str<8>,
+    // If the minimum date timestamp is 0, it is not checked
+    min_date: u32,
     // @committed
     // The maximum date required is public (via the parameter commitment) so verifiers can check
     // the date provided to the proof is correct
-    // If the maximum date is a string of 1 (i.e. "11111111") it is not checked
-    max_date: str<8>,
+    // If the maximum date timestamp is 0, it is not checked
+    max_date: u32,
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field) {
-    let birthdate = get_birthdate(dg1, current_date.as_bytes());
+    let birthdate = get_birthdate(dg1, current_date);
     // Verify the birthdate of the ID holder
-    compare_date(birthdate, min_date.as_bytes(), max_date.as_bytes());
+    compare_date(birthdate, min_date, max_date);
     let nullifier = nullify(
         comm_in,
         salt,

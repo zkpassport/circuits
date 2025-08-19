@@ -20,6 +20,7 @@ import {
   getIssuingCountryInclusionCircuitInputs,
   getNationalityExclusionCircuitInputs,
   getNationalityInclusionCircuitInputs,
+  getNowTimestamp,
   getOuterCircuitInputs,
   getParameterCommitmentFromDisclosureProof,
   getServiceScopeHash,
@@ -34,6 +35,7 @@ import { generateSod, wrapSodInContentInfo } from "../sod-generator"
 import { TestHelper } from "../test-helper"
 import { serializeAsn } from "../utils"
 import circuitManifest from "../tests/fixtures/circuit-manifest.json"
+import { numberToBytesBE } from "@noble/curves/utils"
 
 interface SubproofData {
   proof: string[]
@@ -50,15 +52,7 @@ class FixtureGenerator {
   private readonly FIXTURES_PATH = path.join(__dirname, "..", "tests", "fixtures")
   private readonly DSC_KEYPAIR_PATH = path.join(this.FIXTURES_PATH, "dsc-keypair-rsa.json")
   private readonly MAX_TBS_LENGTH = 700
-  private readonly globalCurrentDate = new Date(
-    new Date().getFullYear(),
-    new Date().getMonth(),
-    new Date().getDate(),
-    0,
-    0,
-    0,
-    0,
-  )
+  private readonly nowTimestamp = getNowTimestamp()
 
   async setupPassport() {
     console.log("Setting up passport data...")
@@ -418,12 +412,13 @@ class FixtureGenerator {
             3n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
+            this.nowTimestamp,
           ),
         { age: { gte: 18 } },
         ProofType.AGE,
         (inputs) =>
-          Array.from(new TextEncoder().encode(inputs.current_date))
-            .map((x: number) => x.toString(16).padStart(2, "0"))
+          Array.from(numberToBytesBE(inputs.current_date, 4))
+            .map((x) => x.toString(16).padStart(2, "0"))
             .join("") +
           inputs.min_age_required.toString(16).padStart(2, "0") +
           inputs.max_age_required.toString(16).padStart(2, "0"),
@@ -437,21 +432,22 @@ class FixtureGenerator {
         () =>
           getExpiryDateCircuitInputs(
             this.helper.passport as any,
-            { expiry_date: { gte: new Date() } },
+            { expiry_date: { gte: new Date(this.nowTimestamp * 1000) } },
             3n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
+            this.nowTimestamp,
           ),
-        { expiry_date: { gte: new Date() } },
+        { expiry_date: { gte: new Date(this.nowTimestamp * 1000) } },
         ProofType.EXPIRY_DATE,
         (inputs) =>
-          Array.from(new TextEncoder().encode(inputs.current_date))
+          Array.from(numberToBytesBE(inputs.current_date, 4))
             .map((x: number) => x.toString(16).padStart(2, "0"))
             .join("") +
-          Array.from(new TextEncoder().encode(inputs.min_date))
+          Array.from(numberToBytesBE(inputs.min_date, 4))
             .map((x: number) => x.toString(16).padStart(2, "0"))
             .join("") +
-          Array.from(new TextEncoder().encode(inputs.max_date))
+          Array.from(numberToBytesBE(inputs.max_date, 4))
             .map((x: number) => x.toString(16).padStart(2, "0"))
             .join(""),
       ),
@@ -464,22 +460,23 @@ class FixtureGenerator {
         () =>
           getBirthdateCircuitInputs(
             this.helper.passport as any,
-            { birthdate: { lte: new Date() } },
+            { birthdate: { lte: new Date(this.nowTimestamp * 1000) } },
             3n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
+            this.nowTimestamp,
           ),
-        { birthdate: { lte: new Date() } },
+        { birthdate: { lte: new Date(this.nowTimestamp * 1000) } },
         ProofType.BIRTHDATE,
         (inputs) =>
-          Array.from(new TextEncoder().encode(inputs.current_date))
+          Array.from(numberToBytesBE(inputs.current_date, 4))
+            .map((x) => x.toString(16).padStart(2, "0"))
+            .join("") +
+          Array.from(numberToBytesBE(inputs.min_date, 4))
             .map((x: number) => x.toString(16).padStart(2, "0"))
             .join("") +
-          Array.from(new TextEncoder().encode(inputs.min_date))
-            .map((x: number) => x.toString(16).padStart(2, "0"))
-            .join("") +
-          Array.from(new TextEncoder().encode(inputs.max_date))
-            .map((x: number) => x.toString(16).padStart(2, "0"))
+          Array.from(numberToBytesBE(inputs.max_date, 4))
+            .map((x) => x.toString(16).padStart(2, "0"))
             .join(""),
       ),
     )

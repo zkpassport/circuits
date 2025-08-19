@@ -5,7 +5,7 @@ use utils::{
     PASSPORT_MRZ_BIRTHDATE_INDEX, PROOF_TYPE_AGE,
 };
 
-fn get_birthdate(dg1: [u8; 95], current_date: [u8; 8]) -> Date {
+fn get_birthdate(dg1: [u8; 95], timestamp: u32) -> Date {
     let mut birthdate_bytes = [0 as u8; 6];
     let mrz = get_mrz_from_dg1(dg1);
 
@@ -25,21 +25,23 @@ fn get_birthdate(dg1: [u8; 95], current_date: [u8; 8]) -> Date {
         );
     }
 
+    let current_date = Date::from_timestamp(timestamp as u64);
+
     // Create a Date object from the birthdate using the current date as
     // the pivot year to differentiate between 20th and 21st centuries
     // as the format is "YYMMDD"
-    Date::from_bytes_short_year(birthdate_bytes, [current_date[2], current_date[3]])
+    Date::from_bytes_short_year(birthdate_bytes, current_date)
 }
 
-pub fn compare_age(dg1: [u8; 95], min_age: u8, max_age: u8, current_date_bytes: [u8; 8]) {
+pub fn compare_age(dg1: [u8; 95], min_age: u8, max_age: u8, timestamp: u32) {
     // Restrict the age to be less than 100 as the dg1 birthdate only encodes
     // two digits for the year
     // TODO: Add support for dg11 to support 100+
     assert((max_age < 100) & (min_age < 100), "Age must be less than 100");
 
-    let birthdate: Date = get_birthdate(dg1, current_date_bytes);
+    let birthdate: Date = get_birthdate(dg1, timestamp);
 
-    let current_date = Date::from_bytes_long_year(current_date_bytes);
+    let current_date = Date::from_timestamp(timestamp as u64);
 
     assert((min_age != 0) | (max_age != 0), "Either min or max age must be non-zero");
 
@@ -84,19 +86,16 @@ pub fn compare_age(dg1: [u8; 95], min_age: u8, max_age: u8, current_date_bytes: 
 ///
 /// * `commitment`: The commitment of the current date, min age and max age
 pub fn calculate_param_commitment(
-    current_date: str<8>,
+    timestamp: u32,
     min_age_required: u8,
     max_age_required: u8,
 ) -> Field {
-    let mut params = [0 as Field; 11];
+    let mut params = [0 as Field; 4];
     params[0] = PROOF_TYPE_AGE as Field;
-    let current_date_bytes = current_date.as_bytes();
-    for i in 1..9 {
-        params[i] = current_date_bytes[i - 1] as Field;
-    }
-    params[9] = min_age_required as Field;
-    params[10] = max_age_required as Field;
-    Poseidon2::hash(params, 11)
+    params[1] = timestamp as Field;
+    params[2] = min_age_required as Field;
+    params[3] = max_age_required as Field;
+    Poseidon2::hash(params, 4)
 }
 
 /// Calculate the commitment of the current date, min age and max age using SHA2-256
@@ -113,18 +112,18 @@ pub fn calculate_param_commitment(
 ///
 /// * `commitment`: The commitment of the current date, min age and max age
 pub fn calculate_param_commitment_sha2(
-    current_date: str<8>,
+    timestamp: u32,
     min_age_required: u8,
     max_age_required: u8,
 ) -> Field {
-    let mut params = [0 as u8; 11];
+    let mut params = [0 as u8; 7];
     params[0] = PROOF_TYPE_AGE;
-    let current_date_bytes = current_date.as_bytes();
-    for i in 1..9 {
-        params[i] = current_date_bytes[i - 1];
+    let timestamp_bytes: [u8; 4] = (timestamp as Field).to_be_bytes();
+    for i in 1..5 {
+        params[i] = timestamp_bytes[i - 1];
     }
-    params[9] = min_age_required;
-    params[10] = max_age_required;
-    let hash = sha256::sha256_var(params, 11);
+    params[5] = min_age_required;
+    params[6] = max_age_required;
+    let hash = sha256::sha256_var(params, 7);
     utils::pack_be_bytes_into_field::<32, 31>(hash)
 }

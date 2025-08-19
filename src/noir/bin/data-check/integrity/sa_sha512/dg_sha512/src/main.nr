@@ -4,7 +4,7 @@ use data_check_expiry::check_expiry;
 use data_check_integrity::{check_dg1_sha512, check_signed_attributes_sha512};
 
 fn main(
-    current_date: pub str<8>,
+    current_date: pub u32,
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,
@@ -17,7 +17,7 @@ fn main(
     private_nullifier: Field,
 ) -> pub Field {
     // Check the ID is not expired first
-    check_expiry(dg1, current_date.as_bytes());
+    check_expiry(dg1, current_date);
     // Check the integrity of the data
     check_dg1_sha512(dg1, e_content, dg1_offset_in_e_content);
     check_signed_attributes_sha512(signed_attributes, e_content, e_content_size);

@@ -44,11 +44,11 @@ contract VerifierTest is TestUtils {
       proof[i] = bytes1(uint8(i % 256));
     }
 
-    // Create a dummy public inputs array with the required size (15)
-    bytes32[] memory publicInputs = new bytes32[](15);
+    // Create a dummy public inputs array with the required size (8)
+    bytes32[] memory publicInputs = new bytes32[](8);
 
     // Fill with some values
-    for (uint i = 0; i < 15; i++) {
+    for (uint i = 0; i < 8; i++) {
       publicInputs[i] = bytes32(uint256(i));
     }
 

@@ -35,7 +35,6 @@ fn main(
         country,
         tbs_certificate,
         salt,
-        1,
         csc_pubkey,
     );
     comm_out

@@ -7,9 +7,9 @@ fn main(
     private_nullifier: Field,
     dg1: [u8; 95],
     // @committed
-    // The current date is public (via the parameter commitment) so verifiers can check the date
+    // The current date timestamp is public (via the parameter commitment) so verifiers can check the date
     // provided to the proof is correct
-    current_date: str<8>,
+    current_date: u32,
     // @committed
     // The minimum age required is public (via the parameter commitment) so verifiers can check
     // the age provided to the proof is correct
@@ -23,12 +23,7 @@ fn main(
     service_subscope: pub Field,
 ) -> pub (Field, Field) {
     // Verify the age of the ID holder
-    compare_age(
-        dg1,
-        min_age_required,
-        max_age_required,
-        current_date.as_bytes(),
-    );
+    compare_age(dg1, min_age_required, max_age_required, current_date);
     let nullifier = nullify(
         comm_in,
         salt,
