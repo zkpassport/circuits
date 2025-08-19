@@ -17,7 +17,9 @@ pub mod types;
 // The structure of the MRZ is slightly different between passports
 // and ID cards so we need to define indices for both types
 
-use types::{DG1Data, MRZData, MRZName, MRZDOB, MRZYOB, MRZDocumentNumber, MRZNationality, MRZIssuingCountry};
+use types::{
+    DG1Data, MRZData, MRZName, MRZDOB, MRZYOB, MRZDocumentNumber, MRZNationality, MRZIssuingCountry,
+};
 
 // Index for the country of issuance of the passport
 pub global PASSPORT_MRZ_COUNTRY_INDEX: u32 = 2;
@@ -84,7 +86,6 @@ pub global PROOF_TYPE_ISSUING_COUNTRY_INCLUSION: u8 = 6;
 pub global PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION: u8 = 7;
 pub global PROOF_TYPE_BIND: u8 = 8;
 pub global PROOF_TYPE_SANCTIONS_EXCLUSION: u8 = 9;
-
 
 // D<<
 global GERMANY_PASSPORT_CODE: [u8; 3] = [68, 60, 60];

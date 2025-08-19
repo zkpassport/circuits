@@ -1,7 +1,9 @@
 use commitment::nullify;
-use utils::{PROOF_TYPE_SANCTIONS_EXCLUSION};
 use exclusion_check_sanctions::param_commit::calculate_param_commitment_sha2;
-use exclusion_check_sanctions::{SanctionsSparseMerkleTrees, types::SanctionsOrderedMerkleTreeProofs};
+use exclusion_check_sanctions::{
+    SanctionsSparseMerkleTrees, types::SanctionsOrderedMerkleTreeProofs,
+};
+use utils::PROOF_TYPE_SANCTIONS_EXCLUSION;
 
 fn main(
     comm_in: pub Field,

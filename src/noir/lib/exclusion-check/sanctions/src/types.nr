@@ -16,7 +16,10 @@ pub struct SanctionsOrderedMerkleTreeProof {
 }
 
 impl SanctionsOrderedMerkleTreeProof {
-    pub fn new(left: SanctionsOrderedMerkleTreeInclusionProof, right: SanctionsOrderedMerkleTreeInclusionProof) -> Self {
+    pub fn new(
+        left: SanctionsOrderedMerkleTreeInclusionProof,
+        right: SanctionsOrderedMerkleTreeInclusionProof,
+    ) -> Self {
         Self { left, right }
     }
 }

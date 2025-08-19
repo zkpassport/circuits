@@ -1,6 +1,9 @@
 // c.t. /self/noir/crates/dg1/src/utils/
+use crate::types::{
+    SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH, SanctionsOrderedMerkleTreeInclusionProof,
+    SanctionsOrderedMerkleTreeProof,
+};
 use std::hash::poseidon2::Poseidon2;
-use crate::types::{SanctionsOrderedMerkleTreeInclusionProof, SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH, SanctionsOrderedMerkleTreeProof};
 
 ///
 /// Ordered Merkle Tree Inclusion Proof
@@ -11,7 +14,8 @@ pub fn ordered_mt_verify_inclusion(
     root: Field,
     inclusion_proof: SanctionsOrderedMerkleTreeInclusionProof,
 ) {
-    let path_in_bits: [u1; SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH] = inclusion_proof.leaf_index.to_be_bits::<SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH>();
+    let path_in_bits: [u1; SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH] =
+        inclusion_proof.leaf_index.to_be_bits::<SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH>();
 
     let mut current = inclusion_proof.leaf;
     for i in 0..SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH {
@@ -26,11 +30,7 @@ pub fn ordered_mt_verify_inclusion(
     assert(current == root);
 }
 
-pub fn ordered_mt_non_membership(
-    root: Field,
-    leaf: Field,
-    proof: SanctionsOrderedMerkleTreeProof,
-){
+pub fn ordered_mt_non_membership(root: Field, leaf: Field, proof: SanctionsOrderedMerkleTreeProof) {
     // Perform inclusion checks for bothe the closest upper and the closest lower
     ordered_mt_verify_inclusion(root, proof.left);
     ordered_mt_verify_inclusion(root, proof.right);
@@ -58,7 +58,7 @@ fn test_ordered_mt_non_membership() {
         leaf: 0,
         leaf_index: 0,
         sibling_path: [
-            // TODO: the last element in the silbing path should not be the item itself - else we have an issue - 
+            // TODO: the last element in the silbing path should not be the item itself - else we have an issue -
             2205093791139529737741811388582348022582736433331838106133603722207759128,
             4489263594124270894530400946102719509079258257180881231249118637515264545903,
             17449497805207534876569002585234305995050406065845834440365333063916600323909,
@@ -72,7 +72,7 @@ fn test_ordered_mt_non_membership() {
             6820008724807008385676616067296686012752453531745927302876104566670233246381,
             15318764204341323548131784609288204143936917763539762099075611752249016805480,
             17110486705156693385477855439559097451958311674730202621176701173452078128476,
-            10503998961605368431340715288149409141731570720122598863418105270922137068865
+            10503998961605368431340715288149409141731570720122598863418105270922137068865,
         ],
     };
     let closest_upper_proof = SanctionsOrderedMerkleTreeInclusionProof {
@@ -92,14 +92,12 @@ fn test_ordered_mt_non_membership() {
             6820008724807008385676616067296686012752453531745927302876104566670233246381,
             15318764204341323548131784609288204143936917763539762099075611752249016805480,
             17110486705156693385477855439559097451958311674730202621176701173452078128476,
-            10503998961605368431340715288149409141731570720122598863418105270922137068865
+            10503998961605368431340715288149409141731570720122598863418105270922137068865,
         ],
     };
 
-    let proof = SanctionsOrderedMerkleTreeProof {
-        left: closest_lower_proof,
-        right: closest_upper_proof,
-    };
+    let proof =
+        SanctionsOrderedMerkleTreeProof { left: closest_lower_proof, right: closest_upper_proof };
 
     ordered_mt_non_membership(root, leaf, proof);
 }
