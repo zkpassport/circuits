@@ -16,7 +16,7 @@ fn main(
     service_subscope: pub Field,
 ) -> pub (Field, Field) {
     let trees = SanctionsSparseMerkleTrees::default();
-    assert(trees.root_hash() == root_hash);
+    assert(trees.root() == root);
     // Check that nationality of the passport holder is not in the list of countries
     trees.check_sanctions_exclusion(dg1, proofs);
     let nullifier = nullify(
