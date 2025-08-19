@@ -6,7 +6,7 @@
     "test": "jest",
     "generate": "tsx src/ts/scripts/circuit-builder.ts generate && nargo fmt",
     "compile": "tsx src/ts/scripts/circuit-builder.ts generate compile && nargo fmt",
-    "test-contracts": "cd src/solidity && forge test -vv --fork-url $SEPOLIA_RPC_URL --chain-id 31337 && cd ../..",
+    "test-contracts": "cd src/solidity && ./run-tests.sh && cd ../..",
     "package-circuits": "tsx --max-old-space-size=8192 src/ts/scripts/circuit-packager && cp target/packaged/manifest.json src/ts/tests/fixtures/circuit-manifest.json",
     "generate-fixtures": "tsx --max-old-space-size=8192 src/ts/scripts/generate-fixtures.ts"
   },
@@ -34,7 +34,7 @@
     "@types/node": "^22.10.1",
     "@types/node-forge": "^1.3.11",
     "@zkpassport/poseidon2": "^0.6.1",
-    "@zkpassport/utils": "^0.20.0",
+    "@zkpassport/utils": "^0.20.1",
     "aws-cdk": "^2.176.0",
     "aws-cdk-lib": "^2.176.0",
     "babel-jest": "^29.7.0",

@@ -4,9 +4,7 @@ import type { PackagedCertificate, Query } from "@zkpassport/utils"
 import {
   Binary,
   DisclosedData,
-  ProofType,
   convertPemToPackagedCertificate,
-  formatBoundData,
   getAgeCircuitInputs,
   getBindCircuitInputs,
   getBirthdateCircuitInputs,
@@ -18,7 +16,6 @@ import {
   getCommitmentInFromIntegrityProof,
   getCommitmentOutFromIDDataProof,
   getCommitmentOutFromIntegrityProof,
-  getCountryFromWeightedSum,
   getCurrentDateFromIntegrityProof,
   getCurrentDateFromOuterProof,
   getDiscloseCircuitInputs,
@@ -31,6 +28,7 @@ import {
   getMerkleRootFromDSCProof,
   getNationalityExclusionCircuitInputs,
   getNationalityInclusionCircuitInputs,
+  getNowTimestamp,
   getNullifierFromDisclosureProof,
   getNullifierFromOuterProof,
   getOuterCircuitInputs,
@@ -38,8 +36,6 @@ import {
   getParameterCommitmentFromDisclosureProof,
   getServiceScopeHash,
   getServiceSubscopeHash,
-  rightPadArrayWithZeros,
-  ultraVkToFields,
 } from "@zkpassport/utils"
 import * as path from "path"
 import { Circuit } from "../circuits"
@@ -49,7 +45,7 @@ import { TestHelper } from "../test-helper"
 import { createUTCDate, serializeAsn } from "../utils"
 import circuitManifest from "./fixtures/circuit-manifest.json"
 
-const DEBUG_OUTPUT = false
+const nowTimestamp = getNowTimestamp()
 
 describe("outer proof", () => {
   const helper = new TestHelper()
@@ -57,15 +53,6 @@ describe("outer proof", () => {
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-rsa.json")
   const MAX_TBS_LENGTH = 700
-  const globalCurrentDate = new Date(
-    new Date().getFullYear(),
-    new Date().getMonth(),
-    new Date().getDate(),
-    0,
-    0,
-    0,
-    0,
-  )
   let subproofs: Map<
     number,
     {
@@ -159,7 +146,7 @@ describe("outer proof", () => {
     await idDataToIntegrityCircuit.destroy()
 
     const integrityCircuit = Circuit.from("data_check_integrity_sa_sha256_dg_sha256")
-    const integrityInputs = await helper.generateCircuitInputs("integrity")
+    const integrityInputs = await helper.generateCircuitInputs("integrity", nowTimestamp)
     const integrityProof = await integrityCircuit.prove(integrityInputs, {
       recursive: true,
       useCli: true,
@@ -170,7 +157,7 @@ describe("outer proof", () => {
     const integrityCheckToDisclosureCommitment = getCommitmentOutFromIntegrityProof(integrityProof)
     const currentDate = getCurrentDateFromIntegrityProof(integrityProof)
     expect(integrityCheckCommitmentIn).toEqual(dscToIdDataCommitment)
-    expect(currentDate).toEqual(globalCurrentDate)
+    expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     const integrityVkey = (await integrityCircuit.getVerificationKey({ evm: false })).vkeyFields
     const integrityVkeyHash = `0x${(
       await poseidon2HashAsync(integrityVkey.map((x) => BigInt(x)))
@@ -304,7 +291,7 @@ describe("outer proof", () => {
       })
       expect(proof).toBeDefined()
       const currentDate = getCurrentDateFromOuterProof(proof)
-      expect(currentDate).toEqual(globalCurrentDate)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
         779855614087059216963642638396438072807460693353731593953501664068287689340n,
@@ -351,7 +338,14 @@ describe("outer proof", () => {
         age: { gte: 18 },
       }
       const ageCircuit = Circuit.from("compare_age")
-      const ageInputs = await getAgeCircuitInputs(helper.passport as any, query, 3n)
+      const ageInputs = await getAgeCircuitInputs(
+        helper.passport as any,
+        query,
+        3n,
+        0n,
+        0n,
+        nowTimestamp,
+      )
       if (!ageInputs) throw new Error("Unable to generate compare-age greater than circuit inputs")
       const ageProof = await ageCircuit.prove(ageInputs, {
         recursive: true,
@@ -447,7 +441,7 @@ describe("outer proof", () => {
       })
       expect(proof).toBeDefined()
       const currentDate = getCurrentDateFromOuterProof(proof)
-      expect(currentDate).toEqual(globalCurrentDate)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
         779855614087059216963642638396438072807460693353731593953501664068287689340n,
@@ -470,15 +464,6 @@ describe("outer proof - evm optimised", () => {
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-rsa.json")
   const MAX_TBS_LENGTH = 700
-  const globalCurrentDate = new Date(
-    new Date().getFullYear(),
-    new Date().getMonth(),
-    new Date().getDate(),
-    0,
-    0,
-    0,
-    0,
-  )
   let subproofs: Map<
     number,
     {
@@ -572,7 +557,7 @@ describe("outer proof - evm optimised", () => {
     await idDataToIntegrityCircuit.destroy()
 
     const integrityCircuit = Circuit.from("data_check_integrity_sa_sha256_dg_sha256")
-    const integrityInputs = await helper.generateCircuitInputs("integrity")
+    const integrityInputs = await helper.generateCircuitInputs("integrity", nowTimestamp)
     const integrityProof = await integrityCircuit.prove(integrityInputs, {
       recursive: true,
       useCli: true,
@@ -583,7 +568,7 @@ describe("outer proof - evm optimised", () => {
     const integrityCheckToDisclosureCommitment = getCommitmentOutFromIntegrityProof(integrityProof)
     const currentDate = getCurrentDateFromIntegrityProof(integrityProof)
     expect(integrityCheckCommitmentIn).toEqual(dscToIdDataCommitment)
-    expect(currentDate).toEqual(globalCurrentDate)
+    expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     const integrityVkey = (await integrityCircuit.getVerificationKey({ evm: false })).vkeyFields
     const integrityVkeyHash = `0x${(
       await poseidon2HashAsync(integrityVkey.map((x) => BigInt(x)))
@@ -628,14 +613,6 @@ describe("outer proof - evm optimised", () => {
       inputs.disclose_mask,
       disclosedBytes,
     )
-    if (DEBUG_OUTPUT) {
-      console.log("Disclose compressedCommittedInputs")
-      console.log(
-        ProofType.DISCLOSE.toString(16).padStart(2, "0") +
-          inputs.disclose_mask.map((x: number) => x.toString(16).padStart(2, "0")).join("") +
-          disclosedBytes.map((x: number) => x.toString(16).padStart(2, "0")).join(""),
-      )
-    }
     expect(paramCommitment).toEqual(calculatedParamCommitment)
     // Verify the disclosed data
     const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
@@ -698,17 +675,6 @@ describe("outer proof - evm optimised", () => {
         16,
       )}`
       await bindCircuit.destroy()
-
-      const bindCommittedInputs =
-        ProofType.BIND.toString(16).padStart(2, "0") +
-        rightPadArrayWithZeros(formatBoundData(bindQuery.bind!), 500)
-          .map((x) => x.toString(16).padStart(2, "0"))
-          .join("")
-
-      if (DEBUG_OUTPUT) {
-        console.log("Bind committed inputs")
-        console.log(bindCommittedInputs)
-      }
 
       const circuit = Circuit.from("outer_count_5")
       const { path: cscToDscTreeHashPath, index: cscToDscTreeIndex } = await getCircuitMerkleProof(
@@ -782,17 +748,8 @@ describe("outer proof - evm optimised", () => {
         disableZK: true,
       })
       expect(proof).toBeDefined()
-      if (DEBUG_OUTPUT) {
-        console.log("Outer 5 subproofs")
-        console.log(
-          JSON.stringify({
-            proof: proof.proof.map((x) => x.replace("0x", "")).join(""),
-            publicInputs: proof.publicInputs,
-          }),
-        )
-      }
       const currentDate = getCurrentDateFromOuterProof(proof)
-      expect(currentDate).toEqual(globalCurrentDate)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
         4721170378885156317428488923010239726308591232293531695919010613758228710886n,
@@ -810,7 +767,6 @@ describe("outer proof - evm optimised", () => {
   test(
     "11 subproofs",
     async () => {
-      let compressedCommittedInputs = ""
       // 2nd disclosure proof
       const nationalityInclusionCircuit = Circuit.from("inclusion_check_nationality_evm")
       const nationalityInclusionQuery: Query = {
@@ -843,19 +799,6 @@ describe("outer proof - evm optimised", () => {
         await poseidon2HashAsync(nationalityInclusionVkey.map((x) => BigInt(x)))
       ).toString(16)}`
       await nationalityInclusionCircuit.destroy()
-
-      if (DEBUG_OUTPUT) {
-        compressedCommittedInputs +=
-          ProofType.NATIONALITY_INCLUSION.toString(16).padStart(2, "0") +
-          rightPadArrayWithZeros(
-            nationalityInclusionInputs.country_list
-              .map((c: string) => Array.from(new TextEncoder().encode(c)))
-              .flat(),
-            600,
-          )
-            .map((x) => x.toString(16).padStart(2, "0"))
-            .join("")
-      }
 
       // 3rd disclosure proof
       const nationalityExclusionCircuit = Circuit.from("exclusion_check_nationality_evm")
@@ -890,21 +833,6 @@ describe("outer proof - evm optimised", () => {
       ).toString(16)}`
       await nationalityExclusionCircuit.destroy()
 
-      if (DEBUG_OUTPUT) {
-        compressedCommittedInputs +=
-          ProofType.NATIONALITY_EXCLUSION.toString(16).padStart(2, "0") +
-          rightPadArrayWithZeros(
-            nationalityExclusionInputs.country_list
-              .map((c: number) =>
-                Array.from(new TextEncoder().encode(getCountryFromWeightedSum(c))),
-              )
-              .flat(),
-            600,
-          )
-            .map((x) => x.toString(16).padStart(2, "0"))
-            .join("")
-      }
-
       // 4th disclosure proof
       const issuingCountryInclusionCircuit = Circuit.from("inclusion_check_issuing_country_evm")
       const issuingCountryInclusionQuery: Query = {
@@ -938,18 +866,6 @@ describe("outer proof - evm optimised", () => {
         await poseidon2HashAsync(issuingCountryInclusionVkey.map((x) => BigInt(x)))
       ).toString(16)}`
       await issuingCountryInclusionCircuit.destroy()
-      if (DEBUG_OUTPUT) {
-        compressedCommittedInputs +=
-          ProofType.ISSUING_COUNTRY_INCLUSION.toString(16).padStart(2, "0") +
-          rightPadArrayWithZeros(
-            issuingCountryInclusionInputs.country_list
-              .map((c: string) => Array.from(new TextEncoder().encode(c)))
-              .flat(),
-            600,
-          )
-            .map((x) => x.toString(16).padStart(2, "0"))
-            .join("")
-      }
 
       // 5th disclosure proof
       const issuingCountryExclusionCircuit = Circuit.from("exclusion_check_issuing_country_evm")
@@ -984,20 +900,6 @@ describe("outer proof - evm optimised", () => {
         await poseidon2HashAsync(issuingCountryExclusionVkey.map((x) => BigInt(x)))
       ).toString(16)}`
       await issuingCountryExclusionCircuit.destroy()
-      if (DEBUG_OUTPUT) {
-        compressedCommittedInputs +=
-          ProofType.ISSUING_COUNTRY_EXCLUSION.toString(16).padStart(2, "0") +
-          rightPadArrayWithZeros(
-            issuingCountryExclusionInputs.country_list
-              .map((c: number) =>
-                Array.from(new TextEncoder().encode(getCountryFromWeightedSum(c))),
-              )
-              .flat(),
-            600,
-          )
-            .map((x) => x.toString(16).padStart(2, "0"))
-            .join("")
-      }
 
       // 6th disclosure proof
       const ageQuery: Query = {
@@ -1008,8 +910,9 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         ageQuery,
         3n,
-        getServiceScopeHash("zkpassport.id"),
-        getServiceSubscopeHash("bigproof"),
+        0n,
+        0n,
+        nowTimestamp,
       )
       if (!ageInputs) throw new Error("Unable to generate compare-age greater than circuit inputs")
       const ageProof = await ageCircuit.prove(ageInputs, {
@@ -1024,15 +927,6 @@ describe("outer proof - evm optimised", () => {
         16,
       )}`
       await ageCircuit.destroy()
-      if (DEBUG_OUTPUT) {
-        compressedCommittedInputs +=
-          ProofType.AGE.toString(16).padStart(2, "0") +
-          Array.from(new TextEncoder().encode(ageInputs.current_date))
-            .map((x: number) => x.toString(16).padStart(2, "0"))
-            .join("") +
-          ageInputs.min_age_required.toString(16).padStart(2, "0") +
-          ageInputs.max_age_required.toString(16).padStart(2, "0")
-      }
 
       // 7th disclosure proof
       const expiryDateCircuit = Circuit.from("compare_expiry_evm")
@@ -1045,6 +939,7 @@ describe("outer proof - evm optimised", () => {
         3n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
+        nowTimestamp,
       )
       if (!expiryDateInputs)
         throw new Error("Unable to generate compare-expiry-date greater than circuit inputs")
@@ -1060,19 +955,6 @@ describe("outer proof - evm optimised", () => {
         await poseidon2HashAsync(expiryDateVkey.map((x) => BigInt(x)))
       ).toString(16)}`
       await expiryDateCircuit.destroy()
-      if (DEBUG_OUTPUT) {
-        compressedCommittedInputs +=
-          ProofType.EXPIRY_DATE.toString(16).padStart(2, "0") +
-          Array.from(new TextEncoder().encode(expiryDateInputs.current_date))
-            .map((x: number) => x.toString(16).padStart(2, "0"))
-            .join("") +
-          Array.from(new TextEncoder().encode(expiryDateInputs.min_date))
-            .map((x: number) => x.toString(16).padStart(2, "0"))
-            .join("") +
-          Array.from(new TextEncoder().encode(expiryDateInputs.max_date))
-            .map((x: number) => x.toString(16).padStart(2, "0"))
-            .join("")
-      }
 
       // 8th disclosure proof
       const birthDateCircuit = Circuit.from("compare_birthdate_evm")
@@ -1085,6 +967,7 @@ describe("outer proof - evm optimised", () => {
         3n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
+        nowTimestamp,
       )
       if (!birthDateInputs)
         throw new Error("Unable to generate compare-birthdate-date less than circuit inputs")
@@ -1100,19 +983,6 @@ describe("outer proof - evm optimised", () => {
         await poseidon2HashAsync(birthDateVkey.map((x) => BigInt(x)))
       ).toString(16)}`
       await birthDateCircuit.destroy()
-      if (DEBUG_OUTPUT) {
-        compressedCommittedInputs +=
-          ProofType.BIRTHDATE.toString(16).padStart(2, "0") +
-          Array.from(new TextEncoder().encode(birthDateInputs.current_date))
-            .map((x: number) => x.toString(16).padStart(2, "0"))
-            .join("") +
-          Array.from(new TextEncoder().encode(birthDateInputs.min_date))
-            .map((x: number) => x.toString(16).padStart(2, "0"))
-            .join("") +
-          Array.from(new TextEncoder().encode(birthDateInputs.max_date))
-            .map((x: number) => x.toString(16).padStart(2, "0"))
-            .join("")
-      }
 
       // Outer proof
       const outerProofCircuit = Circuit.from("outer_count_11")
@@ -1248,19 +1118,8 @@ describe("outer proof - evm optimised", () => {
         disableZK: true,
       })
       expect(proof).toBeDefined()
-      if (DEBUG_OUTPUT) {
-        console.log("Outer 11 subproofs")
-        console.log(
-          JSON.stringify({
-            proof: proof.proof.map((x) => x.replace("0x", "")).join(""),
-            publicInputs: proof.publicInputs,
-          }),
-        )
-        console.log("committed inputs")
-        console.log(compressedCommittedInputs)
-      }
       const currentDate = getCurrentDateFromOuterProof(proof)
-      expect(currentDate).toEqual(globalCurrentDate)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
         4721170378885156317428488923010239726308591232293531695919010613758228710886n,

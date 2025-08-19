@@ -102,7 +102,6 @@ const processFile = async (
   evm: boolean = false,
   outputName: string = file.replace(".json", ""),
   generateSolidityVerifier: boolean = false,
-  disableZK: boolean = false,
 ): Promise<boolean> => {
   const inputPath = path.join(TARGET_DIR, file)
   const outputPath = path.join(PACKAGED_CIRCUITS_DIR, `${outputName}.json`)
@@ -126,18 +125,14 @@ const processFile = async (
     await execPromise(
       `bb write_vk --scheme ultra_honk${
         evm ? " --oracle_hash keccak" : ""
-      } --honk_recursion 1 --output_format bytes_and_fields${
-        disableZK ? " --disable_zk" : ""
-      } -b "${inputPath}" -o "${vkeyPath}"`,
+      } --honk_recursion 1 --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
     )
     await execPromise(
       `bb gates --scheme ultra_honk --honk_recursion 1 -b "${inputPath}" > "${gateCountPath}"`,
     )
     if (generateSolidityVerifier) {
       await execPromise(
-        `bb write_solidity_verifier --scheme ultra_honk${
-          disableZK ? " --disable_zk" : ""
-        } -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
+        `bb write_solidity_verifier --scheme ultra_honk --disable_zk -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
       )
     }
 
@@ -317,7 +312,7 @@ const processFiles = async () => {
         `Memory intensive processing of outer proof circuit: ${file} (no concurrent processing)`,
       )
       console.log(`Generating the standard outer proof packaged circuit...`)
-      const success = await processFile(file)
+      const success = await processFile(file, true, file.replace(".json", ""), true)
       if (!success) {
         hasErrors = true
       }

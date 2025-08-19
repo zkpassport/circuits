@@ -17,9 +17,8 @@ contract SampleContractTest is TestUtils {
   string constant PUBLIC_INPUTS_PATH = "./test/fixtures/all_subproofs_public_inputs.json";
   string constant COMMITTED_INPUTS_PATH = "./test/fixtures/all_subproofs_committed_inputs.hex";
   bytes32 constant VKEY_HASH =
-    bytes32(uint256(0x114a570edf27e73722d930a50ebc8d5ab9febbda7be12122ff52e58989b11256));
-  bytes32 constant CERTIFICATE_REGISTRY_ROOT =
-    bytes32(uint256(0x24d829f19cd951f53a221a917e5f28c4faf4bb38a21ce3f5da3993acde23aa67));
+    bytes32(uint256(0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4));
+  uint256 constant CURRENT_DATE = 1755553385;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
@@ -33,7 +32,6 @@ contract SampleContractTest is TestUtils {
     address[] memory verifiers = new address[](1);
     verifiers[0] = address(verifier);
     zkPassportVerifier.addVerifiers(vkeyHashes, verifiers);
-    zkPassportVerifier.addCertificateRegistryRoot(CERTIFICATE_REGISTRY_ROOT);
 
     sampleContract = new SampleContract();
     sampleContract.setZKPassportVerifier(address(zkPassportVerifier));
@@ -53,23 +51,22 @@ contract SampleContractTest is TestUtils {
     committedInputCounts[2] = 601;
     committedInputCounts[3] = 601;
     committedInputCounts[4] = 601;
-    committedInputCounts[5] = 11;
-    committedInputCounts[6] = 25;
-    committedInputCounts[7] = 25;
+    committedInputCounts[5] = 7;
+    committedInputCounts[6] = 13;
+    committedInputCounts[7] = 13;
 
     // The sender cannot call this function cause they are not verified
     vm.expectRevert("User is not verified");
     sampleContract.doStuff();
 
-    // Set the timestamp to 2025-07-26 11:33:37 UTC
-    vm.warp(1753529617);
+    vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
       vkeyHash: VKEY_HASH,
       proof: proof,
       publicInputs: publicInputs,
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
-      validityPeriodInDays: 7,
+      validityPeriodInSeconds: 7 days,
       domain: "zkpassport.id",
       scope: "bigproof",
       // Set to true to accept mock proofs from the ZKR

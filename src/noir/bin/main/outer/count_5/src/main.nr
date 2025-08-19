@@ -36,7 +36,7 @@ fn verify_subproofs(
     // Root of the circuit registry merkle tree
     circuit_registry_root: Field,
     // Current date and time as a unix timestamp
-    timestamp: u32,
+    current_date: u32,
     // The commitments over the parameters of the disclosure circuits
     param_commitments: [Field; 2],
     // The nullifier service scope (a Pederson hash of the domain)
@@ -155,7 +155,7 @@ fn verify_subproofs(
         integrity_check_proof.vkey,
         integrity_check_proof.proof,
         prepare_integrity_check_inputs(
-            timestamp,
+            current_date,
             integrity_check_proof.public_inputs[0], // comm_in
             integrity_check_proof.public_inputs[1], // comm_out
         ),
@@ -192,7 +192,7 @@ fn main(
     certificate_registry_root: pub Field,
     // Root of the circuit registry merkle tree
     circuit_registry_root: pub Field,
-    timestamp: pub u32,
+    current_date: pub u32,
     service_scope: pub Field,
     service_subscope: pub Field,
     param_commitments: pub [Field; 2],
@@ -205,7 +205,7 @@ fn main(
     verify_subproofs(
         certificate_registry_root,
         circuit_registry_root,
-        timestamp,
+        current_date,
         param_commitments,
         service_scope,
         service_subscope,

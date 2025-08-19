@@ -23,11 +23,11 @@ contract ZKPassportVerifierTest is TestUtils {
   string constant ALL_SUBPROOFS_COMMITTED_INPUTS_PATH =
     "./test/fixtures/all_subproofs_committed_inputs.hex";
   bytes32 constant VKEY_HASH =
-    bytes32(uint256(0x0224c6293386f8ecf70f59dc041af91ab7cf90b9268b9e0ecfbd96f3d3e713a8));
+    bytes32(uint256(0x04b98c6f867d6a7f86d514b72c3be8f41b7aa6f49fdc17514c9f9f0a2ac3ef9a));
   bytes32 constant OUTER_PROOF_11_VKEY_HASH =
-    bytes32(uint256(0x114a570edf27e73722d930a50ebc8d5ab9febbda7be12122ff52e58989b11256));
-  bytes32 constant CERTIFICATE_REGISTRY_ROOT =
-    bytes32(uint256(0x24d829f19cd951f53a221a917e5f28c4faf4bb38a21ce3f5da3993acde23aa67));
+    bytes32(uint256(0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4));
+  uint256 constant CURRENT_DATE = 1755553385;
+  uint256 constant PROOF_GENERATION_DATE = 1755553206;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
@@ -44,7 +44,6 @@ contract ZKPassportVerifierTest is TestUtils {
     verifiers[0] = address(verifier5);
     verifiers[1] = address(verifier11);
     zkPassportVerifier.addVerifiers(vkeyHashes, verifiers);
-    zkPassportVerifier.addCertificateRegistryRoot(CERTIFICATE_REGISTRY_ROOT);
   }
 
   function test_VerifyValidProof() public {
@@ -60,15 +59,14 @@ contract ZKPassportVerifierTest is TestUtils {
 
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
-    // Set the timestamp to 2025-07-26 11:33:37 UTC
-    vm.warp(1753529617);
+    vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
       vkeyHash: VKEY_HASH,
       proof: proof,
       publicInputs: publicInputs,
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
-      validityPeriodInDays: 7,
+      validityPeriodInSeconds: 7 days,
       domain: "zkpassport.id",
       scope: "bigproof",
       devMode: false
@@ -127,15 +125,14 @@ contract ZKPassportVerifierTest is TestUtils {
     committedInputCounts[0] = 181;
     committedInputCounts[1] = 501;
 
-    // Set the timestamp to 2025-07-26 11:33:37 UTC
-    vm.warp(1753529617);
+    vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
       vkeyHash: VKEY_HASH,
       proof: proof,
       publicInputs: publicInputs,
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
-      validityPeriodInDays: 7,
+      validityPeriodInSeconds: 7 days,
       domain: "zkpassport.id",
       scope: "bigproof",
       devMode: false
@@ -181,21 +178,20 @@ contract ZKPassportVerifierTest is TestUtils {
     committedInputCounts[2] = 601;
     committedInputCounts[3] = 601;
     committedInputCounts[4] = 601;
-    committedInputCounts[5] = 11;
-    committedInputCounts[6] = 25;
-    committedInputCounts[7] = 25;
+    committedInputCounts[5] = 7;
+    committedInputCounts[6] = 13;
+    committedInputCounts[7] = 13;
 
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
-    // Set the timestamp to 2025-07-26 11:33:37 UTC
-    vm.warp(1753529617);
+    vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
       vkeyHash: OUTER_PROOF_11_VKEY_HASH,
       proof: proof,
       publicInputs: publicInputs,
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
-      validityPeriodInDays: 7,
+      validityPeriodInSeconds: 7 days,
       domain: "zkpassport.id",
       scope: "bigproof",
       devMode: false
@@ -218,7 +214,7 @@ contract ZKPassportVerifierTest is TestUtils {
     uint256 gasUsedGetAgeProofInputs = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier getAgeProofInputs");
     console.log(gasUsedGetAgeProofInputs);
-    assertEq(currentDate, 1753488000);
+    assertEq(currentDate, PROOF_GENERATION_DATE);
     assertEq(minAge, 18);
     assertEq(maxAge, 0);
 
@@ -262,19 +258,18 @@ contract ZKPassportVerifierTest is TestUtils {
     committedInputCounts[2] = 601;
     committedInputCounts[3] = 601;
     committedInputCounts[4] = 601;
-    committedInputCounts[5] = 11;
-    committedInputCounts[6] = 25;
-    committedInputCounts[7] = 25;
+    committedInputCounts[5] = 7;
+    committedInputCounts[6] = 13;
+    committedInputCounts[7] = 13;
 
-    // Set the timestamp to 2025-07-26 11:33:37 UTC
-    vm.warp(1753529617);
+    vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
       vkeyHash: OUTER_PROOF_11_VKEY_HASH,
       proof: loadBytesFromFile(ALL_SUBPROOFS_PROOF_PATH),
       publicInputs: loadBytes32FromFile(ALL_SUBPROOFS_PUBLIC_INPUTS_PATH),
       committedInputs: committedInputs,
       committedInputCounts: committedInputCounts,
-      validityPeriodInDays: 7,
+      validityPeriodInSeconds: 7 days,
       domain: "zkpassport.id",
       scope: "bigproof",
       devMode: false
@@ -295,9 +290,9 @@ contract ZKPassportVerifierTest is TestUtils {
     uint256 gasUsed = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier getDateProofInputs - birthdate");
     console.log(gasUsed);
-    assertEq(currentDateBirthDate, 1753488000);
+    assertEq(currentDateBirthDate, PROOF_GENERATION_DATE);
     assertEq(minDateBirthDate, 0);
-    assertEq(maxDateBirthDate, 1753488000);
+    assertEq(maxDateBirthDate, PROOF_GENERATION_DATE);
 
     vm.startSnapshotGas("ZKPassportVerifier getDateProofInputs - expiry date");
     (
@@ -312,8 +307,8 @@ contract ZKPassportVerifierTest is TestUtils {
     gasUsed = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier getDateProofInputs - expiry date");
     console.log(gasUsed);
-    assertEq(currentDateExpiryDate, 1753488000);
-    assertEq(minDateExpiryDate, 1753488000);
+    assertEq(currentDateExpiryDate, PROOF_GENERATION_DATE);
+    assertEq(minDateExpiryDate, PROOF_GENERATION_DATE);
     assertEq(maxDateExpiryDate, 0);
 
     vm.startSnapshotGas("ZKPassportVerifier getCountryProofInputs - issuing country inclusion");

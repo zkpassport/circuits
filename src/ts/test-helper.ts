@@ -5,6 +5,7 @@ import {
   getDSCCircuitInputs,
   getIDDataCircuitInputs,
   getIntegrityCheckCircuitInputs,
+  getNowTimestamp,
   PassportReader,
   type PackagedCertificate,
   type PassportViewModel,
@@ -24,7 +25,10 @@ export class TestHelper {
     this.certificates = certificates
   }
 
-  async generateCircuitInputs(circuitType: CircuitType): Promise<InputMap> {
+  async generateCircuitInputs(
+    circuitType: CircuitType,
+    nowTimestamp: number = getNowTimestamp(),
+  ): Promise<InputMap> {
     switch (circuitType) {
       case "dsc": {
         const inputs = await getDSCCircuitInputs(this.passport as any, 1n, this.certificates)
@@ -37,7 +41,12 @@ export class TestHelper {
         return inputs
       }
       case "integrity": {
-        const inputs = await getIntegrityCheckCircuitInputs(this.passport as any, 2n, 3n)
+        const inputs = await getIntegrityCheckCircuitInputs(
+          this.passport as any,
+          2n,
+          3n,
+          nowTimestamp,
+        )
         if (!inputs) throw new Error("Unable to generate integrity check circuit inputs")
         return inputs
       }
