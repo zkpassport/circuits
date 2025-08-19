@@ -1,8 +1,5 @@
-
-import { poseidon2, SMT } from "@zkpassport/utils"
-import nameAndDobJson from "../outputs/NEW_nameAndDobSMT.json"
-import nameAndYobJson from "../outputs/NEW_nameAndYobSMT.json"
-import passportNoAndCountryJson from "../outputs/NEW_passportNoAndCountrySMT.json"
+import { poseidon2, AsyncOrderedMT } from "@zkpassport/utils/merkle-tree"
+import singleTreeJson from "../outputs/Ordered_singleTree.json"
 import { hashNameAndDob, hashNameAndYob, hashPassportNoAndCountry, nameToMRZ, passportNoAndCountry, passportToMRZ } from "../trees/generate_trees"
 import { SanctionsNames, SanctionsPassport, PassportMRZData } from "../trees/types"
 
@@ -10,17 +7,19 @@ import { SanctionsNames, SanctionsPassport, PassportMRZData } from "../trees/typ
  * Generate test data within exclusion-check/sanctions/src/lib.nr
  */
 async function testNonMembershipFullSets() {
-    const passportNoAndCountrySMT = new SMT(poseidon2, /*bigNumbers=*/ true)
-    passportNoAndCountrySMT.import(JSON.stringify(passportNoAndCountryJson));
-
-    const nameAndDobSMT = new SMT(poseidon2, /*bigNumbers=*/ true)
-    nameAndDobSMT.import(JSON.stringify(nameAndDobJson));
-
-    const nameAndYobSMT = new SMT(poseidon2, /*bigNumbers=*/ true)
-    nameAndYobSMT.import(JSON.stringify(nameAndYobJson));
-
+    console.log("test: test_ordered_mt_non_membership")
+    const singleTree = await AsyncOrderedMT.fromSerialized(singleTreeJson, poseidon2)
+    console.log("singleTree root hex", `0x${singleTree.root.toString(16).padStart(64, "0")}`);
+    console.log("singleTree root decimal", singleTree.root);
     // non inclusion proof of arb value
-    console.log(await passportNoAndCountrySMT.createProof(1n));
+    const singleTreeNonMembershipProof = await singleTree.createNonMembershipProof(1n);
+    console.log("singleTreeNonMembershipProof", singleTreeNonMembershipProof);
+    console.log("left sibling path", singleTreeNonMembershipProof.left?.proof.siblings);
+    console.log("right sibling path", singleTreeNonMembershipProof.right?.proof.siblings);
+
+    await AsyncOrderedMT.verifyNonMembershipProof(singleTreeNonMembershipProof, poseidon2)
+
+    console.log("test: non_inclusion_of_dg1");
 
     const passportNo = "123456789";
     const country = "United Kingdom";
@@ -40,17 +39,26 @@ async function testNonMembershipFullSets() {
 
     const hash = await hashPassportNoAndCountry([passportToMRZ as PassportMRZData]);
 
-    const nonPassportProof = passportNoAndCountrySMT.createProof(hash[0]);
+    const nonPassportProof = singleTree.createNonMembershipProof(hash[0]);
+    console.log("target hex", `0x${hash[0].toString(16).padStart(64, "0")}`);
     console.log("non passport proof", nonPassportProof);
+    console.log("left sibling path", nonPassportProof.left?.proof.siblings);
+    console.log("right sibling path", nonPassportProof.right?.proof.siblings);
 
     const nameAndDobHash = await hashNameAndDob([mrz[0]]);
     const nameAndYobHash = await hashNameAndYob([mrz[0]]);
 
-    const nonNameAndDobProof = nameAndDobSMT.createProof(nameAndDobHash[0]);
+    const nonNameAndDobProof = singleTree.createNonMembershipProof(nameAndDobHash[0]);
+    console.log("target hex", `0x${nameAndDobHash[0].toString(16).padStart(64, "0")}`);
     console.log("non name and dob proof", nonNameAndDobProof);
+    console.log("left sibling path", nonNameAndDobProof.left?.proof.siblings);
+    console.log("right sibling path", nonNameAndDobProof.right?.proof.siblings);
 
-    const nonNameAndYobProof = nameAndYobSMT.createProof(nameAndYobHash[0]);
+    const nonNameAndYobProof = singleTree.createNonMembershipProof(nameAndYobHash[0]);
+    console.log("target hex", `0x${nameAndYobHash[0].toString(16).padStart(64, "0")}`);
     console.log("non name and yob proof", nonNameAndYobProof);
+    console.log("left sibling path", nonNameAndYobProof.left?.proof.siblings);
+    console.log("right sibling path", nonNameAndYobProof.right?.proof.siblings);
 }
 
 testNonMembershipFullSets();

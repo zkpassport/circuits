@@ -1,10 +1,13 @@
-import {SMT, poseidon2} from "@zkpassport/utils/merkle-tree"
+import {poseidon2, AsyncOrderedMT} from "@zkpassport/utils/merkle-tree"
 import fs from "fs"
 import NAMES_Sanctions_LIST from "../inputs/names.json"
 import PASSPORTS_Sanctions_LIST from "../inputs/passports.json"
 import { hashNameAndDob, hashNameAndYob, hashPassportNoAndCountry, nameToMRZ, passportToMRZ } from "../trees/generate_trees";
 import { SanctionsNames, SanctionsPassport } from "../trees/types";
+import path from "path";
 
+const TREE_DEPTH = 13;
+const SINGLE_TREE_DEPTH = 14;
 
 /**
  * Steps:
@@ -24,53 +27,52 @@ async function generateSanctionsTrees() {
     const nameAndDobHashed = await hashNameAndDob(mrz);
     const nameAndYobHashed = await hashNameAndYob(mrz);
     const passportNoAndCountryHashed = await hashPassportNoAndCountry(passportMRZ);
+    console.log("data lengths", nameAndDobHashed.length, nameAndYobHashed.length, passportNoAndCountryHashed.length);
+    console.log("data lengths log 2", Math.log2(nameAndDobHashed.length), Math.log2(nameAndYobHashed.length), Math.log2(passportNoAndCountryHashed.length));
+    console.log("combined log 2", Math.log2(nameAndDobHashed.length + nameAndYobHashed.length + passportNoAndCountryHashed.length));
 
     console.log("Parsing Data: Complete");
 
-    const nameAndDobSMT = new SMT(poseidon2, /*bigNumbers=*/ true)
-    const nameAndYobSMT = new SMT(poseidon2, /*bigNumbers=*/ true)
-    const passportNoAndCountrySMT = new SMT(poseidon2, /*bigNumbers=*/ true)
+    const singleTree = await AsyncOrderedMT.create(SINGLE_TREE_DEPTH, poseidon2)
+    const nameAndDobSMT = await AsyncOrderedMT.create(TREE_DEPTH, poseidon2)
+    const nameAndYobSMT = await AsyncOrderedMT.create(TREE_DEPTH, poseidon2)
+    const passportNoAndCountrySMT = await AsyncOrderedMT.create(TREE_DEPTH, poseidon2)
+
+    const singleTreeData = nameAndDobHashed.concat(nameAndYobHashed, passportNoAndCountryHashed)
 
     console.log("Generate Trees: Starting");
-    console.log("Generate Trees: Adding name and yob leaves");
-    // TODO: more efficient way to do this? batch adding?
-    for (const item of nameAndDobHashed) {
-        try {
-            await nameAndDobSMT.add(item, BigInt(1));
-        } catch (error) {
-            console.log(error);
-        }
-    }
 
     console.log("Generate Trees: Adding name and yob leaves");
-    for (const item of nameAndYobHashed) {
-        try {
-            await nameAndYobSMT.add(item, BigInt(1));
-        } catch (error) {
-            console.log(error);
-        }
-    }
+    console.log("nameAndDobHashed", nameAndDobHashed);
+    await nameAndDobSMT.initializeAndSort(nameAndDobHashed);
+
+    console.log("nameAndDobSMT.root", nameAndDobSMT.root);
+    console.log("nameAndDobSMT.leaves", (nameAndDobSMT as any).leaves);
+    console.log("nameAndDobSMT.layers", (nameAndDobSMT as any).layers);
+
+    console.log("Generate Trees: Adding name and yob leaves");
+    await nameAndYobSMT.initializeAndSort(nameAndYobHashed);
 
     console.log("Generate Trees: Adding passport no and country leaves");
-    for (const item of passportNoAndCountryHashed) {
-        try {
-            await passportNoAndCountrySMT.add(item, BigInt(1));
-        } catch (error) {
-            console.log(error);
-        }
-    }
+    await passportNoAndCountrySMT.initializeAndSort(passportNoAndCountryHashed);
+
+    await singleTree.initializeAndSort(singleTreeData);
 
     console.log("Generate Trees: Complete");
 
-    const nameAndDobAsJson = nameAndDobSMT.export();
-    const nameAndYobAsJson = nameAndYobSMT.export();
-    const passportNoAndCountryAsJson = passportNoAndCountrySMT.export();
+    console.log("Generate Trees: Serialized");
+    const nameAndDobSerialized = nameAndDobSMT.serialize();
+    const nameAndYobSerialized = nameAndYobSMT.serialize();
+    const passportNoAndCountrySerialized = passportNoAndCountrySMT.serialize();
+    const singleTreeSerialized = singleTree.serialize();
 
     console.log("Exporting Trees: Starting");
 
-    fs.writeFileSync("NEW_nameAndDobSMT.json", nameAndDobAsJson);
-    fs.writeFileSync("NEW_nameAndYobSMT.json", nameAndYobAsJson);
-    fs.writeFileSync("NEW_passportNoAndCountrySMT.json", passportNoAndCountryAsJson);
+    // Write into outputs/
+    fs.writeFileSync(path.join(__dirname, "../outputs/Ordered_nameAndDobSMT.json"), JSON.stringify(nameAndDobSerialized, null, 2));
+    fs.writeFileSync(path.join(__dirname, "../outputs/Ordered_nameAndYobSMT.json"), JSON.stringify(nameAndYobSerialized, null, 2));
+    fs.writeFileSync(path.join(__dirname, "../outputs/Ordered_passportNoAndCountrySMT.json"), JSON.stringify(passportNoAndCountrySerialized, null, 2));
+    fs.writeFileSync(path.join(__dirname, "../outputs/Ordered_singleTree.json"), JSON.stringify(singleTreeSerialized, null, 2));
 
     console.log("Exporting Trees: Complete");
 }

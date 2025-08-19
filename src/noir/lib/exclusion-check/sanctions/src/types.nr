@@ -1,33 +1,39 @@
+pub global SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH: u32 = 14;
 
-type SanctionsSparseMerkleTreeProof = [Field; 254];
+type SanctionsOrderedMerkleTreeSiblingPath = [Field; SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH];
 
-/// A proof for a single Sanctions sparse merkle tree
-pub struct SanctionsMerkleProof {
-    /// The leaf value used for a non inclusion check (common root)
-    pub leaf_value: Field,
-    /// The siblings of the leaf value
-    pub siblings: SanctionsSparseMerkleTreeProof,
+pub struct SanctionsOrderedMerkleTreeInclusionProof {
+    pub leaf: Field,
+    pub leaf_index: Field,
+    pub sibling_path: SanctionsOrderedMerkleTreeSiblingPath,
 }
 
-impl SanctionsMerkleProof {
-    pub fn new(leaf_value: Field, siblings: SanctionsSparseMerkleTreeProof) -> Self {
-        Self { leaf_value, siblings }
+/// A proof for a single Sanctions sparse merkle tree
+pub struct SanctionsOrderedMerkleTreeProof {
+    /// The siblings of the leaf value
+    pub left: SanctionsOrderedMerkleTreeInclusionProof,
+    pub right: SanctionsOrderedMerkleTreeInclusionProof,
+}
+
+impl SanctionsOrderedMerkleTreeProof {
+    pub fn new(left: SanctionsOrderedMerkleTreeInclusionProof, right: SanctionsOrderedMerkleTreeInclusionProof) -> Self {
+        Self { left, right }
     }
 }
 
 /// A collection of proofs for the three Sanctions sparse merkle trees
-pub struct SanctionsSparseMerkleTreeProofs {
-    pub passportNoAndNationalitySMTProof: SanctionsMerkleProof,
-    pub nameAndDobSMTProof: SanctionsMerkleProof,
-    pub nameAndYobSMTProof: SanctionsMerkleProof,
+pub struct SanctionsOrderedMerkleTreeProofs {
+    pub passport_no_and_nationality_proof: SanctionsOrderedMerkleTreeProof,
+    pub name_and_dob_proof: SanctionsOrderedMerkleTreeProof,
+    pub name_and_yob_proof: SanctionsOrderedMerkleTreeProof,
 }
 
-impl SanctionsSparseMerkleTreeProofs {
+impl SanctionsOrderedMerkleTreeProofs {
     pub fn new(
-        passportNoAndNationalitySMTProof: SanctionsMerkleProof,
-        nameAndDobSMTProof: SanctionsMerkleProof,
-        nameAndYobSMTProof: SanctionsMerkleProof,
+        passport_no_and_nationality_proof: SanctionsOrderedMerkleTreeProof,
+        name_and_dob_proof: SanctionsOrderedMerkleTreeProof,
+        name_and_yob_proof: SanctionsOrderedMerkleTreeProof,
     ) -> Self {
-        Self { passportNoAndNationalitySMTProof, nameAndDobSMTProof, nameAndYobSMTProof }
+        Self { passport_no_and_nationality_proof, name_and_dob_proof, name_and_yob_proof }
     }
 }

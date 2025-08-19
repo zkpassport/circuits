@@ -1,5 +1,5 @@
 use commitment::nullify;
-use exclusion_check_sanctions::{SanctionsSparseMerkleTrees, types::SanctionsSparseMerkleTreeProofs};
+use exclusion_check_sanctions::{SanctionsSparseMerkleTrees, types::SanctionsOrderedMerkleTreeProofs};
 use utils::PROOF_TYPE_SANCTIONS_EXCLUSION;
 use exclusion_check_sanctions::param_commit::calculate_param_commitment;
 
@@ -8,8 +8,8 @@ fn main(
     salt: Field,
     private_nullifier: Field,
     dg1: [u8; 95],
-    proofs: SanctionsSparseMerkleTreeProofs,
-    root_hash: Field,
+    proofs: SanctionsOrderedMerkleTreeProofs,
+    root: Field,
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field) {
@@ -25,7 +25,7 @@ fn main(
         service_scope,
         service_subscope,
     );
-    let param_commitment = calculate_param_commitment(PROOF_TYPE_SANCTIONS_EXCLUSION, root_hash);
+    let param_commitment = calculate_param_commitment(PROOF_TYPE_SANCTIONS_EXCLUSION, root);
     (param_commitment, nullifier)
 }
 
