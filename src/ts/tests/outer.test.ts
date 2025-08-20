@@ -51,12 +51,6 @@ import circuitManifest from "./fixtures/circuit-manifest.json"
 const DEBUG_OUTPUT = process.env.DEBUG_OUTPUT === 'true'
 const fixturesOutputDir = path.join(__dirname, '../../../output-fixtures');
 
-if (DEBUG_OUTPUT) {
-  // Write fixtures to output directory
-  if (!fs.existsSync(fixturesOutputDir)) {
-    fs.mkdirSync(fixturesOutputDir, { recursive: true });
-  }
-}
 const nowTimestamp = getNowTimestamp()
 
 describe("outer proof", () => {
@@ -625,20 +619,6 @@ describe("outer proof - evm optimised", () => {
       inputs.disclose_mask,
       disclosedBytes,
     )
-    if (DEBUG_OUTPUT) {
-      console.log("Disclose compressedCommittedInputs")
-
-      const committedInputs = ProofType.DISCLOSE.toString(16).padStart(2, "0") +
-          inputs.disclose_mask.map((x: number) => x.toString(16).padStart(2, "0")).join("") +
-          disclosedBytes.map((x: number) => x.toString(16).padStart(2, "0")).join("")
-
-      console.log(committedInputs)
-
-      fs.writeFileSync(
-        path.join(fixturesOutputDir, 'disclose_committed_inputs.hex'),
-        committedInputs
-      );
-    }
     expect(paramCommitment).toEqual(calculatedParamCommitment)
     // Verify the disclosed data
     const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
