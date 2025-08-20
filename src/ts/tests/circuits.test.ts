@@ -510,7 +510,7 @@ describe("subcircuits - RSA PKCS", () => {
       await circuit.destroy()
     })
 
-    test.only("issuing country", async () => {
+    test("issuing country", async () => {
       const circuit = Circuit.from("exclusion_check_issuing_country")
       const query: Query = {
         issuing_country: { out: ["FRA", "USA", "GBR"] },
@@ -550,19 +550,12 @@ describe("subcircuits - RSA PKCS", () => {
       const sanctions = await SanctionsBuilder.create();
       const inputs = await getSanctionsExclusionCheckCircuitInputs(helper.passport as any, SALT, undefined, undefined, sanctions)
 
-      console.log("inputs", inputs)
-      console.log("passport_no_and_nationality_proof - left", inputs.proofs.passport_no_and_nationality_proof.left)
-      console.log("passport_no_and_nationality_proof - right", inputs.proofs.passport_no_and_nationality_proof.right)
-      console.log("name_and_dob_proof - left", inputs.proofs.name_and_dob_proof.left)
-      console.log("name_and_dob_proof - right", inputs.proofs.name_and_dob_proof.right)
-      console.log("name_and_yob_proof - left", inputs.proofs.name_and_yob_proof.left)
-      console.log("name_and_yob_proof - right", inputs.proofs.name_and_yob_proof.right)
-
       if (!inputs) throw new Error("Unable to generate sanctions circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `exclusion_check_sanctions`,
       });
       expect(proof).toBeDefined()
+
       const calculatedParamCommitment = await sanctions.getSanctionsParameterCommitment()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(paramCommitment).toEqual(calculatedParamCommitment)

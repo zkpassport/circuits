@@ -981,20 +981,6 @@ describe("outer proof - evm optimised", () => {
         await poseidon2HashAsync(expiryDateVkey.map((x) => BigInt(x)))
       ).toString(16)}`
       await expiryDateCircuit.destroy()
-      if (DEBUG_OUTPUT) {
-        compressedCommittedInputs +=
-          ProofType.EXPIRY_DATE.toString(16).padStart(2, "0") +
-          Array.from(new TextEncoder().encode(expiryDateInputs.current_date))
-            .map((x: number) => x.toString(16).padStart(2, "0"))
-            .join("") +
-          Array.from(new TextEncoder().encode(expiryDateInputs.min_date))
-            .map((x: number) => x.toString(16).padStart(2, "0"))
-            .join("") +
-          Array.from(new TextEncoder().encode(expiryDateInputs.max_date))
-            .map((x: number) => x.toString(16).padStart(2, "0"))
-            .join("")
-          
-      }
 
       // 8th disclosure proof
       const birthDateCircuit = Circuit.from("compare_birthdate_evm")
@@ -1029,7 +1015,7 @@ describe("outer proof - evm optimised", () => {
       const sanctionsExclusionInputs = await getSanctionsExclusionCheckCircuitInputs(
         helper.passport as any,
         3n,
-        getServiceScopeHash("zkpassport.id", 31337),
+        getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
       if (!sanctionsExclusionInputs) throw new Error("Unable to generate sanctions exclusion check circuit inputs")
@@ -1042,23 +1028,14 @@ describe("outer proof - evm optimised", () => {
       })
       expect(sanctionsExclusionProof).toBeDefined()
       const sanctionsExclusionParamCommitment = getParameterCommitmentFromDisclosureProof(sanctionsExclusionProof)
-      const sanctionsExclusionVkey = ultraVkToFields(
-        await sanctionsExclusionCircuit.getVerificationKey({
-          recursive: true,
+      const sanctionsExclusionVkey = 
+        (await sanctionsExclusionCircuit.getVerificationKey({
           evm: false,
-          useCli: true,
-        }),
-      )
+        })).vkeyFields
       const sanctionsExclusionVkeyHash = `0x${(
         await poseidon2HashAsync(sanctionsExclusionVkey.map((x) => BigInt(x)))
       ).toString(16)}`
       await sanctionsExclusionCircuit.destroy()
-
-      if (DEBUG_OUTPUT) {
-        compressedCommittedInputs +=
-          ProofType.Sanctions_EXCLUSION.toString(16).padStart(2, "0") +
-          sanctionsExclusionInputs.root_hash.slice(2).padStart(64, "0")
-      }
 
 
       // Outer proof
@@ -1208,46 +1185,6 @@ describe("outer proof - evm optimised", () => {
         disableZK: true,
       })
       expect(proof).toBeDefined()
-      if (DEBUG_OUTPUT) {
-        console.log("Outer 12 subproofs")
-        console.log(
-          JSON.stringify({
-            proof: proof.proof.slice(16).join(""),
-            publicInputs: proof.publicInputs.concat(proof.proof.slice(0, 16).map((f) => `0x${f}`)),
-          }),
-        )
-        console.log("committed inputs")
-        console.log(compressedCommittedInputs)
-
-        // Write fixtures to output directory
-        // Read committed inputs
-        const committedInputs = fs.readFileSync(
-          path.join(fixturesOutputDir, 'disclose_committed_inputs.hex'),
-          'utf8'
-        )
-        
-        // Write committed inputs
-        fs.writeFileSync(
-          path.join(fixturesOutputDir, 'all_subproofs_committed_inputs.hex'),
-          committedInputs + compressedCommittedInputs
-        );
-        
-        // Write public inputs
-        fs.writeFileSync(
-          path.join(fixturesOutputDir, 'all_subproofs_public_inputs.json'),
-          JSON.stringify({
-            inputs: proof.publicInputs.concat(proof.proof.slice(0, 16).map((f) => `0x${f}`))
-          }, null, 2)
-        );
-        
-        // Write proof
-        fs.writeFileSync(
-          path.join(fixturesOutputDir, 'all_subproofs_proof.hex'),
-          proof.proof.slice(16).join("")
-        );
-        
-        console.log(`Fixtures written to: ${fixturesOutputDir}`);
-      }
       const currentDate = getCurrentDateFromOuterProof(proof)
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
