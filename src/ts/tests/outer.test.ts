@@ -48,9 +48,6 @@ import { TestHelper } from "../test-helper"
 import { createUTCDate, serializeAsn } from "../utils"
 import circuitManifest from "./fixtures/circuit-manifest.json"
 
-const DEBUG_OUTPUT = process.env.DEBUG_OUTPUT === 'true'
-const fixturesOutputDir = path.join(__dirname, '../../../output-fixtures');
-
 const nowTimestamp = getNowTimestamp()
 
 describe("outer proof", () => {
