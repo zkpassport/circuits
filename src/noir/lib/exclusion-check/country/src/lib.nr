@@ -23,10 +23,28 @@ unconstrained fn get_last_index<let N: u32>(sorted_list: [u32; N]) -> i64 {
     index
 }
 
+pub fn check_country_list_sorted<let N: u32>(country_list: [u32; N]) -> bool {
+    let mut result = true;
+    let mut foundAZero = false;
+    for i in 0..N - 1 {
+        // Zeroes mark the end of the list (i.e. start of the padding)
+        if !foundAZero & (country_list[i + 1] == 0) {
+            foundAZero = true;
+        }
+        // If the current element is greater than the next element, then the list is not sorted
+        // We also want to make sure there are no duplicates so we actually check greater than or equal
+        if !foundAZero & (country_list[i] >= country_list[i + 1]) {
+            result = false;
+        }
+    }
+    result
+}
+
 /// Check if the nationality from the MRZ is not in the country list
 /// The list of countries is assumed to be sorted in ascending order
 /// So it must come either from a public input that can be independently checked
 /// or from a previous in-circuit check that the list is sorted
+/// If the list is not sorted, the proof will fail to generate
 ///
 /// # Arguments
 ///
@@ -35,6 +53,12 @@ unconstrained fn get_last_index<let N: u32>(sorted_list: [u32; N]) -> i64 {
 /// which are the Alpha-3 codes of the countries with each letter ASCII code put together using a weighted sum.
 /// e.g. for "FRA", the sum is 70 * 2^16 (0x10000) + 82 * 2^8 (0x100) + 65 = 4587520 + 20992 + 65 = 4608577
 pub fn check_nationality_exclusion<let N: u32>(dg1: [u8; 95], country_list: [u32; N]) {
+    // Check that the list is sorted in ascending order
+    assert(
+        check_country_list_sorted(country_list),
+        "Country list is not sorted in ascending order",
+    );
+
     let nationality_bytes = get_nationality_from_mrz(dg1);
     let nationality_sum: u32 = nationality_bytes[0] as u32 * 0x10000
         + nationality_bytes[1] as u32 * 0x100
@@ -75,7 +99,14 @@ pub fn check_nationality_exclusion<let N: u32>(dg1: [u8; 95], country_list: [u32
 /// The list of countries is assumed to be sorted in ascending order
 /// So it must come either from a public input that can be independently checked
 /// or from a previous in-circuit check that the list is sorted
+/// If the list is not sorted, the proof will fail to generate
 pub fn check_issuing_country_exclusion<let N: u32>(dg1: [u8; 95], country_list: [u32; N]) {
+    // Check that the list is sorted in ascending order
+    assert(
+        check_country_list_sorted(country_list),
+        "Country list is not sorted in ascending order",
+    );
+
     let issuing_country_bytes = get_issuing_country_from_mrz(dg1);
     let issuing_country_sum: u32 = issuing_country_bytes[0] as u32 * 0x10000
         + issuing_country_bytes[1] as u32 * 0x100
@@ -160,4 +191,27 @@ pub fn calculate_param_commitment_sha2<let N: u32>(
     }
     let hash = sha256::sha256_var(params, (N * 3 + 1) as u64);
     utils::pack_be_bytes_into_field::<32, 31>(hash)
+}
+
+#[test]
+fn test_country_list_sorting_check() {
+    // List in descending order, so not sorted in ascending order
+    let country_list: [u32; 6] = [4608578, 4608577, 4608579, 0, 0, 0];
+    let is_sorted = check_country_list_sorted(country_list);
+    assert_eq(is_sorted, false);
+
+    // List in ascending order
+    let country_list: [u32; 6] = [4608577, 4608578, 4608579, 0, 0, 0];
+    let is_sorted = check_country_list_sorted(country_list);
+    assert_eq(is_sorted, true);
+
+    // List with duplicates
+    let country_list: [u32; 6] = [4608577, 4608578, 4608579, 4608579, 0, 0];
+    let is_sorted = check_country_list_sorted(country_list);
+    assert_eq(is_sorted, false);
+
+    // List not in a particular order
+    let country_list: [u32; 6] = [4608577, 4608579, 4608578, 0, 0, 0];
+    let is_sorted = check_country_list_sorted(country_list);
+    assert_eq(is_sorted, false);
 }
