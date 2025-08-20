@@ -20,7 +20,7 @@ contract Deploy is Script {
 
   bytes32[] public vkeyHashes = [
     // Outer (4 subproofs)
-    bytes32(hex"002cff3eaa65901b50ea3555d1a070ad7b23126851e2ad57bc1122ec5a4994b6"),
+    bytes32(hex"090330e8f677d53509a0764d5f2cf6cbd00eb6c64731a8127ca0ab4b83609069"),
     // Outer (5 subproofs)
     bytes32(hex"04b98c6f867d6a7f86d514b72c3be8f41b7aa6f49fdc17514c9f9f0a2ac3ef9a"),
     // Outer (6 subproofs)
