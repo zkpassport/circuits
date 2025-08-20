@@ -12,6 +12,7 @@ set -euo pipefail
 CIRCUITS=(
     "sig_check_dsc_tbs_1000_rsa_pkcs_6144_sha256"
     "sig_check_id_data_tbs_1000_rsa_pkcs_4096_sha1"
+    "sig_check_dsc_tbs_700_rsa_pkcs_4096_sha256",
     "sig_check_dsc_tbs_700_rsa_pkcs_4096_sha512"
     "sig_check_dsc_tbs_700_ecdsa_nist_p384_sha384"
     "sig_check_dsc_tbs_700_ecdsa_nist_p384_sha1"
