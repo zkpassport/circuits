@@ -10,10 +10,10 @@ fn main(
     // @committed
     // There are roughly 200 countries in the world
     // so we can safely pad it to 200
-    // The list must be sorted in ascending order
-    // For efficiency, no sorting is done in the circuit
-    // since the fact that the list is already sorted can checked
-    // by any verifier passing the public inputs to verify the proof
+    // For efficiency, the list is not sorted in the circuit
+    // but it is checked to be sorted.
+    // So it is up to the prover to properly sort the list before passing it to the circuit
+    // or the proof will fail to generate
     country_list: [u32; 200],
     service_scope: pub Field,
     service_subscope: pub Field,
