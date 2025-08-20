@@ -19,8 +19,12 @@ pub fn verify_signature<let SIG_BYTES: u32, let IS_PSS: u32, let DATA_TO_SIGN_LE
     data_to_sign_len: u64,
 ) -> bool {
     assert(
-        (SIG_BYTES == 512) | (SIG_BYTES == 384) | (SIG_BYTES == 256) | (SIG_BYTES == 128),
-        "Only modulus of bit size 1024, 2048, 3072 and 4096 are supported",
+        (SIG_BYTES == 768)
+            | (SIG_BYTES == 512)
+            | (SIG_BYTES == 384)
+            | (SIG_BYTES == 256)
+            | (SIG_BYTES == 128),
+        "Only modulus of bit size 1024, 2048, 3072, 4096 and 6144 are supported",
     );
 
     let pubkey =
