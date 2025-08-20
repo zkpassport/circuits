@@ -23,7 +23,7 @@ import {
   BitString,
   OctetString,
 } from "@peculiar/asn1-schema"
-import { id_sha1, id_sha256, id_sha384, id_sha512 } from "@peculiar/asn1-rsa"
+import { id_sha1, id_sha224, id_sha256, id_sha384, id_sha512 } from "@peculiar/asn1-rsa"
 import {
   AlgorithmIdentifier,
   AttributeTypeAndValue,
@@ -48,6 +48,8 @@ function getHashAlgorithmIdentifier(hashAlgorithm: HashAlgorithm) {
   switch (hashAlgorithm) {
     case "SHA-1":
       return id_sha1
+    case "SHA-224":
+      return id_sha224
     case "SHA-256":
       return id_sha256
     case "SHA-384":

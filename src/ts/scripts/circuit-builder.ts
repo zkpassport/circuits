@@ -24,9 +24,13 @@ const generatedCircuits: {
   path: string
 }[] = []
 
-function getHashAlgorithmByteSize(hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512") {
+function getHashAlgorithmByteSize(
+  hash_algorithm: "sha1" | "sha224" | "sha256" | "sha384" | "sha512",
+) {
   if (hash_algorithm === "sha1") {
     return 20
+  } else if (hash_algorithm === "sha224") {
+    return 28
   } else if (hash_algorithm === "sha256") {
     return 32
   } else if (hash_algorithm === "sha384") {
@@ -142,7 +146,7 @@ const DSC_ECDSA_TEMPLATE = (
   curve_name: string,
   bit_size: number,
   tbs_max_len: number,
-  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
+  hash_algorithm: "sha1" | "sha224" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_dsc;
@@ -184,7 +188,7 @@ const DSC_RSA_TEMPLATE = (
   rsa_type: "pss" | "pkcs",
   bit_size: number,
   tbs_max_len: number,
-  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
+  hash_algorithm: "sha1" | "sha224" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_dsc;
@@ -233,7 +237,7 @@ const ID_DATA_ECDSA_TEMPLATE = (
   curve_name: string,
   bit_size: number,
   tbs_max_len: number,
-  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
+  hash_algorithm: "sha1" | "sha224" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_id;
@@ -284,7 +288,7 @@ const ID_DATA_RSA_TEMPLATE = (
   rsa_type: "pss" | "pkcs",
   bit_size: number,
   tbs_max_len: number,
-  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
+  hash_algorithm: "sha1" | "sha224" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_id;
@@ -333,8 +337,8 @@ ${unconstrained ? "unconstrained " : ""}fn main(
 `
 
 const DATA_INTEGRITY_CHECK_TEMPLATE = (
-  signed_attributes_hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
-  dg_hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
+  signed_attributes_hash_algorithm: "sha1" | "sha224" | "sha256" | "sha384" | "sha512",
+  dg_hash_algorithm: "sha1" | "sha224" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_disclosure;
@@ -635,7 +639,7 @@ function generateIdDataEcdsaCircuit(
   curve_name: string,
   bit_size: number,
   tbs_max_len: number,
-  hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
+  hash_algorithm: "sha1" | "sha224" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) {
   const noirFile = ID_DATA_ECDSA_TEMPLATE(
@@ -694,8 +698,8 @@ function generateIdDataRsaCircuit(
 }
 
 function generateDataIntegrityCheckCircuit(
-  signed_attributes_hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
-  dg_hash_algorithm: "sha1" | "sha256" | "sha384" | "sha512",
+  signed_attributes_hash_algorithm: "sha1" | "sha224" | "sha256" | "sha384" | "sha512",
+  dg_hash_algorithm: "sha1" | "sha224" | "sha256" | "sha384" | "sha512",
   unconstrained: boolean = false,
 ) {
   const noirFile = DATA_INTEGRITY_CHECK_TEMPLATE(
@@ -768,6 +772,9 @@ const SIGNATURE_ALGORITHMS_SUPPORTED: {
 const TBS_MAX_LENGTHS = [700, 1000, 1200, 1600]
 
 const HASH_ALGORITHMS_SUPPORTED = ["sha1", "sha256", "sha384", "sha512"]
+// Only used for data integrity check circuits
+// As few countries use it for the signature algorithm and we don't want to generate too many circuits
+const HASH_ALGORITHMS_SUPPORTED_EXTENDED = ["sha1", "sha224", "sha256", "sha384", "sha512"]
 
 const generateDscCircuits = ({ unconstrained = false }: { unconstrained: boolean }) => {
   console.log("Generating DSC circuits...")
@@ -799,6 +806,12 @@ const generateDscCircuits = ({ unconstrained = false }: { unconstrained: boolean
       })
     })
   })
+  // Generate special cases
+  // Moldova: RSA 6144 bit with SHA-1 and SHA-256 (1000 & 1200 bytes TBS)
+  generateDscRsaCircuit("pkcs", 6144, 1000, "sha1", unconstrained)
+  generateDscRsaCircuit("pkcs", 6144, 1000, "sha256", unconstrained)
+  generateDscRsaCircuit("pkcs", 6144, 1200, "sha1", unconstrained)
+  generateDscRsaCircuit("pkcs", 6144, 1200, "sha256", unconstrained)
 }
 
 const generateIdDataCircuits = ({ unconstrained = false }: { unconstrained: boolean }) => {
@@ -831,6 +844,10 @@ const generateIdDataCircuits = ({ unconstrained = false }: { unconstrained: bool
       })
     })
   })
+  // Generate special cases
+  // Lithuania: P224 with SHA224 (700 & 1000 bytes TBS)
+  generateIdDataEcdsaCircuit("nist", "p224", 224, 700, "sha224", unconstrained)
+  generateIdDataEcdsaCircuit("nist", "p224", 224, 1000, "sha224", unconstrained)
 }
 
 const generateDataIntegrityCheckCircuits = ({
@@ -839,11 +856,11 @@ const generateDataIntegrityCheckCircuits = ({
   unconstrained: boolean
 }) => {
   console.log("Generating data integrity check circuits...")
-  HASH_ALGORITHMS_SUPPORTED.forEach((signed_attributes_hash_algorithm) => {
-    HASH_ALGORITHMS_SUPPORTED.forEach((dg_hash_algorithm) => {
+  HASH_ALGORITHMS_SUPPORTED_EXTENDED.forEach((signed_attributes_hash_algorithm) => {
+    HASH_ALGORITHMS_SUPPORTED_EXTENDED.forEach((dg_hash_algorithm) => {
       generateDataIntegrityCheckCircuit(
-        signed_attributes_hash_algorithm as "sha1" | "sha256" | "sha384" | "sha512",
-        dg_hash_algorithm as "sha1" | "sha256" | "sha384" | "sha512",
+        signed_attributes_hash_algorithm as "sha1" | "sha224" | "sha256" | "sha384" | "sha512",
+        dg_hash_algorithm as "sha1" | "sha224" | "sha256" | "sha384" | "sha512",
         unconstrained,
       )
     })
