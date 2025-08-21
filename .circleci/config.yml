@@ -83,9 +83,8 @@ jobs:
             - nargo-cache-<< pipeline.parameters.noir_version >>
       - attach_workspace:
           at: ~/repo
-      - run:
-          name: nargo test
-          command: /home/circleci/.nargo/bin/nargo test
+      - run: /home/circleci/.nargo/bin/nargo test --package utils
+      - run: /home/circleci/.nargo/bin/nargo test --package commitment_common
 
   test_circuits:
     <<: *defaults
@@ -116,6 +115,9 @@ workflows:
       - lint:
           requires:
             - checkout
+      - noir_tests:
+          requires:
+            - checkout
       - test_circuits:
           requires:
-            - lint
+            - checkout
