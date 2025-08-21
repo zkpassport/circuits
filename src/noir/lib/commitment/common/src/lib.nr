@@ -13,20 +13,20 @@ pub fn calculate_scoped_nullifier(
 }
 
 /// Only used for testing purposes for now
-fn has_value_in_tags(tags: [Field; 6], value: str<2>) -> bool {
-    let BIT_SIZE = 128;
+fn has_value_in_tags(tags: [Field; 3], value: str<2>) -> bool {
+    let BIT_SIZE = 253;
     // Index for A
     let START_ASCII_INDEX: u32 = 65;
     let value_bytes = value.as_bytes();
     let converted_value: u32 = (value_bytes[0] as u32 - START_ASCII_INDEX) * 26
         + (value_bytes[1] as u32 - START_ASCII_INDEX);
     let mut result = false;
-    let mut tags_bits: [[u1; 128]; 6] = [[0; 128]; 6];
-    for i in 0..6 {
-        tags[i].assert_max_bit_size::<128>();
+    let mut tags_bits: [[u1; 253]; 3] = [[0; 253]; 3];
+    for i in 0..3 {
+        tags[i].assert_max_bit_size::<253>();
         tags_bits[i] = tags[i].to_le_bits();
     }
-    for i in 0..6 {
+    for i in 0..3 {
         for j in 0..BIT_SIZE {
             let actual_index: u32 = (i as u32 * BIT_SIZE as u32) + j as u32;
             let has_bit_in_tag = (tags_bits[i as u32][j as u32] != 0);
@@ -39,7 +39,7 @@ fn has_value_in_tags(tags: [Field; 6], value: str<2>) -> bool {
 }
 
 pub fn calculate_certificate_registry_leaf<let N: u32>(
-    tags: [Field; 6],
+    tags: [Field; 3],
     cert_type: u8,
     country: str<3>,
     public_key: [u8; N],
@@ -49,59 +49,60 @@ pub fn calculate_certificate_registry_leaf<let N: u32>(
     let unpacked_bytes: [u8; 4] =
         [cert_type as u8, country_bytes[0], country_bytes[1], country_bytes[2]];
     // Prepare and hash Poseidon2 inputs
-    let mut poseidon_inputs: [Field; 7 + (N + 30) / 31] = [0; 7 + (N + 30) / 31];
+    let mut poseidon_inputs: [Field; 4 + (N + 30) / 31] = [0; 4 + (N + 30) / 31];
     poseidon_inputs[0] = tags[0];
     poseidon_inputs[1] = tags[1];
     poseidon_inputs[2] = tags[2];
-    poseidon_inputs[3] = tags[3];
-    poseidon_inputs[4] = tags[4];
-    poseidon_inputs[5] = tags[5];
-    poseidon_inputs[6] = utils::pack_be_bytes_into_fields::<4, 1, 31>(unpacked_bytes)[0];
+    poseidon_inputs[3] = utils::pack_be_bytes_into_fields::<4, 1, 31>(unpacked_bytes)[0];
     let packed_pubkey = utils::pack_be_bytes_into_fields::<N, (N + 30) / 31, 31>(public_key);
     for i in 0..packed_pubkey.len() {
-        poseidon_inputs[7 + i] = packed_pubkey[i] as Field;
+        poseidon_inputs[4 + i] = packed_pubkey[i] as Field;
     }
     Poseidon2::hash(poseidon_inputs, poseidon_inputs.len())
 }
 
 #[test]
 fn test_has_value_in_tags() {
-    let mut tags = [0x7, 0x0, 0x0, 0x0, 0x0, 0x0];
+    let mut tags = [0x7, 0x0, 0x0];
     assert(has_value_in_tags(tags, "AA"));
     assert(has_value_in_tags(tags, "AB"));
     assert(has_value_in_tags(tags, "AC"));
     assert(!has_value_in_tags(tags, "AD"));
     assert(!has_value_in_tags(tags, "AE"));
 
-    tags = [0x1, 0x0, 0x0, 0x0, 0x0, 0x0];
+    tags = [0x1, 0x0, 0x0];
     assert(has_value_in_tags(tags, "AA"));
     assert(!has_value_in_tags(tags, "AB"));
     assert(!has_value_in_tags(tags, "AC"));
     assert(!has_value_in_tags(tags, "AD"));
     assert(!has_value_in_tags(tags, "AE"));
 
-    tags = [0x0, 0x0, 0x0, 0x0, 0x0, 0x0];
+    tags = [0x0, 0x0, 0x0];
     assert(!has_value_in_tags(tags, "AA"));
     assert(!has_value_in_tags(tags, "AB"));
     assert(!has_value_in_tags(tags, "AC"));
     assert(!has_value_in_tags(tags, "AD"));
     assert(!has_value_in_tags(tags, "AE"));
 
-    tags = [0xffffffffffffffffffffffffffffffff, 0x7, 0x0, 0x0, 0x0, 0x0];
-    assert(has_value_in_tags(tags, "EX"));
-    assert(has_value_in_tags(tags, "EY"));
-    assert(has_value_in_tags(tags, "EZ"));
-    assert(has_value_in_tags(tags, "FA"));
-    assert(!has_value_in_tags(tags, "FB"));
+    tags = [0x1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, 0x4, 0x0];
+    assert(has_value_in_tags(tags, "JR"));
+    assert(has_value_in_tags(tags, "JS"));
+    assert(!has_value_in_tags(tags, "JT"));
+    assert(!has_value_in_tags(tags, "JU"));
+    assert(has_value_in_tags(tags, "JV"));
+    assert(!has_value_in_tags(tags, "JW"));
+    assert(!has_value_in_tags(tags, "JX"));
+    assert(!has_value_in_tags(tags, "JY"));
+    assert(!has_value_in_tags(tags, "JZ"));
 
-    tags = [0x0, 0x0, 0x0, 0x0, 0x200000, 0x0];
+    tags = [0x0, 0x0, 0x8000000];
     assert(has_value_in_tags(tags, "UN"));
 }
 
-// This test should fail because a tag limb is too large (i.e. not fitting in 128 bits)
+// This test should fail because a tag limb is too large (i.e. not fitting in 253 bits)
 #[test(should_fail)]
 fn test_has_value_in_tags_should_fail() {
-    let tags = [0x1ffffffffffffffffffffffffffffffff, 0x0, 0x0, 0x0, 0x0, 0x0];
+    let tags = [0x2fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, 0x0, 0x0];
     assert(has_value_in_tags(tags, "AA"));
 }
 
@@ -145,14 +146,14 @@ pub fn test_calculate_certificate_registry_leaf() {
         0x06, 0xb5,
     ];
 
-    // UN (i.e. ICAO) = index 533 (128 * 4 + 21), so bit index 21 is set on the 5th limb
-    let tags = [0x0, 0x0, 0x0, 0x0, 0x200000, 0x0];
+    // UN (i.e. ICAO) = index 533 (253 * 2 + 27), so bit index 27 is set on the 3rd limb
+    let tags = [0x0, 0x0, 0x0];
     let cert_type = 1 as u8; // CSCA
     let country = "AUS";
 
     let leaf_hash = calculate_certificate_registry_leaf(tags, cert_type, country, public_key);
     // Should match the result of getCertificateLeafHash()
-    assert(leaf_hash == 0x1e1567a53f06b52ad8c12f9b102495301f2cd342956152e2c46841448b9e43e4);
+    assert(leaf_hash == 0x2ce9b68d116c639f9cdd4f16e005a194659b1944ca41fe448dbb60fe756a0be3);
 }
 
 pub fn get_country_from_dg1(dg1: [u8; 95]) -> str<3> {
