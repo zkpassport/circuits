@@ -12,12 +12,11 @@ fn main(
     dsc_pubkey_redc_param: [u8; 257],
     sod_signature: [u8; 256],
     tbs_certificate: [u8; 1000],
-    pubkey_offset_in_tbs: u32,
     signed_attributes: [u8; 220],
     exponent: u32,
     e_content: [u8; 700],
 ) -> pub Field {
-    verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate, pubkey_offset_in_tbs);
+    verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate);
     // Get the length of signed_attributes by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid
     let signed_attributes_size =

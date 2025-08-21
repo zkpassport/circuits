@@ -257,7 +257,6 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     dsc_pubkey_y: [u8; ${Math.ceil(bit_size / 8)}],
     sod_signature: [u8; ${Math.ceil(bit_size / 8) * 2}],
     tbs_certificate: [u8; ${tbs_max_len}],
-    pubkey_offset_in_tbs: u32,
     signed_attributes: [u8; ${SIGNED_ATTRIBUTES_SIZE}],
     e_content: [u8; 700],
 ) -> pub Field {
@@ -271,7 +270,6 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         dsc_pubkey_x,
         dsc_pubkey_y,
         tbs_certificate,
-        pubkey_offset_in_tbs,
     );
     assert(verify_${curve_family}_${curve_name}(dsc_pubkey_x, dsc_pubkey_y, r, s, msg_hash), "ECDSA signature verification failed");
     let comm_out = commit_to_id(
@@ -309,12 +307,11 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     dsc_pubkey_redc_param: [u8; ${Math.ceil(bit_size / 8) + 1}],
     sod_signature: [u8; ${Math.ceil(bit_size / 8)}],
     tbs_certificate: [u8; ${tbs_max_len}],
-    pubkey_offset_in_tbs: u32,
     signed_attributes: [u8; ${SIGNED_ATTRIBUTES_SIZE}],
     exponent: u32,
     e_content: [u8; 700],
 ) -> pub Field {
-    verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate, pubkey_offset_in_tbs);
+    verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate);
     // Get the length of signed_attributes by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid
     let signed_attributes_size =

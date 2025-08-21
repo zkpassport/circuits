@@ -14,7 +14,6 @@ fn main(
     dsc_pubkey_y: [u8; 32],
     sod_signature: [u8; 64],
     tbs_certificate: [u8; 700],
-    pubkey_offset_in_tbs: u32,
     signed_attributes: [u8; 220],
     e_content: [u8; 700],
 ) -> pub Field {
@@ -24,12 +23,7 @@ fn main(
         unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) as u64 };
     let (r, s) = split_array(sod_signature);
     let msg_hash = sha1_and_check_data_to_sign(signed_attributes, signed_attributes_size);
-    verify_ecdsa_pubkey_in_tbs(
-        dsc_pubkey_x,
-        dsc_pubkey_y,
-        tbs_certificate,
-        pubkey_offset_in_tbs,
-    );
+    verify_ecdsa_pubkey_in_tbs(dsc_pubkey_x, dsc_pubkey_y, tbs_certificate);
     assert(
         verify_nist_p256(dsc_pubkey_x, dsc_pubkey_y, r, s, msg_hash),
         "ECDSA signature verification failed",
