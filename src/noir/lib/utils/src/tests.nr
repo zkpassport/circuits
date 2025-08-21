@@ -1,4 +1,7 @@
-use crate::{pack_be_bytes_into_fields, pack_be_bytes_into_u128s, unsafe_get_asn1_element_length};
+use crate::{
+    find_substring_index, pack_be_bytes_into_fields, pack_be_bytes_into_u128s,
+    unsafe_get_asn1_element_length,
+};
 
 #[test]
 fn test_pack_be_bytes_into_u128() {
@@ -200,4 +203,82 @@ fn test_unsafe_get_asn1_element_length() {
     // Safety:
     let short_parsed_length = unsafe { unsafe_get_asn1_element_length(short_form_asn1_seq) };
     assert(short_parsed_length == 5);
+}
+
+#[test]
+fn test_find_substring_index_various_cases() {
+    // Test case 1: Basic substring at index 3
+    let needle1 = [0x04, 0x05, 0x06];
+    let haystack1 = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a];
+    let index1 = find_substring_index(needle1, haystack1);
+    assert_eq(index1, 3);
+
+    // Test case 2: Substring at the beginning
+    let needle2 = [0x01, 0x02];
+    let haystack2 = [0x01, 0x02, 0x03, 0x04, 0x05];
+    let index2 = find_substring_index(needle2, haystack2);
+    assert_eq(index2, 0);
+
+    // Test case 3: Substring at the end
+    let needle3 = [0x04, 0x05];
+    let haystack3 = [0x01, 0x02, 0x03, 0x04, 0x05];
+    let index3 = find_substring_index(needle3, haystack3);
+    assert_eq(index3, 3);
+
+    // Test case 4: Single byte needle
+    let needle4 = [0x03];
+    let haystack4 = [0x01, 0x02, 0x03, 0x04, 0x05];
+    let index4 = find_substring_index(needle4, haystack4);
+    assert_eq(index4, 2);
+
+    // Test case 5: Empty needle (should return 0)
+    let needle5: [u8; 0] = [];
+    let haystack5 = [0x01, 0x02, 0x03, 0x04, 0x05];
+    let index5 = find_substring_index(needle5, haystack5);
+    assert_eq(index5, 0);
+
+    // Test case 6: Needle not found - completely different bytes
+    let needle6 = [0xff, 0xee, 0xdd];
+    let haystack6 = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a];
+    let index6 = find_substring_index(needle6, haystack6);
+    assert_eq(index6, haystack6.len()); // Should equal haystack size
+
+    // Test case 7: Needle larger than haystack
+    let needle7 = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06];
+    let haystack7 = [0x01, 0x02, 0x03];
+    let index7 = find_substring_index(needle7, haystack7);
+    assert_eq(index7, haystack7.len()); // Should equal haystack size
+
+    // Test case 8: Partial match at the end but incomplete
+    let needle8 = [0x09, 0x0a, 0x0b];
+    let haystack8 = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a];
+    let index8 = find_substring_index(needle8, haystack8);
+    assert_eq(index8, haystack8.len()); // Should equal haystack size
+
+    // Test case 9: Multiple false matches (partial matches)
+    let needle9 = [0x01, 0x01, 0x02];
+    let haystack9 = [0x01, 0x03, 0x01, 0x04, 0x01, 0x01, 0x03, 0x05, 0x06, 0x07];
+    let index9 = find_substring_index(needle9, haystack9);
+    assert_eq(index9, haystack9.len()); // Should equal haystack size
+
+    // Test case 10: Needle appears to match but fails verification
+    let needle10 = [0x02, 0x03, 0x04];
+    let haystack10 = [0x01, 0x02, 0x03, 0x05, 0x06, 0x07, 0x08, 0x09];
+    let index10 = find_substring_index(needle10, haystack10);
+    assert_eq(index10, haystack10.len()); // Should equal haystack size
+}
+
+pub fn verify_substring_in_string<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+    needle: [u8; NEEDLE_SIZE],
+    haystack: [u8; HAYSTACK_SIZE],
+) {
+    let offset = find_substring_index(needle, haystack);
+    assert(offset < HAYSTACK_SIZE, "Needle not found in haystack")
+}
+
+#[test]
+fn test_verify_substring_in_string() {
+    let needle = [0x04, 0x05, 0x06];
+    let haystack = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a];
+    verify_substring_in_string(needle, haystack);
 }

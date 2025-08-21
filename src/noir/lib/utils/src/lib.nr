@@ -443,3 +443,57 @@ pub unconstrained fn unsafe_get_asn1_element_length<let N: u32>(asn1: [u8; N]) -
         total
     }
 }
+
+/// Find the index of the first occurrence of the needle in the haystack
+/// Returns the index of the first occurrence of the needle in the haystack
+/// Returns HAYSTACK_SIZE if the needle is not found
+pub fn find_substring_index<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+    needle: [u8; NEEDLE_SIZE],
+    haystack: [u8; HAYSTACK_SIZE],
+) -> u32 {
+    // Safety: This is safe because the offset is only used as a starting point
+    // to verify the substring exists
+    let offsetUnchecked = unsafe { find_substring_index_unsafe(needle, haystack) };
+    let mut offset = offsetUnchecked;
+    // Check if offset is valid before attempting verification
+    if (offsetUnchecked < HAYSTACK_SIZE) & (offsetUnchecked + NEEDLE_SIZE <= HAYSTACK_SIZE) {
+        for i in 0..NEEDLE_SIZE {
+            if haystack[i + offsetUnchecked] != needle[i] {
+                offset = HAYSTACK_SIZE;
+            }
+        }
+    } else {
+        // If offset is out of bounds, needle was not found
+        offset = HAYSTACK_SIZE;
+    }
+    offset
+}
+
+/// Safety: This is safe because the offset is only used as a starting point
+/// to verify the substring exists
+pub unconstrained fn find_substring_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+    needle: [u8; NEEDLE_SIZE],
+    haystack: [u8; HAYSTACK_SIZE],
+) -> u32 {
+    let mut result = HAYSTACK_SIZE; // Default to "not found" value
+    // Handle edge cases
+    if NEEDLE_SIZE == 0 {
+        result = 0;
+    } else if NEEDLE_SIZE <= HAYSTACK_SIZE {
+        // Search for the needle in the haystack
+        for i in 0..(HAYSTACK_SIZE - NEEDLE_SIZE + 1) {
+            let mut found = true;
+            for j in 0..NEEDLE_SIZE {
+                if haystack[i + j] != needle[j] {
+                    found = false;
+                    break;
+                }
+            }
+            if found {
+                result = i;
+                break;
+            }
+        }
+    }
+    result
+}
