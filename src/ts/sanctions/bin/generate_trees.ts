@@ -32,46 +32,21 @@ async function generateSanctionsTrees() {
     console.log("combined log 2", Math.log2(nameAndDobHashed.length + nameAndYobHashed.length + passportNoAndCountryHashed.length));
 
     console.log("Parsing Data: Complete");
-
     const singleTree = await AsyncOrderedMT.create(SINGLE_TREE_DEPTH, poseidon2)
-    const nameAndDobSMT = await AsyncOrderedMT.create(TREE_DEPTH, poseidon2)
-    const nameAndYobSMT = await AsyncOrderedMT.create(TREE_DEPTH, poseidon2)
-    const passportNoAndCountrySMT = await AsyncOrderedMT.create(TREE_DEPTH, poseidon2)
-
     const singleTreeData = nameAndDobHashed.concat(nameAndYobHashed, passportNoAndCountryHashed)
 
-    console.log("Generate Trees: Starting");
-
-    console.log("Generate Trees: Adding name and yob leaves");
-    console.log("nameAndDobHashed", nameAndDobHashed);
-    await nameAndDobSMT.initializeAndSort(nameAndDobHashed);
-
-    console.log("nameAndDobSMT.root", nameAndDobSMT.root);
-    console.log("nameAndDobSMT.leaves", (nameAndDobSMT as any).leaves);
-    console.log("nameAndDobSMT.layers", (nameAndDobSMT as any).layers);
-
-    console.log("Generate Trees: Adding name and yob leaves");
-    await nameAndYobSMT.initializeAndSort(nameAndYobHashed);
-
-    console.log("Generate Trees: Adding passport no and country leaves");
-    await passportNoAndCountrySMT.initializeAndSort(passportNoAndCountryHashed);
+    console.log("Generate Tree: Starting");
 
     await singleTree.initializeAndSort(singleTreeData);
 
     console.log("Generate Trees: Complete");
 
     console.log("Generate Trees: Serialized");
-    const nameAndDobSerialized = nameAndDobSMT.serialize();
-    const nameAndYobSerialized = nameAndYobSMT.serialize();
-    const passportNoAndCountrySerialized = passportNoAndCountrySMT.serialize();
     const singleTreeSerialized = singleTree.serialize();
 
     console.log("Exporting Trees: Starting");
 
     // Write into outputs/
-    fs.writeFileSync(path.join(__dirname, "../outputs/Ordered_nameAndDobSMT.json"), JSON.stringify(nameAndDobSerialized, null, 2));
-    fs.writeFileSync(path.join(__dirname, "../outputs/Ordered_nameAndYobSMT.json"), JSON.stringify(nameAndYobSerialized, null, 2));
-    fs.writeFileSync(path.join(__dirname, "../outputs/Ordered_passportNoAndCountrySMT.json"), JSON.stringify(passportNoAndCountrySerialized, null, 2));
     fs.writeFileSync(path.join(__dirname, "../outputs/Ordered_singleTree.json"), JSON.stringify(singleTreeSerialized, null, 2));
 
     console.log("Exporting Trees: Complete");
