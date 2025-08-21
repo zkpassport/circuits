@@ -10,12 +10,15 @@ fn main(
     salt: Field,
     country: str<3>,
     tbs_certificate: [u8; 1600],
-    tbs_certificate_len: u64,
     csc_pubkey: [u8; 512],
     csc_pubkey_redc_param: [u8; 513],
     dsc_signature: [u8; 512],
     exponent: u32,
 ) -> pub Field {
+    // Get the length of tbs_certificate by parsing the ASN.1
+    // Safety: This is safe because the length must be correct for the hash and signature to be valid
+    let tbs_certificate_len =
+        unsafe { utils::unsafe_get_asn1_element_length(tbs_certificate) as u64 };
     assert(
         verify_signature::<512, 1, 1600, 64>(
             csc_pubkey,

@@ -161,8 +161,11 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     csc_pubkey_y: [u8; ${Math.ceil(bit_size / 8)}],
     dsc_signature: [u8; ${Math.ceil(bit_size / 8) * 2}],
     tbs_certificate: [u8; ${tbs_max_len}],
-    tbs_certificate_len: u64,
 ) -> pub Field {
+    // Get the length of tbs_certificate by parsing the ASN.1
+    // Safety: This is safe because the length must be correct for the hash and signature to be valid
+    let tbs_certificate_len =
+        unsafe { utils::unsafe_get_asn1_element_length(tbs_certificate) as u64 };
     let (r, s) = split_array(dsc_signature);
     let msg_hash = ${hash_algorithm}_and_check_data_to_sign(tbs_certificate, tbs_certificate_len);
     assert(verify_${curve_family}_${curve_name}(csc_pubkey_x, csc_pubkey_y, r, s, msg_hash), "ECDSA signature verification failed");
@@ -198,12 +201,15 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     salt: Field,
     country: str<3>,
     tbs_certificate: [u8; ${tbs_max_len}],
-    tbs_certificate_len: u64,
     csc_pubkey: [u8; ${Math.ceil(bit_size / 8)}],
     csc_pubkey_redc_param: [u8; ${Math.ceil(bit_size / 8) + 1}],
     dsc_signature: [u8; ${Math.ceil(bit_size / 8)}],
     exponent: u32,
 ) -> pub Field {
+    // Get the length of tbs_certificate by parsing the ASN.1
+    // Safety: This is safe because the length must be correct for the hash and signature to be valid
+    let tbs_certificate_len =
+        unsafe { utils::unsafe_get_asn1_element_length(tbs_certificate) as u64 };
     assert(verify_signature::<${Math.ceil(bit_size / 8)}, ${
   rsa_type === "pss" ? 1 : 0
 }, ${tbs_max_len}, ${getHashAlgorithmByteSize(hash_algorithm)}>(
@@ -253,9 +259,12 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     tbs_certificate: [u8; ${tbs_max_len}],
     pubkey_offset_in_tbs: u32,
     signed_attributes: [u8; ${SIGNED_ATTRIBUTES_SIZE}],
-    signed_attributes_size: u64,
     e_content: [u8; 700],
 ) -> pub Field {
+    // Get the length of signed_attributes by parsing the ASN.1
+    // Safety: This is safe because the length must be correct for the hash and signature to be valid
+    let signed_attributes_size =
+        unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) as u64 };
     let (r, s) = split_array(sod_signature);
     let msg_hash = ${hash_algorithm}_and_check_data_to_sign(signed_attributes, signed_attributes_size);
     verify_ecdsa_pubkey_in_tbs(
@@ -302,11 +311,14 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     tbs_certificate: [u8; ${tbs_max_len}],
     pubkey_offset_in_tbs: u32,
     signed_attributes: [u8; ${SIGNED_ATTRIBUTES_SIZE}],
-    signed_attributes_size: u64,
     exponent: u32,
     e_content: [u8; 700],
 ) -> pub Field {
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate, pubkey_offset_in_tbs);
+    // Get the length of signed_attributes by parsing the ASN.1
+    // Safety: This is safe because the length must be correct for the hash and signature to be valid
+    let signed_attributes_size =
+        unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) as u64 };
     assert(verify_signature::<${Math.ceil(bit_size / 8)}, ${
   rsa_type === "pss" ? 1 : 0
 }, ${SIGNED_ATTRIBUTES_SIZE}, ${getHashAlgorithmByteSize(hash_algorithm)}>(

@@ -8,14 +8,14 @@ use rsa::rsa::{
     verify_sha384_pkcs1v15, verify_sha384_pss, verify_sha512_pkcs1v15, verify_sha512_pss,
 };
 
-pub fn verify_signature<let SIG_BYTES: u32, let IS_PSS: u32, let DATA_TO_SIGN_LEN: u32, let HASH_BYTE_SIZE: u32>(
+pub fn verify_signature<let SIG_BYTES: u32, let IS_PSS: u32, let DATA_TO_SIGN_MAX_LEN: u32, let HASH_BYTE_SIZE: u32>(
     pubkey_bytes: [u8; SIG_BYTES],
     // This is equivalent to sig_bytes: [u8; SIG_BYTES] but because of
     // an issue with the expected type for from_be_bytes we need to do it like this
     sig_bytes: [u8; (((SIG_BYTES * 8) + 7) / 8)],
     redc_param_bytes: [u8; SIG_BYTES + 1],
     exponent: u32,
-    data_to_sign: [u8; DATA_TO_SIGN_LEN],
+    data_to_sign: [u8; DATA_TO_SIGN_MAX_LEN],
     data_to_sign_len: u64,
 ) -> bool {
     assert(
@@ -29,6 +29,10 @@ pub fn verify_signature<let SIG_BYTES: u32, let IS_PSS: u32, let DATA_TO_SIGN_LE
     let params = BigNumParams::new(false, pubkey, redc_param);
 
     let signature = RuntimeBigNum::from_be_bytes(params, sig_bytes);
+
+    // Get the length of the ASN.1 element to sign
+    // Safety: This is safe because the length must be correct for the hash and signature to be valid
+    // let data_to_sign_len = unsafe { utils::unsafe_get_asn1_element_length(asn1_to_sign) as u64 };
 
     if (IS_PSS == 1) {
         if (HASH_BYTE_SIZE == 20) {

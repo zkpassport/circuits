@@ -16,9 +16,12 @@ fn main(
     tbs_certificate: [u8; 1600],
     pubkey_offset_in_tbs: u32,
     signed_attributes: [u8; 220],
-    signed_attributes_size: u64,
     e_content: [u8; 700],
 ) -> pub Field {
+    // Get the length of signed_attributes by parsing the ASN.1
+    // Safety: This is safe because the length must be correct for the hash and signature to be valid
+    let signed_attributes_size =
+        unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) as u64 };
     let (r, s) = split_array(sod_signature);
     let msg_hash = sha1_and_check_data_to_sign(signed_attributes, signed_attributes_size);
     verify_ecdsa_pubkey_in_tbs(
