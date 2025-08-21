@@ -6,7 +6,7 @@ fn main(
     certificate_registry_root: pub Field,
     certificate_registry_index: Field,
     certificate_registry_hash_path: [Field; 16],
-    certificate_tags: Field,
+    certificate_tags: [Field; 6],
     salt: Field,
     country: str<3>,
     tbs_certificate: [u8; 700],
