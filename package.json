@@ -5,7 +5,7 @@
     "lint": "tsc --project src/ts/tsconfig.json --noEmit && nargo fmt --check",
     "test": "TZ=UTC jest circuits.test.ts",
     "generate": "tsx src/ts/scripts/circuit-builder.ts generate && nargo fmt",
-    "compile": "npm run generate && tsx src/ts/scripts/circuit-builder.ts compile",
+    "compile": "tsx src/ts/scripts/circuit-builder.ts generate compile && nargo fmt",
     "compile:test": "scripts/ci-compile-circuits.sh",
     "test-contracts": "cd src/solidity && ./run-tests.sh && cd ../..",
     "package-circuits": "tsx --max-old-space-size=8192 src/ts/scripts/circuit-packager && cp target/packaged/manifest.json src/ts/tests/fixtures/circuit-manifest.json",
