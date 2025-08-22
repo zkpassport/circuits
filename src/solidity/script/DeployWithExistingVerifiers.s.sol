@@ -11,7 +11,7 @@ contract Deploy is Script {
 
   bytes32[] public vkeyHashes = [
     // Outer (4 subproofs)
-    bytes32(hex"090330e8f677d53509a0764d5f2cf6cbd00eb6c64731a8127ca0ab4b83609069"),
+    bytes32(hex"002cff3eaa65901b50ea3555d1a070ad7b23126851e2ad57bc1122ec5a4994b6"),
     // Outer (5 subproofs)
     bytes32(hex"04b98c6f867d6a7f86d514b72c3be8f41b7aa6f49fdc17514c9f9f0a2ac3ef9a"),
     // Outer (6 subproofs)
@@ -27,7 +27,9 @@ contract Deploy is Script {
     // Outer (11 subproofs)
     bytes32(hex"048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4"),
     // Outer (12 subproofs)
-    bytes32(hex"0a967e84d1198f536a8a5c699045a5616b63de415e5cec99c19ca2ca85a0ed52")
+    bytes32(hex"0a967e84d1198f536a8a5c699045a5616b63de415e5cec99c19ca2ca85a0ed52"),
+    // Outer (13 subproofs)
+    bytes32(hex"03bbec6b74383337a744bdb96400dd0373f9ded838f158d5c70964da64813c12")
   ];
 
   address[] public verifierAddresses = [

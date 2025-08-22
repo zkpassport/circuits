@@ -1141,7 +1141,7 @@ describe("outer proof - evm optimised", () => {
             treeIndex: birthDateTreeIndex.toString(),
           },
           {
-            proof: sanctionsExclusionProof.proof.map((f) => `0x${f}`) as string[],
+            proof: sanctionsExclusionProof.proof as string[],
             publicInputs: sanctionsExclusionProof.publicInputs as string[],
             vkey: sanctionsExclusionVkey,
             keyHash: sanctionsExclusionVkeyHash,
