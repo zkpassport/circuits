@@ -13,23 +13,25 @@ pub fn calculate_scoped_nullifier(
 }
 
 /// Only used for testing purposes for now
-fn has_value_in_tags(tags: [Field; 3], value: str<2>) -> bool {
-    let BIT_SIZE = 253;
+fn has_value_in_tags<let BIT_SIZE: u32, let TAGS_LEN: u32>(
+    tags: [Field; TAGS_LEN],
+    value: str<2>,
+) -> bool {
     // Index for A
     let START_ASCII_INDEX: u32 = 65;
     let value_bytes = value.as_bytes();
-    let converted_value: u32 = (value_bytes[0] as u32 - START_ASCII_INDEX) * 26
+    let converted_value = (value_bytes[0] as u32 - START_ASCII_INDEX) * 26
         + (value_bytes[1] as u32 - START_ASCII_INDEX);
     let mut result = false;
-    let mut tags_bits: [[u1; 253]; 3] = [[0; 253]; 3];
-    for i in 0..3 {
-        tags[i].assert_max_bit_size::<253>();
+    let mut tags_bits: [[u1; BIT_SIZE]; TAGS_LEN] = [[0; BIT_SIZE]; TAGS_LEN];
+    for i in 0..TAGS_LEN {
+        tags[i].assert_max_bit_size::<BIT_SIZE>();
         tags_bits[i] = tags[i].to_le_bits();
     }
-    for i in 0..3 {
+    for i in 0..TAGS_LEN {
         for j in 0..BIT_SIZE {
-            let actual_index: u32 = (i as u32 * BIT_SIZE as u32) + j as u32;
-            let has_bit_in_tag = (tags_bits[i as u32][j as u32] != 0);
+            let actual_index = (i * BIT_SIZE) + j;
+            let has_bit_in_tag = (tags_bits[i][j] != 0);
             if (has_bit_in_tag) & (actual_index == converted_value) {
                 result = true;
             }
@@ -64,46 +66,47 @@ pub fn calculate_certificate_registry_leaf<let N: u32>(
 #[test]
 fn test_has_value_in_tags() {
     let mut tags = [0x7, 0x0, 0x0];
-    assert(has_value_in_tags(tags, "AA"));
-    assert(has_value_in_tags(tags, "AB"));
-    assert(has_value_in_tags(tags, "AC"));
-    assert(!has_value_in_tags(tags, "AD"));
-    assert(!has_value_in_tags(tags, "AE"));
+    // We assume the Field can hold 253 bits, which is the case for BN254
+    assert(has_value_in_tags::<253, _>(tags, "AA"));
+    assert(has_value_in_tags::<253, _>(tags, "AB"));
+    assert(has_value_in_tags::<253, _>(tags, "AC"));
+    assert(!has_value_in_tags::<253, _>(tags, "AD"));
+    assert(!has_value_in_tags::<253, _>(tags, "AE"));
 
     tags = [0x1, 0x0, 0x0];
-    assert(has_value_in_tags(tags, "AA"));
-    assert(!has_value_in_tags(tags, "AB"));
-    assert(!has_value_in_tags(tags, "AC"));
-    assert(!has_value_in_tags(tags, "AD"));
-    assert(!has_value_in_tags(tags, "AE"));
+    assert(has_value_in_tags::<253, _>(tags, "AA"));
+    assert(!has_value_in_tags::<253, _>(tags, "AB"));
+    assert(!has_value_in_tags::<253, _>(tags, "AC"));
+    assert(!has_value_in_tags::<253, _>(tags, "AD"));
+    assert(!has_value_in_tags::<253, _>(tags, "AE"));
 
     tags = [0x0, 0x0, 0x0];
-    assert(!has_value_in_tags(tags, "AA"));
-    assert(!has_value_in_tags(tags, "AB"));
-    assert(!has_value_in_tags(tags, "AC"));
-    assert(!has_value_in_tags(tags, "AD"));
-    assert(!has_value_in_tags(tags, "AE"));
+    assert(!has_value_in_tags::<253, _>(tags, "AA"));
+    assert(!has_value_in_tags::<253, _>(tags, "AB"));
+    assert(!has_value_in_tags::<253, _>(tags, "AC"));
+    assert(!has_value_in_tags::<253, _>(tags, "AD"));
+    assert(!has_value_in_tags::<253, _>(tags, "AE"));
 
     tags = [0x1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, 0x4, 0x0];
-    assert(has_value_in_tags(tags, "JR"));
-    assert(has_value_in_tags(tags, "JS"));
-    assert(!has_value_in_tags(tags, "JT"));
-    assert(!has_value_in_tags(tags, "JU"));
-    assert(has_value_in_tags(tags, "JV"));
-    assert(!has_value_in_tags(tags, "JW"));
-    assert(!has_value_in_tags(tags, "JX"));
-    assert(!has_value_in_tags(tags, "JY"));
-    assert(!has_value_in_tags(tags, "JZ"));
+    assert(has_value_in_tags::<253, _>(tags, "JR"));
+    assert(has_value_in_tags::<253, _>(tags, "JS"));
+    assert(!has_value_in_tags::<253, _>(tags, "JT"));
+    assert(!has_value_in_tags::<253, _>(tags, "JU"));
+    assert(has_value_in_tags::<253, _>(tags, "JV"));
+    assert(!has_value_in_tags::<253, _>(tags, "JW"));
+    assert(!has_value_in_tags::<253, _>(tags, "JX"));
+    assert(!has_value_in_tags::<253, _>(tags, "JY"));
+    assert(!has_value_in_tags::<253, _>(tags, "JZ"));
 
     tags = [0x0, 0x0, 0x8000000];
-    assert(has_value_in_tags(tags, "UN"));
+    assert(has_value_in_tags::<253, _>(tags, "UN"));
 }
 
 // This test should fail because a tag limb is too large (i.e. not fitting in 253 bits)
 #[test(should_fail)]
 fn test_has_value_in_tags_should_fail() {
     let tags = [0x2fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, 0x0, 0x0];
-    assert(has_value_in_tags(tags, "AA"));
+    assert(has_value_in_tags::<253, _>(tags, "AA"));
 }
 
 #[test]
@@ -147,13 +150,13 @@ pub fn test_calculate_certificate_registry_leaf() {
     ];
 
     // UN (i.e. ICAO) = index 533 (253 * 2 + 27), so bit index 27 is set on the 3rd limb
-    let tags = [0x0, 0x0, 0x0];
+    let tags = [0x0, 0x0, 0x8000000];
     let cert_type = 1 as u8; // CSCA
     let country = "AUS";
 
     let leaf_hash = calculate_certificate_registry_leaf(tags, cert_type, country, public_key);
     // Should match the result of getCertificateLeafHash()
-    assert(leaf_hash == 0x2ce9b68d116c639f9cdd4f16e005a194659b1944ca41fe448dbb60fe756a0be3);
+    assert(leaf_hash == 0x10370abe147332c5b039fb820a32964f7567998e9c54f93595bb95a1dc4ba62f);
 }
 
 pub fn get_country_from_dg1(dg1: [u8; 95]) -> str<3> {
