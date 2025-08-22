@@ -11,17 +11,21 @@ fn main(
     dg1: [u8; 95],
     signed_attributes: [u8; 220],
     e_content: [u8; 700],
-    e_content_size: u32,
     private_nullifier: Field,
 ) -> pub Field {
     // Check the ID is not expired first
     check_expiry(dg1, current_date);
+    // Get the length of e_content by parsing the ASN.1
+    // Safety: This is safe because the length must be correct for econtent to hash to
+    // the expected digest in signed attributes as checked below in check_signed_attributes_sha224
+    let e_content_size = unsafe { utils::unsafe_get_asn1_element_length(e_content) };
     // Check the integrity of the data
     check_dg1_sha224(dg1, e_content, e_content_size);
     // Get the length of signed_attributes by parsing the ASN.1
-    // Safety: This is safe because the length must be correct for the hash and signature to be valid
+    // Safety: This is safe because the length was checked in the ID data circuit and the whole signed attributes
+    // was committed over in that same circuit
     let signed_attributes_size =
-        unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) as u64 };
+        unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) };
     check_signed_attributes_sha384(signed_attributes, e_content, e_content_size);
     let comm_out = commit_to_disclosure(
         comm_in,

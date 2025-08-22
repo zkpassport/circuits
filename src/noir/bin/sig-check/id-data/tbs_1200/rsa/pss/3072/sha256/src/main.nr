@@ -20,7 +20,7 @@ fn main(
     // Get the length of signed_attributes by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid
     let signed_attributes_size =
-        unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) as u64 };
+        unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) };
     assert(
         verify_signature::<384, 1, 220, 32>(
             dsc_pubkey,

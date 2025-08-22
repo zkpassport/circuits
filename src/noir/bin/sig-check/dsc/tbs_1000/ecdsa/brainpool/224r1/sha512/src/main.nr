@@ -18,8 +18,7 @@ fn main(
 ) -> pub Field {
     // Get the length of tbs_certificate by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid
-    let tbs_certificate_len =
-        unsafe { utils::unsafe_get_asn1_element_length(tbs_certificate) as u64 };
+    let tbs_certificate_len = unsafe { utils::unsafe_get_asn1_element_length(tbs_certificate) };
     let (r, s) = split_array(dsc_signature);
     let msg_hash = sha512_and_check_data_to_sign(tbs_certificate, tbs_certificate_len);
     assert(

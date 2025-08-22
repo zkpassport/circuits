@@ -16,7 +16,7 @@ pub fn verify_signature<let SIG_BYTES: u32, let IS_PSS: u32, let DATA_TO_SIGN_MA
     redc_param_bytes: [u8; SIG_BYTES + 1],
     exponent: u32,
     data_to_sign: [u8; DATA_TO_SIGN_MAX_LEN],
-    data_to_sign_len: u64,
+    data_to_sign_len: u32,
 ) -> bool {
     assert(
         (SIG_BYTES == 768)
@@ -33,10 +33,6 @@ pub fn verify_signature<let SIG_BYTES: u32, let IS_PSS: u32, let DATA_TO_SIGN_MA
     let params = BigNumParams::new(false, pubkey, redc_param);
 
     let signature = RuntimeBigNum::from_be_bytes(params, sig_bytes);
-
-    // Get the length of the ASN.1 element to sign
-    // Safety: This is safe because the length must be correct for the hash and signature to be valid
-    // let data_to_sign_len = unsafe { utils::unsafe_get_asn1_element_length(asn1_to_sign) as u64 };
 
     if (IS_PSS == 1) {
         if (HASH_BYTE_SIZE == 20) {

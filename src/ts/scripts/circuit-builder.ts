@@ -169,7 +169,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     // Get the length of tbs_certificate by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid
     let tbs_certificate_len =
-        unsafe { utils::unsafe_get_asn1_element_length(tbs_certificate) as u64 };
+        unsafe { utils::unsafe_get_asn1_element_length(tbs_certificate) };
     let (r, s) = split_array(dsc_signature);
     let msg_hash = ${hash_algorithm}_and_check_data_to_sign(tbs_certificate, tbs_certificate_len);
     assert(verify_${curve_family}_${curve_name}(csc_pubkey_x, csc_pubkey_y, r, s, msg_hash), "ECDSA signature verification failed");
@@ -213,7 +213,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     // Get the length of tbs_certificate by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid
     let tbs_certificate_len =
-        unsafe { utils::unsafe_get_asn1_element_length(tbs_certificate) as u64 };
+        unsafe { utils::unsafe_get_asn1_element_length(tbs_certificate) };
     assert(verify_signature::<${Math.ceil(bit_size / 8)}, ${
   rsa_type === "pss" ? 1 : 0
 }, ${tbs_max_len}, ${getHashAlgorithmByteSize(hash_algorithm)}>(
@@ -267,7 +267,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     // Get the length of signed_attributes by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid
     let signed_attributes_size =
-        unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) as u64 };
+        unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) };
     let (r, s) = split_array(sod_signature);
     let msg_hash = ${hash_algorithm}_and_check_data_to_sign(signed_attributes, signed_attributes_size);
     verify_ecdsa_pubkey_in_tbs(
@@ -319,7 +319,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     // Get the length of signed_attributes by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid
     let signed_attributes_size =
-        unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) as u64 };
+        unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) };
     assert(verify_signature::<${Math.ceil(bit_size / 8)}, ${
   rsa_type === "pss" ? 1 : 0
 }, ${SIGNED_ATTRIBUTES_SIZE}, ${getHashAlgorithmByteSize(hash_algorithm)}>(
@@ -362,17 +362,22 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     dg1: [u8; 95],
     signed_attributes: [u8; ${SIGNED_ATTRIBUTES_SIZE}],
     e_content: [u8; 700],
-    e_content_size: u32,
     private_nullifier: Field,
 ) -> pub Field {
     // Check the ID is not expired first
     check_expiry(dg1, current_date);
+    // Get the length of e_content by parsing the ASN.1
+    // Safety: This is safe because the length must be correct for econtent to hash to 
+    // the expected digest in signed attributes as checked below in check_signed_attributes_${dg_hash_algorithm}
+    let e_content_size =
+        unsafe { utils::unsafe_get_asn1_element_length(e_content) };
     // Check the integrity of the data
     check_dg1_${dg_hash_algorithm}(dg1, e_content, e_content_size);
     // Get the length of signed_attributes by parsing the ASN.1
-    // Safety: This is safe because the length must be correct for the hash and signature to be valid
+    // Safety: This is safe because the length was checked in the ID data circuit and the whole signed attributes
+    // was committed over in that same circuit
     let signed_attributes_size =
-        unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) as u64 };
+        unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) };
     check_signed_attributes_${signed_attributes_hash_algorithm}(
         signed_attributes,
         e_content,

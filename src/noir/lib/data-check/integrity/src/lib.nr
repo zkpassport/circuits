@@ -11,7 +11,7 @@ pub fn check_dg1_sha1(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32) 
     assert(e_content_size <= 700, "eContent size is too large");
 
     // For passports we ignore the last padding characters
-    let mut dg1_size: u64 = 93;
+    let mut dg1_size: u32 = 93;
 
     // If it's an ID card then the array should not have any padding
     // character
@@ -19,7 +19,7 @@ pub fn check_dg1_sha1(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32) 
         dg1_size = 95;
     }
 
-    let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size as u32);
+    let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size);
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
     let dg1_hash = sha1::sha1_var(dg1_bounded_vec);
@@ -40,7 +40,7 @@ pub fn check_signed_attributes_sha1<let SA_SIZE: u32>(
     e_content: [u8; 700],
     e_content_size: u32,
 ) {
-    let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size as u32);
+    let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size);
 
     let computed_final_hash = sha1::sha1_var(e_content_bounded_vec);
 
@@ -69,7 +69,7 @@ pub fn check_dg1_sha224(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32
 
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
-    let dg1_hash = sha224_var(dg1, dg1_size as u64);
+    let dg1_hash = sha224_var(dg1, dg1_size);
 
     // Find the offset of the hash of dg1 in e_content
     let dg1_offset_in_e_content = find_subarray_index(dg1_hash, e_content);
@@ -114,7 +114,7 @@ pub fn check_dg1_sha256(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32
 
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
-    let dg1_hash = sha256_var(dg1, dg1_size as u64);
+    let dg1_hash = sha256_var(dg1, dg1_size);
 
     // Find the offset of the hash of dg1 in e_content
     let dg1_offset_in_e_content = find_subarray_index(dg1_hash, e_content);
@@ -149,7 +149,7 @@ pub fn check_dg1_sha384(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32
     assert(e_content_size <= 700, "eContent size is too large");
 
     // For passports we ignore the last padding characters
-    let mut dg1_size: u64 = 93;
+    let mut dg1_size: u32 = 93;
 
     // If it's an ID card then the array should not have any padding
     // character
@@ -157,7 +157,7 @@ pub fn check_dg1_sha384(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32
         dg1_size = 95;
     }
 
-    let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size as u32);
+    let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size);
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
     let dg1_hash = sha384::sha384_var(dg1_bounded_vec);
@@ -178,7 +178,7 @@ pub fn check_signed_attributes_sha384<let SA_SIZE: u32>(
     e_content: [u8; 700],
     e_content_size: u32,
 ) {
-    let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size as u32);
+    let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size);
 
     let computed_final_hash = sha384::sha384_var(e_content_bounded_vec);
 
@@ -197,7 +197,7 @@ pub fn check_dg1_sha512(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32
     assert(e_content_size <= 700, "eContent size is too large");
 
     // For passports we ignore the last padding characters
-    let mut dg1_size: u64 = 93;
+    let mut dg1_size: u32 = 93;
 
     // If it's an ID card then the array should not have any padding
     // character
@@ -205,7 +205,7 @@ pub fn check_dg1_sha512(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32
         dg1_size = 95;
     }
 
-    let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size as u32);
+    let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size);
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
     let dg1_hash = sha512::sha512_var(dg1_bounded_vec);
@@ -226,7 +226,7 @@ pub fn check_signed_attributes_sha512<let SA_SIZE: u32>(
     e_content: [u8; 700],
     e_content_size: u32,
 ) {
-    let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size as u32);
+    let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size);
 
     let computed_final_hash = sha512::sha512_var(e_content_bounded_vec);
 
