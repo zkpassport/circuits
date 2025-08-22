@@ -10,8 +10,7 @@
     "package-circuits": "tsx --max-old-space-size=8192 src/ts/scripts/circuit-packager && cp target/packaged/manifest.json src/ts/tests/fixtures/circuit-manifest.json",
     "generate-fixtures": "tsx --max-old-space-size=8192 src/ts/scripts/generate-fixtures.ts",
     "generate-sanction-trees": "tsx src/ts/sanctions/bin/generate_trees.ts",
-    "generate-sanction-test-data": "tsx src/ts/sanctions/bin/generate_test_data.ts",
-    "update-sol-fixtures": "tsx scripts/update-sol-fixtures.ts"
+    "generate-sanction-test-data": "tsx src/ts/sanctions/bin/generate_test_data.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cloudfront": "^3.730.0",
