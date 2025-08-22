@@ -328,27 +328,6 @@ pub fn concat_array<let N: u32>(array_x: [u8; N], array_y: [u8; N]) -> [u8; N * 
     array
 }
 
-pub unconstrained fn _find_subarray_index<let N: u32, let M: u32>(
-    array: [u8; N],
-    subarray: [u8; M],
-) -> u32 {
-    let mut index = 0;
-    for i in 0..(N - M + 1) {
-        let mut found = true;
-        for j in 0..M {
-            if array[i + j] != subarray[j] {
-                found = false;
-                break;
-            }
-        }
-        if found {
-            index = i;
-            break;
-        }
-    }
-    index
-}
-
 pub fn check_zero_padding<let N: u32, T>(padded_array: [T; N], len: u32)
 where
     T: Eq,
@@ -447,13 +426,13 @@ pub unconstrained fn unsafe_get_asn1_element_length<let N: u32>(asn1: [u8; N]) -
 /// Find the index of the first occurrence of the needle in the haystack
 /// Returns the index of the first occurrence of the needle in the haystack
 /// Returns HAYSTACK_SIZE if the needle is not found
-pub fn find_substring_index<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+pub fn find_subarray_index<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
     needle: [u8; NEEDLE_SIZE],
     haystack: [u8; HAYSTACK_SIZE],
 ) -> u32 {
     // Safety: This is safe because the offset is only used as a starting point
     // to verify the substring exists
-    let offsetUnchecked = unsafe { find_substring_index_unsafe(needle, haystack) };
+    let offsetUnchecked = unsafe { find_subarray_index_unsafe(needle, haystack) };
     let mut offset = offsetUnchecked;
     // Check if offset is valid before attempting verification
     if (offsetUnchecked < HAYSTACK_SIZE) & (offsetUnchecked + NEEDLE_SIZE <= HAYSTACK_SIZE) {
@@ -469,9 +448,16 @@ pub fn find_substring_index<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
     offset
 }
 
+pub fn is_subarray_in_array<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+    needle: [u8; NEEDLE_SIZE],
+    haystack: [u8; HAYSTACK_SIZE],
+) -> bool {
+    find_subarray_index(needle, haystack) < HAYSTACK_SIZE
+}
+
 /// Safety: This is safe because the offset is only used as a starting point
 /// to verify the substring exists
-pub unconstrained fn find_substring_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+pub unconstrained fn find_subarray_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
     needle: [u8; NEEDLE_SIZE],
     haystack: [u8; HAYSTACK_SIZE],
 ) -> u32 {
