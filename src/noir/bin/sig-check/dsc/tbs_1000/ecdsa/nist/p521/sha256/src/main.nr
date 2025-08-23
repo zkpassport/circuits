@@ -8,7 +8,7 @@ fn main(
     certificate_registry_root: pub Field,
     certificate_registry_index: Field,
     certificate_registry_hash_path: [Field; 16],
-    certificate_tags: Field,
+    certificate_tags: [Field; 3],
     salt: Field,
     country: str<3>,
     csc_pubkey_x: [u8; 66],

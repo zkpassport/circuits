@@ -31,7 +31,7 @@ pub fn commit_to_dsc<let CSC_KEY_SIZE: u32, let HASH_PATH_SIZE: u32, let TBS_CER
     certificate_registry_root: Field,
     certificate_registry_index: Field,
     certificate_registry_hash_path: [Field; HASH_PATH_SIZE],
-    certificate_tags: Field,
+    certificate_tags: [Field; 3],
     country: str<3>,
     tbs_certificate: [u8; TBS_CERT_SIZE],
     salt: Field,
