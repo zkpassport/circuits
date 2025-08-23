@@ -4,7 +4,7 @@ module.exports = {
   testEnvironment: "node",
   extensionsToTreatAsEsm: [".ts"],
   // Enable this if tests are failing but all you get is
-  // "Do not know how to serialize a BigInt" in messageParent.ts"
+  // "Do not know how to serialize a BigInt" in messageParent.ts
   // maxWorkers: 1,
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",

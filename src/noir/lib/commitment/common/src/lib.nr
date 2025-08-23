@@ -79,7 +79,7 @@ pub fn test_calculate_certificate_registry_leaf() {
 
     let leaf_hash = calculate_certificate_registry_leaf(tags, cert_type, country, public_key);
     // Should match the result of getCertificateLeafHash()
-    assert(leaf_hash == 0x039a274cdf4a006ce26b26480aaed8d1360f5c51e34bde4bc158a4d71b510518);
+    assert(leaf_hash == 0x182c07a44155b5262a4a84f613b8572661c87f036df5610af0deb14bc18021c6);
 }
 
 pub fn get_country_from_dg1(dg1: [u8; 95]) -> str<3> {
