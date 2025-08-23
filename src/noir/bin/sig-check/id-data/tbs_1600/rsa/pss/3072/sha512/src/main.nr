@@ -12,13 +12,15 @@ fn main(
     dsc_pubkey_redc_param: [u8; 385],
     sod_signature: [u8; 384],
     tbs_certificate: [u8; 1600],
-    pubkey_offset_in_tbs: u32,
     signed_attributes: [u8; 220],
-    signed_attributes_size: u64,
     exponent: u32,
     e_content: [u8; 700],
 ) -> pub Field {
-    verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate, pubkey_offset_in_tbs);
+    verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate);
+    // Get the length of signed_attributes by parsing the ASN.1
+    // Safety: This is safe because the length must be correct for the hash and signature to be valid
+    let signed_attributes_size =
+        unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) };
     assert(
         verify_signature::<384, 1, 220, 64>(
             dsc_pubkey,

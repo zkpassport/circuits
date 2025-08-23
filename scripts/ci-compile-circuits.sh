@@ -1,14 +1,10 @@
 #!/bin/bash
 
-# This script compiles a subset of Noir circuits required for CI pipeline.
+# This script compiles a subset of circuits used in CI tests
 
 set -euo pipefail
 
-# Generate unconstrained circuits, so that we can test the circuit logic
-# for given inputs without doing fully constrained proving
-./node_modules/.bin/tsx src/ts/scripts/circuit-builder.ts generate unconstrained
-
-# Circuits to compile for integration tests
+# Circuits to compile
 CIRCUITS=(
     "sig_check_dsc_tbs_1000_rsa_pkcs_6144_sha256"
     "sig_check_id_data_tbs_1000_rsa_pkcs_4096_sha1"
@@ -54,11 +50,12 @@ CIRCUITS=(
     "bind_evm"
 )
 
+# Ensure circuits are generated
+./node_modules/.bin/tsx src/ts/scripts/circuit-builder.ts generate && nargo fmt
+
+# Compile circuits into unconstrained brillig
 for circuit in "${CIRCUITS[@]}"; do
     echo "Compiling $circuit"
-    nargo compile --force --package "$circuit"
+    nargo compile --force --force-brillig --package "$circuit"
     echo "Compiled $circuit"
 done
-
-# Regenerate constrained circuits (without unconstrained entrypoint)
-./node_modules/.bin/tsx src/ts/scripts/circuit-builder.ts generate
