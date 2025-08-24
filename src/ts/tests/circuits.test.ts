@@ -1008,7 +1008,7 @@ describe("subcircuits - RSA PKCS", () => {
 
     test("greater than", async () => {
       const query: Query = {
-        birthdate: { gte: new Date(1988, 10, 11) },
+        birthdate: { gte: new Date(1928, 10, 11) },
       }
       const inputs = await getBirthdateCircuitInputs(
         helper.passport as any,
@@ -1030,7 +1030,7 @@ describe("subcircuits - RSA PKCS", () => {
       const calculatedParamCommitment = await getDateParameterCommitment(
         ProofType.BIRTHDATE,
         nowTimestamp,
-        getUnixTimestamp(new Date(1988, 10, 11)),
+        getUnixTimestamp(new Date(1928, 10, 11)),
         0,
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)

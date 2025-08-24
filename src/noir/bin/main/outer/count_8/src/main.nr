@@ -36,7 +36,7 @@ fn verify_subproofs(
     // Root of the circuit registry merkle tree
     circuit_registry_root: Field,
     // Current date and time as a unix timestamp
-    current_date: u32,
+    current_date: u64,
     // The commitments over the parameters of the disclosure circuits
     param_commitments: [Field; 5],
     // The nullifier service scope (a Pederson hash of the domain)
@@ -192,7 +192,7 @@ fn main(
     certificate_registry_root: pub Field,
     // Root of the circuit registry merkle tree
     circuit_registry_root: pub Field,
-    current_date: pub u32,
+    current_date: pub u64,
     service_scope: pub Field,
     service_subscope: pub Field,
     param_commitments: pub [Field; 5],

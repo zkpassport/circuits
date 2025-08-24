@@ -4,7 +4,7 @@ global PROOF_SIZE: u32 = 508;
 global VKEY_SIZE: u32 = 115;
 
 pub fn prepare_integrity_check_inputs(
-    timestamp: u32,
+    timestamp: u64,
     comm_in: Field,
     comm_out: Field,
 ) -> [Field; 3] {

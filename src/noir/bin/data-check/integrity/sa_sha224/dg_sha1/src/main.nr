@@ -4,7 +4,7 @@ use data_check_expiry::check_expiry;
 use data_check_integrity::{check_dg1_sha1, check_signed_attributes_sha224};
 
 fn main(
-    current_date: pub u32,
+    current_date: pub u64,
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,

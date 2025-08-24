@@ -257,14 +257,14 @@ contract ZKPassportVerifier {
     uint256 offset = 0;
     bool found = false;
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
-      // Date circuits have 13 bytes of committed inputs
+      // Date circuits have 25 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == 13 && committedInputs[offset] == bytes1(uint8(proofType))) {
-        // Get rid of the padding 0s bytes as the timestamp is contained within the first 32 bits
-        // i.e. 256 - 32 = 224
-        currentDate = uint256(bytes32(committedInputs[offset + 1:offset + 5])) >> 224;
-        minDate = uint256(bytes32(committedInputs[offset + 5:offset + 9])) >> 224;
-        maxDate = uint256(bytes32(committedInputs[offset + 9:offset + 13])) >> 224;
+      if (committedInputCounts[i] == 25 && committedInputs[offset] == bytes1(uint8(proofType))) {
+        // Get rid of the padding 0s bytes as the timestamp is contained within the first 64 bits
+        // i.e. 256 - 64 = 192
+        currentDate = uint256(bytes32(committedInputs[offset + 1:offset + 9])) >> 192;
+        minDate = uint256(bytes32(committedInputs[offset + 9:offset + 17])) >> 192;
+        maxDate = uint256(bytes32(committedInputs[offset + 17:offset + 25])) >> 192;
         found = true;
       }
       offset += committedInputCounts[i];
@@ -279,15 +279,15 @@ contract ZKPassportVerifier {
     uint256 offset = 0;
     bool found = false;
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
-      // The age circuit has 7 bytes of committed inputs
+      // The age circuit has 11 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == 7) {
+      if (committedInputCounts[i] == 11) {
         require(committedInputs[offset] == bytes1(uint8(ProofType.AGE)), "Invalid proof type");
-        // Get rid of the padding 0s bytes as the timestamp is contained within the first 32 bits
-        // i.e. 256 - 32 = 224
-        currentDate = uint256(bytes32(committedInputs[offset + 1:offset + 5])) >> 224;
-        minAge = uint8(committedInputs[offset + 5]);
-        maxAge = uint8(committedInputs[offset + 6]);
+        // Get rid of the padding 0s bytes as the timestamp is contained within the first 64 bits
+        // i.e. 256 - 64 = 192
+        currentDate = uint256(bytes32(committedInputs[offset + 1:offset + 9])) >> 192;
+        minAge = uint8(committedInputs[offset + 9]);
+        maxAge = uint8(committedInputs[offset + 10]);
         found = true;
       }
       offset += committedInputCounts[i];

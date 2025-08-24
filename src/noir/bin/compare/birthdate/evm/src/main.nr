@@ -10,23 +10,24 @@ fn main(
     // @committed
     // The current date timestamp is public (via the parameter commitment) so verifiers can check the date
     // provided to the proof is correct
-    current_date: u32,
+    current_date: u64,
     // @committed
     // The minimum date required is public (via the parameter commitment) so verifiers can check
     // the date provided to the proof is correct
     // If the minimum date timestamp is 0, it is not checked
-    min_date: u32,
+    min_date: u64,
     // @committed
     // The maximum date required is public (via the parameter commitment) so verifiers can check
     // the date provided to the proof is correct
     // If the maximum date timestamp is 0, it is not checked
-    max_date: u32,
+    max_date: u64,
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field) {
     let birthdate = get_birthdate(dg1, current_date);
     // Verify the birthdate of the ID holder
-    compare_date(birthdate, min_date, max_date);
+    // Uses 1900 as the epoch year because birthdates can be before 1970 (the usual unix epoch)
+    compare_date(birthdate, min_date, max_date, 1900);
     let nullifier = nullify(
         comm_in,
         salt,
