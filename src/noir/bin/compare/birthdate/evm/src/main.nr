@@ -26,7 +26,8 @@ fn main(
 ) -> pub (Field, Field) {
     let birthdate = get_birthdate(dg1, current_date);
     // Verify the birthdate of the ID holder
-    compare_date(birthdate, min_date, max_date);
+    // Uses 1900 as the epoch year because birthdates can be before 1970 (the usual unix epoch)
+    compare_date(birthdate, min_date, max_date, 1900);
     let nullifier = nullify(
         comm_in,
         salt,

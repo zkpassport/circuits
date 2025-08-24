@@ -17,7 +17,7 @@ fn get_date<let INDEX: u32>(dg1: [u8; 95], threshold_date: Date) -> Date {
 }
 
 pub fn get_birthdate(dg1: [u8; 95], timestamp: u32) -> Date {
-    let current_date = Date::from_timestamp(timestamp as u64);
+    let current_date = Date::from_timestamp(timestamp);
     let mut birthdate = Date::new(1, 1, 1);
 
     // Get the slice of the MRZ representing the birthdate
@@ -31,7 +31,7 @@ pub fn get_birthdate(dg1: [u8; 95], timestamp: u32) -> Date {
 }
 
 pub fn get_expiry_date(dg1: [u8; 95], timestamp: u32) -> Date {
-    let current_date = Date::from_timestamp(timestamp as u64);
+    let current_date = Date::from_timestamp(timestamp);
     let mut expiry_date = Date::new(1, 1, 1);
 
     // We base the threshold year for the expiry date on the current date plus 20 years
@@ -49,14 +49,19 @@ pub fn get_expiry_date(dg1: [u8; 95], timestamp: u32) -> Date {
     expiry_date
 }
 
-pub fn compare_date(date_to_compare: Date, min_date_timestamp: u32, max_date_timestamp: u32) {
+pub fn compare_date(
+    date_to_compare: Date,
+    min_date_timestamp: u32,
+    max_date_timestamp: u32,
+    epoch_year: u32,
+) {
     assert(
         (min_date_timestamp != 0) | (max_date_timestamp != 0),
         "Either min or max date must be non-zero",
     );
 
-    let min_date = Date::from_timestamp(min_date_timestamp as u64);
-    let max_date = Date::from_timestamp(max_date_timestamp as u64);
+    let min_date = Date::from_timestamp_with_epoch(min_date_timestamp, epoch_year);
+    let max_date = Date::from_timestamp_with_epoch(max_date_timestamp, epoch_year);
 
     if (min_date_timestamp != 0) & (max_date_timestamp == 0) {
         // The minimum date is more likely to be inclusive, so we use gte

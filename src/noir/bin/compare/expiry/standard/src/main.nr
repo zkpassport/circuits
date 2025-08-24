@@ -26,7 +26,9 @@ fn main(
 ) -> pub (Field, Field) {
     let expiry_date = get_expiry_date(dg1, current_date);
     // Verify the expiry date of the ID holder
-    compare_date(expiry_date, min_date, max_date);
+    // Uses the usual unix epoch year of 1970 as the epoch year as expiry dates are in the future
+    // and for expired documents, the expiry date is still way after 1970
+    compare_date(expiry_date, min_date, max_date, 1970);
     // Use Poseidon2 to calculate the parameter commitment so the prover has less work to do
     let param_commitment =
         calculate_param_commitment(PROOF_TYPE_EXPIRY_DATE, current_date, min_date, max_date);

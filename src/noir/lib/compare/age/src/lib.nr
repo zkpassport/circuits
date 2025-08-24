@@ -25,7 +25,7 @@ fn get_birthdate(dg1: [u8; 95], timestamp: u32) -> Date {
         );
     }
 
-    let current_date = Date::from_timestamp(timestamp as u64);
+    let current_date = Date::from_timestamp(timestamp);
 
     // Create a Date object from the birthdate using the current date as
     // the pivot year to differentiate between 20th and 21st centuries
@@ -41,7 +41,7 @@ pub fn compare_age(dg1: [u8; 95], min_age: u8, max_age: u8, timestamp: u32) {
 
     let birthdate: Date = get_birthdate(dg1, timestamp);
 
-    let current_date = Date::from_timestamp(timestamp as u64);
+    let current_date = Date::from_timestamp(timestamp);
 
     assert((min_age != 0) | (max_age != 0), "Either min or max age must be non-zero");
 
