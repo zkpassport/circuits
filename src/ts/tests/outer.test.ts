@@ -78,13 +78,13 @@ describe("outer proof", () => {
 
     // Generate CSC and DSC signing certificates
     const { cscPem, dsc, dscKeys } = await generateSigningCertificates({
-    cscSigningHashAlgorithm: "SHA-512",
-    cscKeyType: "RSA",
-    cscKeySize: 4096,
-    dscSigningHashAlgorithm: "SHA-256",
-    dscKeyType: "RSA",
-    dscKeySize: 2048,
-    dscKeypair,
+      cscSigningHashAlgorithm: "SHA-512",
+      cscKeyType: "RSA",
+      cscKeySize: 4096,
+      dscSigningHashAlgorithm: "SHA-256",
+      dscKeyType: "RSA",
+      dscKeySize: 2048,
+      dscKeypair,
     })
     // Generate SOD and sign it with DSC keypair
     const { sod } = await generateSod(dg1, [dsc], "SHA-256")
@@ -100,9 +100,9 @@ describe("outer proof", () => {
     const cscToDscCircuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096_sha512`)
     const cscToDscInputs = await helper.generateCircuitInputs("dsc")
     const cscToDscProof = await cscToDscCircuit.prove(cscToDscInputs, {
-    recursive: true,
-    useCli: true,
-    circuitName: `sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096_sha512`,
+      recursive: true,
+      useCli: true,
+      circuitName: `sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096_sha512`,
     })
     expect(cscToDscProof).toBeDefined()
     expect(cscToDscProof.publicInputs.length).toEqual(2)
@@ -111,12 +111,12 @@ describe("outer proof", () => {
     const cscToDscCommitment = getCommitmentFromDSCProof(cscToDscProof)
     const cscToDscVkey = (await cscToDscCircuit.getVerificationKey({ evm: false })).vkeyFields
     const cscToDscVkeyHash = `0x${(
-    await poseidon2HashAsync(cscToDscVkey.map((x) => BigInt(x)))
+      await poseidon2HashAsync(cscToDscVkey.map((x) => BigInt(x)))
     ).toString(16)}`
     subproofs.set(0, {
-    proof: cscToDscProof.proof,
-    publicInputs: cscToDscProof.publicInputs,
-    vkey: cscToDscVkey,
+      proof: cscToDscProof.proof,
+      publicInputs: cscToDscProof.publicInputs,
+      vkey: cscToDscVkey,
     vkeyHash: cscToDscVkeyHash,
     })
     await cscToDscCircuit.destroy()
@@ -126,34 +126,34 @@ describe("outer proof", () => {
     )
     const idDataToIntegrityInputs = await helper.generateCircuitInputs("id")
     const idDataToIntegrityProof = await idDataToIntegrityCircuit.prove(idDataToIntegrityInputs, {
-    recursive: true,
-    useCli: true,
-    circuitName: `sig_check_id_data_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_2048_sha256`,
+      recursive: true,
+      useCli: true,
+      circuitName: `sig_check_id_data_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_2048_sha256`,
     })
     expect(idDataToIntegrityProof).toBeDefined()
     const idDataCommitmentIn = getCommitmentInFromIDDataProof(idDataToIntegrityProof)
     const dscToIdDataCommitment = getCommitmentOutFromIDDataProof(idDataToIntegrityProof)
     expect(idDataCommitmentIn).toEqual(cscToDscCommitment)
     const idDataToIntegrityVkey = (
-    await idDataToIntegrityCircuit.getVerificationKey({ evm: false })
+      await idDataToIntegrityCircuit.getVerificationKey({ evm: false })
     ).vkeyFields
     const idDataToIntegrityVkeyHash = `0x${(
-    await poseidon2HashAsync(idDataToIntegrityVkey.map((x) => BigInt(x)))
+      await poseidon2HashAsync(idDataToIntegrityVkey.map((x) => BigInt(x)))
     ).toString(16)}`
-    subproofs.set(1, {
-    proof: idDataToIntegrityProof.proof,
-    publicInputs: idDataToIntegrityProof.publicInputs,
-    vkey: idDataToIntegrityVkey,
-    vkeyHash: idDataToIntegrityVkeyHash,
+      subproofs.set(1, {
+      proof: idDataToIntegrityProof.proof,
+      publicInputs: idDataToIntegrityProof.publicInputs,
+      vkey: idDataToIntegrityVkey,
+      vkeyHash: idDataToIntegrityVkeyHash,
     })
     await idDataToIntegrityCircuit.destroy()
 
     const integrityCircuit = Circuit.from("data_check_integrity_sa_sha256_dg_sha256")
     const integrityInputs = await helper.generateCircuitInputs("integrity", nowTimestamp)
     const integrityProof = await integrityCircuit.prove(integrityInputs, {
-    recursive: true,
-    useCli: true,
-    circuitName: `data_check_integrity_sa_sha256_dg_sha256`,
+      recursive: true,
+      useCli: true,
+      circuitName: `data_check_integrity_sa_sha256_dg_sha256`,
     })
     expect(integrityProof).toBeDefined()
     const integrityCheckCommitmentIn = getCommitmentInFromIntegrityProof(integrityProof)
@@ -163,43 +163,43 @@ describe("outer proof", () => {
     expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     const integrityVkey = (await integrityCircuit.getVerificationKey({ evm: false })).vkeyFields
     const integrityVkeyHash = `0x${(
-    await poseidon2HashAsync(integrityVkey.map((x) => BigInt(x)))
+      await poseidon2HashAsync(integrityVkey.map((x) => BigInt(x)))
     ).toString(16)}`
-    subproofs.set(2, {
-    proof: integrityProof.proof,
-    publicInputs: integrityProof.publicInputs,
-    vkey: integrityVkey,
-    vkeyHash: integrityVkeyHash,
+      subproofs.set(2, {
+      proof: integrityProof.proof,
+      publicInputs: integrityProof.publicInputs,
+      vkey: integrityVkey,
+      vkeyHash: integrityVkeyHash,
     })
     await integrityCircuit.destroy()
 
     const discloseCircuit = Circuit.from("disclose_bytes")
     const query: Query = {
-    issuing_country: { disclose: true },
-    nationality: { disclose: true },
-    document_type: { disclose: true },
-    document_number: { disclose: true },
-    fullname: { disclose: true },
-    birthdate: { disclose: true },
-    expiry_date: { disclose: true },
-    gender: { disclose: true },
+      issuing_country: { disclose: true },
+      nationality: { disclose: true },
+      document_type: { disclose: true },
+      document_number: { disclose: true },
+      fullname: { disclose: true },
+      birthdate: { disclose: true },
+      expiry_date: { disclose: true },
+      gender: { disclose: true },
     }
     let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
     if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
     const proof = await discloseCircuit.prove(inputs, {
-    recursive: true,
-    useCli: true,
-    circuitName: `disclose_bytes`,
+      recursive: true,
+      useCli: true,
+      circuitName: `disclose_bytes`,
     })
     expect(proof).toBeDefined()
     const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
     const disclosedBytes = getDisclosedBytesFromMrzAndMask(
-    helper.passport.mrz,
-    inputs.disclose_mask,
+      helper.passport.mrz,
+      inputs.disclose_mask,
     )
     const calculatedParamCommitment = await getDiscloseParameterCommitment(
-    inputs.disclose_mask,
-    disclosedBytes,
+      inputs.disclose_mask,
+      disclosedBytes,
     )
     expect(paramCommitment).toEqual(calculatedParamCommitment)
     // Verify the disclosed data
@@ -225,11 +225,11 @@ describe("outer proof", () => {
     await poseidon2HashAsync(discloseVkey.map((x) => BigInt(x)))
     ).toString(16)}`
     subproofs.set(3, {
-    proof: proof.proof,
-    publicInputs: proof.publicInputs,
-    vkey: discloseVkey,
-    vkeyHash: discloseVkeyHash,
-    paramCommitment: paramCommitment,
+      proof: proof.proof,
+      publicInputs: proof.publicInputs,
+      vkey: discloseVkey,
+      vkeyHash: discloseVkeyHash,
+      paramCommitment: paramCommitment,
     })
     await discloseCircuit.destroy()
   }, 60000 * 3)
