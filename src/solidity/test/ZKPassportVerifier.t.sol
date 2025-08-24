@@ -23,11 +23,11 @@ contract ZKPassportVerifierTest is TestUtils {
   string constant ALL_SUBPROOFS_COMMITTED_INPUTS_PATH =
     "./test/fixtures/all_subproofs_committed_inputs.hex";
   bytes32 constant VKEY_HASH =
-    bytes32(uint256(0x04b98c6f867d6a7f86d514b72c3be8f41b7aa6f49fdc17514c9f9f0a2ac3ef9a));
+    bytes32(uint256(0x0ebd82e03a810dc40a9b92ddaf4c4a879389164c2ae3a742013bffc0f676f9b4));
   bytes32 constant OUTER_PROOF_11_VKEY_HASH =
-    bytes32(uint256(0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4));
-  uint256 constant CURRENT_DATE = 1755553385;
-  uint256 constant PROOF_GENERATION_DATE = 1755553206;
+    bytes32(uint256(0x0c35e44eca4e970fae8fa15a7729da53f05a61eed520d5a3977fb936d0026050));
+  uint256 constant CURRENT_DATE = 1756055826;
+  uint256 constant PROOF_GENERATION_DATE = 1756055614;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
@@ -178,9 +178,9 @@ contract ZKPassportVerifierTest is TestUtils {
     committedInputCounts[2] = 601;
     committedInputCounts[3] = 601;
     committedInputCounts[4] = 601;
-    committedInputCounts[5] = 7;
-    committedInputCounts[6] = 13;
-    committedInputCounts[7] = 13;
+    committedInputCounts[5] = 11;
+    committedInputCounts[6] = 25;
+    committedInputCounts[7] = 25;
 
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
@@ -258,9 +258,9 @@ contract ZKPassportVerifierTest is TestUtils {
     committedInputCounts[2] = 601;
     committedInputCounts[3] = 601;
     committedInputCounts[4] = 601;
-    committedInputCounts[5] = 7;
-    committedInputCounts[6] = 13;
-    committedInputCounts[7] = 13;
+    committedInputCounts[5] = 11;
+    committedInputCounts[6] = 25;
+    committedInputCounts[7] = 25;
 
     vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
