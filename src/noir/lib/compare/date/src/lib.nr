@@ -16,7 +16,7 @@ fn get_date<let INDEX: u32>(dg1: [u8; 95], threshold_date: Date) -> Date {
     Date::from_bytes_short_year(date_bytes, threshold_date)
 }
 
-pub fn get_birthdate(dg1: [u8; 95], timestamp: u32) -> Date {
+pub fn get_birthdate(dg1: [u8; 95], timestamp: u64) -> Date {
     let current_date = Date::from_timestamp(timestamp);
     let mut birthdate = Date::new(1, 1, 1);
 
@@ -30,7 +30,7 @@ pub fn get_birthdate(dg1: [u8; 95], timestamp: u32) -> Date {
     birthdate
 }
 
-pub fn get_expiry_date(dg1: [u8; 95], timestamp: u32) -> Date {
+pub fn get_expiry_date(dg1: [u8; 95], timestamp: u64) -> Date {
     let current_date = Date::from_timestamp(timestamp);
     let mut expiry_date = Date::new(1, 1, 1);
 
@@ -51,8 +51,8 @@ pub fn get_expiry_date(dg1: [u8; 95], timestamp: u32) -> Date {
 
 pub fn compare_date(
     date_to_compare: Date,
-    min_date_timestamp: u32,
-    max_date_timestamp: u32,
+    min_date_timestamp: u64,
+    max_date_timestamp: u64,
     epoch_year: u32,
 ) {
     assert(
@@ -94,9 +94,9 @@ pub fn compare_date(
 /// * `commitment`: The commitment of the current date, min date and max date
 pub fn calculate_param_commitment(
     proof_type: u8,
-    current_date_timestamp: u32,
-    min_date_timestamp: u32,
-    max_date_timestamp: u32,
+    current_date_timestamp: u64,
+    min_date_timestamp: u64,
+    max_date_timestamp: u64,
 ) -> Field {
     let mut params = [0 as Field; 4];
     params[0] = proof_type as Field;
@@ -122,24 +122,24 @@ pub fn calculate_param_commitment(
 /// * `commitment`: The commitment of the current date, min date and max date
 pub fn calculate_param_commitment_sha2(
     proof_type: u8,
-    current_date_timestamp: u32,
-    min_date_timestamp: u32,
-    max_date_timestamp: u32,
+    current_date_timestamp: u64,
+    min_date_timestamp: u64,
+    max_date_timestamp: u64,
 ) -> Field {
-    let mut params = [0 as u8; 13];
+    let mut params = [0 as u8; 25];
     params[0] = proof_type;
-    let current_date_timestamp_bytes: [u8; 4] = (current_date_timestamp as Field).to_be_bytes();
-    for i in 1..5 {
+    let current_date_timestamp_bytes: [u8; 8] = (current_date_timestamp as Field).to_be_bytes();
+    for i in 1..9 {
         params[i] = current_date_timestamp_bytes[i - 1];
     }
-    let min_date_timestamp_bytes: [u8; 4] = (min_date_timestamp as Field).to_be_bytes();
-    for i in 5..9 {
-        params[i] = min_date_timestamp_bytes[i - 5];
+    let min_date_timestamp_bytes: [u8; 8] = (min_date_timestamp as Field).to_be_bytes();
+    for i in 9..17 {
+        params[i] = min_date_timestamp_bytes[i - 9];
     }
-    let max_date_timestamp_bytes: [u8; 4] = (max_date_timestamp as Field).to_be_bytes();
-    for i in 9..13 {
-        params[i] = max_date_timestamp_bytes[i - 9];
+    let max_date_timestamp_bytes: [u8; 8] = (max_date_timestamp as Field).to_be_bytes();
+    for i in 17..25 {
+        params[i] = max_date_timestamp_bytes[i - 17];
     }
-    let hash = sha256::sha256_var(params, 13);
+    let hash = sha256::sha256_var(params, 25);
     utils::pack_be_bytes_into_field::<32, 31>(hash)
 }

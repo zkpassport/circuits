@@ -5,7 +5,7 @@ use utils::{
     PASSPORT_MRZ_BIRTHDATE_INDEX, PROOF_TYPE_AGE,
 };
 
-fn get_birthdate(dg1: [u8; 95], timestamp: u32) -> Date {
+fn get_birthdate(dg1: [u8; 95], timestamp: u64) -> Date {
     let mut birthdate_bytes = [0 as u8; 6];
     let mrz = get_mrz_from_dg1(dg1);
 
@@ -33,7 +33,7 @@ fn get_birthdate(dg1: [u8; 95], timestamp: u32) -> Date {
     Date::from_bytes_short_year(birthdate_bytes, current_date)
 }
 
-pub fn compare_age(dg1: [u8; 95], min_age: u8, max_age: u8, timestamp: u32) {
+pub fn compare_age(dg1: [u8; 95], min_age: u8, max_age: u8, timestamp: u64) {
     // Restrict the age to be less than 100 as the dg1 birthdate only encodes
     // two digits for the year
     // TODO: Add support for dg11 to support 100+
@@ -86,7 +86,7 @@ pub fn compare_age(dg1: [u8; 95], min_age: u8, max_age: u8, timestamp: u32) {
 ///
 /// * `commitment`: The commitment of the current date, min age and max age
 pub fn calculate_param_commitment(
-    timestamp: u32,
+    timestamp: u64,
     min_age_required: u8,
     max_age_required: u8,
 ) -> Field {
@@ -112,18 +112,18 @@ pub fn calculate_param_commitment(
 ///
 /// * `commitment`: The commitment of the current date, min age and max age
 pub fn calculate_param_commitment_sha2(
-    timestamp: u32,
+    timestamp: u64,
     min_age_required: u8,
     max_age_required: u8,
 ) -> Field {
-    let mut params = [0 as u8; 7];
+    let mut params = [0 as u8; 11];
     params[0] = PROOF_TYPE_AGE;
-    let timestamp_bytes: [u8; 4] = (timestamp as Field).to_be_bytes();
-    for i in 1..5 {
+    let timestamp_bytes: [u8; 8] = (timestamp as Field).to_be_bytes();
+    for i in 1..9 {
         params[i] = timestamp_bytes[i - 1];
     }
-    params[5] = min_age_required;
-    params[6] = max_age_required;
-    let hash = sha256::sha256_var(params, 7);
+    params[9] = min_age_required;
+    params[10] = max_age_required;
+    let hash = sha256::sha256_var(params, 11);
     utils::pack_be_bytes_into_field::<32, 31>(hash)
 }

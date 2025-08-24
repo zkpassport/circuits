@@ -292,7 +292,9 @@ contract ZKPassportVerifierTest is TestUtils {
     console.log(gasUsed);
     assertEq(currentDateBirthDate, PROOF_GENERATION_DATE);
     assertEq(minDateBirthDate, 0);
-    assertEq(maxDateBirthDate, PROOF_GENERATION_DATE);
+    // Add 2208988800 (number of seconds between 1900 and 1970) as the min date and max date
+    // for the birthdate range proof uses 1900 as the epoch year rather than the usual 1970
+    assertEq(maxDateBirthDate, PROOF_GENERATION_DATE + 2208988800);
 
     vm.startSnapshotGas("ZKPassportVerifier getDateProofInputs - expiry date");
     (
