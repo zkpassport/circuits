@@ -39,6 +39,8 @@ import {
   getUnixTimestamp,
   getNowTimestamp,
   getCurrentDateFromIntegrityProof,
+  getCountryWeightedSum,
+  rightPadArrayWithZeros,
 } from "@zkpassport/utils"
 import type { PackagedCertificate, Query } from "@zkpassport/utils"
 import { beforeAll, describe, expect, test } from "@jest/globals"
@@ -602,6 +604,30 @@ describe("subcircuits - RSA PKCS", () => {
       await circuit.destroy()
     }, 30000)
 
+    test("nationality - should fail if the list is not sorted", async () => {
+      const circuit = Circuit.from("exclusion_check_nationality_evm")
+      const query: Query = {
+        nationality: { out: ["FRA", "USA", "GBR"] },
+      }
+      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, 3n)
+      // Override the country list to be unsorted
+      const unsortedCountryList: number[] = []
+      for (let i = 0; i < (query.nationality?.out ?? []).length; i++) {
+        const country: string = (query.nationality?.out ?? [])[i]
+        unsortedCountryList.push(getCountryWeightedSum(country as any))
+      }
+      inputs.country_list = rightPadArrayWithZeros(unsortedCountryList, 200) as any
+      if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
+      // The circuit execution will throw an error if the list is not sorted
+      await expect(
+        circuit.prove(inputs, {
+          circuitName: `exclusion_check_nationality_evm`,
+          useCli: true,
+        }),
+      ).rejects.toThrow("Circuit execution failed: Country list is not sorted in ascending order")
+      await circuit.destroy()
+    }, 30000)
+
     test("issuing country", async () => {
       const circuit = Circuit.from("exclusion_check_issuing_country_evm")
       const query: Query = {
@@ -659,6 +685,34 @@ describe("subcircuits - RSA PKCS", () => {
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
     }, 10000)
+
+    test("issuing country - should fail if the list is not sorted", async () => {
+      const circuit = Circuit.from("exclusion_check_issuing_country_evm")
+      const query: Query = {
+        issuing_country: { out: ["FRA", "USA", "GBR"] },
+      }
+      const inputs = await getIssuingCountryExclusionCircuitInputs(
+        helper.passport as any,
+        query,
+        3n,
+      )
+      // Override the country list to be unsorted
+      const unsortedCountryList: number[] = []
+      for (let i = 0; i < (query.issuing_country?.out ?? []).length; i++) {
+        const country: string = (query.issuing_country?.out ?? [])[i]
+        unsortedCountryList.push(getCountryWeightedSum(country as any))
+      }
+      inputs.country_list = rightPadArrayWithZeros(unsortedCountryList, 200) as any
+      if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
+      // The circuit execution will throw an error if the list is not sorted
+      await expect(
+        circuit.prove(inputs, {
+          circuitName: `exclusion_check_issuing_country_evm`,
+          useCli: true,
+        }),
+      ).rejects.toThrow("Circuit execution failed: Country list is not sorted in ascending order")
+      await circuit.destroy()
+    }, 30000)
   })
 
   describe("compare-age", () => {
