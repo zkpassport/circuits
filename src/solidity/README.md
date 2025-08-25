@@ -35,6 +35,7 @@ cp .env.example .env
 PRIVATE_KEY=your_private_key_here
 SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/your_infura_key_here
 ETHERSCAN_API_KEY=your_etherscan_api_key_here  # Only needed for Sepolia verification
+ROOT_REGISTRY_ADDRESS=0xB6bF4a45D5Ed1363C45BD0e4cbaDCcd48F8D3FaB
 ```
 
 Note: For local Anvil deployments, you don't need to set these environment variables.
