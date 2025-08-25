@@ -89,6 +89,7 @@ contract ZKPassportVerifier {
 
   bytes32 public constant CERTIFICATE_REGISTRY_ID = bytes32(uint256(1));
   bytes32 public constant CIRCUIT_REGISTRY_ID = bytes32(uint256(2));
+  bytes32 public constant SANCTIONS_REGISTRY_ID = bytes32(uint256(3));
 
   address public admin;
   bool public paused;
@@ -404,9 +405,7 @@ contract ZKPassportVerifier {
 
   function enforceSanctionsRoot(bytes calldata committedInputs, uint256[] calldata committedInputCounts) public view {
     bytes32 proofSanctionsRoot = getSanctionsProofInputs(committedInputs, committedInputCounts);
-    
-    // TODO(md): Add sanctions root to registry to perform real check
-    require(proofSanctionsRoot != bytes32(0), "Invalid Sanctions Root");
+    _validateSanctionsRoot(proofSanctionsRoot);
   }
 
 
@@ -489,6 +488,13 @@ contract ZKPassportVerifier {
     require(
       rootRegistry.isRootValid(CIRCUIT_REGISTRY_ID, circuitRoot),
       "Invalid circuit registry root"
+    );
+  }
+
+  function _validateSanctionsRoot(bytes32 sanctionsRoot) internal view {
+    require(
+      rootRegistry.isRootValid(SANCTIONS_REGISTRY_ID, sanctionsRoot),
+      "Invalid sanctions registry root"
     );
   }
 
