@@ -1,0 +1,72 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+env:
+  NOIR_VERSION: "1.0.0-beta.8"
+  BB_VERSION: "1.0.0"
+  NODE_VERSION: "24.3.0"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install nargo
+        uses: noir-lang/noirup@v0.1.4
+        with:
+          toolchain: ${{ env.NOIR_VERSION }}
+
+      - name: Install bb
+        run: |
+          curl -L https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/master/barretenberg/bbup/install | bash || true
+          echo /home/runner/.bb >> $GITHUB_PATH
+          /home/runner/.bb/bbup -v ${{ env.BB_VERSION }}
+          /home/runner/.bb/bb --version
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run noir tests
+        run: |
+          nargo test --package utils
+          nargo test --package commitment_common
+
+      - name: Calculate cache key for compiled circuits
+        id: circuits-cache-key
+        run: echo "cache-key=$(find src/noir/{bin,lib} -type f -name "*.nr" -exec sha256sum {} + | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+      - name: Restore circuits cache
+        uses: actions/cache/restore@v4
+        id: circuits-cache
+        with:
+          path: target
+          key: circuits-${{ steps.circuits-cache-key.outputs.cache-key }}
+
+      - name: Compile circuits
+        if: steps.circuits-cache.outputs.cache-hit != 'true'
+        run: ./scripts/ci-compile-circuits.sh
+
+      - name: Save circuits cache
+        uses: actions/cache/save@v4
+        if: steps.circuits-cache.outputs.cache-hit != 'true'
+        with:
+          path: target
+          key: circuits-${{ steps.circuits-cache-key.outputs.cache-key }}
+
+      - name: Run integration tests
+        run: npm run test
