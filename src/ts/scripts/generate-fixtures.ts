@@ -489,7 +489,7 @@ class FixtureGenerator {
           getServiceScopeHash("zkpassport.id"),
           getServiceSubscopeHash("bigproof"),
         ),
-        { sanctions: true },
+        { sanctions: { countries: "all", lists: "all" } },
         ProofType.SANCTIONS_EXCLUSION,
         (inputs) => inputs.root.slice(2).padStart(64, "0"),
       ),

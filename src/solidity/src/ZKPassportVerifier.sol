@@ -94,11 +94,9 @@ contract ZKPassportVerifier {
   bool public paused;
 
   mapping(bytes32 => address) public vkeyHashToVerifier;
-  // mapping(bytes32 => bool) public isValidCertificateRegistryRoot;
-  // mapping(bytes32 => bool) public isValidCircuitRegistryRoot;
 
-  // bytes32 public sanctionsTreesRoot = SANCTIONS_TREES_ROOT;
-
+  // Maybe make this immutable as this should most likely not change
+  IRootRegistry public rootRegistry;
 
   // Events
   event AdminUpdated(address indexed oldAdmin, address indexed newAdmin);
@@ -163,29 +161,6 @@ contract ZKPassportVerifier {
     require(_rootRegistry != address(0), "Root registry cannot be zero address");
     rootRegistry = IRootRegistry(_rootRegistry);
   }
-
-  // // TODO: remove this when proper local testing with the root registry is done
-  // function addCertificateRegistryRoot(bytes32 certificateRegistryRoot) external onlyAdmin {
-  //   isValidCertificateRegistryRoot[certificateRegistryRoot] = true;
-  //   emit CertificateRegistryRootAdded(certificateRegistryRoot);
-  // }
-
-
-  // // TODO: remove this when proper local testing with the root registry is done
-  // function removeCertificateRegistryRoot(bytes32 certificateRegistryRoot) external onlyAdmin {
-  //   isValidCertificateRegistryRoot[certificateRegistryRoot] = false;
-  //   emit CertificateRegistryRootRemoved(certificateRegistryRoot);
-  // }
-
-  // // TODO: remove this when proper local testing with the root registry is done
-  // function addCircuitRegistryRoot(bytes32 circuitRegistryRoot) external onlyAdmin {
-  //   isValidCircuitRegistryRoot[circuitRegistryRoot] = true;
-  // }
-
-  // function updateSanctionsTreesRoot(bytes32 _sanctionsTreesRoot) external onlyAdmin {
-  //   sanctionsTreesRoot = _sanctionsTreesRoot;
-  //   emit SanctionsTreesRootUpdates(_sanctionsTreesRoot);
-  // }
 
   function checkDate(
     bytes32[] memory publicInputs,
@@ -287,14 +262,7 @@ contract ZKPassportVerifier {
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // Date circuits have 13 bytes of committed inputs
       // The first byte is the proof type
-
-      // TMP
-      // if (committedInputCounts[i] == CommittedInputLen.COMPARE_EXPIRY && committedInputs[offset] == bytes1(uint8(proofType))) {
-      //   currentDate = DateUtils.getTimestampFromDate(committedInputs[offset + 1:offset + 9]);
-      //   minDate = DateUtils.getTimestampFromDate(committedInputs[offset + 9:offset + 17]);
-      //   maxDate = DateUtils.getTimestampFromDate(committedInputs[offset + 17:offset + 25]);
-
-      if (committedInputCounts[i] == 13 && committedInputs[offset] == bytes1(uint8(proofType))) {
+      if (committedInputCounts[i] == CommittedInputLen.COMPARE_EXPIRY && committedInputs[offset] == bytes1(uint8(proofType))) {
         // Get rid of the padding 0s bytes as the timestamp is contained within the first 32 bits
         // i.e. 256 - 32 = 224
         currentDate = uint256(bytes32(committedInputs[offset + 1:offset + 5])) >> 224;
@@ -316,10 +284,8 @@ contract ZKPassportVerifier {
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // The age circuit has 7 bytes of committed inputs
       // The first byte is the proof type
-// TMP
-//       if (committedInputCounts[i] == CommittedInputLen.COMPARE_AGE) {
-// =======
-      if (committedInputCounts[i] == 7) {
+
+      if (committedInputCounts[i] == CommittedInputLen.COMPARE_AGE) {
         require(committedInputs[offset] == bytes1(uint8(ProofType.AGE)), "Invalid proof type");
         // Get rid of the padding 0s bytes as the timestamp is contained within the first 32 bits
         // i.e. 256 - 32 = 224
@@ -438,7 +404,9 @@ contract ZKPassportVerifier {
 
   function enforceSanctionsRoot(bytes calldata committedInputs, uint256[] calldata committedInputCounts) public view {
     bytes32 proofSanctionsRoot = getSanctionsProofInputs(committedInputs, committedInputCounts);
-    require(proofSanctionsRoot == sanctionsTreesRoot, "Invalid Sanctions Root");
+    
+    // TODO(md): Add sanctions root to registry to perform real check
+    require(proofSanctionsRoot != bytes32(0), "Invalid Sanctions Root");
   }
 
 
@@ -519,8 +487,7 @@ contract ZKPassportVerifier {
 
   function _validateCircuitRoot(bytes32 circuitRoot) internal view {
     require(
-      // Only in local testing will the mapping be populated
-      isValidCircuitRegistryRoot[circuitRoot] || rootRegistry.isRootValid(CIRCUIT_REGISTRY_ID, circuitRoot),
+      rootRegistry.isRootValid(CIRCUIT_REGISTRY_ID, circuitRoot),
       "Invalid circuit registry root"
     );
   }
