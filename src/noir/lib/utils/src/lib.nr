@@ -3,7 +3,7 @@
 * are defined in the ICAO (International Civil Aviation Organization) 9303 document available here:
 * https://www.icao.int/publications/pages/publication.aspx?docnum=9303
 */
-pub mod test;
+pub mod tests;
 pub mod types;
 
 /**
@@ -20,10 +20,11 @@ pub mod types;
 use types::{
     DG1Data, MRZData, MRZName, MRZDOB, MRZYOB, MRZDocumentNumber, MRZNationality, MRZIssuingCountry,
 };
-mod tests;
 
 // Index for the country of issuance of the passport
 pub global PASSPORT_MRZ_COUNTRY_INDEX: u32 = 2;
+// Length of the country code in the MRZ
+pub global PASSPORT_MRZ_COUNTRY_LENGTH: u32 = 3;
 // Index for the three letter code of the country of citizenship
 // Note that the first three letter code (index 2) in the MRZ is the country of issuance
 // not citizenship. It is important to keep in mind for residence permits
@@ -35,17 +36,27 @@ pub global PASSPORT_MRZ_GENDER_INDEX: u32 = 64;
 pub global PASSPORT_MRZ_EXPIRY_DATE_INDEX: u32 = 65;
 // Index for the date of birth (YYMMDD) in TD1 (i.e. passport) MRZ
 pub global PASSPORT_MRZ_BIRTHDATE_INDEX: u32 = 57;
+// Length of the date of birth in the MRZ
+pub global PASSPORT_MRZ_BIRTHDATE_LENGTH: u32 = 6;
+// Length of the year of birth in the MRZ
+pub global PASSPORT_MRZ_YEAR_OF_BIRTH_LENGTH: u32 = 2;
 // Index for the document number in the MRZ
 pub global PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX: u32 = 44;
+// Length of the document number in the MRZ
+pub global PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH: u32 = 9;
 // Index for the document type in the MRZ
 pub global PASSPORT_MRZ_DOCUMENT_TYPE_INDEX: u32 = 0;
 // Index for the name of the passport holder
 pub global PASSPORT_MRZ_NAME_INDEX: u32 = 5;
+// Length of the name of the passport holder
+pub global PASSPORT_MRZ_NAME_LENGTH: u32 = 39;
 // Length of the MRZ on a passport
 pub global PASSPORT_MRZ_LENGTH: u32 = 88;
 
 // Index for the country of issuance of the ID card
 pub global ID_CARD_MRZ_COUNTRY_INDEX: u32 = 2;
+// Length of the country code in the MRZ
+pub global ID_CARD_MRZ_COUNTRY_LENGTH: u32 = 3;
 // Note that the first three letter code (index 2) in the MRZ is the country of issuance
 // not citizenship. It is important to keep in mind for residence permits
 // where the issuing country differs from the citizenship country
@@ -56,14 +67,28 @@ pub global ID_CARD_MRZ_GENDER_INDEX: u32 = 37;
 pub global ID_CARD_MRZ_EXPIRY_DATE_INDEX: u32 = 38;
 // Index for the date of birth (YYMMDD) in TD3 (i.e. ID cards) MRZ
 pub global ID_CARD_MRZ_BIRTHDATE_INDEX: u32 = 30;
+// Length of the date of birth in the MRZ
+pub global ID_CARD_MRZ_BIRTHDATE_LENGTH: u32 = 6;
+// Length of the year of birth in the MRZ
+pub global ID_CARD_MRZ_YEAR_OF_BIRTH_LENGTH: u32 = 2;
 // Index for the document number in the MRZ
 pub global ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX: u32 = 5;
+// Length of the document number in the MRZ
+pub global ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH: u32 = 9;
 // Index for the document type in the MRZ
 pub global ID_CARD_MRZ_DOCUMENT_TYPE_INDEX: u32 = 0;
 // Index for the name of the passport holder
 pub global ID_CARD_MRZ_NAME_INDEX: u32 = 60;
+/// Length for the MRZ on an ID card
+pub global ID_CARD_MRZ_NAME_LENGTH: u32 = 30;
 // Length of the MRZ on an ID card
 pub global ID_CARD_MRZ_LENGTH: u32 = 90;
+
+// ASCII_CODE FOR <
+pub global ASCII_CODE_FOR_LESS_THAN: u8 = 60;
+
+/// Offset of the MRZ in the DG1
+pub global DG1_TO_MRZ_OFFSET: u32 = 5;
 
 // ECDSA curves mapping
 pub global ECDSA_CURVE_P256: u32 = 0;
@@ -310,7 +335,7 @@ pub fn pack_be_bytes_into_fields<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE
 pub fn get_mrz_from_dg1(dg1: DG1Data) -> MRZData {
     let mut mrz: MRZData = [0 as u8; 90];
     for i in 0..90 {
-        mrz[i] = dg1[i + 5];
+        mrz[i] = dg1[i + DG1_TO_MRZ_OFFSET];
     }
     mrz
 }
@@ -393,13 +418,13 @@ pub fn get_nationality_from_mrz(dg1: DG1Data) -> MRZNationality {
         country_bytes = get_array_slice(
             mrz,
             ID_CARD_MRZ_NATIONALITY_INDEX,
-            ID_CARD_MRZ_NATIONALITY_INDEX + 3,
+            ID_CARD_MRZ_NATIONALITY_INDEX + ID_CARD_MRZ_COUNTRY_LENGTH,
         );
     } else {
         country_bytes = get_array_slice(
             mrz,
             PASSPORT_MRZ_NATIONALITY_INDEX,
-            PASSPORT_MRZ_NATIONALITY_INDEX + 3,
+            PASSPORT_MRZ_NATIONALITY_INDEX + PASSPORT_MRZ_COUNTRY_LENGTH,
         );
     }
 
@@ -418,7 +443,7 @@ pub fn get_issuing_country_from_mrz(dg1: DG1Data) -> MRZIssuingCountry {
     let mut country_bytes = get_array_slice(
         mrz,
         PASSPORT_MRZ_COUNTRY_INDEX,
-        PASSPORT_MRZ_COUNTRY_INDEX + 3,
+        PASSPORT_MRZ_COUNTRY_INDEX + PASSPORT_MRZ_COUNTRY_LENGTH,
     );
 
     // Handle the special case of Germany
@@ -443,12 +468,27 @@ pub fn get_name_from_mrz(dg1: DG1Data) -> MRZName {
 
 /// Get the name from the MRZ for a passport
 pub fn get_name_passport(mrz: MRZData) -> MRZName {
-    get_array_slice(mrz, PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_INDEX + 39)
+    get_array_slice(
+        mrz,
+        PASSPORT_MRZ_NAME_INDEX,
+        PASSPORT_MRZ_NAME_INDEX + PASSPORT_MRZ_NAME_LENGTH,
+    )
 }
 
 /// Get the name from the MRZ for an ID card
 pub fn get_name_id_card(mrz: MRZData) -> MRZName {
-    get_array_slice(mrz, ID_CARD_MRZ_NAME_INDEX, ID_CARD_MRZ_NAME_INDEX + 39)
+    let mut mrz_name: MRZName = get_array_slice(
+        mrz,
+        ID_CARD_MRZ_NAME_INDEX,
+        ID_CARD_MRZ_NAME_INDEX + ID_CARD_MRZ_NAME_LENGTH,
+    );
+
+    // Pad the name with spaces to the length of the MRZ name
+    for i in 0..(PASSPORT_MRZ_NAME_LENGTH - ID_CARD_MRZ_NAME_LENGTH) {
+        mrz_name[ID_CARD_MRZ_NAME_LENGTH + i] = ASCII_CODE_FOR_LESS_THAN;
+    }
+
+    mrz_name
 }
 
 /// Get the date of birth from the MRZ
@@ -468,7 +508,7 @@ pub fn get_date_of_birth_passport(mrz: MRZData) -> MRZDOB {
     get_array_slice(
         mrz,
         PASSPORT_MRZ_BIRTHDATE_INDEX,
-        PASSPORT_MRZ_BIRTHDATE_INDEX + 6,
+        PASSPORT_MRZ_BIRTHDATE_INDEX + PASSPORT_MRZ_BIRTHDATE_LENGTH,
     )
 }
 
@@ -477,7 +517,7 @@ pub fn get_date_of_birth_id_card(mrz: MRZData) -> MRZDOB {
     get_array_slice(
         mrz,
         ID_CARD_MRZ_BIRTHDATE_INDEX,
-        ID_CARD_MRZ_BIRTHDATE_INDEX + 6,
+        ID_CARD_MRZ_BIRTHDATE_INDEX + ID_CARD_MRZ_BIRTHDATE_LENGTH,
     )
 }
 
@@ -498,7 +538,7 @@ pub fn get_yob_from_mrz_passport(mrz: MRZData) -> MRZYOB {
     get_array_slice(
         mrz,
         PASSPORT_MRZ_BIRTHDATE_INDEX,
-        PASSPORT_MRZ_BIRTHDATE_INDEX + 2,
+        PASSPORT_MRZ_BIRTHDATE_INDEX + PASSPORT_MRZ_YEAR_OF_BIRTH_LENGTH,
     )
 }
 
@@ -507,7 +547,7 @@ pub fn get_yob_from_mrz_id_card(mrz: MRZData) -> MRZYOB {
     get_array_slice(
         mrz,
         ID_CARD_MRZ_BIRTHDATE_INDEX,
-        ID_CARD_MRZ_BIRTHDATE_INDEX + 2,
+        ID_CARD_MRZ_BIRTHDATE_INDEX + ID_CARD_MRZ_YEAR_OF_BIRTH_LENGTH,
     )
 }
 
@@ -528,7 +568,7 @@ pub fn get_document_number_passport(mrz: MRZData) -> MRZDocumentNumber {
     get_array_slice(
         mrz,
         PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
-        PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX + 9,
+        PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX + PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH,
     )
 }
 
@@ -537,7 +577,7 @@ pub fn get_document_number_id_card(mrz: MRZData) -> MRZDocumentNumber {
     get_array_slice(
         mrz,
         ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX,
-        ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX + 9,
+        ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX + ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH,
     )
 }
 

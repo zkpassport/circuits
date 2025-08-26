@@ -4,6 +4,7 @@ pub type MRZData = [u8; 90];
 
 // MRZ types
 pub type MRZName = [u8; 39];
+pub type MRZNameIdCard = [u8; 30];
 pub type MRZDOB = [u8; 6];
 pub type MRZYOB = [u8; 2];
 pub type MRZDocumentNumber = [u8; 9];
