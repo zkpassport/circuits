@@ -9,9 +9,6 @@ import {
   getBindCircuitInputs,
   getBirthdateCircuitInputs,
   getCircuitMerkleProof,
-  getCommitmentFromDSCProof,
-  getCommitmentOutFromIDDataProof,
-  getCommitmentOutFromIntegrityProof,
   getCountryFromWeightedSum,
   getDiscloseCircuitInputs,
   getDisclosedBytesFromMrzAndMask,
@@ -20,6 +17,7 @@ import {
   getIssuingCountryInclusionCircuitInputs,
   getNationalityExclusionCircuitInputs,
   getNationalityInclusionCircuitInputs,
+  getSanctionsExclusionCheckCircuitInputs,
   getNowTimestamp,
   getOuterCircuitInputs,
   getParameterCommitmentFromDisclosureProof,
@@ -258,7 +256,7 @@ class FixtureGenerator {
     subproofs: SubproofData[]
     committedInputs: string
   }> {
-    console.log("Generating additional proofs for 11 subproofs test...")
+    console.log("Generating additional proofs for 12 subproofs test...")
 
     const additionalSubproofs: SubproofData[] = []
     let allCommittedInputs = ""
@@ -481,6 +479,22 @@ class FixtureGenerator {
       ),
     )
 
+    // Sanctions proof
+    additionalSubproofs.push(
+      await createProof(
+        "exclusion_check_sanctions_evm",
+        () => getSanctionsExclusionCheckCircuitInputs(
+          this.helper.passport as any,
+          3n,
+          getServiceScopeHash("zkpassport.id"),
+          getServiceSubscopeHash("bigproof"),
+        ),
+        { sanctions: { countries: "all", lists: "all" } },
+        ProofType.SANCTIONS_EXCLUSION,
+        (inputs) => inputs.root.slice(2).padStart(64, "0"),
+      ),
+    )
+
     return { subproofs: additionalSubproofs, committedInputs: allCommittedInputs }
   }
 
@@ -619,7 +633,7 @@ class FixtureGenerator {
       "outer_count_5",
     )
 
-    // Generate 11 subproofs fixtures
+    // Generate 12 subproofs fixtures
     const { subproofs: additionalSubproofs, committedInputs: additionalCommittedInputs } =
       await this.generateAdditionalProofs()
 
@@ -631,18 +645,18 @@ class FixtureGenerator {
       ...additionalSubproofs,
     ]
 
-    const outerProof11 = await this.generateOuterProof(
+    const outerProof12 = await this.generateOuterProof(
       elevenSubproofsData,
-      "outer_count_11",
-      "outer_count_11",
+      "outer_count_12",
+      "outer_count_12",
     )
 
     const fixtures = {
       validProof: outerProof5.proof.map((x) => x.replace("0x", "")).join(""),
       validPublicInputs: outerProof5.publicInputs,
       validCommittedInputs: discloseCommittedInputs + bindCommittedInputs,
-      allSubproofsProof: outerProof11.proof.map((x) => x.replace("0x", "")).join(""),
-      allSubproofsPublicInputs: outerProof11.publicInputs,
+      allSubproofsProof: outerProof12.proof.map((x) => x.replace("0x", "")).join(""),
+      allSubproofsPublicInputs: outerProof12.publicInputs,
       allSubproofsCommittedInputs: discloseCommittedInputs + additionalCommittedInputs,
     }
 

@@ -3,6 +3,9 @@
 LOCAL_DIR=${1:-null}
 PORT=8545
 
+# Note: got a crazy bug where foundry wouldnt deploy to anvil unless i changed the chain id
+export CHAIN_ID=1337
+
 SCRIPT_DIR=$(pwd)/$(dirname "$0")
 
 # If the local directory is not null, use it, otherwise clone the zkpassport-packages repo
@@ -22,7 +25,7 @@ cd packages/registry-contracts
 lsof -ti:${PORT} | xargs kill -9
 
 # Start anvil in the background if it's not already running
-anvil --port ${PORT} > /dev/null 2>&1 &
+anvil --port ${PORT} --chain-id $CHAIN_ID > /dev/null 2>&1 &
 
 # Give anvil a moment to start
 sleep 2
@@ -39,11 +42,13 @@ export ROOT_REGISTRY_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep "RootRegistry deploy
 # Get the certificate and circuit registry roots from the public inputs of the fixtures
 export CERTIFICATE_REGISTRY_ROOT=$(jq -r '.inputs[0]' $SCRIPT_DIR/test/fixtures/all_subproofs_public_inputs.json)
 export CIRCUIT_REGISTRY_ROOT=$(jq -r '.inputs[1]' $SCRIPT_DIR/test/fixtures/all_subproofs_public_inputs.json)
+export SANCTIONS_REGISTRY_ROOT=0x0bb47c10011708980491486b3b30ac8bbd1f84465d35739a23d4c7cac5c070ef
 
 echo "Updating roots..."
 echo "Root Registry: $ROOT_REGISTRY_ADDRESS"
 echo "Certificate Registry Root: $CERTIFICATE_REGISTRY_ROOT"
 echo "Circuit Registry Root: $CIRCUIT_REGISTRY_ROOT"
+echo "Sanctions Registry Root: $SANCTIONS_REGISTRY_ROOT"
 
 # Update the roots
 script/bash/update-roots.sh

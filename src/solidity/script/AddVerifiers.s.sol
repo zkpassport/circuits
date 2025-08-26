@@ -36,7 +36,9 @@ contract Deploy is Script {
     // Outer (11 subproofs)
     bytes32(hex"0c35e44eca4e970fae8fa15a7729da53f05a61eed520d5a3977fb936d0026050"),
     // Outer (12 subproofs)
-    bytes32(hex"0177e4167ac0c7994cfdcba40c98567bc6666ae56e0ae4c39c32f051d4c0aabb")
+    bytes32(hex"0177e4167ac0c7994cfdcba40c98567bc6666ae56e0ae4c39c32f051d4c0aabb"),
+    // Outer (13 subproofs)
+    bytes32(hex"0c3fe7b41c2cb501bf9ead31d08ff446613f439b1b2169bbdeee56501d9abd3a")
   ];
 
   function run() public {
@@ -47,12 +49,14 @@ contract Deploy is Script {
     vm.startBroadcast(deployerPrivateKey);
 
     // Load the ZKPassportVerifier from deployment file (deployment-{chainId}.json)
-    string memory deploymentJson = vm.readFile(string.concat("./deployments/deployment-", vm.toString(block.chainid), ".json"));
+    string memory deploymentJson = vm.readFile(
+      string.concat("./deployments/deployment-", vm.toString(block.chainid), ".json")
+    );
     address zkPassportVerifierAddress = deploymentJson.readAddress(".zk_passport_verifier");
     ZKPassportVerifier zkPassportVerifier = ZKPassportVerifier(zkPassportVerifierAddress);
     console.log("ZKPassportVerifier loaded at:", zkPassportVerifierAddress);
 
-        // Log the deployment
+    // Log the deployment
     console.log("Deploying Outer (4 subproofs) verifier...");
     // Deploy the contract
     OuterCount4Verifier outerCount4Verifier = new OuterCount4Verifier();
@@ -132,7 +136,13 @@ contract Deploy is Script {
     string memory finalJson = vm.serializeString(mainJson, "verifiers", verifiers);
 
     // Write the JSON to a file in the deployments folder
-    string memory outputPath = string.concat("./deployments/verifiers-c:", vm.toString(block.chainid), "-t:", vm.toString(block.timestamp), ".json");
+    string memory outputPath = string.concat(
+      "./deployments/verifiers-c:",
+      vm.toString(block.chainid),
+      "-t:",
+      vm.toString(block.timestamp),
+      ".json"
+    );
     vm.writeJson(finalJson, outputPath);
     console.log("Verifier addresses written to:", outputPath);
   }

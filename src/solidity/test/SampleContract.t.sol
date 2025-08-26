@@ -4,27 +4,27 @@ pragma solidity >=0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ZKPassportVerifier, ProofType, ProofVerificationParams} from "../src/ZKPassportVerifier.sol";
-import {HonkVerifier as OuterVerifier11} from "../src/OuterCount11.sol";
+import {HonkVerifier as OuterVerifier12} from "../src/OuterCount12.sol";
 import {SampleContract} from "../src/SampleContract.sol";
 import {TestUtils} from "./Utils.t.sol";
+import {CommittedInputLen} from "../src/Constants.sol";
 
 contract SampleContractTest is TestUtils {
-  OuterVerifier11 public verifier;
+  OuterVerifier12 public verifier;
   ZKPassportVerifier public zkPassportVerifier;
   SampleContract public sampleContract;
   // Path to the proof file - using files directly in project root
   string constant PROOF_PATH = "./test/fixtures/all_subproofs_proof.hex";
   string constant PUBLIC_INPUTS_PATH = "./test/fixtures/all_subproofs_public_inputs.json";
   string constant COMMITTED_INPUTS_PATH = "./test/fixtures/all_subproofs_committed_inputs.hex";
-  bytes32 constant VKEY_HASH =
-    bytes32(uint256(0x0c35e44eca4e970fae8fa15a7729da53f05a61eed520d5a3977fb936d0026050));
-  uint256 constant CURRENT_DATE = 1756055826;
+  bytes32 constant VKEY_HASH = 0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4;
+  uint256 constant CURRENT_DATE = 1756206226;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
     zkPassportVerifier = new ZKPassportVerifier(vm.envAddress("ROOT_REGISTRY_ADDRESS"));
     // Deploy the UltraHonkVerifier
-    verifier = new OuterVerifier11();
+    verifier = new OuterVerifier12();
 
     // Add the verifier to the ZKPassportVerifier
     bytes32[] memory vkeyHashes = new bytes32[](1);
@@ -45,15 +45,16 @@ contract SampleContractTest is TestUtils {
 
     // Contains in order the number of bytes of committed inputs for each disclosure proofs
     // that was verified by the final recursive proof
-    uint256[] memory committedInputCounts = new uint256[](8);
-    committedInputCounts[0] = 181;
-    committedInputCounts[1] = 601;
-    committedInputCounts[2] = 601;
-    committedInputCounts[3] = 601;
-    committedInputCounts[4] = 601;
-    committedInputCounts[5] = 11;
-    committedInputCounts[6] = 25;
-    committedInputCounts[7] = 25;
+    uint256[] memory committedInputCounts = new uint256[](9);
+    committedInputCounts[0] = CommittedInputLen.DISCLOSE_BYTES;
+    committedInputCounts[1] = CommittedInputLen.INCL_NATIONALITY;
+    committedInputCounts[2] = CommittedInputLen.EXCL_NATIONALITY;
+    committedInputCounts[3] = CommittedInputLen.INCL_ISSUING_COUNTRY;
+    committedInputCounts[4] = CommittedInputLen.EXCL_ISSUING_COUNTRY;
+    committedInputCounts[5] = CommittedInputLen.COMPARE_AGE;
+    committedInputCounts[6] = CommittedInputLen.COMPARE_EXPIRY;
+    committedInputCounts[7] = CommittedInputLen.COMPARE_BIRTHDATE;
+    committedInputCounts[8] = CommittedInputLen.SANCTIONS;
 
     // The sender cannot call this function cause they are not verified
     vm.expectRevert("User is not verified");

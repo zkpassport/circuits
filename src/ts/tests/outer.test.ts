@@ -31,13 +31,16 @@ import {
   getNowTimestamp,
   getNullifierFromDisclosureProof,
   getNullifierFromOuterProof,
+  getSanctionsExclusionCheckCircuitInputs,
   getOuterCircuitInputs,
   getParamCommitmentsFromOuterProof,
   getParameterCommitmentFromDisclosureProof,
   getServiceScopeHash,
   getServiceSubscopeHash,
+  ProofType,
 } from "@zkpassport/utils"
 import * as path from "path"
+import * as fs from "fs"
 import { Circuit } from "../circuits"
 import { generateSigningCertificates, loadKeypairFromFile, signSod } from "../passport-generator"
 import { generateSod, wrapSodInContentInfo } from "../sod-generator"
@@ -68,7 +71,7 @@ describe("outer proof", () => {
   beforeEach(async () => {
     // Johnny Silverhand's MRZ
     const mrz =
-      "P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<\0\0"
+    "P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<\0\0"
     const dg1 = Binary.fromHex("615B5F1F58").concat(Binary.from(mrz))
     // Load DSC keypair
     const dscKeypair = await loadKeypairFromFile(DSC_KEYPAIR_PATH)
@@ -114,12 +117,12 @@ describe("outer proof", () => {
       proof: cscToDscProof.proof,
       publicInputs: cscToDscProof.publicInputs,
       vkey: cscToDscVkey,
-      vkeyHash: cscToDscVkeyHash,
+    vkeyHash: cscToDscVkeyHash,
     })
     await cscToDscCircuit.destroy()
 
     const idDataToIntegrityCircuit = Circuit.from(
-      `sig_check_id_data_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_2048_sha256`,
+    `sig_check_id_data_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_2048_sha256`,
     )
     const idDataToIntegrityInputs = await helper.generateCircuitInputs("id")
     const idDataToIntegrityProof = await idDataToIntegrityCircuit.prove(idDataToIntegrityInputs, {
@@ -137,7 +140,7 @@ describe("outer proof", () => {
     const idDataToIntegrityVkeyHash = `0x${(
       await poseidon2HashAsync(idDataToIntegrityVkey.map((x) => BigInt(x)))
     ).toString(16)}`
-    subproofs.set(1, {
+      subproofs.set(1, {
       proof: idDataToIntegrityProof.proof,
       publicInputs: idDataToIntegrityProof.publicInputs,
       vkey: idDataToIntegrityVkey,
@@ -162,7 +165,7 @@ describe("outer proof", () => {
     const integrityVkeyHash = `0x${(
       await poseidon2HashAsync(integrityVkey.map((x) => BigInt(x)))
     ).toString(16)}`
-    subproofs.set(2, {
+      subproofs.set(2, {
       proof: integrityProof.proof,
       publicInputs: integrityProof.publicInputs,
       vkey: integrityVkey,
@@ -213,13 +216,13 @@ describe("outer proof", () => {
     expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2030, 0, 1))
     expect(disclosedData.gender).toBe("M")
     expect(nullifier).toEqual(
-      779855614087059216963642638396438072807460693353731593953501664068287689340n,
+    779855614087059216963642638396438072807460693353731593953501664068287689340n,
     )
     const discloseCommitmentIn = getCommitmentInFromDisclosureProof(proof)
     expect(discloseCommitmentIn).toEqual(integrityCheckToDisclosureCommitment)
     const discloseVkey = (await discloseCircuit.getVerificationKey({ evm: false })).vkeyFields
     const discloseVkeyHash = `0x${(
-      await poseidon2HashAsync(discloseVkey.map((x) => BigInt(x)))
+    await poseidon2HashAsync(discloseVkey.map((x) => BigInt(x)))
     ).toString(16)}`
     subproofs.set(3, {
       proof: proof.proof,
@@ -765,7 +768,7 @@ describe("outer proof - evm optimised", () => {
   )
 
   test(
-    "11 subproofs",
+    "12 subproofs",
     async () => {
       // 2nd disclosure proof
       const nationalityInclusionCircuit = Circuit.from("inclusion_check_nationality_evm")
@@ -984,8 +987,36 @@ describe("outer proof - evm optimised", () => {
       ).toString(16)}`
       await birthDateCircuit.destroy()
 
+      // 9 th disclosure proof
+      const sanctionsExclusionCircuit = Circuit.from("exclusion_check_sanctions_evm")
+      const sanctionsExclusionInputs = await getSanctionsExclusionCheckCircuitInputs(
+        helper.passport as any,
+        3n,
+        getServiceScopeHash("zkpassport.id"),
+        getServiceSubscopeHash("bigproof"),
+      )
+      if (!sanctionsExclusionInputs) throw new Error("Unable to generate sanctions exclusion check circuit inputs")
+      const sanctionsExclusionProof = await sanctionsExclusionCircuit.prove(sanctionsExclusionInputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `exclusion_check_sanctions_evm`,
+      })
+      expect(sanctionsExclusionProof).toBeDefined()
+      const sanctionsExclusionParamCommitment = getParameterCommitmentFromDisclosureProof(sanctionsExclusionProof)
+      const sanctionsExclusionVkey = 
+        (await sanctionsExclusionCircuit.getVerificationKey({
+          evm: false,
+        })).vkeyFields
+      const sanctionsExclusionVkeyHash = `0x${(
+        await poseidon2HashAsync(sanctionsExclusionVkey.map((x) => BigInt(x)))
+      ).toString(16)}`
+      await sanctionsExclusionCircuit.destroy()
+
+
       // Outer proof
-      const outerProofCircuit = Circuit.from("outer_count_11")
+      // We can use the regular outer_count_12 rather than outer_evm_count_12
+      // since only the vkey changes and we don't use it here
+      const outerProofCircuit = Circuit.from("outer_count_12")
       const { path: cscToDscTreeHashPath, index: cscToDscTreeIndex } = await getCircuitMerkleProof(
         subproofs.get(0)?.vkeyHash as string,
         circuitManifest,
@@ -1014,6 +1045,9 @@ describe("outer proof - evm optimised", () => {
         await getCircuitMerkleProof(expiryDateVkeyHash as string, circuitManifest)
       const { path: birthDateTreeHashPath, index: birthDateTreeIndex } =
         await getCircuitMerkleProof(birthDateVkeyHash as string, circuitManifest)
+      const { path: sanctionsExclusionTreeHashPath, index: sanctionsExclusionTreeIndex } =
+        await getCircuitMerkleProof(sanctionsExclusionVkeyHash as string, circuitManifest)
+
       const inputs = await getOuterCircuitInputs(
         {
           proof: subproofs.get(0)?.proof as string[],
@@ -1104,13 +1138,21 @@ describe("outer proof - evm optimised", () => {
             treeHashPath: birthDateTreeHashPath,
             treeIndex: birthDateTreeIndex.toString(),
           },
+          {
+            proof: sanctionsExclusionProof.proof as string[],
+            publicInputs: sanctionsExclusionProof.publicInputs as string[],
+            vkey: sanctionsExclusionVkey,
+            keyHash: sanctionsExclusionVkeyHash,
+            treeHashPath: sanctionsExclusionTreeHashPath,
+            treeIndex: sanctionsExclusionTreeIndex.toString(),
+          },
         ],
         circuitManifest.root,
       )
 
       const proof = await outerProofCircuit.prove(inputs, {
         useCli: true,
-        circuitName: "outer_count_11",
+        circuitName: "outer_evm_count_12",
         recursive: false,
         evm: true,
         // Disable the fully ZK property for outer proofs meant to be verified onchain
@@ -1135,8 +1177,9 @@ describe("outer proof - evm optimised", () => {
       expect(ageParamCommitment).toEqual(paramCommitmentsFromProof[5])
       expect(expiryDateParamCommitment).toEqual(paramCommitmentsFromProof[6])
       expect(birthDateParamCommitment).toEqual(paramCommitmentsFromProof[7])
+      expect(sanctionsExclusionParamCommitment).toEqual(paramCommitmentsFromProof[8])
       await outerProofCircuit.destroy()
     },
-    60000 * 3,
+    60000 * 4,
   )
 })

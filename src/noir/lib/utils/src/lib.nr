@@ -3,6 +3,8 @@
 * are defined in the ICAO (International Civil Aviation Organization) 9303 document available here:
 * https://www.icao.int/publications/pages/publication.aspx?docnum=9303
 */
+pub mod test;
+pub mod types;
 
 /**
 * The structure of the MRZ is well defined and standardized by the ICAO
@@ -15,6 +17,9 @@
 // The structure of the MRZ is slightly different between passports
 // and ID cards so we need to define indices for both types
 
+use types::{
+    DG1Data, MRZData, MRZName, MRZDOB, MRZYOB, MRZDocumentNumber, MRZNationality, MRZIssuingCountry,
+};
 mod tests;
 
 // Index for the country of issuance of the passport
@@ -81,6 +86,7 @@ pub global PROOF_TYPE_NATIONALITY_EXCLUSION: u8 = 5;
 pub global PROOF_TYPE_ISSUING_COUNTRY_INCLUSION: u8 = 6;
 pub global PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION: u8 = 7;
 pub global PROOF_TYPE_BIND: u8 = 8;
+pub global PROOF_TYPE_SANCTIONS_EXCLUSION: u8 = 9;
 
 // D<<
 global GERMANY_PASSPORT_CODE: [u8; 3] = [68, 60, 60];
@@ -106,7 +112,7 @@ pub struct IDData {
     // 95 bytes for passports, 93 bytes for ID cards
     // Including 88 bytes of MRZ and 5 bytes of padding for passports
     // and 90 bytes of MRZ and 5 bytes of padding for ID cards
-    pub dg1: [u8; 95],
+    pub dg1: DG1Data,
     // The signature over the data groups
     pub sod_signature: [u8; 512],
     pub sod_signature_size: u32,
@@ -222,7 +228,7 @@ pub fn dynamic_insert_into_array<let N: u32, let M: u32>(
     arr
 }
 
-pub fn is_id_card(dg1: [u8; 95]) -> bool {
+pub fn is_id_card(dg1: DG1Data) -> bool {
     // For passport, the last two bytes are 0
     // since the real length is 93 for passports
     // while it is 95 for ID cards
@@ -301,8 +307,8 @@ pub fn pack_be_bytes_into_fields<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE
     result
 }
 
-pub fn get_mrz_from_dg1(dg1: [u8; 95]) -> [u8; 90] {
-    let mut mrz = [0 as u8; 90];
+pub fn get_mrz_from_dg1(dg1: DG1Data) -> MRZData {
+    let mut mrz: MRZData = [0 as u8; 90];
     for i in 0..90 {
         mrz[i] = dg1[i + 5];
     }
@@ -328,6 +334,44 @@ pub fn concat_array<let N: u32>(array_x: [u8; N], array_y: [u8; N]) -> [u8; N * 
     array
 }
 
+/**
+ * Concatenate two arrays (of different sizes) into one array
+ */
+pub fn array_concat_as_field<let N: u32, let M: u32>(
+    array1: [u8; N],
+    array2: [u8; M],
+) -> [Field; N + M] {
+    let mut result = [0 as Field; N + M];
+    for i in 0..N {
+        result[i] = array1[i] as Field;
+    }
+    for i in 0..M {
+        result[N + i] = array2[i] as Field;
+    }
+    result
+}
+
+pub unconstrained fn _find_subarray_index<let N: u32, let M: u32>(
+    array: [u8; N],
+    subarray: [u8; M],
+) -> u32 {
+    let mut index = 0;
+    for i in 0..(N - M + 1) {
+        let mut found = true;
+        for j in 0..M {
+            if array[i + j] != subarray[j] {
+                found = false;
+                break;
+            }
+        }
+        if found {
+            index = i;
+            break;
+        }
+    }
+    index
+}
+
 pub fn check_zero_padding<let N: u32, T>(padded_array: [T; N], len: u32)
 where
     T: Eq,
@@ -340,10 +384,10 @@ where
     }
 }
 
-pub fn get_nationality_from_mrz(dg1: [u8; 95]) -> [u8; 3] {
+pub fn get_nationality_from_mrz(dg1: DG1Data) -> MRZNationality {
     let mrz = get_mrz_from_dg1(dg1);
 
-    let mut country_bytes: [u8; 3] = [0; 3];
+    let mut country_bytes: MRZNationality = [0; 3];
 
     if is_id_card(dg1) {
         country_bytes = get_array_slice(
@@ -367,7 +411,7 @@ pub fn get_nationality_from_mrz(dg1: [u8; 95]) -> [u8; 3] {
     country_bytes
 }
 
-pub fn get_issuing_country_from_mrz(dg1: [u8; 95]) -> [u8; 3] {
+pub fn get_issuing_country_from_mrz(dg1: DG1Data) -> MRZIssuingCountry {
     let mrz = get_mrz_from_dg1(dg1);
     // No need to check if it's an ID card since the issuing country
     // is always at the same index for both passports and ID cards
@@ -383,6 +427,118 @@ pub fn get_issuing_country_from_mrz(dg1: [u8; 95]) -> [u8; 3] {
     }
 
     country_bytes
+}
+
+/// Get the name from the MRZ
+///
+/// Conditionally calls the correct function based on the type of document
+pub fn get_name_from_mrz(dg1: DG1Data) -> MRZName {
+    let mrz = get_mrz_from_dg1(dg1);
+    if is_id_card(dg1) {
+        get_name_id_card(mrz)
+    } else {
+        get_name_passport(mrz)
+    }
+}
+
+/// Get the name from the MRZ for a passport
+pub fn get_name_passport(mrz: MRZData) -> MRZName {
+    get_array_slice(mrz, PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_INDEX + 39)
+}
+
+/// Get the name from the MRZ for an ID card
+pub fn get_name_id_card(mrz: MRZData) -> MRZName {
+    get_array_slice(mrz, ID_CARD_MRZ_NAME_INDEX, ID_CARD_MRZ_NAME_INDEX + 39)
+}
+
+/// Get the date of birth from the MRZ
+///
+/// Conditionally calls the correct function based on the type of document
+pub fn get_dob_from_mrz(dg1: DG1Data) -> MRZDOB {
+    let mrz = get_mrz_from_dg1(dg1);
+    if is_id_card(dg1) {
+        get_date_of_birth_id_card(mrz)
+    } else {
+        get_date_of_birth_passport(mrz)
+    }
+}
+
+/// Get the date of birth from the MRZ for a passport
+pub fn get_date_of_birth_passport(mrz: MRZData) -> MRZDOB {
+    get_array_slice(
+        mrz,
+        PASSPORT_MRZ_BIRTHDATE_INDEX,
+        PASSPORT_MRZ_BIRTHDATE_INDEX + 6,
+    )
+}
+
+/// Get the date of birth from the MRZ for an ID card
+pub fn get_date_of_birth_id_card(mrz: MRZData) -> MRZDOB {
+    get_array_slice(
+        mrz,
+        ID_CARD_MRZ_BIRTHDATE_INDEX,
+        ID_CARD_MRZ_BIRTHDATE_INDEX + 6,
+    )
+}
+
+/// Get the year of birth from the MRZ
+///
+/// Conditionally calls the correct function based on the type of document
+pub fn get_yob_from_mrz(dg1: DG1Data) -> MRZYOB {
+    let mrz = get_mrz_from_dg1(dg1);
+    if is_id_card(dg1) {
+        get_yob_from_mrz_id_card(mrz)
+    } else {
+        get_yob_from_mrz_passport(mrz)
+    }
+}
+
+/// Get the year of birth from the MRZ for an ID card
+pub fn get_yob_from_mrz_passport(mrz: MRZData) -> MRZYOB {
+    get_array_slice(
+        mrz,
+        PASSPORT_MRZ_BIRTHDATE_INDEX,
+        PASSPORT_MRZ_BIRTHDATE_INDEX + 2,
+    )
+}
+
+/// Get the year of birth from the MRZ for an ID card
+pub fn get_yob_from_mrz_id_card(mrz: MRZData) -> MRZYOB {
+    get_array_slice(
+        mrz,
+        ID_CARD_MRZ_BIRTHDATE_INDEX,
+        ID_CARD_MRZ_BIRTHDATE_INDEX + 2,
+    )
+}
+
+/// Get the document number from the MRZ
+///
+/// Conditionally calls the correct function based on the type of document
+pub fn get_document_number_from_mrz(dg1: DG1Data) -> MRZDocumentNumber {
+    let mrz = get_mrz_from_dg1(dg1);
+    if is_id_card(dg1) {
+        get_document_number_id_card(mrz)
+    } else {
+        get_document_number_passport(mrz)
+    }
+}
+
+/// Get the document number from the MRZ for a passport
+pub fn get_document_number_passport(mrz: MRZData) -> MRZDocumentNumber {
+    get_array_slice(
+        mrz,
+        PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
+        PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX + 9,
+    )
+}
+
+/// Get the document number from the MRZ for an ID card
+pub fn get_document_number_id_card(mrz: MRZData) -> MRZDocumentNumber {
+    get_array_slice(
+        mrz,
+        ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX,
+        ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX + 9,
+    )
 }
 
 /// Returns total TLV length (tag + length field + content) for any

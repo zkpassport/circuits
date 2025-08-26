@@ -7,6 +7,7 @@ import {DateUtils} from "../src/DateUtils.sol";
 import {StringUtils} from "../src/StringUtils.sol";
 import {ArrayUtils} from "../src/ArrayUtils.sol";
 import {IRootRegistry} from "../src/IRootRegistry.sol";
+import {CommittedInputLen, SANCTIONS_TREES_ROOT} from "../src/Constants.sol";
 
 enum ProofType {
   DISCLOSE,
@@ -17,7 +18,8 @@ enum ProofType {
   NATIONALITY_EXCLUSION,
   ISSUING_COUNTRY_INCLUSION,
   ISSUING_COUNTRY_EXCLUSION,
-  BIND
+  BIND,
+  SANCTIONS
 }
 
 enum BoundDataIdentifier {
@@ -87,13 +89,14 @@ contract ZKPassportVerifier {
 
   bytes32 public constant CERTIFICATE_REGISTRY_ID = bytes32(uint256(1));
   bytes32 public constant CIRCUIT_REGISTRY_ID = bytes32(uint256(2));
+  bytes32 public constant SANCTIONS_REGISTRY_ID = bytes32(uint256(3));
 
   address public admin;
   bool public paused;
 
   mapping(bytes32 => address) public vkeyHashToVerifier;
 
-  // Maybe make this immutable as this should most likely not change?
+  // Maybe make this immutable as this should most likely not change
   IRootRegistry public rootRegistry;
 
   // Events
@@ -104,6 +107,7 @@ contract ZKPassportVerifier {
   event VerifierRemoved(bytes32 indexed vkeyHash);
   event CertificateRegistryRootAdded(bytes32 indexed certificateRegistryRoot);
   event CertificateRegistryRootRemoved(bytes32 indexed certificateRegistryRoot);
+  event SanctionsTreesRootUpdates(bytes32 indexed _sanctionsTreesRoot);
 
   /**
    * @dev Constructor
@@ -238,7 +242,7 @@ contract ZKPassportVerifier {
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // Disclose circuits have 181 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == 181) {
+      if (committedInputCounts[i] == CommittedInputLen.DISCLOSE_BYTES) {
         require(committedInputs[offset] == bytes1(uint8(ProofType.DISCLOSE)), "Invalid proof type");
         discloseMask = committedInputs[offset + 1:offset + 91];
         discloseBytes = committedInputs[offset + 91:offset + 181];
@@ -259,7 +263,10 @@ contract ZKPassportVerifier {
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // Date circuits have 25 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == 25 && committedInputs[offset] == bytes1(uint8(proofType))) {
+      if (
+        committedInputCounts[i] == CommittedInputLen.COMPARE_EXPIRY &&
+        committedInputs[offset] == bytes1(uint8(proofType))
+      ) {
         // Get rid of the padding 0s bytes as the timestamp is contained within the first 64 bits
         // i.e. 256 - 64 = 192
         currentDate = uint256(bytes32(committedInputs[offset + 1:offset + 9])) >> 192;
@@ -281,7 +288,7 @@ contract ZKPassportVerifier {
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // The age circuit has 11 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == 11) {
+      if (committedInputCounts[i] == CommittedInputLen.COMPARE_AGE) {
         require(committedInputs[offset] == bytes1(uint8(ProofType.AGE)), "Invalid proof type");
         // Get rid of the padding 0s bytes as the timestamp is contained within the first 64 bits
         // i.e. 256 - 64 = 192
@@ -305,7 +312,10 @@ contract ZKPassportVerifier {
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // Country (inclusion and exclusion) circuits have 601 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == 601 && committedInputs[offset] == bytes1(uint8(proofType))) {
+      if (
+        committedInputCounts[i] == CommittedInputLen.INCL_NATIONALITY &&
+        committedInputs[offset] == bytes1(uint8(proofType))
+      ) {
         countryList = new string[](200);
         for (uint256 j = 0; j < 200; j++) {
           if (committedInputs[offset + j * 3 + 1] == 0) {
@@ -330,7 +340,7 @@ contract ZKPassportVerifier {
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // The bind data circuit has 501 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == 501) {
+      if (committedInputCounts[i] == CommittedInputLen.BIND) {
         require(committedInputs[offset] == bytes1(uint8(ProofType.BIND)), "Invalid proof type");
         // Get the length of the data from the tag length encoded in the data
         // The developer should check on their side the actual data returned before
@@ -378,6 +388,35 @@ contract ZKPassportVerifier {
       offset += committedInputCounts[i];
     }
     require(found, "Bind data proof inputs not found");
+  }
+
+  function getSanctionsProofInputs(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts
+  ) public pure returns (bytes32 sanctionsTreesCommitment) {
+    uint256 offset = 0;
+    bool found = false;
+    for (uint256 i = 0; i < committedInputCounts.length; ++i) {
+      if (committedInputCounts[i] == CommittedInputLen.SANCTIONS) {
+        require(
+          committedInputs[offset] == bytes1(uint8(ProofType.SANCTIONS)),
+          "Invalid proof type"
+        );
+
+        sanctionsTreesCommitment = bytes32(committedInputs[offset + 1:offset + 33]);
+        found = true;
+      }
+      offset += committedInputCounts[i];
+    }
+    require(found, "Sanctions proof inputs not found");
+  }
+
+  function enforceSanctionsRoot(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts
+  ) public view {
+    bytes32 proofSanctionsRoot = getSanctionsProofInputs(committedInputs, committedInputCounts);
+    _validateSanctionsRoot(proofSanctionsRoot);
   }
 
   function getBoundData(
@@ -459,6 +498,13 @@ contract ZKPassportVerifier {
     require(
       rootRegistry.isRootValid(CIRCUIT_REGISTRY_ID, circuitRoot),
       "Invalid circuit registry root"
+    );
+  }
+
+  function _validateSanctionsRoot(bytes32 sanctionsRoot) internal view {
+    require(
+      rootRegistry.isRootValid(SANCTIONS_REGISTRY_ID, sanctionsRoot),
+      "Invalid sanctions registry root"
     );
   }
 

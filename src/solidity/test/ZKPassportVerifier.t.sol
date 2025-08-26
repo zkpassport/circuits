@@ -5,12 +5,13 @@ pragma solidity >=0.8.21;
 import {Test, console} from "forge-std/Test.sol";
 import {ZKPassportVerifier, ProofType, ProofVerificationParams} from "../src/ZKPassportVerifier.sol";
 import {HonkVerifier as OuterVerifier5} from "../src/OuterCount5.sol";
-import {HonkVerifier as OuterVerifier11} from "../src/OuterCount11.sol";
+import {HonkVerifier as OuterVerifier12} from "../src/OuterCount12.sol";
 import {TestUtils} from "./Utils.t.sol";
+import {CommittedInputLen} from "../src/Constants.sol";
 
 contract ZKPassportVerifierTest is TestUtils {
   OuterVerifier5 public verifier5;
-  OuterVerifier11 public verifier11;
+  OuterVerifier12 public verifier12;
   ZKPassportVerifier public zkPassportVerifier;
 
   // Path to the proof file - using files directly in project root
@@ -22,27 +23,28 @@ contract ZKPassportVerifierTest is TestUtils {
     "./test/fixtures/all_subproofs_public_inputs.json";
   string constant ALL_SUBPROOFS_COMMITTED_INPUTS_PATH =
     "./test/fixtures/all_subproofs_committed_inputs.hex";
+
   bytes32 constant VKEY_HASH =
-    bytes32(uint256(0x0ebd82e03a810dc40a9b92ddaf4c4a879389164c2ae3a742013bffc0f676f9b4));
-  bytes32 constant OUTER_PROOF_11_VKEY_HASH =
-    bytes32(uint256(0x0c35e44eca4e970fae8fa15a7729da53f05a61eed520d5a3977fb936d0026050));
-  uint256 constant CURRENT_DATE = 1756055826;
-  uint256 constant PROOF_GENERATION_DATE = 1756055614;
+    bytes32(uint256(0x04b98c6f867d6a7f86d514b72c3be8f41b7aa6f49fdc17514c9f9f0a2ac3ef9a));
+  bytes32 constant OUTER_PROOF_12_VKEY_HASH =
+    bytes32(uint256(0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4));
+  uint256 constant CURRENT_DATE = 1756206226;
+  uint256 constant PROOF_GENERATION_DATE = 1756205948;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
     zkPassportVerifier = new ZKPassportVerifier(vm.envAddress("ROOT_REGISTRY_ADDRESS"));
     // Deploy the UltraHonkVerifier
     verifier5 = new OuterVerifier5();
-    verifier11 = new OuterVerifier11();
+    verifier12 = new OuterVerifier12();
 
     // Add the verifier to the ZKPassportVerifier
     bytes32[] memory vkeyHashes = new bytes32[](2);
     vkeyHashes[0] = VKEY_HASH;
-    vkeyHashes[1] = OUTER_PROOF_11_VKEY_HASH;
+    vkeyHashes[1] = OUTER_PROOF_12_VKEY_HASH;
     address[] memory verifiers = new address[](2);
     verifiers[0] = address(verifier5);
-    verifiers[1] = address(verifier11);
+    verifiers[1] = address(verifier12);
     zkPassportVerifier.addVerifiers(vkeyHashes, verifiers);
   }
 
@@ -54,8 +56,8 @@ contract ZKPassportVerifierTest is TestUtils {
     // Contains in order the number of bytes of committed inputs for each disclosure proofs
     // that was verified by the final recursive proof
     uint256[] memory committedInputCounts = new uint256[](2);
-    committedInputCounts[0] = 181;
-    committedInputCounts[1] = 501;
+    committedInputCounts[0] = CommittedInputLen.DISCLOSE_BYTES;
+    committedInputCounts[1] = CommittedInputLen.BIND;
 
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
@@ -172,21 +174,22 @@ contract ZKPassportVerifierTest is TestUtils {
 
     // Contains in order the number of bytes of committed inputs for each disclosure proofs
     // that was verified by the final recursive proof
-    uint256[] memory committedInputCounts = new uint256[](8);
-    committedInputCounts[0] = 181;
-    committedInputCounts[1] = 601;
-    committedInputCounts[2] = 601;
-    committedInputCounts[3] = 601;
-    committedInputCounts[4] = 601;
-    committedInputCounts[5] = 11;
-    committedInputCounts[6] = 25;
-    committedInputCounts[7] = 25;
+    uint256[] memory committedInputCounts = new uint256[](9);
+    committedInputCounts[0] = CommittedInputLen.DISCLOSE_BYTES;
+    committedInputCounts[1] = CommittedInputLen.INCL_NATIONALITY;
+    committedInputCounts[2] = CommittedInputLen.EXCL_NATIONALITY;
+    committedInputCounts[3] = CommittedInputLen.INCL_ISSUING_COUNTRY;
+    committedInputCounts[4] = CommittedInputLen.EXCL_ISSUING_COUNTRY;
+    committedInputCounts[5] = CommittedInputLen.COMPARE_AGE;
+    committedInputCounts[6] = CommittedInputLen.COMPARE_EXPIRY;
+    committedInputCounts[7] = CommittedInputLen.COMPARE_BIRTHDATE;
+    committedInputCounts[8] = CommittedInputLen.SANCTIONS;
 
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
     vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
-      vkeyHash: OUTER_PROOF_11_VKEY_HASH,
+      vkeyHash: OUTER_PROOF_12_VKEY_HASH,
       proof: proof,
       publicInputs: publicInputs,
       committedInputs: committedInputs,
@@ -252,19 +255,20 @@ contract ZKPassportVerifierTest is TestUtils {
 
     // Contains in order the number of bytes of committed inputs for each disclosure proofs
     // that was verified by the final recursive proof
-    uint256[] memory committedInputCounts = new uint256[](8);
-    committedInputCounts[0] = 181;
-    committedInputCounts[1] = 601;
-    committedInputCounts[2] = 601;
-    committedInputCounts[3] = 601;
-    committedInputCounts[4] = 601;
-    committedInputCounts[5] = 11;
-    committedInputCounts[6] = 25;
-    committedInputCounts[7] = 25;
+    uint256[] memory committedInputCounts = new uint256[](9);
+    committedInputCounts[0] = CommittedInputLen.DISCLOSE_BYTES;
+    committedInputCounts[1] = CommittedInputLen.INCL_NATIONALITY;
+    committedInputCounts[2] = CommittedInputLen.EXCL_NATIONALITY;
+    committedInputCounts[3] = CommittedInputLen.INCL_ISSUING_COUNTRY;
+    committedInputCounts[4] = CommittedInputLen.EXCL_ISSUING_COUNTRY;
+    committedInputCounts[5] = CommittedInputLen.COMPARE_AGE;
+    committedInputCounts[6] = CommittedInputLen.COMPARE_EXPIRY;
+    committedInputCounts[7] = CommittedInputLen.COMPARE_BIRTHDATE;
+    committedInputCounts[8] = CommittedInputLen.SANCTIONS;
 
     vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
-      vkeyHash: OUTER_PROOF_11_VKEY_HASH,
+      vkeyHash: OUTER_PROOF_12_VKEY_HASH,
       proof: loadBytesFromFile(ALL_SUBPROOFS_PROOF_PATH),
       publicInputs: loadBytes32FromFile(ALL_SUBPROOFS_PUBLIC_INPUTS_PATH),
       committedInputs: committedInputs,
@@ -296,48 +300,54 @@ contract ZKPassportVerifierTest is TestUtils {
     // for the birthdate range proof uses 1900 as the epoch year rather than the usual 1970
     assertEq(maxDateBirthDate, PROOF_GENERATION_DATE + 2208988800);
 
-    vm.startSnapshotGas("ZKPassportVerifier getDateProofInputs - expiry date");
-    (
-      uint256 currentDateExpiryDate,
-      uint256 minDateExpiryDate,
-      uint256 maxDateExpiryDate
-    ) = zkPassportVerifier.getDateProofInputs(
+    {
+      vm.startSnapshotGas("ZKPassportVerifier getDateProofInputs - expiry date");
+      (
+        uint256 currentDateExpiryDate,
+        uint256 minDateExpiryDate,
+        uint256 maxDateExpiryDate
+      ) = zkPassportVerifier.getDateProofInputs(
+          committedInputs,
+          committedInputCounts,
+          ProofType.EXPIRY_DATE
+        );
+      gasUsed = vm.stopSnapshotGas();
+      console.log("Gas used in ZKPassportVerifier getDateProofInputs - expiry date");
+      console.log(gasUsed);
+      assertEq(currentDateExpiryDate, PROOF_GENERATION_DATE);
+      assertEq(minDateExpiryDate, PROOF_GENERATION_DATE);
+      assertEq(maxDateExpiryDate, 0);
+    }
+    {
+      vm.startSnapshotGas("ZKPassportVerifier getCountryProofInputs - issuing country inclusion");
+      string[] memory countryList = zkPassportVerifier.getCountryProofInputs(
         committedInputs,
         committedInputCounts,
-        ProofType.EXPIRY_DATE
+        ProofType.ISSUING_COUNTRY_INCLUSION
       );
-    gasUsed = vm.stopSnapshotGas();
-    console.log("Gas used in ZKPassportVerifier getDateProofInputs - expiry date");
-    console.log(gasUsed);
-    assertEq(currentDateExpiryDate, PROOF_GENERATION_DATE);
-    assertEq(minDateExpiryDate, PROOF_GENERATION_DATE);
-    assertEq(maxDateExpiryDate, 0);
+      gasUsed = vm.stopSnapshotGas();
+      console.log(
+        "Gas used in ZKPassportVerifier getCountryProofInputs - issuing country inclusion"
+      );
+      console.log(gasUsed);
+      assertEq(countryList[0], "AUS");
+      assertEq(countryList[1], "FRA");
+      assertEq(countryList[2], "USA");
+      assertEq(countryList[3], "GBR");
+    }
 
-    vm.startSnapshotGas("ZKPassportVerifier getCountryProofInputs - issuing country inclusion");
-    string[] memory countryList = zkPassportVerifier.getCountryProofInputs(
-      committedInputs,
-      committedInputCounts,
-      ProofType.ISSUING_COUNTRY_INCLUSION
-    );
-    gasUsed = vm.stopSnapshotGas();
-    console.log("Gas used in ZKPassportVerifier getCountryProofInputs - issuing country inclusion");
-    console.log(gasUsed);
-    assertEq(countryList[0], "AUS");
-    assertEq(countryList[1], "FRA");
-    assertEq(countryList[2], "USA");
-    assertEq(countryList[3], "GBR");
+    {
+      vm.startSnapshotGas("ZKPassportVerifier getSanctions proof inputs");
+      zkPassportVerifier.getSanctionsProofInputs(committedInputs, committedInputCounts);
+      gasUsed = vm.stopSnapshotGas();
+      console.log("Gas used in ZKPassportVerifier getSanctions proof inputs");
+      console.log(gasUsed);
 
-    vm.startSnapshotGas("ZKPassportVerifier getCountryProofInputs - issuing country exclusion");
-    string[] memory exclusionCountryList = zkPassportVerifier.getCountryProofInputs(
-      committedInputs,
-      committedInputCounts,
-      ProofType.ISSUING_COUNTRY_EXCLUSION
-    );
-    gasUsed = vm.stopSnapshotGas();
-    console.log("Gas used in ZKPassportVerifier getCountryProofInputs - issuing country exclusion");
-    console.log(gasUsed);
-    assertEq(exclusionCountryList[0], "ESP");
-    assertEq(exclusionCountryList[1], "ITA");
-    assertEq(exclusionCountryList[2], "PRT");
+      vm.startSnapshotGas("ZKPassportVerifier enforceSanctionsRoot");
+      zkPassportVerifier.enforceSanctionsRoot(committedInputs, committedInputCounts);
+      gasUsed = vm.stopSnapshotGas();
+      console.log("Gas used in ZKPassportVerifier enforceSanctionsRoot");
+      console.log(gasUsed);
+    }
   }
 }
