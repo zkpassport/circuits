@@ -9,7 +9,7 @@ fn main(
     // @committed
     // The current date timestamp is public (via the parameter commitment) so verifiers can check the date
     // provided to the proof is correct
-    current_date: u32,
+    current_date: u64,
     // @committed
     // The minimum age required is public (via the parameter commitment) so verifiers can check
     // the age provided to the proof is correct

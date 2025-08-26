@@ -417,7 +417,7 @@ class FixtureGenerator {
         { age: { gte: 18 } },
         ProofType.AGE,
         (inputs) =>
-          Array.from(numberToBytesBE(inputs.current_date, 4))
+          Array.from(numberToBytesBE(inputs.current_date, 8))
             .map((x) => x.toString(16).padStart(2, "0"))
             .join("") +
           inputs.min_age_required.toString(16).padStart(2, "0") +
@@ -441,13 +441,13 @@ class FixtureGenerator {
         { expiry_date: { gte: new Date(this.nowTimestamp * 1000) } },
         ProofType.EXPIRY_DATE,
         (inputs) =>
-          Array.from(numberToBytesBE(inputs.current_date, 4))
+          Array.from(numberToBytesBE(inputs.current_date, 8))
             .map((x: number) => x.toString(16).padStart(2, "0"))
             .join("") +
-          Array.from(numberToBytesBE(inputs.min_date, 4))
+          Array.from(numberToBytesBE(inputs.min_date, 8))
             .map((x: number) => x.toString(16).padStart(2, "0"))
             .join("") +
-          Array.from(numberToBytesBE(inputs.max_date, 4))
+          Array.from(numberToBytesBE(inputs.max_date, 8))
             .map((x: number) => x.toString(16).padStart(2, "0"))
             .join(""),
       ),
@@ -469,13 +469,13 @@ class FixtureGenerator {
         { birthdate: { lte: new Date(this.nowTimestamp * 1000) } },
         ProofType.BIRTHDATE,
         (inputs) =>
-          Array.from(numberToBytesBE(inputs.current_date, 4))
+          Array.from(numberToBytesBE(inputs.current_date, 8))
             .map((x) => x.toString(16).padStart(2, "0"))
             .join("") +
-          Array.from(numberToBytesBE(inputs.min_date, 4))
+          Array.from(numberToBytesBE(inputs.min_date, 8))
             .map((x: number) => x.toString(16).padStart(2, "0"))
             .join("") +
-          Array.from(numberToBytesBE(inputs.max_date, 4))
+          Array.from(numberToBytesBE(inputs.max_date, 8))
             .map((x) => x.toString(16).padStart(2, "0"))
             .join(""),
       ),
