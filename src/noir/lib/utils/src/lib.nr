@@ -441,23 +441,14 @@ pub fn get_name_from_mrz(dg1: DG1Data) -> MRZName {
     }
 }
 
- 
 /// Get the name from the MRZ for a passport
 pub fn get_name_passport(mrz: MRZData) -> MRZName {
-    get_array_slice(
-        mrz,
-        PASSPORT_MRZ_NAME_INDEX,
-        PASSPORT_MRZ_NAME_INDEX + 39,
-    )
+    get_array_slice(mrz, PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_INDEX + 39)
 }
 
 /// Get the name from the MRZ for an ID card
 pub fn get_name_id_card(mrz: MRZData) -> MRZName {
-    get_array_slice(
-        mrz,
-        ID_CARD_MRZ_NAME_INDEX,
-        ID_CARD_MRZ_NAME_INDEX + 39,
-    )
+    get_array_slice(mrz, ID_CARD_MRZ_NAME_INDEX, ID_CARD_MRZ_NAME_INDEX + 39)
 }
 
 /// Get the date of birth from the MRZ
