@@ -261,14 +261,17 @@ contract ZKPassportVerifier {
     uint256 offset = 0;
     bool found = false;
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
-      // Date circuits have 13 bytes of committed inputs
+      // Date circuits have 25 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == CommittedInputLen.COMPARE_EXPIRY && committedInputs[offset] == bytes1(uint8(proofType))) {
-        // Get rid of the padding 0s bytes as the timestamp is contained within the first 32 bits
-        // i.e. 256 - 32 = 224
-        currentDate = uint256(bytes32(committedInputs[offset + 1:offset + 5])) >> 224;
-        minDate = uint256(bytes32(committedInputs[offset + 5:offset + 9])) >> 224;
-        maxDate = uint256(bytes32(committedInputs[offset + 9:offset + 13])) >> 224;
+      if (
+        committedInputCounts[i] == CommittedInputLen.COMPARE_EXPIRY &&
+        committedInputs[offset] == bytes1(uint8(proofType))
+      ) {
+        // Get rid of the padding 0s bytes as the timestamp is contained within the first 64 bits
+        // i.e. 256 - 64 = 192
+        currentDate = uint256(bytes32(committedInputs[offset + 1:offset + 9])) >> 192;
+        minDate = uint256(bytes32(committedInputs[offset + 9:offset + 17])) >> 192;
+        maxDate = uint256(bytes32(committedInputs[offset + 17:offset + 25])) >> 192;
         found = true;
       }
       offset += committedInputCounts[i];
@@ -283,16 +286,15 @@ contract ZKPassportVerifier {
     uint256 offset = 0;
     bool found = false;
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
-      // The age circuit has 7 bytes of committed inputs
+      // The age circuit has 11 bytes of committed inputs
       // The first byte is the proof type
-
       if (committedInputCounts[i] == CommittedInputLen.COMPARE_AGE) {
         require(committedInputs[offset] == bytes1(uint8(ProofType.AGE)), "Invalid proof type");
-        // Get rid of the padding 0s bytes as the timestamp is contained within the first 32 bits
-        // i.e. 256 - 32 = 224
-        currentDate = uint256(bytes32(committedInputs[offset + 1:offset + 5])) >> 224;
-        minAge = uint8(committedInputs[offset + 5]);
-        maxAge = uint8(committedInputs[offset + 6]);
+        // Get rid of the padding 0s bytes as the timestamp is contained within the first 64 bits
+        // i.e. 256 - 64 = 192
+        currentDate = uint256(bytes32(committedInputs[offset + 1:offset + 9])) >> 192;
+        minAge = uint8(committedInputs[offset + 9]);
+        maxAge = uint8(committedInputs[offset + 10]);
         found = true;
       }
       offset += committedInputCounts[i];
@@ -310,7 +312,10 @@ contract ZKPassportVerifier {
     for (uint256 i = 0; i < committedInputCounts.length; i++) {
       // Country (inclusion and exclusion) circuits have 601 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == CommittedInputLen.INCL_NATIONALITY && committedInputs[offset] == bytes1(uint8(proofType))) {
+      if (
+        committedInputCounts[i] == CommittedInputLen.INCL_NATIONALITY &&
+        committedInputs[offset] == bytes1(uint8(proofType))
+      ) {
         countryList = new string[](200);
         for (uint256 j = 0; j < 200; j++) {
           if (committedInputs[offset + j * 3 + 1] == 0) {
@@ -393,7 +398,10 @@ contract ZKPassportVerifier {
     bool found = false;
     for (uint256 i = 0; i < committedInputCounts.length; ++i) {
       if (committedInputCounts[i] == CommittedInputLen.SANCTIONS) {
-        require(committedInputs[offset] == bytes1(uint8(ProofType.SANCTIONS)), "Invalid proof type");
+        require(
+          committedInputs[offset] == bytes1(uint8(ProofType.SANCTIONS)),
+          "Invalid proof type"
+        );
 
         sanctionsTreesCommitment = bytes32(committedInputs[offset + 1:offset + 33]);
         found = true;
@@ -403,11 +411,13 @@ contract ZKPassportVerifier {
     require(found, "Sanctions proof inputs not found");
   }
 
-  function enforceSanctionsRoot(bytes calldata committedInputs, uint256[] calldata committedInputCounts) public view {
+  function enforceSanctionsRoot(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts
+  ) public view {
     bytes32 proofSanctionsRoot = getSanctionsProofInputs(committedInputs, committedInputCounts);
     _validateSanctionsRoot(proofSanctionsRoot);
   }
-
 
   function getBoundData(
     bytes calldata data

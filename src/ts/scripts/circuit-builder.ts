@@ -364,7 +364,7 @@ use data_check_expiry::check_expiry;
 use data_check_integrity::{check_dg1_${dg_hash_algorithm}, check_signed_attributes_${signed_attributes_hash_algorithm}};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
-    current_date: pub u32,
+    current_date: pub u64,
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,
@@ -449,7 +449,7 @@ fn verify_subproofs(
     // Root of the circuit registry merkle tree
     circuit_registry_root: Field,
     // Current date and time as a unix timestamp
-    current_date: u32,
+    current_date: u64,
     // The commitments over the parameters of the disclosure circuits
     param_commitments: [Field; ${disclosure_proofs_count}],
     // The nullifier service scope (a Pederson hash of the domain)
@@ -577,7 +577,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
     // Root of the circuit registry merkle tree
     circuit_registry_root: pub Field,
-    current_date: pub u32,
+    current_date: pub u64,
     service_scope: pub Field,
     service_subscope: pub Field,
     param_commitments: pub [Field; ${disclosure_proofs_count}],

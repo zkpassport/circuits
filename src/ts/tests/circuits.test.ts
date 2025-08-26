@@ -55,8 +55,9 @@ import { Circuit } from "../circuits"
 import fs from "fs"
 
 // Test constants
-const SALT = 3n;
-const EXPECTED_NULLIFIER = 4853682424986581472334861422312401004117384679706333968331573984300501658337n;
+const SALT = 3n
+const EXPECTED_NULLIFIER =
+  4853682424986581472334861422312401004117384679706333968331573984300501658337n
 const nowTimestamp = getNowTimestamp()
 
 describe("subcircuits - RSA PKCS", () => {
@@ -157,7 +158,6 @@ describe("subcircuits - RSA PKCS", () => {
     }, 30000)
   })
 
-
   describe("disclose", () => {
     let circuit: Circuit
     beforeAll(async () => {
@@ -209,9 +209,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1988, 10, 12))
       expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2030, 0, 1))
       expect(disclosedData.gender).toBe("M")
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -251,9 +249,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(isNaN(disclosedData.dateOfBirth.getTime())).toBe(true)
       expect(isNaN(disclosedData.dateOfExpiry.getTime())).toBe(true)
       expect(disclosedData.gender).toBe("")
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -310,9 +306,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1988, 10, 12))
       expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2030, 0, 1))
       expect(disclosedData.gender).toBe("M")
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -352,9 +346,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(isNaN(disclosedData.dateOfBirth.getTime())).toBe(true)
       expect(isNaN(disclosedData.dateOfExpiry.getTime())).toBe(true)
       expect(disclosedData.gender).toBe("")
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -380,9 +372,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
@@ -411,9 +401,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
@@ -440,9 +428,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
@@ -471,9 +457,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
@@ -504,9 +488,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
@@ -539,9 +521,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
@@ -549,27 +529,30 @@ describe("subcircuits - RSA PKCS", () => {
 
     test("sanctions exclusion check", async () => {
       const circuit = Circuit.from("exclusion_check_sanctions")
-      const sanctions = await SanctionsBuilder.create();
-      const inputs = await getSanctionsExclusionCheckCircuitInputs(helper.passport as any, SALT, undefined, undefined, sanctions)
+      const sanctions = await SanctionsBuilder.create()
+      const inputs = await getSanctionsExclusionCheckCircuitInputs(
+        helper.passport as any,
+        SALT,
+        undefined,
+        undefined,
+        sanctions,
+      )
 
       if (!inputs) throw new Error("Unable to generate sanctions circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `exclusion_check_sanctions`,
-      });
+      })
       expect(proof).toBeDefined()
 
       const calculatedParamCommitment = await sanctions.getSanctionsParameterCommitment()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
     }, 10000)
-
   })
 
   describe("exclusion-check evm", () => {
@@ -596,9 +579,7 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
@@ -655,32 +636,34 @@ describe("subcircuits - RSA PKCS", () => {
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
     }, 30000)
 
     test("sanctions exclusion check", async () => {
-      const sanctions = await SanctionsBuilder.create();
+      const sanctions = await SanctionsBuilder.create()
       const circuit = Circuit.from("exclusion_check_sanctions_evm")
 
-      const inputs = await getSanctionsExclusionCheckCircuitInputs(helper.passport as any, SALT, undefined, undefined, sanctions)
+      const inputs = await getSanctionsExclusionCheckCircuitInputs(
+        helper.passport as any,
+        SALT,
+        undefined,
+        undefined,
+        sanctions,
+      )
       if (!inputs) throw new Error("Unable to generate sanctions circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `exclusion_check_sanctions_evm`,
-      });
+      })
       expect(proof).toBeDefined()
 
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await sanctions.getSanctionsEvmParameterCommitment()
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
       await circuit.destroy()
@@ -747,9 +730,7 @@ describe("subcircuits - RSA PKCS", () => {
       const calculatedParamCommitment = await getAgeParameterCommitment(nowTimestamp, 18, 0)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -778,9 +759,7 @@ describe("subcircuits - RSA PKCS", () => {
       const calculatedParamCommitment = await getAgeParameterCommitment(nowTimestamp, 0, age + 1)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -809,9 +788,7 @@ describe("subcircuits - RSA PKCS", () => {
       const calculatedParamCommitment = await getAgeParameterCommitment(nowTimestamp, age, age + 2)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -840,9 +817,7 @@ describe("subcircuits - RSA PKCS", () => {
       const calculatedParamCommitment = await getAgeParameterCommitment(nowTimestamp, age, age)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -871,9 +846,7 @@ describe("subcircuits - RSA PKCS", () => {
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getAgeParameterCommitment(nowTimestamp, age, age)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -906,9 +879,7 @@ describe("subcircuits - RSA PKCS", () => {
         age + 5,
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -946,9 +917,7 @@ describe("subcircuits - RSA PKCS", () => {
       const calculatedParamCommitment = await getAgeEVMParameterCommitment(nowTimestamp, 18, 0)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -992,9 +961,7 @@ describe("subcircuits - RSA PKCS", () => {
         getUnixTimestamp(new Date(1988, 10, 12)),
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -1027,9 +994,7 @@ describe("subcircuits - RSA PKCS", () => {
         getUnixTimestamp(new Date(1988, 10, 13)),
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -1062,16 +1027,14 @@ describe("subcircuits - RSA PKCS", () => {
         getUnixTimestamp(new Date(1988, 10, 12)),
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
 
     test("greater than", async () => {
       const query: Query = {
-        birthdate: { gte: new Date(1988, 10, 11) },
+        birthdate: { gte: new Date(1928, 10, 11) },
       }
       // const inputs = await getBirthdateCircuitInputs(helper.passport as any, query, SALT)
       const inputs = await getBirthdateCircuitInputs(
@@ -1094,13 +1057,11 @@ describe("subcircuits - RSA PKCS", () => {
       const calculatedParamCommitment = await getDateParameterCommitment(
         ProofType.BIRTHDATE,
         nowTimestamp,
-        getUnixTimestamp(new Date(1988, 10, 11)),
+        getUnixTimestamp(new Date(1928, 10, 11)),
         0,
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -1133,9 +1094,7 @@ describe("subcircuits - RSA PKCS", () => {
         getUnixTimestamp(new Date(1988, 10, 15)),
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -1168,9 +1127,7 @@ describe("subcircuits - RSA PKCS", () => {
         getUnixTimestamp(new Date(1988, 10, 15)),
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -1214,9 +1171,7 @@ describe("subcircuits - RSA PKCS", () => {
         getUnixTimestamp(new Date(1988, 10, 12)),
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -1259,9 +1214,7 @@ describe("subcircuits - RSA PKCS", () => {
         getUnixTimestamp(new Date(2030, 0, 1)),
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -1294,9 +1247,7 @@ describe("subcircuits - RSA PKCS", () => {
         getUnixTimestamp(new Date(2035, 0, 1)),
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -1329,9 +1280,7 @@ describe("subcircuits - RSA PKCS", () => {
         getUnixTimestamp(new Date(2030, 0, 1)),
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -1365,9 +1314,7 @@ describe("subcircuits - RSA PKCS", () => {
         0,
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -1400,9 +1347,7 @@ describe("subcircuits - RSA PKCS", () => {
         getUnixTimestamp(new Date(2035, 0, 1)),
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -1435,9 +1380,7 @@ describe("subcircuits - RSA PKCS", () => {
         getUnixTimestamp(new Date(2035, 0, 1)),
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -1480,9 +1423,7 @@ describe("subcircuits - RSA PKCS", () => {
         getUnixTimestamp(new Date(2030, 0, 1)),
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -1513,9 +1454,7 @@ describe("subcircuits - RSA PKCS", () => {
       const boundData = formatBoundData(query.bind!)
       const calculatedParamCommitment = await getBindParameterCommitment(boundData)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
@@ -1546,9 +1485,7 @@ describe("subcircuits - RSA PKCS", () => {
       const boundData = formatBoundData(query.bind!)
       const calculatedParamCommitment = await getBindEVMParameterCommitment(boundData)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
-      expect(nullifier).toEqual(
-        EXPECTED_NULLIFIER,
-      )
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
     })
