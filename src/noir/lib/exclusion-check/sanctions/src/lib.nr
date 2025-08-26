@@ -21,7 +21,7 @@ use utils::{
     types::{DG1Data, MRZDOB, MRZDocumentNumber, MRZName, MRZNationality, MRZYOB},
 };
 
-global TREE_ROOT: Field = 0x0bb47c10011708980491486b3b30ac8bbd1f84465d35739a23d4c7cac5c070ef;
+global TREE_ROOT: Field = 0x099699583ea7729a4a05821667645e927b74feb4e6e5382c6e4370e35ed2b23c;
 
 /// The Sanctions sparse merkle trees
 /// This is a collection of the three trees that are used to check the Sanctions exclusion
