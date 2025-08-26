@@ -3,7 +3,7 @@
 * are defined in the ICAO (International Civil Aviation Organization) 9303 document available here:
 * https://www.icao.int/publications/pages/publication.aspx?docnum=9303
 */
-pub mod test;
+pub mod tests;
 pub mod types;
 
 /**
@@ -20,7 +20,6 @@ pub mod types;
 use types::{
     DG1Data, MRZData, MRZName, MRZDOB, MRZYOB, MRZDocumentNumber, MRZNationality, MRZIssuingCountry,
 };
-mod tests;
 
 // Index for the country of issuance of the passport
 pub global PASSPORT_MRZ_COUNTRY_INDEX: u32 = 2;
@@ -469,12 +468,20 @@ pub fn get_name_from_mrz(dg1: DG1Data) -> MRZName {
 
 /// Get the name from the MRZ for a passport
 pub fn get_name_passport(mrz: MRZData) -> MRZName {
-    get_array_slice(mrz, PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_INDEX + PASSPORT_MRZ_NAME_LENGTH)
+    get_array_slice(
+        mrz,
+        PASSPORT_MRZ_NAME_INDEX,
+        PASSPORT_MRZ_NAME_INDEX + PASSPORT_MRZ_NAME_LENGTH,
+    )
 }
 
 /// Get the name from the MRZ for an ID card
 pub fn get_name_id_card(mrz: MRZData) -> MRZName {
-    let mut mrz_name: MRZName = get_array_slice(mrz, ID_CARD_MRZ_NAME_INDEX, ID_CARD_MRZ_NAME_INDEX + ID_CARD_MRZ_NAME_LENGTH);
+    let mut mrz_name: MRZName = get_array_slice(
+        mrz,
+        ID_CARD_MRZ_NAME_INDEX,
+        ID_CARD_MRZ_NAME_INDEX + ID_CARD_MRZ_NAME_LENGTH,
+    );
 
     // Pad the name with spaces to the length of the MRZ name
     for i in 0..(PASSPORT_MRZ_NAME_LENGTH - ID_CARD_MRZ_NAME_LENGTH) {

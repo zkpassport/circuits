@@ -4,14 +4,17 @@ use crate::{
 };
 
 use super::{
-    DG1_TO_MRZ_OFFSET, ID_CARD_MRZ_BIRTHDATE_INDEX, ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX,
-    ID_CARD_MRZ_NAME_INDEX, ID_CARD_MRZ_NAME_LENGTH, ID_CARD_MRZ_NATIONALITY_INDEX,
-    PASSPORT_MRZ_BIRTHDATE_INDEX, PASSPORT_MRZ_BIRTHDATE_LENGTH, PASSPORT_MRZ_COUNTRY_INDEX,
-    PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX, PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH,
-    PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_LENGTH, PASSPORT_MRZ_NATIONALITY_INDEX, ID_CARD_MRZ_BIRTHDATE_LENGTH, ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH,
-    get_mrz_from_dg1, get_name_from_mrz
+    DG1_TO_MRZ_OFFSET, get_mrz_from_dg1, get_name_from_mrz, ID_CARD_MRZ_BIRTHDATE_INDEX,
+    ID_CARD_MRZ_BIRTHDATE_LENGTH, ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX,
+    ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH, ID_CARD_MRZ_NAME_INDEX, ID_CARD_MRZ_NAME_LENGTH,
+    ID_CARD_MRZ_NATIONALITY_INDEX, PASSPORT_MRZ_BIRTHDATE_INDEX, PASSPORT_MRZ_BIRTHDATE_LENGTH,
+    PASSPORT_MRZ_COUNTRY_INDEX, PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
+    PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH, PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_LENGTH,
+    PASSPORT_MRZ_NATIONALITY_INDEX,
 };
-use super::types::{DG1Data, MRZData, MRZDOB, MRZDocumentNumber, MRZName, MRZNameIdCard, MRZNationality};
+use super::types::{
+    DG1Data, MRZData, MRZDOB, MRZDocumentNumber, MRZName, MRZNameIdCard, MRZNationality,
+};
 
 // Testing utilities
 
@@ -70,9 +73,13 @@ impl DG1Builder {
         self
     }
 
-    pub fn with_document_number_id_card(mut self: Self, document_number: MRZDocumentNumber) -> Self {
+    pub fn with_document_number_id_card(
+        mut self: Self,
+        document_number: MRZDocumentNumber,
+    ) -> Self {
         for i in 0..ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH {
-            self.dg1[ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX + i + DG1_TO_MRZ_OFFSET] = document_number[i];
+            self.dg1[ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX + i + DG1_TO_MRZ_OFFSET] =
+                document_number[i];
         }
         self
     }
