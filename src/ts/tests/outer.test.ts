@@ -996,8 +996,6 @@ describe("outer proof - evm optimised", () => {
         getServiceSubscopeHash("bigproof"),
       )
       if (!sanctionsExclusionInputs) throw new Error("Unable to generate sanctions exclusion check circuit inputs")
-      if (!sanctionsExclusionInputs)
-        throw new Error("Unable to generate sanctions exclusion check circuit inputs")
       const sanctionsExclusionProof = await sanctionsExclusionCircuit.prove(sanctionsExclusionInputs, {
         recursive: true,
         useCli: true,

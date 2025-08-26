@@ -429,13 +429,51 @@ pub fn get_issuing_country_from_mrz(dg1: DG1Data) -> MRZIssuingCountry {
     country_bytes
 }
 
+/// Get the name from the MRZ
+///
+/// Conditionally calls the correct function based on the type of document
 pub fn get_name_from_mrz(dg1: DG1Data) -> MRZName {
     let mrz = get_mrz_from_dg1(dg1);
-    get_array_slice(mrz, PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_INDEX + 39)
+    if is_id_card(dg1) {
+        get_name_id_card(mrz)
+    } else {
+        get_name_passport(mrz)
+    }
 }
 
+ 
+/// Get the name from the MRZ for a passport
+pub fn get_name_passport(mrz: MRZData) -> MRZName {
+    get_array_slice(
+        mrz,
+        PASSPORT_MRZ_NAME_INDEX,
+        PASSPORT_MRZ_NAME_INDEX + 39,
+    )
+}
+
+/// Get the name from the MRZ for an ID card
+pub fn get_name_id_card(mrz: MRZData) -> MRZName {
+    get_array_slice(
+        mrz,
+        ID_CARD_MRZ_NAME_INDEX,
+        ID_CARD_MRZ_NAME_INDEX + 39,
+    )
+}
+
+/// Get the date of birth from the MRZ
+///
+/// Conditionally calls the correct function based on the type of document
 pub fn get_dob_from_mrz(dg1: DG1Data) -> MRZDOB {
     let mrz = get_mrz_from_dg1(dg1);
+    if is_id_card(dg1) {
+        get_date_of_birth_id_card(mrz)
+    } else {
+        get_date_of_birth_passport(mrz)
+    }
+}
+
+/// Get the date of birth from the MRZ for a passport
+pub fn get_date_of_birth_passport(mrz: MRZData) -> MRZDOB {
     get_array_slice(
         mrz,
         PASSPORT_MRZ_BIRTHDATE_INDEX,
@@ -443,8 +481,29 @@ pub fn get_dob_from_mrz(dg1: DG1Data) -> MRZDOB {
     )
 }
 
+/// Get the date of birth from the MRZ for an ID card
+pub fn get_date_of_birth_id_card(mrz: MRZData) -> MRZDOB {
+    get_array_slice(
+        mrz,
+        ID_CARD_MRZ_BIRTHDATE_INDEX,
+        ID_CARD_MRZ_BIRTHDATE_INDEX + 6,
+    )
+}
+
+/// Get the year of birth from the MRZ
+///
+/// Conditionally calls the correct function based on the type of document
 pub fn get_yob_from_mrz(dg1: DG1Data) -> MRZYOB {
     let mrz = get_mrz_from_dg1(dg1);
+    if is_id_card(dg1) {
+        get_yob_from_mrz_id_card(mrz)
+    } else {
+        get_yob_from_mrz_passport(mrz)
+    }
+}
+
+/// Get the year of birth from the MRZ for an ID card
+pub fn get_yob_from_mrz_passport(mrz: MRZData) -> MRZYOB {
     get_array_slice(
         mrz,
         PASSPORT_MRZ_BIRTHDATE_INDEX,
@@ -452,13 +511,42 @@ pub fn get_yob_from_mrz(dg1: DG1Data) -> MRZYOB {
     )
 }
 
+/// Get the year of birth from the MRZ for an ID card
+pub fn get_yob_from_mrz_id_card(mrz: MRZData) -> MRZYOB {
+    get_array_slice(
+        mrz,
+        ID_CARD_MRZ_BIRTHDATE_INDEX,
+        ID_CARD_MRZ_BIRTHDATE_INDEX + 2,
+    )
+}
+
+/// Get the document number from the MRZ
+///
+/// Conditionally calls the correct function based on the type of document
 pub fn get_document_number_from_mrz(dg1: DG1Data) -> MRZDocumentNumber {
-    // TODO: make all of these an object to decrease gate counts -> single DG1 to MRZ conversion and slice from there
     let mrz = get_mrz_from_dg1(dg1);
+    if is_id_card(dg1) {
+        get_document_number_id_card(mrz)
+    } else {
+        get_document_number_passport(mrz)
+    }
+}
+
+/// Get the document number from the MRZ for a passport
+pub fn get_document_number_passport(mrz: MRZData) -> MRZDocumentNumber {
     get_array_slice(
         mrz,
         PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
         PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX + 9,
+    )
+}
+
+/// Get the document number from the MRZ for an ID card
+pub fn get_document_number_id_card(mrz: MRZData) -> MRZDocumentNumber {
+    get_array_slice(
+        mrz,
+        ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX,
+        ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX + 9,
     )
 }
 
