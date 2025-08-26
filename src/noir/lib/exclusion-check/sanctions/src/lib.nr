@@ -3,8 +3,8 @@ pub mod types;
 pub mod param_commit;
 
 use crate::ordered_mt::ordered_mt_non_membership;
-use std::hash::poseidon2::Poseidon2;
-use utils::test::DG1Builder;
+use poseidon::poseidon2::Poseidon2;
+use utils::tests::DG1Builder;
 
 use types::{
     SanctionsOrderedMerkleTreeInclusionProof, SanctionsOrderedMerkleTreeProof,

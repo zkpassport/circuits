@@ -1,4 +1,4 @@
-use std::hash::poseidon2::Poseidon2;
+use poseidon::poseidon2::Poseidon2;
 
 global Sanctions_PARAM_COMMITMENT_SIZE: u32 = 33;
 

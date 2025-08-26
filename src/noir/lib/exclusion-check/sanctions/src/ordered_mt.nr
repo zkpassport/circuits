@@ -3,7 +3,7 @@ use crate::types::{
     SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH, SanctionsOrderedMerkleTreeInclusionProof,
     SanctionsOrderedMerkleTreeProof,
 };
-use std::hash::poseidon2::Poseidon2;
+use poseidon::poseidon2::Poseidon2;
 
 ///
 /// Ordered Merkle Tree Inclusion Proof
