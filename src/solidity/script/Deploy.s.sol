@@ -12,6 +12,7 @@ import {HonkVerifier as OuterCount9Verifier} from "../src/OuterCount9.sol";
 import {HonkVerifier as OuterCount10Verifier} from "../src/OuterCount10.sol";
 import {HonkVerifier as OuterCount11Verifier} from "../src/OuterCount11.sol";
 import {HonkVerifier as OuterCount12Verifier} from "../src/OuterCount12.sol";
+import {HonkVerifier as OuterCount13Verifier} from "../src/OuterCount13.sol";
 import {ZKPassportVerifier} from "../src/ZKPassportVerifier.sol";
 import {stdJson} from "forge-std/StdJson.sol";
 
@@ -41,6 +42,8 @@ contract Deploy is Script {
     bytes32(hex"0c3fe7b41c2cb501bf9ead31d08ff446613f439b1b2169bbdeee56501d9abd3a")
   ];
 
+  address[] public verifierAddresses = new address[](10);
+
   function run() public {
     // Load the private key from environment variable
     uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -51,40 +54,44 @@ contract Deploy is Script {
     // Log the deployment
     console.log("Deploying Outer (4 subproofs) verifier...");
     // Deploy the contract
-    OuterCount4Verifier outerCount4Verifier = new OuterCount4Verifier();
-    console.log("Outer (4 subproofs) verifier deployed at:", address(outerCount4Verifier));
+    verifierAddresses[0] = address(new OuterCount4Verifier());
+    console.log("Outer (4 subproofs) verifier deployed at:", verifierAddresses[0]);
 
     console.log("Deploying Outer (5 subproofs) verifier...");
-    OuterCount5Verifier outerCount5Verifier = new OuterCount5Verifier();
-    console.log("Outer (5 subproofs) verifier deployed at:", address(outerCount5Verifier));
+    verifierAddresses[1] = address(new OuterCount5Verifier());
+    console.log("Outer (5 subproofs) verifier deployed at:", verifierAddresses[1]);
 
     console.log("Deploying Outer (6 subproofs) verifier...");
-    OuterCount6Verifier outerCount6Verifier = new OuterCount6Verifier();
-    console.log("Outer (6 subproofs) verifier deployed at:", address(outerCount6Verifier));
+    verifierAddresses[2] = address(new OuterCount6Verifier());
+    console.log("Outer (6 subproofs) verifier deployed at:", verifierAddresses[2]);
 
     console.log("Deploying Outer (7 subproofs) verifier...");
-    OuterCount7Verifier outerCount7Verifier = new OuterCount7Verifier();
-    console.log("Outer (7 subproofs) verifier deployed at:", address(outerCount7Verifier));
+    verifierAddresses[3] = address(new OuterCount7Verifier());
+    console.log("Outer (7 subproofs) verifier deployed at:", verifierAddresses[3]);
 
     console.log("Deploying Outer (8 subproofs) verifier...");
-    OuterCount8Verifier outerCount8Verifier = new OuterCount8Verifier();
-    console.log("Outer (8 subproofs) verifier deployed at:", address(outerCount8Verifier));
+    verifierAddresses[4] = address(new OuterCount8Verifier());
+    console.log("Outer (8 subproofs) verifier deployed at:", verifierAddresses[4]);
 
     console.log("Deploying Outer (9 subproofs) verifier...");
-    OuterCount9Verifier outerCount9Verifier = new OuterCount9Verifier();
-    console.log("Outer (9 subproofs) verifier deployed at:", address(outerCount9Verifier));
+    verifierAddresses[5] = address(new OuterCount9Verifier());
+    console.log("Outer (9 subproofs) verifier deployed at:", verifierAddresses[5]);
 
     console.log("Deploying Outer (10 subproofs) verifier...");
-    OuterCount10Verifier outerCount10Verifier = new OuterCount10Verifier();
-    console.log("Outer (10 subproofs) verifier deployed at:", address(outerCount10Verifier));
+    verifierAddresses[6] = address(new OuterCount10Verifier());
+    console.log("Outer (10 subproofs) verifier deployed at:", verifierAddresses[6]);
 
     console.log("Deploying Outer (11 subproofs) verifier...");
-    OuterCount11Verifier outerCount11Verifier = new OuterCount11Verifier();
-    console.log("Outer (11 subproofs) verifier deployed at:", address(outerCount11Verifier));
+    verifierAddresses[7] = address(new OuterCount11Verifier());
+    console.log("Outer (11 subproofs) verifier deployed at:", verifierAddresses[7]);
 
     console.log("Deploying Outer (12 subproofs) verifier...");
-    OuterCount12Verifier outerCount12Verifier = new OuterCount12Verifier();
-    console.log("Outer (12 subproofs) verifier deployed at:", address(outerCount12Verifier));
+    verifierAddresses[8] = address(new OuterCount12Verifier());
+    console.log("Outer (12 subproofs) verifier deployed at:", verifierAddresses[8]);
+
+    console.log("Deploying Outer (13 subproofs) verifier...");
+    verifierAddresses[9] = address(new OuterCount13Verifier());
+    console.log("Outer (13 subproofs) verifier deployed at:", verifierAddresses[9]);
 
     console.log("Deploying ZKPassportVerifier...");
     address rootRegistry = vm.envAddress("ROOT_REGISTRY_ADDRESS");
@@ -92,16 +99,6 @@ contract Deploy is Script {
     console.log("ZKPassportVerifier deployed at:", address(zkPassportVerifier));
 
     // Add verifiers to ZKPassportVerifier
-    address[] memory verifierAddresses = new address[](9);
-    verifierAddresses[0] = address(outerCount4Verifier);
-    verifierAddresses[1] = address(outerCount5Verifier);
-    verifierAddresses[2] = address(outerCount6Verifier);
-    verifierAddresses[3] = address(outerCount7Verifier);
-    verifierAddresses[4] = address(outerCount8Verifier);
-    verifierAddresses[5] = address(outerCount9Verifier);
-    verifierAddresses[6] = address(outerCount10Verifier);
-    verifierAddresses[7] = address(outerCount11Verifier);
-    verifierAddresses[8] = address(outerCount12Verifier);
     console.log("Adding verifiers to ZKPassportVerifier...");
     zkPassportVerifier.addVerifiers(vkeyHashes, verifierAddresses);
     console.log("Verifiers added to ZKPassportVerifier");
@@ -111,15 +108,16 @@ contract Deploy is Script {
 
     // Create JSON for verifiers
     string memory verifiers = "verifiers";
-    vm.serializeAddress(verifiers, "outer_count_4", address(outerCount4Verifier));
-    vm.serializeAddress(verifiers, "outer_count_5", address(outerCount5Verifier));
-    vm.serializeAddress(verifiers, "outer_count_6", address(outerCount6Verifier));
-    vm.serializeAddress(verifiers, "outer_count_7", address(outerCount7Verifier));
-    vm.serializeAddress(verifiers, "outer_count_8", address(outerCount8Verifier));
-    vm.serializeAddress(verifiers, "outer_count_9", address(outerCount9Verifier));
-    vm.serializeAddress(verifiers, "outer_count_10", address(outerCount10Verifier));
-    vm.serializeAddress(verifiers, "outer_count_11", address(outerCount11Verifier));
-    verifiers = vm.serializeAddress(verifiers, "outer_count_12", address(outerCount12Verifier));
+    vm.serializeAddress(verifiers, "outer_count_4", verifierAddresses[0]);
+    vm.serializeAddress(verifiers, "outer_count_5", verifierAddresses[1]);
+    vm.serializeAddress(verifiers, "outer_count_6", verifierAddresses[2]);
+    vm.serializeAddress(verifiers, "outer_count_7", verifierAddresses[3]);
+    vm.serializeAddress(verifiers, "outer_count_8", verifierAddresses[4]);
+    vm.serializeAddress(verifiers, "outer_count_9", verifierAddresses[5]);
+    vm.serializeAddress(verifiers, "outer_count_10", verifierAddresses[6]);
+    vm.serializeAddress(verifiers, "outer_count_11", verifierAddresses[7]);
+    vm.serializeAddress(verifiers, "outer_count_12", verifierAddresses[8]);
+    verifiers = vm.serializeAddress(verifiers, "outer_count_13", verifierAddresses[9]);
 
     // Create the main JSON object
     string memory mainJson = "main";
