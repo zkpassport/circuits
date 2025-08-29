@@ -48,7 +48,7 @@ jobs:
 
       - name: Calculate cache key for compiled circuits
         id: circuits-cache-key
-        run: echo "cache-key=$(find src/noir/{bin,lib} -type f -name "*.nr" -exec sha256sum {} + | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
+        run: echo "cache-key=${{ env.NOIR_VERSION }}-$(find src/noir/{bin,lib} -type f -name "*.nr" -exec sha256sum {} + | sha256sum | awk '{print $1}')" >> $GITHUB_OUTPUT
 
       - name: Restore circuits cache
         uses: actions/cache/restore@v4
