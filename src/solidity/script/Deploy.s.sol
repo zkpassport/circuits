@@ -12,6 +12,7 @@ import {HonkVerifier as OuterCount9Verifier} from "../src/OuterCount9.sol";
 import {HonkVerifier as OuterCount10Verifier} from "../src/OuterCount10.sol";
 import {HonkVerifier as OuterCount11Verifier} from "../src/OuterCount11.sol";
 import {HonkVerifier as OuterCount12Verifier} from "../src/OuterCount12.sol";
+import {HonkVerifier as OuterCount13Verifier} from "../src/OuterCount13.sol";
 import {ZKPassportVerifier} from "../src/ZKPassportVerifier.sol";
 import {stdJson} from "forge-std/StdJson.sol";
 
@@ -86,25 +87,33 @@ contract Deploy is Script {
     OuterCount12Verifier outerCount12Verifier = new OuterCount12Verifier();
     console.log("Outer (12 subproofs) verifier deployed at:", address(outerCount12Verifier));
 
+    console.log("Deploying Outer (13 subproofs) verifier...");
+    OuterCount13Verifier outerCount13Verifier = new OuterCount13Verifier();
+    console.log("Outer (13 subproofs) verifier deployed at:", address(outerCount13Verifier));
+
     console.log("Deploying ZKPassportVerifier...");
     address rootRegistry = vm.envAddress("ROOT_REGISTRY_ADDRESS");
     ZKPassportVerifier zkPassportVerifier = new ZKPassportVerifier(rootRegistry);
     console.log("ZKPassportVerifier deployed at:", address(zkPassportVerifier));
 
-    // Add verifiers to ZKPassportVerifier
-    address[] memory verifierAddresses = new address[](9);
-    verifierAddresses[0] = address(outerCount4Verifier);
-    verifierAddresses[1] = address(outerCount5Verifier);
-    verifierAddresses[2] = address(outerCount6Verifier);
-    verifierAddresses[3] = address(outerCount7Verifier);
-    verifierAddresses[4] = address(outerCount8Verifier);
-    verifierAddresses[5] = address(outerCount9Verifier);
-    verifierAddresses[6] = address(outerCount10Verifier);
-    verifierAddresses[7] = address(outerCount11Verifier);
-    verifierAddresses[8] = address(outerCount12Verifier);
-    console.log("Adding verifiers to ZKPassportVerifier...");
-    zkPassportVerifier.addVerifiers(vkeyHashes, verifierAddresses);
-    console.log("Verifiers added to ZKPassportVerifier");
+    {
+      // Add verifiers to ZKPassportVerifier
+      address[] memory verifierAddresses = new address[](10);
+      verifierAddresses[0] = address(outerCount4Verifier);
+      verifierAddresses[1] = address(outerCount5Verifier);
+      verifierAddresses[2] = address(outerCount6Verifier);
+      verifierAddresses[3] = address(outerCount7Verifier);
+      verifierAddresses[4] = address(outerCount8Verifier);
+      verifierAddresses[5] = address(outerCount9Verifier);
+      verifierAddresses[6] = address(outerCount10Verifier);
+      verifierAddresses[7] = address(outerCount11Verifier);
+      verifierAddresses[8] = address(outerCount12Verifier);
+      verifierAddresses[9] = address(outerCount13Verifier);
+
+      console.log("Adding verifiers to ZKPassportVerifier...");
+      zkPassportVerifier.addVerifiers(vkeyHashes, verifierAddresses);
+      console.log("Verifiers added to ZKPassportVerifier");
+    }
 
     // Stop broadcasting transactions
     vm.stopBroadcast();
