@@ -207,7 +207,8 @@ pub fn hash_salt_dg1_private_nullifier<let N: u32>(
     for i in 0..((N + 30) / 31) {
         result[1 + i] = packed_dg1[i];
     }
-    result[1 + ((N + 30) / 31)] = private_nullifier;
+    // Store private_nullifier in the last field position
+    result[1 + ((N + 30) / 31) - 1] = private_nullifier;
     Poseidon2::hash(result, 2 + ((N + 30) / 31))
 }
 
@@ -234,6 +235,8 @@ pub fn calculate_private_nullifier<let DG1: u32, let ECONTENT: u32, let SIG: u32
     for i in 0..((SIG + 30) / 31) {
         result[(DG1 + 30) / 31 + ((ECONTENT + 30) / 31) + i] = packed_sod_sig[i];
     }
+    // Store sod_sig in the last field position
+    result[(DG1 + 30) / 31 + ((ECONTENT + 30) / 31) + ((SIG + 30) / 31) - 1] = sod_sig;
 
     Poseidon2::hash(
         result,
@@ -277,7 +280,8 @@ pub fn hash_salt_country_signed_attr_dg1_e_content_private_nullifier<let SA: u32
     for i in 0..((ECONTENT + 30) / 31) {
         result[3 + (SA + 30) / 31 + ((DG1 + 30) / 31) + i] = packed_e_content[i];
     }
-    result[3 + (SA + 30) / 31 + ((DG1 + 30) / 31) + ((ECONTENT + 30) / 31)] = private_nullifier;
+    // Store private_nullifier in the last field position
+    result[3 + (SA + 30) / 31 + ((DG1 + 30) / 31) + ((ECONTENT + 30) / 31) - 1] = private_nullifier;
 
     Poseidon2::hash(
         result,
@@ -286,7 +290,7 @@ pub fn hash_salt_country_signed_attr_dg1_e_content_private_nullifier<let SA: u32
 }
 
 // Returns the merkle root of the tree from the provided leaf, index and hash_path, using the Poseidon2 hash function
-// Arity is expected to be 2 and the the tree depth is equal to the hash_path array length
+// Arity is expected to be 2 and the tree depth is equal to the hash_path array length
 pub fn compute_merkle_root<let N: u32>(leaf: Field, index: Field, hash_path: [Field; N]) -> Field {
     let index_bits: [u1; N] = index.to_le_bits();
     let mut current = leaf;
