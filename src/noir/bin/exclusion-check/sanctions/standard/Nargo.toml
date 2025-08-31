@@ -1,0 +1,10 @@
+[package]
+name = "exclusion_check_sanctions"
+type = "bin"
+authors = ["Theo Madzou", "Michael Elliot", "Maddiaa0"]
+compiler_version = ">=1.0.0"
+
+[dependencies]
+exclusion_check_sanctions = { path = "../../../../lib/exclusion-check/sanctions" }
+commitment = { path = "../../../../lib/commitment/scoped-nullifier" }
+utils = { path = "../../../../lib/utils" }

@@ -102,6 +102,14 @@ const STATIC_CIRCUITS = [
     name: "inclusion_check_nationality_evm",
     path: "./src/noir/bin/inclusion-check/nationality/evm",
   },
+  {
+    name: "exclusion_check_sanctions",
+    path: "./src/noir/bin/exclusion-check/sanctions/standard",
+  },
+  {
+    name: "exclusion_check_sanctions_evm",
+    path: "./src/noir/bin/exclusion-check/sanctions/evm",
+  },
 ]
 
 const LIB_CIRCUITS = [
@@ -124,6 +132,7 @@ const LIB_CIRCUITS = [
   "src/noir/lib/sig-check/ecdsa",
   "src/noir/lib/sig-check/rsa",
   "src/noir/lib/utils",
+  "src/noir/lib/exclusion-check/sanctions",
 ]
 
 const WORKSPACE_NARGO_TEMPLATE = (dependencies: string[]) => `[workspace]
@@ -355,7 +364,7 @@ use data_check_expiry::check_expiry;
 use data_check_integrity::{check_dg1_${dg_hash_algorithm}, check_signed_attributes_${signed_attributes_hash_algorithm}};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
-    current_date: pub u32,
+    current_date: pub u64,
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,
@@ -440,7 +449,7 @@ fn verify_subproofs(
     // Root of the circuit registry merkle tree
     circuit_registry_root: Field,
     // Current date and time as a unix timestamp
-    current_date: u32,
+    current_date: u64,
     // The commitments over the parameters of the disclosure circuits
     param_commitments: [Field; ${disclosure_proofs_count}],
     // The nullifier service scope (a Pederson hash of the domain)
@@ -568,7 +577,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
     // Root of the circuit registry merkle tree
     circuit_registry_root: pub Field,
-    current_date: pub u32,
+    current_date: pub u64,
     service_scope: pub Field,
     service_subscope: pub Field,
     param_commitments: pub [Field; ${disclosure_proofs_count}],
@@ -885,7 +894,7 @@ const generateDataIntegrityCheckCircuits = ({
 
 const generateOuterCircuits = ({ unconstrained = false }: { unconstrained: boolean }) => {
   console.log("Generating outer circuits...")
-  for (let i = 1; i <= 9; i++) {
+  for (let i = 1; i <= 10; i++) {
     generateOuterCircuit(i, unconstrained)
   }
 }

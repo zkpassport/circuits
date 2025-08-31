@@ -40,6 +40,8 @@ CIRCUITS=(
     "inclusion_check_issuing_country_evm"
     "exclusion_check_issuing_country"
     "exclusion_check_issuing_country_evm"
+    "exclusion_check_sanctions"
+    "exclusion_check_sanctions_evm"
     "compare_age"
     "compare_age_evm"
     "compare_expiry"
