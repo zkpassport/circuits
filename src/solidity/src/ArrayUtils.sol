@@ -4,6 +4,7 @@ pragma solidity >=0.8.21;
 
 import {StringUtils} from "./StringUtils.sol";
 
+// Missing tests.
 library ArrayUtils {
   function isSortedAscending(string[] memory array) internal pure returns (bool) {
     for (uint256 i = 1; i < array.length; i++) {

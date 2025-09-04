@@ -10,6 +10,7 @@ fn main(
     // @committed
     // The current date timestamp is public so verifiers can check the date
     // provided to the proof is correct
+    // Danger: see my similar concern in `compare/age/evm/src/main.nr` 
     current_date: u64,
     // @committed
     // The minimum date required is public so verifiers can check

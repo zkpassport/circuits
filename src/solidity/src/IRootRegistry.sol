@@ -5,6 +5,7 @@ pragma solidity ^0.8.20;
  * @title IRootRegistry
  * @dev Interface for a root registry
  */
+ // I guess the impl is in some other repo?
 interface IRootRegistry {
   function latestRoot(bytes32 registryId) external view returns (bytes32);
 

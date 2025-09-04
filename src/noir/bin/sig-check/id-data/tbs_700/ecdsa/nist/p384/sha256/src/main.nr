@@ -5,11 +5,13 @@ use sig_check_common::sha256_and_check_data_to_sign;
 use sig_check_ecdsa::verify_nist_p384;
 use utils::split_array;
 
+// Visually inspected this binary, as an example.
+// Consider using globals for all of the magic numbers that are the same for all circuit variants (95, 700), or better still: custom types, as has been begun in `types.nr`.
 fn main(
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,
-    dg1: [u8; 95],
+    dg1: [u8; 95], // Consider using the DG1Data type
     dsc_pubkey_x: [u8; 48],
     dsc_pubkey_y: [u8; 48],
     sod_signature: [u8; 96],

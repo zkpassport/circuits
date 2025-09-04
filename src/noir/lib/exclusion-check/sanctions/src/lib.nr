@@ -21,17 +21,38 @@ use utils::{
     types::{DG1Data, MRZDOB, MRZDocumentNumber, MRZName, MRZNationality, MRZYOB},
 };
 
+// How is this global maintained?
 global TREE_ROOT: Field = 0x099699583ea7729a4a05821667645e927b74feb4e6e5382c6e4370e35ed2b23c;
 
+// I'm not sure "sparse merkle tree" is the correct term. A sparse merkle tree would have 2^254 leaves.
+// It appears to be a tree whose leaf values
+// are sorted in ascending order. A non-membership proof for value x would then show left < x < right
+// for two consecutive leaves left & right (i.e. demonstrating that there is no "space" for x in the
+// sorted tree). The sorting will have to be verified independently, by anyone who wants to inspect
+// the correctness of the hard-coded tree.
+// Edit after writing that big comment ^^^: The term OrderedMerkleTree is being used in other files,
+// so maybe "Sparse" here is just lingering from earlier in the design process, and can be renamed?
+//
+// Note: it might be difficult to update such a tree efficiently in any verifier contract, as any
+// insertion would need to shift any leaves to the right of the new value. It's likely that the root 
+// would be overwritten as part of an update.
+// Recommendation (nice to have): clearly publish a lightweight tool (with clear instructions and explanation of why the tool exists)
+// that can be used by anyone to independently validate the contents of all of the zkpassport protocol's hard-coded tree roots,
+// by recomputing those roots from lists of leaves. This ensures "nothing up my sleeve".
+// E.g. in the case of this sanctions tree, the tool
+// would compute the leaves from human-readable data, then validate that the leaves are strictly increasing, and then compute and output the root.
 /// The Sanctions sparse merkle trees
 /// This is a collection of the three trees that are used to check the Sanctions exclusion
 /// for passports and ID cards
 ///
+// I'm confused by this comment below, because there appears to only be one tree (with one root) in
+// all of the code below (not 3 distinct trees).
 /// The trees are:
 /// 1. Passport No and Nationality
 /// 2. Name and DOB
 /// 3. Name and YOB
 pub struct SanctionsSparseMerkleTrees {
+    // Consider renaming this property to `root`, because it appears to always represent a root.
     pub tree: Field,
 }
 
@@ -49,6 +70,7 @@ impl SanctionsSparseMerkleTrees {
 }
 
 impl SanctionsSparseMerkleTrees {
+    // Visually inspected.
     /// Check the Sanctions exclusion for a given DG1
     ///
     /// # Arguments
@@ -67,13 +89,17 @@ impl SanctionsSparseMerkleTrees {
         let document_number: MRZDocumentNumber = get_document_number_from_mrz(dg1);
         let nationality: MRZNationality = get_nationality_from_mrz(dg1);
 
+        // Casting each u8 to a field is then inefficient to poseidon2 hash together.
+        // Tightly-packing the bytes into fields would save ~200 gates here.
         let passportNoAndNationality = array_concat_as_field(document_number, nationality);
         let passportNoAndNationalityHash: Field =
             Poseidon2::hash(passportNoAndNationality, passportNoAndNationality.len());
 
+        // Tightly-packing the bytes into fields would save ~1k gates here.
         let nameAndDob = array_concat_as_field(name, dob);
         let nameAndDobHash: Field = Poseidon2::hash(nameAndDob, nameAndDob.len());
 
+        // Tightly-packing the bytes into fields would save ~1k gates here.
         let nameAndYob = array_concat_as_field(name, yob);
         let nameAndYobHash: Field = Poseidon2::hash(nameAndYob, nameAndYob.len());
 

@@ -2,6 +2,7 @@ use commitment::nullify;
 use inclusion_check_country::{calculate_param_commitment_sha2, check_nationality_inclusion};
 use utils::PROOF_TYPE_NATIONALITY_INCLUSION;
 
+// Visually inspected.
 fn main(
     comm_in: pub Field,
     salt: Field,

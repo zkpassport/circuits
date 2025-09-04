@@ -4,12 +4,13 @@ use utils::get_issuing_country_from_mrz;
 // The ZKR (or Zero Knowledge Republic) is a mock country used for testing purposes
 global ZKR_COUNTRY_CODE_BYTES: [u8; 3] = [90, 75, 82];
 
+// Visually inspected.
 /*
 ############################################################
 # Circuit D
 ############################################################
 # Generates a scoped nullifier that is scoped by service
-# Allows selective disclosure of dg1 via a reveal bitmask
+# Allows selective disclosure of dg1 via a reveal bitmask // <-- perhaps there was a refactor, because this responsibility is now in a different file.
 ############################################################
 
 # Inputs/Outputs
@@ -24,7 +25,7 @@ scoped_nullifier    `H(private_nullifier, service_scope, service_subscope)`
 
 # Checks
 ############################################################
-- Checks that dg1_reveal is the correct reveal of dg1 for the given dg1_mask
+- Checks that dg1_reveal is the correct reveal of dg1 for the given dg1_mask // <-- this file doesn't do this.
 - Constrains scoped_nullifier to be `H(private_nullifier, service_scope, service_subscope)`
 */
 pub fn nullify(

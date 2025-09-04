@@ -40,6 +40,7 @@ fn has_value_in_tags<let BIT_SIZE: u32, let TAGS_LEN: u32>(
     result
 }
 
+// Visually inspected.
 pub fn calculate_certificate_registry_leaf<let N: u32>(
     tags: [Field; 3],
     cert_type: u8,
@@ -48,14 +49,15 @@ pub fn calculate_certificate_registry_leaf<let N: u32>(
 ) -> Field {
     // Pack certificate type and country code into a single field
     let country_bytes: [u8; 3] = country.as_bytes();
+    // No need to cast cert_type `as u8`.
     let unpacked_bytes: [u8; 4] =
         [cert_type as u8, country_bytes[0], country_bytes[1], country_bytes[2]];
     // Prepare and hash Poseidon2 inputs
-    let mut poseidon_inputs: [Field; 4 + (N + 30) / 31] = [0; 4 + (N + 30) / 31];
+    let mut poseidon_inputs: [Field; 4 + (N + 30) / 31] = [0; 4 + (N + 30) / 31]; // [Field; 4 + ceil(N/31)]
     poseidon_inputs[0] = tags[0];
     poseidon_inputs[1] = tags[1];
     poseidon_inputs[2] = tags[2];
-    poseidon_inputs[3] = utils::pack_be_bytes_into_fields::<4, 1, 31>(unpacked_bytes)[0];
+    poseidon_inputs[3] = utils::pack_be_bytes_into_fields::<4, 1, 31>(unpacked_bytes)[0]; // consider using pack_be_bytes_into_field (singular)
     let packed_pubkey = utils::pack_be_bytes_into_fields::<N, (N + 30) / 31, 31>(public_key);
     for i in 0..packed_pubkey.len() {
         poseidon_inputs[4 + i] = packed_pubkey[i] as Field;
@@ -159,8 +161,10 @@ pub fn test_calculate_certificate_registry_leaf() {
     assert(leaf_hash == 0x10370abe147332c5b039fb820a32964f7567998e9c54f93595bb95a1dc4ba62f);
 }
 
+// Duplicate of `get_issuing_country_from_mrz` in utils/src/lib.nr. Consider deleting this one and only using that one. (Also see my comments on that one).
 pub fn get_country_from_dg1(dg1: [u8; 95]) -> str<3> {
     // There 5 padding bytes in the dg1 before the actual MRZ
+    // Consider globals for the magic numbers 5, 3.
     let country_offset = 5 + PASSPORT_MRZ_COUNTRY_INDEX;
     let mut country_bytes: [u8; 3] = [0; 3];
     for i in 0..3 {
@@ -174,16 +178,18 @@ pub fn get_country_from_dg1(dg1: [u8; 95]) -> str<3> {
     country
 }
 
+// Visually inspected.
 pub fn hash_salt_country_tbs<let TBS_MAX_SIZE: u32>(
     salt: Field,
     country: str<3>,
     tbs: [u8; TBS_MAX_SIZE],
 ) -> Field {
     let country_bytes: [u8; 3] = country.as_bytes();
-    let mut result: [Field; 2 + ((TBS_MAX_SIZE + 30) / 31)] = [0; 2 + ((TBS_MAX_SIZE + 30) / 31)];
+    // Consider renaming `result` to something like `hash_input` or `commitment_preimage`
+    let mut result: [Field; 2 + ((TBS_MAX_SIZE + 30) / 31)] = [0; 2 + ((TBS_MAX_SIZE + 30) / 31)]; // [Field; 2 + ceil(TBS_MAX_SIZE/31)]
     result[0] = salt;
 
-    let packed_country: Field = pack_be_bytes_into_fields::<3, 1, 31>(country_bytes)[0];
+    let packed_country: Field = pack_be_bytes_into_fields::<3, 1, 31>(country_bytes)[0]; // Technically already packed within `calculate_certificate_registry_leaf` -- albeit it was mixed-in with `cert_type` in that fn.
     result[1] = packed_country;
 
     let packed_tbs: [Field; (TBS_MAX_SIZE + 30) / 31] =
@@ -200,6 +206,8 @@ pub fn hash_salt_dg1_private_nullifier<let N: u32>(
     dg1: [u8; N],
     private_nullifier: Field,
 ) -> Field {
+    // You might be able to just write `= std::mem::zeroed()` to reduce verbosity.
+    // Or `let mut result = [0 as Field; 2 + ((N + 30) / 31)];`
     let mut result: [Field; 2 + ((N + 30) / 31)] = [0; 2 + ((N + 30) / 31)];
     result[0] = salt;
 
@@ -211,11 +219,13 @@ pub fn hash_salt_dg1_private_nullifier<let N: u32>(
     Poseidon2::hash(result, 2 + ((N + 30) / 31))
 }
 
+// Visually inspected.
 pub fn calculate_private_nullifier<let DG1: u32, let ECONTENT: u32, let SIG: u32>(
     dg1: [u8; DG1],
     e_content: [u8; ECONTENT],
     sod_sig: [u8; SIG],
 ) -> Field {
+    // You might be able to just write `= std::mem::zeroed()` to reduce verbosity.
     let mut result: [Field; (DG1 + 30) / 31 + (ECONTENT + 30) / 31 + (SIG + 30) / 31] =
         [0; (DG1 + 30) / 31 + (ECONTENT + 30) / 31 + (SIG + 30) / 31];
 
@@ -241,6 +251,7 @@ pub fn calculate_private_nullifier<let DG1: u32, let ECONTENT: u32, let SIG: u32
     )
 }
 
+// Visually inspected.
 pub fn hash_salt_country_signed_attr_dg1_e_content_private_nullifier<let SA: u32, let ECONTENT: u32, let DG1: u32>(
     salt: Field,
     country: str<3>,
@@ -252,6 +263,7 @@ pub fn hash_salt_country_signed_attr_dg1_e_content_private_nullifier<let SA: u32
 ) -> Field {
     let country_bytes: [u8; 3] = country.as_bytes();
 
+    // You might be able to just write `= std::mem::zeroed()` to reduce verbosity.
     let mut result: [Field; 4 + (SA + 30) / 31 + ((DG1 + 30) / 31) + ((ECONTENT + 30) / 31)] =
         [0; 4 + (SA + 30) / 31 + ((DG1 + 30) / 31) + ((ECONTENT + 30) / 31)];
     result[0] = salt;
@@ -285,6 +297,7 @@ pub fn hash_salt_country_signed_attr_dg1_e_content_private_nullifier<let SA: u32
     )
 }
 
+// Visually inspected.
 // Returns the merkle root of the tree from the provided leaf, index and hash_path, using the Poseidon2 hash function
 // Arity is expected to be 2 and the the tree depth is equal to the hash_path array length
 pub fn compute_merkle_root<let N: u32>(leaf: Field, index: Field, hash_path: [Field; N]) -> Field {
@@ -301,6 +314,8 @@ pub fn compute_merkle_root<let N: u32>(leaf: Field, index: Field, hash_path: [Fi
     }
     current
 }
+
+// Recommendation: a negative test that fails a merkle root inclusion check.
 
 #[test]
 fn test_compute_merkle_root1() {

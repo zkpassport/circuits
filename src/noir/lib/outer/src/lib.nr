@@ -3,8 +3,9 @@ use poseidon::poseidon2::Poseidon2;
 global PROOF_SIZE: u32 = 508;
 global VKEY_SIZE: u32 = 115;
 
+// Visually inspected.
 pub fn prepare_integrity_check_inputs(
-    timestamp: u64,
+    timestamp: u64, // consider renaming to `current_date`, for consistency
     comm_in: Field,
     comm_out: Field,
 ) -> [Field; 3] {
@@ -15,6 +16,7 @@ pub fn prepare_integrity_check_inputs(
     result
 }
 
+// Visually inspected.
 pub fn prepare_disclosure_inputs(
     comm_in: Field,
     param_commitment: Field,
@@ -31,6 +33,7 @@ pub fn prepare_disclosure_inputs(
     result
 }
 
+// Visually inspected.
 pub fn poseidon2_hash<let INPUT_LEN: u32>(input: [Field; INPUT_LEN]) -> Field {
     Poseidon2::hash(input, INPUT_LEN)
 }
@@ -40,7 +43,7 @@ pub struct CSCtoDSCProof {
     pub proof: [Field; PROOF_SIZE],
     // Excluding the certificate registry root
     // which is passed separately
-    pub public_inputs: [Field; 1],
+    pub public_inputs: [Field; 1], // comm_out
     pub key_hash: Field,
     // Hash path for circuit A key hash in the sub-circuit merkle tree
     // Allows for up to 4,096 leaves
@@ -52,7 +55,7 @@ pub struct CSCtoDSCProof {
 pub struct DSCtoIDDataProof {
     pub vkey: [Field; VKEY_SIZE],
     pub proof: [Field; PROOF_SIZE],
-    pub public_inputs: [Field; 2],
+    pub public_inputs: [Field; 2], // comm_in, comm_out
     pub key_hash: Field,
     // Hash path for circuit B key hash in the sub-circuit merkle tree
     pub tree_hash_path: [Field; 12],
@@ -63,7 +66,9 @@ pub struct DSCtoIDDataProof {
 pub struct IntegrityCheckProof {
     pub vkey: [Field; VKEY_SIZE],
     pub proof: [Field; PROOF_SIZE],
-    pub public_inputs: [Field; 2],
+    // Excluding the current_date
+    // which is passed separately
+    pub public_inputs: [Field; 2], // comm_in, comm_out
     pub key_hash: Field,
     // Hash path for circuit C key hash in the sub-circuit merkle tree
     pub tree_hash_path: [Field; 12],
@@ -74,7 +79,9 @@ pub struct IntegrityCheckProof {
 pub struct DisclosureProof {
     pub vkey: [Field; VKEY_SIZE],
     pub proof: [Field; PROOF_SIZE],
-    pub public_inputs: [Field; 1],
+    // Excluding: service_scope, service_subscope, param_commitment, scoped_nullifier,
+    // which are passed separately
+    pub public_inputs: [Field; 1], // comm_in
     pub key_hash: Field,
     // Hash path for circuit D key hash in the sub-circuit merkle tree
     pub tree_hash_path: [Field; 12],

@@ -1,6 +1,7 @@
 use bind::calculate_param_commitment_sha2;
 use commitment::nullify;
 
+// Visually inspected.
 fn main(
     comm_in: pub Field,
     salt: Field,
@@ -9,7 +10,7 @@ fn main(
     // @committed
     // The data is public (via the parameter commitment) so verifiers can check the data
     // provided to the proof is correct
-    data: [u8; 500],
+    data: [u8; 500], // Why the choice of 500 bytes? I'd have expected a nice round number like 256 or 512, to enable neat hashing of large amounts of bind data.
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field) {

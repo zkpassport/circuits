@@ -49,6 +49,7 @@ pub fn commit_to_disclosure<let SA_SIZE: u32, let ECONTENT_SIZE: u32>(
             ),
         "Commitment from 2nd subproof doesn't match in 3rd subproof",
     );
+    // Lingering print statements :)
     // println(f"comm_in: {comm_in}");
     // println(f"private_nullifier: {private_nullifier}");
     let comm_out = hash_salt_dg1_private_nullifier(salt_out, dg1, private_nullifier);

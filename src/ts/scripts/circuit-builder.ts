@@ -176,7 +176,9 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     tbs_certificate: [u8; ${tbs_max_len}],
 ) -> pub Field {
     // Get the length of tbs_certificate by parsing the ASN.1
-    // Safety: This is safe because the length must be correct for the hash and signature to be valid
+    // Safety: This is safe because the length must be correct for the hash and signature to be valid.
+    // The tbs_certificate bytes are also asserted to be all-zero after tbs_certificate_len, within 
+    // the 'verify_${curve_family}_${curve_name}' call below.
     let tbs_certificate_len =
         unsafe { utils::unsafe_get_asn1_element_length(tbs_certificate) };
     let (r, s) = split_array(dsc_signature);
@@ -220,7 +222,9 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     exponent: u32,
 ) -> pub Field {
     // Get the length of tbs_certificate by parsing the ASN.1
-    // Safety: This is safe because the length must be correct for the hash and signature to be valid
+    // Safety: This is safe because the length must be correct for the hash and signature to be valid.
+    // The tbs_certificate bytes are also asserted to be all-zero after tbs_certificate_len, within 
+    // the 'verify_signature' call below.
     let tbs_certificate_len =
         unsafe { utils::unsafe_get_asn1_element_length(tbs_certificate) };
     assert(verify_signature::<${Math.ceil(bit_size / 8)}, ${
@@ -262,7 +266,7 @@ use sig_check_ecdsa::verify_${curve_family}_${curve_name};
 use utils::split_array;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
-    comm_in: pub Field,
+    comm_in: pub Field, // hash(salt_in, country, tbs_certificate), as output by the preceding "dsc circuit".
     salt_in: Field,
     salt_out: Field,
     dg1: [u8; 95],
@@ -274,7 +278,9 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     e_content: [u8; 700],
 ) -> pub Field {
     // Get the length of signed_attributes by parsing the ASN.1
-    // Safety: This is safe because the length must be correct for the hash and signature to be valid
+    // Safety: This is safe because the length must be correct for the hash and signature to be valid.
+    // The signed_attributes bytes are also asserted to be all-zero after signed_attributes_size, within 
+    // the '${hash_algorithm}' call below.
     let signed_attributes_size =
         unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) };
     let (r, s) = split_array(sod_signature);
@@ -326,7 +332,9 @@ ${unconstrained ? "unconstrained " : ""}fn main(
 ) -> pub Field {
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate);
     // Get the length of signed_attributes by parsing the ASN.1
-    // Safety: This is safe because the length must be correct for the hash and signature to be valid
+    // Safety: This is safe because the length must be correct for the hash and signature to be valid.
+    // The signed_attributes bytes are also asserted to be all-zero after signed_attributes_size, within 
+    // the 'verify_signature' call below.
     let signed_attributes_size =
         unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) };
     assert(verify_signature::<${Math.ceil(bit_size / 8)}, ${

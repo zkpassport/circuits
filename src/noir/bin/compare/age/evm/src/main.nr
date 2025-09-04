@@ -9,6 +9,14 @@ fn main(
     // @committed
     // The current date timestamp is public (via the parameter commitment) so verifiers can check the date
     // provided to the proof is correct
+    // Danger: need to assert that this `current_date` is equal to the `current_date` public input 
+    // of the "Data Integrity Check" circuit. I can't find where that check is happening in the codebase.
+    // It's not happening in the "outer circuit". Perhaps it happens in the Verifier code?
+    // I read somewhere that as a lovely optimisation, a user generates the first 3 proofs when they
+    // first scan their passport, and then they only need to generate the disclosure proof & outer proof on demand.
+    // This particular disclosure circuit might not be amenable to that optimisation, since the Data Integrity Check
+    // circuit would have to be re-proven with the current date.
+    // Maybe you've already thought of all this :)
     current_date: u64,
     // @committed
     // The minimum age required is public (via the parameter commitment) so verifiers can check

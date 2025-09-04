@@ -55,6 +55,10 @@ contract SampleContract {
       committedInputs,
       committedInputCounts
     );
+    // Possible bug: the `currentDate` from this disclosure proof is not being asserted to equal
+    // the `currentDate` public input of the Outer proof. This means they could be different dates!
+    // That feels like it could lead to vulnerabilities / unexpected behaviour.
+    
     // Make sure the date used for the proof makes sense
     require(block.timestamp >= currentDate, "Date used in proof is in the future");
     // This is the condition for checking the age is 18 or above
@@ -76,6 +80,7 @@ contract SampleContract {
     // Get the nationality from the disclosed data and ignore the rest
     // Passing the disclosed bytes returned by the previous function
     // this function will format it for you so you can use the data you need
+    // Potentially dangerous if a developer mis-counts these many commas. Consider returning structs instead. 
     (, , string memory nationality, , , , , ) = zkPassportVerifier.getDisclosedData(
       disclosedBytes,
       isIDCard
@@ -83,6 +88,11 @@ contract SampleContract {
     return nationality;
   }
 
+  // UX suggestion: it looks like `committedInputs` and `committedInputCounts` will always be passed
+  // around as a pair everywhere. Consider wrapping them in a struct, and giving the struct a less
+  // jargony name, like 'RevealedData` (or something...) so that this app-developer-side code is easier for a non-cryptographer to grasp.
+  // The app developer (who will write a version of this smart contract) can then just pass around this
+  // new struct as an opaque blob of data to any of the neat getter functions you've exposed.
   function checkNationalityExclusion(
     bytes calldata committedInputs,
     uint256[] calldata committedInputCounts
@@ -93,11 +103,14 @@ contract SampleContract {
       ProofType.NATIONALITY_EXCLUSION
     );
     // The exclusion check relies on the country list being sorted in
-    // ascending order, if it is not, then the proof has no value
+    // ascending order, if it is not, then the proof has no value.
+    // ^^^ Consider amending this comment, since now the circuit enforces
+    // the ordering.
     require(
       ArrayUtils.isSortedAscending(nationalityExclusionList),
       "Nationality exclusion countries must be sorted in ascending order"
-    );
+    ); // You can get rid of this `require` now.
+
     // Let's check the exclusion list checked what we expect
     // Here we expect Spain, Italy and Portugal
     require(
@@ -119,6 +132,12 @@ contract SampleContract {
     // passports and ID cards
     // You can ask the user to disclose their document type
     // and the SDK will tell you which one they have
+    // As a possible alternative to this `isIDCard` percolating through your stack,
+    // perhaps the disclosure circuit could output data in a format that's uniform
+    // for both passports and id cards: For each data type, choose the larger byte length,
+    // and expose those uniform lengths from the circuit to the verifier.
+    // It looks like `isIDCard` is only needed for the "disclose" proof type, to it might
+    // not be too big a change? It's up to you, of course :)
     bool isIDCard
   ) public returns (bytes32) {
     (bool verified, bytes32 uniqueIdentifier) = zkPassportVerifier.verifyProof(params);

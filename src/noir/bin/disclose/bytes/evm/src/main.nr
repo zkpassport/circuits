@@ -7,13 +7,13 @@ fn main(
     private_nullifier: Field,
     dg1: [u8; 95],
     // @committed
-    // The disclose mask is public (via the parameter commitment) so verifiers can check the mask
+    // The disclose mask is public (via the `param_commitment`) so verifiers can check the mask
     disclose_mask: [u8; 90],
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field) {
     // @committed
-    // The disclose bytes are public (via the parameter commitment) so verifiers can check the bytes
+    // The disclosed bytes are public (via the `param_commitment`) so verifiers can check the bytes
     let disclosed_bytes = get_disclosed_bytes(dg1, disclose_mask);
     let scoped_nullifier = nullify(
         comm_in,

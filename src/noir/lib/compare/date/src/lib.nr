@@ -16,10 +16,13 @@ fn get_date<let INDEX: u32>(dg1: [u8; 95], threshold_date: Date) -> Date {
     Date::from_bytes_short_year(date_bytes, threshold_date)
 }
 
+// Duplicate of `get_birthdate` in `lib/compare/age/...`? Consider consolidating, to reduce code surface.
+// Consider moving to utils.
 pub fn get_birthdate(dg1: [u8; 95], timestamp: u64) -> Date {
     let current_date = Date::from_timestamp(timestamp);
     let mut birthdate = Date::new(1, 1, 1);
 
+    // There's `get_dob_from_mrz` in utils; consider using that.
     // Get the slice of the MRZ representing the birthdate
     if is_id_card(dg1) {
         birthdate = get_date::<ID_CARD_MRZ_BIRTHDATE_INDEX>(dg1, current_date);
@@ -39,6 +42,7 @@ pub fn get_expiry_date(dg1: [u8; 95], timestamp: u64) -> Date {
     // So with 20 years we should be safe
     let threshold_year = current_date.add_years(20);
 
+    // Consider moving this logic to utils, to live with all its similar "dg1 extraction" friends.
     // Get the slice of the MRZ representing the expiry date
     if is_id_card(dg1) {
         expiry_date = get_date::<ID_CARD_MRZ_EXPIRY_DATE_INDEX>(dg1, threshold_year);
@@ -49,6 +53,15 @@ pub fn get_expiry_date(dg1: [u8; 95], timestamp: u64) -> Date {
     expiry_date
 }
 
+// The upper bound for age comparison vs date comparison is inconsistent, in the sense that one
+// is exclusive and the other is inclusive. This might lead to user confusion, since the `QueryBuilder::range`
+// interface is the same for both kinds (age and date), but the behaviour is different. (Unless of course
+// the Typescript code is already mutating the user's inputs to adhere to the differences in these circuits).
+// According to the docs, the `range` method: "Verifies if a numeric field is within a range (inclusive start, exclusive end)."
+// Consider making both exclusive, unless typescript is already mutating the user's inputs before reaching the circuit
+// (but even so, the inconsistency could lead to bugs in whomever is maintaining these circuits, and could lead 
+// to bugs in the verifier contracts that users will be handling themselves).
+// Tentative recommendation: make all date/age upper bounds be exclusive.
 pub fn compare_date(
     date_to_compare: Date,
     min_date_timestamp: u64,
@@ -78,6 +91,7 @@ pub fn compare_date(
     }
 }
 
+// Somewhat inefficient packing.
 /// Calculate the commitment of the current date, min date and max date using Poseidon2
 ///
 /// This is less demanding on the prover but much more demanding on EVM verifiers

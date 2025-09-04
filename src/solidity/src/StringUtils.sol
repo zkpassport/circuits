@@ -2,6 +2,7 @@
 // Copyright 2025 ZKPassport
 pragma solidity >=0.8.21;
 
+// Missing tests for all fns.
 library StringUtils {
   function equals(string memory a, string memory b) internal pure returns (bool) {
     return keccak256(bytes(a)) == keccak256(bytes(b));
