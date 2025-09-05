@@ -5,10 +5,12 @@ fn main(
     comm_in: pub Field,
     salt: Field,
     private_nullifier: Field,
+// Suggestion: Use DG1Data type
     dg1: [u8; 95],
     // @committed
     // The disclose mask is public (via the parameter commitment) so verifiers can check the mask
-    disclose_mask: [u8; 90],
+    // ^^^ I see. I was going to comment that these masks should be `bool` types, or the existing `u8` types should be constrained to be `0 or 1` only, to prevent malicious usage of the `mask[i] * mrz[i]` calculation in `get_disclosed_bytes`.
+    disclose_mask: [u8; 90], // Consider replacing `90` with a global constant.
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field) {

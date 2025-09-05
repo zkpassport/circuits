@@ -4,6 +4,7 @@ use sig_check_common::sha256_and_check_data_to_sign;
 use sig_check_ecdsa::verify_nist_p384;
 use utils::{concat_array, split_array};
 
+// Visually inspected this example.
 fn main(
     certificate_registry_root: pub Field,
     certificate_registry_index: Field,
@@ -18,6 +19,8 @@ fn main(
 ) -> pub Field {
     // Get the length of tbs_certificate by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid
+    // There's a check that the tbs_certificate is all zeroes after `tbs_certificate_len` (within `verify..()`). Consider moving
+    // that check to immediately after this unsafe call, to make it clear that the check is being done.
     let tbs_certificate_len = unsafe { utils::unsafe_get_asn1_element_length(tbs_certificate) };
     let (r, s) = split_array(dsc_signature);
     let msg_hash = sha256_and_check_data_to_sign(tbs_certificate, tbs_certificate_len);

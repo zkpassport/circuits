@@ -2,10 +2,13 @@ use commitment::nullify;
 use disclose::get_disclosed_data;
 use utils::{DisclosedData, DiscloseFlags};
 
+// Apparently this is not used. Consider removing. 
+// Not audited.
 fn main(
     comm_in: pub Field,
     salt: Field,
     private_nullifier: Field,
+// Suggestion: Use DG1Data type
     dg1: [u8; 95],
     disclose_flags: DiscloseFlags,
     service_scope: pub Field,

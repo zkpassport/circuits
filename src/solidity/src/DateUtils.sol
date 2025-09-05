@@ -2,6 +2,8 @@
 // Copyright 2025 ZKPassport
 pragma solidity >=0.8.21;
 
+// Visually inspected.
+// Missing tests.
 library DateUtils {
   /**
    * @dev Validates if a date is within a validity period

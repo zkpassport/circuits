@@ -5,6 +5,7 @@ use crate::types::{
 };
 use poseidon::poseidon2::Poseidon2;
 
+// Visually inspected.
 ///
 /// Ordered Merkle Tree Inclusion Proof
 ///
@@ -14,11 +15,15 @@ pub fn ordered_mt_verify_inclusion(
     root: Field,
     inclusion_proof: SanctionsOrderedMerkleTreeInclusionProof,
 ) {
+    // Nit: Inconsistent endianness vs `compute_merkle_root`.
+    // It's so close to being possible to nuke this function and have just one merkle inclusion function (`compute_merkle_root`).
+    // (You'd then be able to rely on the tests for `compute_merkle_root`, because there are no tests for this function).
     let path_in_bits: [u1; SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH] =
         inclusion_proof.leaf_index.to_be_bits::<SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH>();
 
     let mut current = inclusion_proof.leaf;
     for i in 0..SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH {
+        // Nit: Accessing the `path_in_bits` and the `sibling_path` in opposite directions is jarring.
         let (left, right) = if path_in_bits[SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH - i - 1] == 1 {
             (inclusion_proof.sibling_path[i], current)
         } else {
@@ -30,8 +35,17 @@ pub fn ordered_mt_verify_inclusion(
     assert(current == root);
 }
 
+// Visually inspected.
+// Calling it `leaf` is a bit confusing, because it's not a leaf of the tree. It's a value that 
+// doesn't exist as a leaf in the tree.
+// Danger: I'm not sure this would work if the `leaf` (the value being checked for non-membership) is:
+// - gt the largest leaf (because there is no `right` to compare against; or
+// - lt the smallest leaf (leaf index `0`) (because there is no `left` to compare against).
+// Unless... there hard-coded dummy leaves of `0` at the start and `-1` at the end of the tree's leaves?
+// If you are relying on such an assumption (dummy start and end leaves), consider asserting their
+// existence within this circuit.
 pub fn ordered_mt_non_membership(root: Field, leaf: Field, proof: SanctionsOrderedMerkleTreeProof) {
-    // Perform inclusion checks for bothe the closest upper and the closest lower
+    // Perform inclusion checks for both the closest upper and the closest lower
     ordered_mt_verify_inclusion(root, proof.left);
     ordered_mt_verify_inclusion(root, proof.right);
 
@@ -39,13 +53,22 @@ pub fn ordered_mt_non_membership(root: Field, leaf: Field, proof: SanctionsOrder
     assert(proof.left.leaf.lt(leaf));
     assert(leaf.lt(proof.right.leaf));
 
-    // Check that their indexes are adjacent
+    // Check that their indexes are adjacent, meaning there is no "room" for the `leaf` because
+    // the leaf values are strictly increasing. (Validation that they're strictly increasing is
+    // the responsibility of the verifier).
     assert(proof.left.leaf_index + 1 == proof.right.leaf_index);
 }
 
+// Recommend tests for:
+// - Non membership of a leaf the very beginning of the tree (presumably against a `left` leaf of `0`?).
+// - Non membership of a leaf the very end of the tree (presumably against a `right` leaf of `-1`??).
+// - Negative tests: at least as many as trigger each of the 3 assertions in the above function to _fail_.
+
 #[test]
 fn test_ordered_mt_non_membership() {
+    // I can't find evidence of this command in the repo.
     // Run yarn generate-sanction-test-data to generate the test data
+    // Why is there typescript in these comments?
     // const passportNoAndCountrySMT = await AsyncOrderedMT.fromSerialized(passportNoAndCountryJson, poseidon2)
     // const passportNoAndCountryNonMembershipProof = await passportNoAndCountrySMT.createNonMembershipProof(1n);
     // console.log(passportNoAndCountryNonMembershipProof);

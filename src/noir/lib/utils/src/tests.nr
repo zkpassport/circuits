@@ -43,6 +43,8 @@ impl DG1Builder {
         get_mrz_from_dg1(self.dg1)
     }
 
+    // Confusing name (since there's already an `is_id_card` that returns a bool).
+    // Consider renaming, e.g. `set_as_id_card`.
     pub fn is_id_card(mut self: Self) -> Self {
         // Set the last two bytes to NON 0 to indicate an ID card
         self.dg1[93] = 1;
@@ -342,6 +344,9 @@ fn test_find_substring_index_various_cases() {
     assert_eq(index4, 2);
 
     // Test case 5: Empty needle (should return 0)
+    // The comment above the function says `/// Returns HAYSTACK_SIZE if the needle is not found`,
+    // so this test isn't returning the value I'd expect. To my intuition, the empty array is not in the haystack,
+    // so index `0` (as this test asserts) seems wrong. And actually, the element at index 0 is not `[]`; it's `0x01`.
     let needle5: [u8; 0] = [];
     let haystack5 = [0x01, 0x02, 0x03, 0x04, 0x05];
     let index5 = find_subarray_index(needle5, haystack5);
@@ -376,6 +381,8 @@ fn test_find_substring_index_various_cases() {
     let haystack10 = [0x01, 0x02, 0x03, 0x05, 0x06, 0x07, 0x08, 0x09];
     let index10 = find_subarray_index(needle10, haystack10);
     assert_eq(index10, haystack10.len()); // Should equal haystack size
+
+    // Missing negative tests which mock malicious return values from `find_subarray_index_unsafe` 
 }
 
 pub fn verify_substring_in_string<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(

@@ -18,6 +18,10 @@ fn main(
     // Get the length of e_content by parsing the ASN.1
     // Safety: This is safe because the length must be correct for econtent to hash to
     // the expected digest in signed attributes as checked below in check_signed_attributes_sha256
+    // Warning: A pattern in other circuits has been to constrain that the length returned from one of these unconstrained calls
+    // is somewhat correct, by asserting that all elements _after_ the claimed length are all zero.
+    // I can't see that being done within any of the functions of this circuit, so e_content might contain
+    // nonzero entries after this `e_content_size`.
     let e_content_size = unsafe { utils::unsafe_get_asn1_element_length(e_content) };
     // Check the integrity of the data
     check_dg1_sha256(dg1, e_content, e_content_size);

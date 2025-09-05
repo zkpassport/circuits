@@ -38,6 +38,9 @@ pub fn commit_to_dsc<let CSC_KEY_SIZE: u32, let HASH_PATH_SIZE: u32, let TBS_CER
     csc_pubkey: [u8; CSC_KEY_SIZE],
 ) -> Field {
     // Verify csc_pubkey exists in certificate registry
+    // How is this registry merkle tree secured / maintained?
+    // Where is the root published, for reference?
+    // Who has access to manipulate the root?
     let leaf: Field =
         calculate_certificate_registry_leaf(certificate_tags, CSC_CERT_TYPE, country, csc_pubkey);
     let root = compute_merkle_root(

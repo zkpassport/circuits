@@ -2,6 +2,7 @@ use commitment::nullify;
 use compare_date_lib::{calculate_param_commitment_sha2, compare_date, get_birthdate};
 use utils::PROOF_TYPE_BIRTHDATE;
 
+// Visually inspected.
 fn main(
     comm_in: pub Field,
     salt: Field,
@@ -10,6 +11,7 @@ fn main(
     // @committed
     // The current date timestamp is public (via the parameter commitment) so verifiers can check the date
     // provided to the proof is correct
+    // Danger: see concerns in `compare/age/evm/src/main.nr`.
     current_date: u64,
     // @committed
     // The minimum date required is public (via the parameter commitment) so verifiers can check

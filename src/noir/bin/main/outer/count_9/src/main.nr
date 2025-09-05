@@ -30,6 +30,7 @@ use outer_lib::{
 use std::verify_proof_with_type;
 global PROOF_TYPE_HONK_ZK: u32 = 7;
 
+// Visually inspected.
 fn verify_subproofs(
     // Root of the certificate merkle tree
     certificate_registry_root: Field,
@@ -128,8 +129,8 @@ fn verify_subproofs(
 
     // Commitment out from CSC to DSC circuit == commitment in from DSC to ID Data circuit
     assert_eq(
-        csc_to_dsc_proof.public_inputs[0],
-        dsc_to_id_data_proof.public_inputs[0],
+        csc_to_dsc_proof.public_inputs[0], // comm_out
+        dsc_to_id_data_proof.public_inputs[0], // comm_in
         "Commitment out from CSC to DSC circuit != commitment in from DSC to ID Data circuit",
     );
 
@@ -146,8 +147,8 @@ fn verify_subproofs(
 
     // Commitment out from DSC to ID Data circuit == commitment in from integrity check circuit
     assert_eq(
-        dsc_to_id_data_proof.public_inputs[1],
-        integrity_check_proof.public_inputs[0],
+        dsc_to_id_data_proof.public_inputs[1], // comm_out
+        integrity_check_proof.public_inputs[0], // comm_in
         "Commitment out from DSC to ID Data circuit != commitment in from integrity check circuit",
     );
 
@@ -166,8 +167,8 @@ fn verify_subproofs(
     for i in 0..disclosure_proofs.len() {
         // Commitment out from integrity check circuit == commitment in from disclosure circuit
         assert_eq(
-            integrity_check_proof.public_inputs[1],
-            disclosure_proofs[i].public_inputs[0],
+            integrity_check_proof.public_inputs[1], // comm_out
+            disclosure_proofs[i].public_inputs[0], // comm_in
             "Commitment out from integrity check circuit != commitment in from disclosure circuit",
         );
 

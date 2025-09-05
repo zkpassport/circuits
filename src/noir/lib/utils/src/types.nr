@@ -1,3 +1,5 @@
+// Recommendation: Replace all these magic numbers with the `_LENGTH` globals from `../lib.nr` (and introduce globals if any are missing).
+
 // DG1 types
 pub type DG1Data = [u8; 95];
 pub type MRZData = [u8; 90];
