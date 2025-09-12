@@ -35,9 +35,10 @@ pub fn get_disclosed_bytes(dg1: [u8; 95], mask: [u1; 90]) -> [u8; 90] {
 /// # Returns
 ///
 /// * `commitment`: The commitment of the disclose mask and disclosed bytes
-pub fn calculate_param_commitment(disclose_mask: [u8; 90], disclosed_bytes: [u8; 90]) -> Field {
+pub fn calculate_param_commitment(disclose_mask: [u1; 90], disclosed_bytes: [u8; 90]) -> Field {
     let mut params = [0 as Field; 181];
     params[0] = PROOF_TYPE_DISCLOSE as Field;
+    // TODO: pack these bytes into fields
     for i in 1..91 {
         params[i] = disclose_mask[i - 1] as Field;
     }
@@ -60,13 +61,13 @@ pub fn calculate_param_commitment(disclose_mask: [u8; 90], disclosed_bytes: [u8;
 ///
 /// * `commitment`: The commitment of the disclose mask and disclosed bytes
 pub fn calculate_param_commitment_sha2(
-    disclose_mask: [u8; 90],
+    disclose_mask: [u1; 90],
     disclosed_bytes: [u8; 90],
 ) -> Field {
     let mut params = [0 as u8; 181];
     params[0] = PROOF_TYPE_DISCLOSE;
     for i in 1..91 {
-        params[i] = disclose_mask[i - 1];
+        params[i] = disclose_mask[i - 1] as u8;
     }
     for i in 91..181 {
         params[i] = disclosed_bytes[i - 91];
