@@ -6,6 +6,8 @@ use utils::{
     is_id_card,
 };
 
+pub mod tests;
+
 pub fn check_expiry(dg1: [u8; 95], current_date_timestamp: u64) {
     let current_date = Date::from_timestamp(current_date_timestamp);
 
