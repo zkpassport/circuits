@@ -738,7 +738,7 @@ describe("subcircuits - RSA PKCS", () => {
     test("less than", async () => {
       const age = calculateAge(helper.passport)
       const query: Query = {
-        age: { lte: age + 1 },
+        age: { lt: age + 1 },
       }
       // const inputs = await getAgeCircuitInputs(helper.passport as any, query, SALT)
       const inputs = await getAgeCircuitInputs(
@@ -756,7 +756,7 @@ describe("subcircuits - RSA PKCS", () => {
       })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const calculatedParamCommitment = await getAgeParameterCommitment(nowTimestamp, 0, age + 1)
+      const calculatedParamCommitment = await getAgeParameterCommitment(nowTimestamp, 0, age)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
@@ -767,7 +767,7 @@ describe("subcircuits - RSA PKCS", () => {
     test("between", async () => {
       const age = calculateAge(helper.passport)
       const query: Query = {
-        age: { gte: age, lte: age + 2 },
+        age: { gte: age, lt: age + 2 },
       }
       // const inputs = await getAgeCircuitInputs(helper.passport as any, query, SALT)
       const inputs = await getAgeCircuitInputs(
@@ -785,7 +785,7 @@ describe("subcircuits - RSA PKCS", () => {
       })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const calculatedParamCommitment = await getAgeParameterCommitment(nowTimestamp, age, age + 2)
+      const calculatedParamCommitment = await getAgeParameterCommitment(nowTimestamp, age, age + 1)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)

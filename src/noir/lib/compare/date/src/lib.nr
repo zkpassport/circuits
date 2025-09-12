@@ -10,6 +10,8 @@ use utils::{
     is_id_card,
 };
 
+pub mod tests;
+
 fn get_date<let INDEX: u32>(dg1: [u8; 95], threshold_date: Date) -> Date {
     let mrz = get_mrz_from_dg1(dg1);
 
