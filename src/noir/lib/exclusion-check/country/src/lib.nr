@@ -1,5 +1,5 @@
 use poseidon::poseidon2::Poseidon2;
-use utils::{get_issuing_country_from_mrz, get_nationality_from_mrz};
+use utils::{get_issuing_country_from_mrz, get_nationality_from_mrz, types::DG1Data};
 
 pub mod tests;
 
@@ -93,7 +93,7 @@ fn check_exclusion<let N: u32>(country_sum: u32, country_list: [u32; N]) {
 /// * `country_list` - The sorted list of countries to check against, must be formatted as a list of u32
 /// which are the Alpha-3 codes of the countries with each letter ASCII code put together using a weighted sum.
 /// e.g. for "FRA", the sum is 70 * 2^16 (0x10000) + 82 * 2^8 (0x100) + 65 = 4587520 + 20992 + 65 = 4608577
-pub fn check_nationality_exclusion<let N: u32>(dg1: [u8; 95], country_list: [u32; N]) {
+pub fn check_nationality_exclusion<let N: u32>(dg1: DG1Data, country_list: [u32; N]) {
     // Check that the list is sorted in ascending order
     assert(
         check_country_list_sorted(country_list),
@@ -113,7 +113,7 @@ pub fn check_nationality_exclusion<let N: u32>(dg1: [u8; 95], country_list: [u32
 /// So it must come either from a public input that can be independently checked
 /// or from a previous in-circuit check that the list is sorted
 /// If the list is not sorted, the proof will fail to generate
-pub fn check_issuing_country_exclusion<let N: u32>(dg1: [u8; 95], country_list: [u32; N]) {
+pub fn check_issuing_country_exclusion<let N: u32>(dg1: DG1Data, country_list: [u32; N]) {
     // Check that the list is sorted in ascending order
     assert(
         check_country_list_sorted(country_list),

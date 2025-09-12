@@ -3,19 +3,19 @@ use commitment::commit_to_id;
 use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
 use sig_check_common::sha1_and_check_data_to_sign;
 use sig_check_ecdsa::verify_brainpool_384r1;
-use utils::split_array;
+use utils::{split_array, types::{DG1Data, EContentData, SignedAttrsData}};
 
 fn main(
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,
-    dg1: [u8; 95],
+    dg1: DG1Data,
     dsc_pubkey_x: [u8; 48],
     dsc_pubkey_y: [u8; 48],
     sod_signature: [u8; 96],
     tbs_certificate: [u8; 700],
-    signed_attributes: [u8; 220],
-    e_content: [u8; 700],
+    signed_attributes: SignedAttrsData,
+    e_content: EContentData,
 ) -> pub Field {
     // Get the length of signed_attributes by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid

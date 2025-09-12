@@ -1,12 +1,3 @@
-// P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<<<
-pub global SAMPLE_DG1: [u8; 95] = [
-    0x61, 0x5B, 0x5F, 0x1F, 0x58, 80, 60, 65, 85, 83, 83, 73, 76, 86, 69, 82, 72, 65, 78, 68, 60,
-    60, 74, 79, 72, 78, 78, 89, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60,
-    60, 60, 60, 60, 80, 65, 49, 50, 51, 52, 53, 54, 55, 95, 65, 85, 83, 56, 56, 49, 49, 49, 50, 95,
-    77, 51, 48, 48, 49, 48, 49, 95, 60, 67, 89, 66, 69, 82, 67, 73, 84, 89, 60, 60, 60, 60, 60, 60,
-    0, 0,
-];
-
 // Index for the country of issuance of the passport
 pub global PASSPORT_MRZ_COUNTRY_INDEX: u32 = 2;
 // Length of the country code in the MRZ
@@ -38,6 +29,8 @@ pub global PASSPORT_MRZ_NAME_INDEX: u32 = 5;
 pub global PASSPORT_MRZ_NAME_LENGTH: u32 = 39;
 // Length of the MRZ on a passport
 pub global PASSPORT_MRZ_LENGTH: u32 = 88;
+// Length of the DG1 on a passport
+pub global PASSPORT_DG1_LENGTH: u32 = 93;
 
 // Index for the country of issuance of the ID card
 pub global ID_CARD_MRZ_COUNTRY_INDEX: u32 = 2;
@@ -69,6 +62,8 @@ pub global ID_CARD_MRZ_NAME_INDEX: u32 = 60;
 pub global ID_CARD_MRZ_NAME_LENGTH: u32 = 30;
 // Length of the MRZ on an ID card
 pub global ID_CARD_MRZ_LENGTH: u32 = 90;
+// Length of the DG1 on an ID card
+pub global ID_CARD_DG1_LENGTH: u32 = 95;
 
 // ASCII_CODE FOR <
 pub global ASCII_CODE_FOR_LESS_THAN: u8 = 60;
@@ -98,3 +93,32 @@ pub global PROOF_TYPE_ISSUING_COUNTRY_INCLUSION: u8 = 6;
 pub global PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION: u8 = 7;
 pub global PROOF_TYPE_BIND: u8 = 8;
 pub global PROOF_TYPE_SANCTIONS_EXCLUSION: u8 = 9;
+
+// DG1 length
+pub global DG1_LENGTH: u32 = 95;
+// EContent length
+pub global ECONTENT_LENGTH: u32 = 700;
+// Signed attributes length
+pub global SIGNED_ATTRS_LENGTH: u32 = 220;
+// MAX MRZ length = ID card MRZ length
+pub global MAX_MRZ_LENGTH: u32 = ID_CARD_MRZ_LENGTH;
+
+// SHA1 digest length
+pub global SHA1_DIGEST_LENGTH: u32 = 20;
+// SHA224 digest length
+pub global SHA224_DIGEST_LENGTH: u32 = 28;
+// SHA256 digest length
+pub global SHA256_DIGEST_LENGTH: u32 = 32;
+// SHA384 digest length
+pub global SHA384_DIGEST_LENGTH: u32 = 48;
+// SHA512 digest length
+pub global SHA512_DIGEST_LENGTH: u32 = 64;
+
+// P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<<<
+pub global SAMPLE_DG1: [u8; DG1_LENGTH] = [
+    0x61, 0x5B, 0x5F, 0x1F, 0x58, 80, 60, 65, 85, 83, 83, 73, 76, 86, 69, 82, 72, 65, 78, 68, 60,
+    60, 74, 79, 72, 78, 78, 89, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60,
+    60, 60, 60, 60, 80, 65, 49, 50, 51, 52, 53, 54, 55, 95, 65, 85, 83, 56, 56, 49, 49, 49, 50, 95,
+    77, 51, 48, 48, 49, 48, 49, 95, 60, 67, 89, 66, 69, 82, 67, 73, 84, 89, 60, 60, 60, 60, 60, 60,
+    0, 0,
+];

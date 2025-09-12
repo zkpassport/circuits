@@ -2,7 +2,7 @@
 use commitment::commit_to_dsc;
 use sig_check_common::sha512_and_check_data_to_sign;
 use sig_check_ecdsa::verify_brainpool_512r1;
-use utils::{concat_array, split_array};
+use utils::{concat_array, split_array, types::Alpha3CountryCode};
 
 fn main(
     certificate_registry_root: pub Field,
@@ -10,7 +10,7 @@ fn main(
     certificate_registry_hash_path: [Field; 16],
     certificate_tags: [Field; 3],
     salt: Field,
-    country: str<3>,
+    country: Alpha3CountryCode,
     csc_pubkey_x: [u8; 64],
     csc_pubkey_y: [u8; 64],
     dsc_signature: [u8; 128],

@@ -3,13 +3,13 @@ use exclusion_check_sanctions::param_commit::calculate_param_commitment_sha2;
 use exclusion_check_sanctions::{
     SanctionsSparseMerkleTrees, types::SanctionsOrderedMerkleTreeProofs,
 };
-use utils::constants::PROOF_TYPE_SANCTIONS_EXCLUSION;
+use utils::{constants::PROOF_TYPE_SANCTIONS_EXCLUSION, types::DG1Data};
 
 fn main(
     comm_in: pub Field,
     salt: Field,
     private_nullifier: Field,
-    dg1: [u8; 95],
+    dg1: DG1Data,
     root: Field,
     proofs: SanctionsOrderedMerkleTreeProofs,
     service_scope: pub Field,

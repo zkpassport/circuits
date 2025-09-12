@@ -1,14 +1,15 @@
 use commitment::nullify;
 use disclose::{calculate_param_commitment_sha2, get_disclosed_bytes};
+use utils::types::{DG1Data, DiscloseMask};
 
 fn main(
     comm_in: pub Field,
     salt: Field,
     private_nullifier: Field,
-    dg1: [u8; 95],
+    dg1: DG1Data,
     // @committed
     // The disclose mask is public (via the parameter commitment) so verifiers can check the mask
-    disclose_mask: [u1; 90],
+    disclose_mask: DiscloseMask,
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field) {

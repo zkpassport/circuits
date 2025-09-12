@@ -1,5 +1,5 @@
 use common::{calculate_scoped_nullifier, hash_salt_dg1_private_nullifier};
-use utils::get_issuing_country_from_mrz;
+use utils::{get_issuing_country_from_mrz, types::DG1Data};
 
 // The ZKR (or Zero Knowledge Republic) is a mock country used for testing purposes
 global ZKR_COUNTRY_CODE_BYTES: [u8; 3] = [90, 75, 82];
@@ -30,7 +30,7 @@ scoped_nullifier    `H(private_nullifier, service_scope, service_subscope)`
 pub fn nullify(
     comm_in: Field,
     salt: Field,
-    dg1: [u8; 95],
+    dg1: DG1Data,
     private_nullifier: Field,
     service_scope: Field,
     service_subscope: Field,

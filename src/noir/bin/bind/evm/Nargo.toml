@@ -7,3 +7,4 @@ compiler_version = ">=1.0.0"
 [dependencies]
 bind = { path = "../../../lib/bind" }
 commitment = { path = "../../../lib/commitment/scoped-nullifier" }
+utils = { path = "../../../lib/utils" }

@@ -1,12 +1,12 @@
 use commitment::nullify;
 use compare_date_lib::{calculate_param_commitment_sha2, compare_date, get_birthdate};
-use utils::constants::PROOF_TYPE_BIRTHDATE;
+use utils::{constants::PROOF_TYPE_BIRTHDATE, types::DG1Data};
 
 fn main(
     comm_in: pub Field,
     salt: Field,
     private_nullifier: Field,
-    dg1: [u8; 95],
+    dg1: DG1Data,
     // @committed
     // The current date timestamp is public (via the parameter commitment) so verifiers can check the date
     // provided to the proof is correct

@@ -1,12 +1,12 @@
 use commitment::nullify;
 use exclusion_check_country::{calculate_param_commitment, check_issuing_country_exclusion};
-use utils::constants::PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION;
+use utils::{constants::PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION, types::DG1Data};
 
 fn main(
     comm_in: pub Field,
     salt: Field,
     private_nullifier: Field,
-    dg1: [u8; 95],
+    dg1: DG1Data,
     // @committed
     // There are roughly 200 countries in the world
     // so we can safely pad it to 200

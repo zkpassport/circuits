@@ -1,8 +1,8 @@
 use super::{check_issuing_country_inclusion, check_nationality_inclusion};
-use utils::constants::SAMPLE_DG1;
+use utils::{constants::SAMPLE_DG1, types::Alpha3CountryCode};
 
-fn pad_country_list<let N: u32>(country_list: [str<3>; N]) -> [str<3>; 200] {
-    let mut padded_country_list: [str<3>; 200] = ["\0\0\0"; 200];
+fn pad_country_list<let N: u32>(country_list: [Alpha3CountryCode; N]) -> [Alpha3CountryCode; 200] {
+    let mut padded_country_list: [Alpha3CountryCode; 200] = ["\0\0\0"; 200];
     for i in 0..N {
         padded_country_list[i] = country_list[i];
     }

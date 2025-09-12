@@ -8,11 +8,12 @@ use utils::{
     get_array_slice,
     get_mrz_from_dg1,
     is_id_card,
+    types::DG1Data,
 };
 
 pub mod tests;
 
-fn get_date<let INDEX: u32>(dg1: [u8; 95], threshold_date: Date) -> Date {
+fn get_date<let INDEX: u32>(dg1: DG1Data, threshold_date: Date) -> Date {
     let mrz = get_mrz_from_dg1(dg1);
 
     let date_bytes = get_array_slice(mrz, INDEX, INDEX + 6);
@@ -23,8 +24,8 @@ fn get_date<let INDEX: u32>(dg1: [u8; 95], threshold_date: Date) -> Date {
     Date::from_bytes_short_year(date_bytes, threshold_date)
 }
 
-pub fn get_birthdate(dg1: [u8; 95], timestamp: u64) -> Date {
-    let current_date = Date::from_timestamp(timestamp);
+pub fn get_birthdate(dg1: DG1Data, current_date_timestamp: u64) -> Date {
+    let current_date = Date::from_timestamp(current_date_timestamp);
     let mut birthdate = Date::new(1, 1, 1);
 
     // Get the slice of the MRZ representing the birthdate
@@ -37,8 +38,8 @@ pub fn get_birthdate(dg1: [u8; 95], timestamp: u64) -> Date {
     birthdate
 }
 
-pub fn get_expiry_date(dg1: [u8; 95], timestamp: u64) -> Date {
-    let current_date = Date::from_timestamp(timestamp);
+pub fn get_expiry_date(dg1: DG1Data, current_date_timestamp: u64) -> Date {
+    let current_date = Date::from_timestamp(current_date_timestamp);
     let mut expiry_date = Date::new(1, 1, 1);
 
     // We base the threshold year for the expiry date on the current date plus 20 years

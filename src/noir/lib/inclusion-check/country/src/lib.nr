@@ -1,9 +1,13 @@
 use poseidon::poseidon2::Poseidon2;
-use utils::{get_issuing_country_from_mrz, get_nationality_from_mrz};
+use utils::{
+    get_issuing_country_from_mrz,
+    get_nationality_from_mrz,
+    types::{Alpha3CountryCode, DG1Data},
+};
 
 pub mod tests;
 
-unconstrained fn get_index<let N: u32>(list: [str<3>; N], value: [u8; 3]) -> i32 {
+unconstrained fn get_index<let N: u32>(list: [Alpha3CountryCode; N], value: [u8; 3]) -> i32 {
     let mut index: i32 = -1;
     for i in 0..N {
         let list_item = list[i].as_bytes();
@@ -20,7 +24,7 @@ unconstrained fn get_index<let N: u32>(list: [str<3>; N], value: [u8; 3]) -> i32
 ///
 /// * `dg1`: The MRZ
 /// * `country_list`: The list of countries
-pub fn check_nationality_inclusion<let N: u32>(dg1: [u8; 95], country_list: [str<3>; N]) {
+pub fn check_nationality_inclusion<let N: u32>(dg1: DG1Data, country_list: [Alpha3CountryCode; N]) {
     let nationality_bytes = get_nationality_from_mrz(dg1);
 
     // Safety: get the index of the country in the list from an unconstrained function
@@ -40,7 +44,7 @@ pub fn check_nationality_inclusion<let N: u32>(dg1: [u8; 95], country_list: [str
 ///
 /// * `dg1`: The MRZ
 /// * `country_list`: The list of countries
-pub fn check_issuing_country_inclusion<let N: u32>(dg1: [u8; 95], country_list: [str<3>; N]) {
+pub fn check_issuing_country_inclusion<let N: u32>(dg1: DG1Data, country_list: [str<3>; N]) {
     let issuing_country_bytes = get_issuing_country_from_mrz(dg1);
 
     // Safety: get the index of the country in the list from an unconstrained function
@@ -70,7 +74,10 @@ pub fn check_issuing_country_inclusion<let N: u32>(dg1: [u8; 95], country_list: 
 /// # Returns
 ///
 /// * `commitment`: The commitment of the country list
-pub fn calculate_param_commitment<let N: u32>(proof_type: u8, country_list: [str<3>; N]) -> Field {
+pub fn calculate_param_commitment<let N: u32>(
+    proof_type: u8,
+    country_list: [Alpha3CountryCode; N],
+) -> Field {
     let mut params = [0 as Field; N + 1];
     params[0] = proof_type as Field;
     for i in 1..N + 1 {
@@ -97,7 +104,7 @@ pub fn calculate_param_commitment<let N: u32>(proof_type: u8, country_list: [str
 /// * `commitment`: The commitment of the country list
 pub fn calculate_param_commitment_sha2<let N: u32>(
     proof_type: u8,
-    country_list: [str<3>; N],
+    country_list: [Alpha3CountryCode; N],
 ) -> Field {
     let mut params = [0 as u8; N * 3 + 1];
     params[0] = proof_type;
