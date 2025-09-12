@@ -1,9 +1,7 @@
 use date::Date;
 use poseidon::poseidon2::Poseidon2;
 use utils::{
-    constants::{
-        ID_CARD_MRZ_BIRTHDATE_INDEX, PASSPORT_MRZ_BIRTHDATE_INDEX, PROOF_TYPE_AGE,
-    },
+    constants::{ID_CARD_MRZ_BIRTHDATE_INDEX, PASSPORT_MRZ_BIRTHDATE_INDEX, PROOF_TYPE_AGE},
     get_array_slice,
     get_mrz_from_dg1,
     is_id_card,

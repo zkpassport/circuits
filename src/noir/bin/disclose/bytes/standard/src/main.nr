@@ -8,7 +8,7 @@ fn main(
     dg1: [u8; 95],
     // @committed
     // The disclose mask is public (via the parameter commitment) so verifiers can check the mask
-    disclose_mask: [u8; 90],
+    disclose_mask: [u1; 90],
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field) {

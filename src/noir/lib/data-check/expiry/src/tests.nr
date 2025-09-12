@@ -1,6 +1,6 @@
-use utils::constants::SAMPLE_DG1;
 use super::check_expiry;
 use date::Date;
+use utils::constants::SAMPLE_DG1;
 
 #[test]
 fn test_check_expiry() {

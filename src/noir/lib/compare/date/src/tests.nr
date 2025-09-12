@@ -1,6 +1,6 @@
-use utils::constants::SAMPLE_DG1;
-use super::{get_birthdate, get_expiry_date, compare_date};
+use super::{compare_date, get_birthdate, get_expiry_date};
 use date::Date;
+use utils::constants::SAMPLE_DG1;
 
 #[test]
 fn test_get_birthdate() {
@@ -78,7 +78,7 @@ fn test_compare_date_equal() {
 }
 
 #[test]
-fn test_compare_date_greater_than_or_equal() {  
+fn test_compare_date_greater_than_or_equal() {
     let date = Date::new(2030, 1, 1);
     let min_date = Date::new(2029, 12, 31);
     compare_date(date, min_date.to_timestamp(), 0, 1970);
@@ -94,7 +94,7 @@ fn test_compare_date_greater_than_or_equal_fail() {
 #[test]
 fn test_compare_date_less_than_or_equal() {
     let date = Date::new(2030, 1, 1);
-    let max_date = Date::new(2030, 1, 2);   
+    let max_date = Date::new(2030, 1, 2);
     compare_date(date, 0, max_date.to_timestamp(), 1970);
 }
 

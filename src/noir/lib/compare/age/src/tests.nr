@@ -1,6 +1,6 @@
-use utils::constants::SAMPLE_DG1;
-use super::{get_birthdate, compare_age};
+use super::{compare_age, get_birthdate};
 use date::Date;
+use utils::constants::SAMPLE_DG1;
 
 #[test]
 fn test_get_birthdate() {
