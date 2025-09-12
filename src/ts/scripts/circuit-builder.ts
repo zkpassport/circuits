@@ -57,19 +57,16 @@ ${dependencies.map(({ name, path }) => `${name} = { path = "${path}" }`).join("\
 `
 
 const STATIC_CIRCUITS = [
-  { name: "compare_citizenship", path: "./src/noir/bin/compare/citizenship" },
   { name: "compare_age", path: "./src/noir/bin/compare/age/standard" },
   { name: "compare_age_evm", path: "./src/noir/bin/compare/age/evm" },
   { name: "compare_expiry", path: "./src/noir/bin/compare/expiry/standard" },
   { name: "compare_expiry_evm", path: "./src/noir/bin/compare/expiry/evm" },
   { name: "compare_birthdate", path: "./src/noir/bin/compare/birthdate/standard" },
   { name: "compare_birthdate_evm", path: "./src/noir/bin/compare/birthdate/evm" },
-  { name: "disclose_flags", path: "./src/noir/bin/disclose/flags" },
   { name: "disclose_bytes", path: "./src/noir/bin/disclose/bytes/standard" },
   { name: "disclose_bytes_evm", path: "./src/noir/bin/disclose/bytes/evm" },
   { name: "bind", path: "./src/noir/bin/bind/standard" },
   { name: "bind_evm", path: "./src/noir/bin/bind/evm" },
-  { name: "data_check_expiry", path: "./src/noir/bin/data-check/expiry" },
   {
     name: "exclusion_check_issuing_country",
     path: "./src/noir/bin/exclusion-check/issuing-country/standard",
@@ -120,7 +117,6 @@ const LIB_CIRCUITS = [
   "src/noir/lib/commitment/integrity-to-disclosure",
   "src/noir/lib/commitment/scoped-nullifier",
   "src/noir/lib/compare/age",
-  "src/noir/lib/compare/citizenship",
   "src/noir/lib/compare/date",
   "src/noir/lib/data-check/expiry",
   "src/noir/lib/data-check/integrity",

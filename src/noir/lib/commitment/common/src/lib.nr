@@ -1,5 +1,5 @@
 use poseidon::poseidon2::Poseidon2;
-use utils::{pack_be_bytes_into_fields, PASSPORT_MRZ_COUNTRY_INDEX};
+use utils::{constants::PASSPORT_MRZ_COUNTRY_INDEX, pack_be_bytes_into_fields};
 
 pub global CSC_CERT_TYPE: u8 = 1;
 pub global DSC_CERT_TYPE: u8 = 2;

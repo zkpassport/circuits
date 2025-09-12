@@ -1,6 +1,6 @@
 use commitment::nullify;
 use compare_date_lib::{calculate_param_commitment, compare_date, get_expiry_date};
-use utils::PROOF_TYPE_EXPIRY_DATE;
+use utils::constants::PROOF_TYPE_EXPIRY_DATE;
 
 fn main(
     comm_in: pub Field,

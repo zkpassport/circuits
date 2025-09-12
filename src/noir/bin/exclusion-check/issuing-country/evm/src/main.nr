@@ -1,6 +1,6 @@
 use commitment::nullify;
 use exclusion_check_country::{calculate_param_commitment_sha2, check_issuing_country_exclusion};
-use utils::PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION;
+use utils::constants::PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION;
 
 fn main(
     comm_in: pub Field,

@@ -5,6 +5,7 @@
 */
 pub mod tests;
 pub mod types;
+pub mod constants;
 
 /**
 * The structure of the MRZ is well defined and standardized by the ICAO
@@ -21,97 +22,16 @@ use types::{
     DG1Data, MRZData, MRZName, MRZDOB, MRZYOB, MRZDocumentNumber, MRZNationality, MRZIssuingCountry,
 };
 
-// Index for the country of issuance of the passport
-pub global PASSPORT_MRZ_COUNTRY_INDEX: u32 = 2;
-// Length of the country code in the MRZ
-pub global PASSPORT_MRZ_COUNTRY_LENGTH: u32 = 3;
-// Index for the three letter code of the country of citizenship
-// Note that the first three letter code (index 2) in the MRZ is the country of issuance
-// not citizenship. It is important to keep in mind for residence permits
-// where the issuing country differs from the citizenship country
-pub global PASSPORT_MRZ_NATIONALITY_INDEX: u32 = 54;
-// Index for the gender of the passport holder (M, F or < if unspecified)
-pub global PASSPORT_MRZ_GENDER_INDEX: u32 = 64;
-// Index for the date of expiry (YYMMDD)
-pub global PASSPORT_MRZ_EXPIRY_DATE_INDEX: u32 = 65;
-// Index for the date of birth (YYMMDD) in TD1 (i.e. passport) MRZ
-pub global PASSPORT_MRZ_BIRTHDATE_INDEX: u32 = 57;
-// Length of the date of birth in the MRZ
-pub global PASSPORT_MRZ_BIRTHDATE_LENGTH: u32 = 6;
-// Length of the year of birth in the MRZ
-pub global PASSPORT_MRZ_YEAR_OF_BIRTH_LENGTH: u32 = 2;
-// Index for the document number in the MRZ
-pub global PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX: u32 = 44;
-// Length of the document number in the MRZ
-pub global PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH: u32 = 9;
-// Index for the document type in the MRZ
-pub global PASSPORT_MRZ_DOCUMENT_TYPE_INDEX: u32 = 0;
-// Index for the name of the passport holder
-pub global PASSPORT_MRZ_NAME_INDEX: u32 = 5;
-// Length of the name of the passport holder
-pub global PASSPORT_MRZ_NAME_LENGTH: u32 = 39;
-// Length of the MRZ on a passport
-pub global PASSPORT_MRZ_LENGTH: u32 = 88;
-
-// Index for the country of issuance of the ID card
-pub global ID_CARD_MRZ_COUNTRY_INDEX: u32 = 2;
-// Length of the country code in the MRZ
-pub global ID_CARD_MRZ_COUNTRY_LENGTH: u32 = 3;
-// Note that the first three letter code (index 2) in the MRZ is the country of issuance
-// not citizenship. It is important to keep in mind for residence permits
-// where the issuing country differs from the citizenship country
-pub global ID_CARD_MRZ_NATIONALITY_INDEX: u32 = 45;
-// Index for the gender of the passport holder (M, F or < if unspecified)
-pub global ID_CARD_MRZ_GENDER_INDEX: u32 = 37;
-// Index for the date of expiry (YYMMDD)
-pub global ID_CARD_MRZ_EXPIRY_DATE_INDEX: u32 = 38;
-// Index for the date of birth (YYMMDD) in TD3 (i.e. ID cards) MRZ
-pub global ID_CARD_MRZ_BIRTHDATE_INDEX: u32 = 30;
-// Length of the date of birth in the MRZ
-pub global ID_CARD_MRZ_BIRTHDATE_LENGTH: u32 = 6;
-// Length of the year of birth in the MRZ
-pub global ID_CARD_MRZ_YEAR_OF_BIRTH_LENGTH: u32 = 2;
-// Index for the document number in the MRZ
-pub global ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX: u32 = 5;
-// Length of the document number in the MRZ
-pub global ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH: u32 = 9;
-// Index for the document type in the MRZ
-pub global ID_CARD_MRZ_DOCUMENT_TYPE_INDEX: u32 = 0;
-// Index for the name of the passport holder
-pub global ID_CARD_MRZ_NAME_INDEX: u32 = 60;
-/// Length for the MRZ on an ID card
-pub global ID_CARD_MRZ_NAME_LENGTH: u32 = 30;
-// Length of the MRZ on an ID card
-pub global ID_CARD_MRZ_LENGTH: u32 = 90;
-
-// ASCII_CODE FOR <
-pub global ASCII_CODE_FOR_LESS_THAN: u8 = 60;
-
-/// Offset of the MRZ in the DG1
-pub global DG1_TO_MRZ_OFFSET: u32 = 5;
-
-// ECDSA curves mapping
-pub global ECDSA_CURVE_P256: u32 = 0;
-pub global ECDSA_CURVE_P384: u32 = 1;
-pub global ECDSA_CURVE_P521: u32 = 2;
-pub global ECDSA_CURVE_BRAINPOOL_B256R1: u32 = 3;
-pub global ECDSA_CURVE_BRAINPOOL_B256T1: u32 = 4;
-pub global ECDSA_CURVE_BRAINPOOL_B384R1: u32 = 5;
-pub global ECDSA_CURVE_BRAINPOOL_B384T1: u32 = 6;
-pub global ECDSA_CURVE_BRAINPOOL_B512R1: u32 = 7;
-pub global ECDSA_CURVE_BRAINPOOL_B512T1: u32 = 8;
-
-// Proof type to identify the circuit used for a given parameter commitment
-pub global PROOF_TYPE_DISCLOSE: u8 = 0;
-pub global PROOF_TYPE_AGE: u8 = 1;
-pub global PROOF_TYPE_BIRTHDATE: u8 = 2;
-pub global PROOF_TYPE_EXPIRY_DATE: u8 = 3;
-pub global PROOF_TYPE_NATIONALITY_INCLUSION: u8 = 4;
-pub global PROOF_TYPE_NATIONALITY_EXCLUSION: u8 = 5;
-pub global PROOF_TYPE_ISSUING_COUNTRY_INCLUSION: u8 = 6;
-pub global PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION: u8 = 7;
-pub global PROOF_TYPE_BIND: u8 = 8;
-pub global PROOF_TYPE_SANCTIONS_EXCLUSION: u8 = 9;
+use constants::{
+    ASCII_CODE_FOR_LESS_THAN, DG1_TO_MRZ_OFFSET, ID_CARD_MRZ_BIRTHDATE_INDEX,
+    ID_CARD_MRZ_BIRTHDATE_LENGTH, ID_CARD_MRZ_COUNTRY_LENGTH, ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX,
+    ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH, ID_CARD_MRZ_NAME_INDEX, ID_CARD_MRZ_NAME_LENGTH,
+    ID_CARD_MRZ_NATIONALITY_INDEX, ID_CARD_MRZ_YEAR_OF_BIRTH_LENGTH, PASSPORT_MRZ_BIRTHDATE_INDEX,
+    PASSPORT_MRZ_BIRTHDATE_LENGTH, PASSPORT_MRZ_COUNTRY_INDEX, PASSPORT_MRZ_COUNTRY_LENGTH,
+    PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX, PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH,
+    PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_LENGTH, PASSPORT_MRZ_NATIONALITY_INDEX,
+    PASSPORT_MRZ_YEAR_OF_BIRTH_LENGTH,
+};
 
 // D<<
 global GERMANY_PASSPORT_CODE: [u8; 3] = [68, 60, 60];

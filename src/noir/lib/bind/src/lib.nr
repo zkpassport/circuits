@@ -1,5 +1,5 @@
-use std::hash::poseidon2::Poseidon2;
-use utils::PROOF_TYPE_BIND;
+use poseidon::poseidon2::Poseidon2;
+use utils::constants::PROOF_TYPE_BIND;
 
 /// Calculate the commitment of the data using Poseidon2
 ///

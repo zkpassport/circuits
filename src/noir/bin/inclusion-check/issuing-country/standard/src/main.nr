@@ -1,6 +1,6 @@
 use commitment::nullify;
 use inclusion_check_country::{calculate_param_commitment, check_issuing_country_inclusion};
-use utils::PROOF_TYPE_ISSUING_COUNTRY_INCLUSION;
+use utils::constants::PROOF_TYPE_ISSUING_COUNTRY_INCLUSION;
 
 fn main(
     comm_in: pub Field,

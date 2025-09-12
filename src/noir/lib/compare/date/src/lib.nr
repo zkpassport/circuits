@@ -1,8 +1,13 @@
 use date::Date;
 use poseidon::poseidon2::Poseidon2;
 use utils::{
-    get_array_slice, get_mrz_from_dg1, ID_CARD_MRZ_BIRTHDATE_INDEX, ID_CARD_MRZ_EXPIRY_DATE_INDEX,
-    is_id_card, PASSPORT_MRZ_BIRTHDATE_INDEX, PASSPORT_MRZ_EXPIRY_DATE_INDEX,
+    constants::{
+        ID_CARD_MRZ_BIRTHDATE_INDEX, ID_CARD_MRZ_EXPIRY_DATE_INDEX, PASSPORT_MRZ_BIRTHDATE_INDEX,
+        PASSPORT_MRZ_EXPIRY_DATE_INDEX,
+    },
+    get_array_slice,
+    get_mrz_from_dg1,
+    is_id_card,
 };
 
 fn get_date<let INDEX: u32>(dg1: [u8; 95], threshold_date: Date) -> Date {

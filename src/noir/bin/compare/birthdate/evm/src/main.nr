@@ -1,6 +1,6 @@
 use commitment::nullify;
 use compare_date_lib::{calculate_param_commitment_sha2, compare_date, get_birthdate};
-use utils::PROOF_TYPE_BIRTHDATE;
+use utils::constants::PROOF_TYPE_BIRTHDATE;
 
 fn main(
     comm_in: pub Field,

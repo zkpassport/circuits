@@ -1,18 +1,13 @@
 use date::Date;
 use poseidon::poseidon2::Poseidon2;
 use utils::{
-    get_array_slice, get_mrz_from_dg1, ID_CARD_MRZ_BIRTHDATE_INDEX, is_id_card,
-    PASSPORT_MRZ_BIRTHDATE_INDEX, PROOF_TYPE_AGE,
+    constants::{
+        ID_CARD_MRZ_BIRTHDATE_INDEX, PASSPORT_MRZ_BIRTHDATE_INDEX, PROOF_TYPE_AGE, SAMPLE_DG1,
+    },
+    get_array_slice,
+    get_mrz_from_dg1,
+    is_id_card,
 };
-
-// P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<<<
-global SAMPLE_DG1: [u8; 95] = [
-    0x61, 0x5B, 0x5F, 0x1F, 0x58, 80, 60, 65, 85, 83, 83, 73, 76, 86, 69, 82, 72, 65, 78, 68, 60,
-    60, 74, 79, 72, 78, 78, 89, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60,
-    60, 60, 60, 60, 80, 65, 49, 50, 51, 52, 53, 54, 55, 95, 65, 85, 83, 56, 56, 49, 49, 49, 50, 95,
-    77, 51, 48, 48, 49, 48, 49, 95, 60, 67, 89, 66, 69, 82, 67, 73, 84, 89, 60, 60, 60, 60, 60, 60,
-    0, 0,
-];
 
 fn get_birthdate(dg1: [u8; 95], timestamp: u64) -> Date {
     let mut birthdate_bytes = [0 as u8; 6];

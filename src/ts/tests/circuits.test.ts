@@ -738,7 +738,7 @@ describe("subcircuits - RSA PKCS", () => {
     test("less than", async () => {
       const age = calculateAge(helper.passport)
       const query: Query = {
-        age: { lt: age + 1 },
+        age: { lte: age + 1 },
       }
       // const inputs = await getAgeCircuitInputs(helper.passport as any, query, SALT)
       const inputs = await getAgeCircuitInputs(
@@ -767,7 +767,7 @@ describe("subcircuits - RSA PKCS", () => {
     test("between", async () => {
       const age = calculateAge(helper.passport)
       const query: Query = {
-        age: { gte: age, lt: age + 2 },
+        age: { gte: age, lte: age + 2 },
       }
       // const inputs = await getAgeCircuitInputs(helper.passport as any, query, SALT)
       const inputs = await getAgeCircuitInputs(
