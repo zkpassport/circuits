@@ -4,22 +4,20 @@ use date::Date;
 
 #[test]
 fn test_get_birthdate() {
-    let birthdate = get_birthdate(SAMPLE_DG1, 1757609123);
+    let birthdate = get_birthdate(SAMPLE_DG1, Date::new(2025, 9, 12).to_timestamp());
     assert_eq(birthdate, Date::new(1988, 11, 12));
 }
 
 #[test]
 fn test_get_birthdate_wrong_century() {
-    // current date: 2088-1-1
-    let birthdate = get_birthdate(SAMPLE_DG1, 3723753600);
+    let birthdate = get_birthdate(SAMPLE_DG1, Date::new(2088, 1, 1).to_timestamp());
     // If passed a date after 100 years (ignoring the day and month) after the birthdate, it will get the wrong century
     assert_eq(birthdate, Date::new(2088, 11, 12));
 }
 
 #[test]
 fn test_get_birthdate_edge_current_date() {
-    // current date: 2087-12-31
-    let birthdate = get_birthdate(SAMPLE_DG1, 3723667200);
+    let birthdate = get_birthdate(SAMPLE_DG1, Date::new(2087, 12, 31).to_timestamp());
     // Just one year away from being 100 years after the birthdate
     // so it will still be the correct century
     assert_eq(birthdate, Date::new(1988, 11, 12));
@@ -27,14 +25,13 @@ fn test_get_birthdate_edge_current_date() {
 
 #[test]
 fn test_get_expiry_date() {
-    let expiry_date = get_expiry_date(SAMPLE_DG1, 1757609123);
+    let expiry_date = get_expiry_date(SAMPLE_DG1, Date::new(2025, 9, 12).to_timestamp());
     assert_eq(expiry_date, Date::new(2030, 1, 1));
 }
 
 #[test]
 fn test_get_expiry_date_wrong_century() {
-    // current date: 2009-1-1
-    let expiry_date = get_expiry_date(SAMPLE_DG1, 1230768000);
+    let expiry_date = get_expiry_date(SAMPLE_DG1, Date::new(2009, 1, 1).to_timestamp());
     // If passed a date with a year more than 20 years before the expiry date, it will get the wrong century
     // as get_expiry_date adds 20 years to the current date to get the threshold year
     assert_eq(expiry_date, Date::new(1930, 1, 1));
@@ -42,8 +39,7 @@ fn test_get_expiry_date_wrong_century() {
 
 #[test]
 fn test_get_expiry_date_edge_current_date() {
-    // current date: 2010-1-1
-    let expiry_date = get_expiry_date(SAMPLE_DG1, 1262304000);
+    let expiry_date = get_expiry_date(SAMPLE_DG1, Date::new(2010, 1, 1).to_timestamp());
     // Just one year away from being 20 years before the expiry date
     // so it will still be the correct century
     assert_eq(expiry_date, Date::new(2030, 1, 1));
