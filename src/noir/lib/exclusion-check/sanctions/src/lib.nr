@@ -107,7 +107,7 @@ fn non_inclusion_of_dg1() {
 
     let dg1 = DG1Builder::new([0; 95])
         .with_document_number(passport_no)
-        .with_country_code(country)
+        .with_nationality(country)
         .with_name(name)
         .with_dob(dob)
         .build();

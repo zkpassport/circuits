@@ -10,11 +10,20 @@ use super::constants::{
     ID_CARD_MRZ_NAME_LENGTH, ID_CARD_MRZ_NATIONALITY_INDEX, PASSPORT_MRZ_BIRTHDATE_INDEX,
     PASSPORT_MRZ_BIRTHDATE_LENGTH, PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
     PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH, PASSPORT_MRZ_ISSUING_COUNTRY_INDEX,
-    PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_LENGTH, PASSPORT_MRZ_NATIONALITY_INDEX,
+    PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_LENGTH, PASSPORT_MRZ_NATIONALITY_INDEX, 
+    ID_CARD_MRZ_ISSUING_COUNTRY_INDEX
 };
 use super::types::{
     DG1Data, MRZData, MRZDOB, MRZDocumentNumber, MRZName, MRZNameIdCard, MRZNationality,
+    MRZIssuingCountry,
 };
+use super::{get_nationality_from_mrz, get_issuing_country_from_mrz, get_expiry_date_from_mrz};
+use super::constants::SAMPLE_DG1;
+use super::constants::EXTENDED_ID_CARD_SAMPLE_DG1;
+use super::get_dob_from_mrz;
+use super::get_yob_from_mrz;
+use super::get_document_number_from_mrz;
+use super::constants::ID_CARD_SAMPLE_DG1;
 
 // Testing utilities
 
@@ -50,7 +59,7 @@ impl DG1Builder {
         self
     }
 
-    pub fn with_country_code(mut self: Self, country_code: MRZNationality) -> Self {
+    pub fn with_nationality(mut self: Self, country_code: MRZNationality) -> Self {
         for i in 0..3 {
             // + 5 as it goes through an mrz decoding
             self.dg1[PASSPORT_MRZ_NATIONALITY_INDEX + i + DG1_TO_MRZ_OFFSET] = country_code[i];
@@ -59,9 +68,23 @@ impl DG1Builder {
         self
     }
 
-    pub fn with_country_code_id_card(mut self: Self, country_code: MRZNationality) -> Self {
+    pub fn with_nationality_id_card(mut self: Self, country_code: MRZNationality) -> Self {
         for i in 0..3 {
             self.dg1[ID_CARD_MRZ_NATIONALITY_INDEX + i + DG1_TO_MRZ_OFFSET] = country_code[i];
+        }
+        self
+    }
+
+    pub fn with_issuing_country(mut self: Self, country_code: MRZIssuingCountry) -> Self {
+        for i in 0..3 {
+            self.dg1[PASSPORT_MRZ_ISSUING_COUNTRY_INDEX + i + DG1_TO_MRZ_OFFSET] = country_code[i];
+        }
+        self
+    }
+
+    pub fn with_issuing_country_id_card(mut self: Self, country_code: MRZIssuingCountry) -> Self {
+        for i in 0..3 {
+            self.dg1[ID_CARD_MRZ_ISSUING_COUNTRY_INDEX + i + DG1_TO_MRZ_OFFSET] = country_code[i];
         }
         self
     }
@@ -453,3 +476,78 @@ fn test_get_name_id_card() {
     let mrz_name = get_name_from_mrz(dg1);
     assert_eq(mrz_name, padded_name);
 }
+
+#[test]
+fn test_get_nationality_passport() {
+    let mrz_nationality = get_nationality_from_mrz(SAMPLE_DG1);
+    assert_eq(mrz_nationality, "AUS".as_bytes());
+}
+
+#[test]
+fn test_get_nationality_id_card() {
+    let mrz_nationality = get_nationality_from_mrz(EXTENDED_ID_CARD_SAMPLE_DG1);
+    assert_eq(mrz_nationality, "PRT".as_bytes());
+}
+
+#[test]
+fn test_get_issuing_country_passport() {
+    let mrz_issuing_country = get_issuing_country_from_mrz(SAMPLE_DG1);
+    assert_eq(mrz_issuing_country, "AUS".as_bytes());
+}
+
+#[test]
+fn test_get_issuing_country_id_card() {
+    let mrz_issuing_country = get_issuing_country_from_mrz(EXTENDED_ID_CARD_SAMPLE_DG1);
+    assert_eq(mrz_issuing_country, "PRT".as_bytes());
+}
+
+#[test]
+fn test_get_dob_passport() {
+    let mrz_dob = get_dob_from_mrz(SAMPLE_DG1);
+    assert_eq(mrz_dob, "881112".as_bytes());
+}
+
+#[test]
+fn test_get_dob_id_card() {
+    let mrz_dob = get_dob_from_mrz(EXTENDED_ID_CARD_SAMPLE_DG1);
+    assert_eq(mrz_dob, "830314".as_bytes());
+}
+
+#[test]
+fn test_get_yob_passport() {
+    let mrz_yob = get_yob_from_mrz(SAMPLE_DG1);
+    assert_eq(mrz_yob, "88".as_bytes());
+}
+
+#[test]
+fn test_get_yob_id_card() {
+    let mrz_yob = get_yob_from_mrz(EXTENDED_ID_CARD_SAMPLE_DG1);
+    assert_eq(mrz_yob, "83".as_bytes());
+}
+
+#[test]
+fn test_get_expiry_date_passport() {
+    let mrz_expiry_date = get_expiry_date_from_mrz(SAMPLE_DG1);
+    assert_eq(mrz_expiry_date, "300101".as_bytes());
+}
+
+#[test]
+fn test_get_expiry_date_id_card() {
+    let mrz_expiry_date = get_expiry_date_from_mrz(EXTENDED_ID_CARD_SAMPLE_DG1);
+    assert_eq(mrz_expiry_date, "340529".as_bytes());
+}
+
+#[test]
+fn test_get_document_number_passport() {
+    let mrz_document_number = get_document_number_from_mrz(SAMPLE_DG1);
+    assert_eq(mrz_document_number, "PA1234567".as_bytes());
+}
+
+#[test]
+fn test_get_document_number_id_card() {
+    let mrz_document_number = get_document_number_from_mrz(ID_CARD_SAMPLE_DG1);
+    assert_eq(mrz_document_number, "ZID222222".as_bytes());
+}
+
+// TODO: Add a test for the extended document number
+// once get_document_number_from_mrz can extract the whole extended document number
