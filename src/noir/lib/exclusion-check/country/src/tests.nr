@@ -70,7 +70,6 @@ fn test_country_list_sorting_fail_when_starts_with_0_full_list() {
     check_country_list_sorted(country_list);
 }
 
-
 #[test]
 fn test_exclusion_check_pass() {
     let country_list: [u32; 6] = [4608577, 4608582, 4608590, 0, 0, 0];
