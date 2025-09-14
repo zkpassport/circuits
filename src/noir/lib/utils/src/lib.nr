@@ -24,13 +24,13 @@ use types::{
 
 use constants::{
     ASCII_CODE_FOR_LESS_THAN, DG1_TO_MRZ_OFFSET, ID_CARD_MRZ_BIRTHDATE_INDEX,
-    ID_CARD_MRZ_BIRTHDATE_LENGTH, ID_CARD_MRZ_COUNTRY_LENGTH, ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX,
+    ID_CARD_MRZ_BIRTHDATE_LENGTH, ID_CARD_MRZ_NATIONALITY_LENGTH, ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX,
     ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH, ID_CARD_MRZ_NAME_INDEX, ID_CARD_MRZ_NAME_LENGTH,
     ID_CARD_MRZ_NATIONALITY_INDEX, ID_CARD_MRZ_YEAR_OF_BIRTH_LENGTH, MAX_MRZ_LENGTH,
-    PASSPORT_MRZ_BIRTHDATE_INDEX, PASSPORT_MRZ_BIRTHDATE_LENGTH, PASSPORT_MRZ_COUNTRY_INDEX,
-    PASSPORT_MRZ_COUNTRY_LENGTH, PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
+    PASSPORT_MRZ_BIRTHDATE_INDEX, PASSPORT_MRZ_BIRTHDATE_LENGTH, PASSPORT_MRZ_ISSUING_COUNTRY_INDEX,
+    PASSPORT_MRZ_ISSUING_COUNTRY_LENGTH, PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
     PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH, PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_LENGTH,
-    PASSPORT_MRZ_NATIONALITY_INDEX, PASSPORT_MRZ_YEAR_OF_BIRTH_LENGTH,
+    PASSPORT_MRZ_NATIONALITY_INDEX, PASSPORT_MRZ_NATIONALITY_LENGTH, PASSPORT_MRZ_YEAR_OF_BIRTH_LENGTH,
 };
 
 // D<<
@@ -38,18 +38,10 @@ global GERMANY_PASSPORT_CODE: [u8; 3] = [68, 60, 60];
 // DEU
 global GERMANY_ISO_CODE: [u8; 3] = [68, 69, 85];
 
-pub fn get_array_slice<let N: u32, let M: u32>(arr: [u8; N], start: u32, end: u32) -> [u8; M] {
-    let mut slice = [0 as u8; M];
-    for i in start..end {
-        slice[i - start] = arr[i];
-    }
-    slice
-}
-
-pub fn get_array_slice_constant<let N: u32, let M: u32>(arr: [u8; N]) -> [u8; M] {
+pub fn get_array_slice<let N: u32, let M: u32>(arr: [u8; N], start: u32) -> [u8; M] {
     let mut slice = [0 as u8; M];
     for i in 0..M {
-        slice[i] = arr[i];
+        slice[i] = arr[start + i];
     }
     slice
 }
@@ -206,17 +198,11 @@ pub fn get_nationality_from_mrz(dg1: DG1Data) -> MRZNationality {
     let mut country_bytes: MRZNationality = [0; 3];
 
     if is_id_card(dg1) {
-        country_bytes = get_array_slice(
-            mrz,
-            ID_CARD_MRZ_NATIONALITY_INDEX,
-            ID_CARD_MRZ_NATIONALITY_INDEX + ID_CARD_MRZ_COUNTRY_LENGTH,
-        );
+        country_bytes =
+            get_array_slice::<_, ID_CARD_MRZ_NATIONALITY_LENGTH>(mrz, ID_CARD_MRZ_NATIONALITY_INDEX);
     } else {
-        country_bytes = get_array_slice(
-            mrz,
-            PASSPORT_MRZ_NATIONALITY_INDEX,
-            PASSPORT_MRZ_NATIONALITY_INDEX + PASSPORT_MRZ_COUNTRY_LENGTH,
-        );
+        country_bytes =
+            get_array_slice::<_, PASSPORT_MRZ_NATIONALITY_LENGTH>(mrz, PASSPORT_MRZ_NATIONALITY_INDEX);
     }
 
     // Handle the special case of Germany
@@ -231,11 +217,8 @@ pub fn get_issuing_country_from_mrz(dg1: DG1Data) -> MRZIssuingCountry {
     let mrz = get_mrz_from_dg1(dg1);
     // No need to check if it's an ID card since the issuing country
     // is always at the same index for both passports and ID cards
-    let mut country_bytes = get_array_slice(
-        mrz,
-        PASSPORT_MRZ_COUNTRY_INDEX,
-        PASSPORT_MRZ_COUNTRY_INDEX + PASSPORT_MRZ_COUNTRY_LENGTH,
-    );
+    let mut country_bytes =
+        get_array_slice::<_, PASSPORT_MRZ_ISSUING_COUNTRY_LENGTH>(mrz, PASSPORT_MRZ_ISSUING_COUNTRY_INDEX);
 
     // Handle the special case of Germany
     if (country_bytes == GERMANY_PASSPORT_CODE) {
@@ -259,27 +242,22 @@ pub fn get_name_from_mrz(dg1: DG1Data) -> MRZName {
 
 /// Get the name from the MRZ for a passport
 pub fn get_name_passport(mrz: MRZData) -> MRZName {
-    get_array_slice(
-        mrz,
-        PASSPORT_MRZ_NAME_INDEX,
-        PASSPORT_MRZ_NAME_INDEX + PASSPORT_MRZ_NAME_LENGTH,
-    )
+    get_array_slice::<_, PASSPORT_MRZ_NAME_LENGTH>(mrz, PASSPORT_MRZ_NAME_INDEX)
 }
 
 /// Get the name from the MRZ for an ID card
 pub fn get_name_id_card(mrz: MRZData) -> MRZName {
-    let mut mrz_name: MRZName = get_array_slice(
-        mrz,
-        ID_CARD_MRZ_NAME_INDEX,
-        ID_CARD_MRZ_NAME_INDEX + ID_CARD_MRZ_NAME_LENGTH,
-    );
-
+    let mut padded_mrz_name: MRZName = std::mem::zeroed();
+    let mrz_name = get_array_slice::<_, ID_CARD_MRZ_NAME_LENGTH>(mrz, ID_CARD_MRZ_NAME_INDEX);
+    for i in 0..ID_CARD_MRZ_NAME_LENGTH {
+        padded_mrz_name[i] = mrz_name[i];
+    }
     // Pad the name with spaces to the length of the MRZ name
     for i in 0..(PASSPORT_MRZ_NAME_LENGTH - ID_CARD_MRZ_NAME_LENGTH) {
-        mrz_name[ID_CARD_MRZ_NAME_LENGTH + i] = ASCII_CODE_FOR_LESS_THAN;
+        padded_mrz_name[ID_CARD_MRZ_NAME_LENGTH + i] = ASCII_CODE_FOR_LESS_THAN;
     }
 
-    mrz_name
+    padded_mrz_name
 }
 
 /// Get the date of birth from the MRZ
@@ -296,20 +274,12 @@ pub fn get_dob_from_mrz(dg1: DG1Data) -> MRZDOB {
 
 /// Get the date of birth from the MRZ for a passport
 pub fn get_date_of_birth_passport(mrz: MRZData) -> MRZDOB {
-    get_array_slice(
-        mrz,
-        PASSPORT_MRZ_BIRTHDATE_INDEX,
-        PASSPORT_MRZ_BIRTHDATE_INDEX + PASSPORT_MRZ_BIRTHDATE_LENGTH,
-    )
+    get_array_slice::<_, PASSPORT_MRZ_BIRTHDATE_LENGTH>(mrz, PASSPORT_MRZ_BIRTHDATE_INDEX)
 }
 
 /// Get the date of birth from the MRZ for an ID card
 pub fn get_date_of_birth_id_card(mrz: MRZData) -> MRZDOB {
-    get_array_slice(
-        mrz,
-        ID_CARD_MRZ_BIRTHDATE_INDEX,
-        ID_CARD_MRZ_BIRTHDATE_INDEX + ID_CARD_MRZ_BIRTHDATE_LENGTH,
-    )
+    get_array_slice::<_, ID_CARD_MRZ_BIRTHDATE_LENGTH>(mrz, ID_CARD_MRZ_BIRTHDATE_INDEX)
 }
 
 /// Get the year of birth from the MRZ
@@ -326,20 +296,12 @@ pub fn get_yob_from_mrz(dg1: DG1Data) -> MRZYOB {
 
 /// Get the year of birth from the MRZ for an ID card
 pub fn get_yob_from_mrz_passport(mrz: MRZData) -> MRZYOB {
-    get_array_slice(
-        mrz,
-        PASSPORT_MRZ_BIRTHDATE_INDEX,
-        PASSPORT_MRZ_BIRTHDATE_INDEX + PASSPORT_MRZ_YEAR_OF_BIRTH_LENGTH,
-    )
+    get_array_slice::<_, PASSPORT_MRZ_YEAR_OF_BIRTH_LENGTH>(mrz, PASSPORT_MRZ_BIRTHDATE_INDEX)
 }
 
 /// Get the year of birth from the MRZ for an ID card
 pub fn get_yob_from_mrz_id_card(mrz: MRZData) -> MRZYOB {
-    get_array_slice(
-        mrz,
-        ID_CARD_MRZ_BIRTHDATE_INDEX,
-        ID_CARD_MRZ_BIRTHDATE_INDEX + ID_CARD_MRZ_YEAR_OF_BIRTH_LENGTH,
-    )
+    get_array_slice::<_, ID_CARD_MRZ_YEAR_OF_BIRTH_LENGTH>(mrz, ID_CARD_MRZ_BIRTHDATE_INDEX)
 }
 
 /// Get the document number from the MRZ
@@ -356,20 +318,15 @@ pub fn get_document_number_from_mrz(dg1: DG1Data) -> MRZDocumentNumber {
 
 /// Get the document number from the MRZ for a passport
 pub fn get_document_number_passport(mrz: MRZData) -> MRZDocumentNumber {
-    get_array_slice(
+    get_array_slice::<_, PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH>(
         mrz,
         PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
-        PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX + PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH,
     )
 }
 
 /// Get the document number from the MRZ for an ID card
 pub fn get_document_number_id_card(mrz: MRZData) -> MRZDocumentNumber {
-    get_array_slice(
-        mrz,
-        ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX,
-        ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX + ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH,
-    )
+    get_array_slice::<_, ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH>(mrz, ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX)
 }
 
 /// Returns total TLV length (tag + length field + content) for any
@@ -419,12 +376,12 @@ pub fn find_subarray_index<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
 ) -> u32 {
     // Safety: This is safe because the offset is only used as a starting point
     // to verify the substring exists
-    let offsetUnchecked = unsafe { find_subarray_index_unsafe(needle, haystack) };
-    let mut offset = offsetUnchecked;
+    let offset_unchecked = unsafe { find_subarray_index_unsafe(needle, haystack) };
+    let mut offset = offset_unchecked;
     // Check if offset is valid before attempting verification
-    if (offsetUnchecked < HAYSTACK_SIZE) & (offsetUnchecked + NEEDLE_SIZE <= HAYSTACK_SIZE) {
+    if (offset_unchecked < HAYSTACK_SIZE) & (offset_unchecked + NEEDLE_SIZE <= HAYSTACK_SIZE) {
         for i in 0..NEEDLE_SIZE {
-            if haystack[i + offsetUnchecked] != needle[i] {
+            if haystack[i + offset_unchecked] != needle[i] {
                 offset = HAYSTACK_SIZE;
             }
         }

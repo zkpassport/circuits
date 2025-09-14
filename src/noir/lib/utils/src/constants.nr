@@ -1,12 +1,17 @@
+pub global YYYYMMDD_DATE_LENGTH: u32 = 8;
+pub global YYMMDD_DATE_LENGTH: u32 = 6;
+
 // Index for the country of issuance of the passport
-pub global PASSPORT_MRZ_COUNTRY_INDEX: u32 = 2;
+pub global PASSPORT_MRZ_ISSUING_COUNTRY_INDEX: u32 = 2;
 // Length of the country code in the MRZ
-pub global PASSPORT_MRZ_COUNTRY_LENGTH: u32 = 3;
+pub global PASSPORT_MRZ_ISSUING_COUNTRY_LENGTH: u32 = 3;
 // Index for the three letter code of the country of citizenship
 // Note that the first three letter code (index 2) in the MRZ is the country of issuance
 // not citizenship. It is important to keep in mind for residence permits
 // where the issuing country differs from the citizenship country
 pub global PASSPORT_MRZ_NATIONALITY_INDEX: u32 = 54;
+// Length of the country code in the MRZ
+pub global PASSPORT_MRZ_NATIONALITY_LENGTH: u32 = 3;
 // Index for the gender of the passport holder (M, F or < if unspecified)
 pub global PASSPORT_MRZ_GENDER_INDEX: u32 = 64;
 // Index for the date of expiry (YYMMDD)
@@ -14,7 +19,7 @@ pub global PASSPORT_MRZ_EXPIRY_DATE_INDEX: u32 = 65;
 // Index for the date of birth (YYMMDD) in TD1 (i.e. passport) MRZ
 pub global PASSPORT_MRZ_BIRTHDATE_INDEX: u32 = 57;
 // Length of the date of birth in the MRZ
-pub global PASSPORT_MRZ_BIRTHDATE_LENGTH: u32 = 6;
+pub global PASSPORT_MRZ_BIRTHDATE_LENGTH: u32 = YYMMDD_DATE_LENGTH;
 // Length of the year of birth in the MRZ
 pub global PASSPORT_MRZ_YEAR_OF_BIRTH_LENGTH: u32 = 2;
 // Index for the document number in the MRZ
@@ -33,13 +38,15 @@ pub global PASSPORT_MRZ_LENGTH: u32 = 88;
 pub global PASSPORT_DG1_LENGTH: u32 = 93;
 
 // Index for the country of issuance of the ID card
-pub global ID_CARD_MRZ_COUNTRY_INDEX: u32 = 2;
+pub global ID_CARD_MRZ_ISSUING_COUNTRY_INDEX: u32 = 2;
 // Length of the country code in the MRZ
-pub global ID_CARD_MRZ_COUNTRY_LENGTH: u32 = 3;
+pub global ID_CARD_MRZ_ISSUING_COUNTRY_LENGTH: u32 = 3;
 // Note that the first three letter code (index 2) in the MRZ is the country of issuance
 // not citizenship. It is important to keep in mind for residence permits
 // where the issuing country differs from the citizenship country
 pub global ID_CARD_MRZ_NATIONALITY_INDEX: u32 = 45;
+// Length of the country code in the MRZ
+pub global ID_CARD_MRZ_NATIONALITY_LENGTH: u32 = 3;
 // Index for the gender of the passport holder (M, F or < if unspecified)
 pub global ID_CARD_MRZ_GENDER_INDEX: u32 = 37;
 // Index for the date of expiry (YYMMDD)
@@ -47,7 +54,7 @@ pub global ID_CARD_MRZ_EXPIRY_DATE_INDEX: u32 = 38;
 // Index for the date of birth (YYMMDD) in TD3 (i.e. ID cards) MRZ
 pub global ID_CARD_MRZ_BIRTHDATE_INDEX: u32 = 30;
 // Length of the date of birth in the MRZ
-pub global ID_CARD_MRZ_BIRTHDATE_LENGTH: u32 = 6;
+pub global ID_CARD_MRZ_BIRTHDATE_LENGTH: u32 = YYMMDD_DATE_LENGTH;
 // Length of the year of birth in the MRZ
 pub global ID_CARD_MRZ_YEAR_OF_BIRTH_LENGTH: u32 = 2;
 // Index for the document number in the MRZ

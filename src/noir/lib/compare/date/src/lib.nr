@@ -3,7 +3,7 @@ use poseidon::poseidon2::Poseidon2;
 use utils::{
     constants::{
         ID_CARD_MRZ_BIRTHDATE_INDEX, ID_CARD_MRZ_EXPIRY_DATE_INDEX, PASSPORT_MRZ_BIRTHDATE_INDEX,
-        PASSPORT_MRZ_EXPIRY_DATE_INDEX,
+        PASSPORT_MRZ_EXPIRY_DATE_INDEX, YYMMDD_DATE_LENGTH,
     },
     get_array_slice,
     get_mrz_from_dg1,
@@ -16,7 +16,7 @@ pub mod tests;
 fn get_date<let INDEX: u32>(dg1: DG1Data, threshold_date: Date) -> Date {
     let mrz = get_mrz_from_dg1(dg1);
 
-    let date_bytes = get_array_slice(mrz, INDEX, INDEX + 6);
+    let date_bytes = get_array_slice::<_, YYMMDD_DATE_LENGTH>(mrz, INDEX);
 
     // Create a Date object from the date using the current date as
     // the pivot year to differentiate between 20th and 21st centuries

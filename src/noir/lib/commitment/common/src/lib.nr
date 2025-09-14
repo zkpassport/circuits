@@ -1,6 +1,6 @@
 use poseidon::poseidon2::Poseidon2;
 use utils::{
-    constants::{DG1_LENGTH, ECONTENT_LENGTH, PASSPORT_MRZ_COUNTRY_INDEX, SIGNED_ATTRS_LENGTH},
+    constants::{DG1_LENGTH, ECONTENT_LENGTH, PASSPORT_MRZ_ISSUING_COUNTRY_INDEX, SIGNED_ATTRS_LENGTH},
     pack_be_bytes_into_fields,
     types::{Alpha2CountryCode, Alpha3CountryCode, DG1Data, EContentData, SignedAttrsData},
 };
@@ -71,7 +71,7 @@ pub fn calculate_certificate_registry_leaf<let N: u32>(
 
 pub fn get_country_from_dg1(dg1: DG1Data) -> Alpha3CountryCode {
     // There 5 padding bytes in the dg1 before the actual MRZ
-    let country_offset = 5 + PASSPORT_MRZ_COUNTRY_INDEX;
+    let country_offset = 5 + PASSPORT_MRZ_ISSUING_COUNTRY_INDEX;
     let mut country_bytes: [u8; 3] = [0; 3];
     for i in 0..3 {
         country_bytes[i] = dg1[country_offset + i];
