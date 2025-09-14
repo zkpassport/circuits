@@ -2,7 +2,8 @@ use sha1::sha1;
 use sha256::{sha224_var, sha256_var};
 use sha512::{sha384, sha512};
 use utils::{
-    constants::{ECONTENT_LENGTH, ID_CARD_DG1_LENGTH, PASSPORT_DG1_LENGTH},
+    check_zero_padding,
+    constants::{ID_CARD_DG1_LENGTH, PASSPORT_DG1_LENGTH},
     find_subarray_index,
     is_id_card,
     is_subarray_in_array,
@@ -24,7 +25,7 @@ pub fn get_dg1_size(dg1: DG1Data) -> u32 {
 * included in eContent at the offset provided (along with the rest of the data group hashes)
 */
 pub fn check_dg1_sha1(dg1: DG1Data, e_content: EContentData, e_content_size: u32) {
-    assert(e_content_size <= ECONTENT_LENGTH, "eContent size is too large");
+    check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
     let dg1_size: u32 = get_dg1_size(dg1);
@@ -69,7 +70,7 @@ pub fn check_signed_attributes_sha1<let SA_SIZE: u32>(
 * included in eContent at the offset provided (along with the rest of the data group hashes)
 */
 pub fn check_dg1_sha224(dg1: DG1Data, e_content: EContentData, e_content_size: u32) {
-    assert(e_content_size <= ECONTENT_LENGTH, "eContent size is too large");
+    check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
     let dg1_size: u64 = get_dg1_size(dg1) as u64;
@@ -111,7 +112,7 @@ pub fn check_signed_attributes_sha224<let SA_SIZE: u32>(
 * included in eContent at the offset provided (along with the rest of the data group hashes)
 */
 pub fn check_dg1_sha256(dg1: DG1Data, e_content: EContentData, e_content_size: u32) {
-    assert(e_content_size <= ECONTENT_LENGTH, "eContent size is too large");
+    check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
     let dg1_size: u64 = get_dg1_size(dg1) as u64;
@@ -153,7 +154,7 @@ pub fn check_signed_attributes_sha256<let SA_SIZE: u32>(
 * included in eContent at the offset provided (along with the rest of the data group hashes)
 */
 pub fn check_dg1_sha384(dg1: DG1Data, e_content: EContentData, e_content_size: u32) {
-    assert(e_content_size <= ECONTENT_LENGTH, "eContent size is too large");
+    check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
     let dg1_size: u32 = get_dg1_size(dg1);
@@ -198,7 +199,7 @@ pub fn check_signed_attributes_sha384<let SA_SIZE: u32>(
 * included in eContent at the offset provided (along with the rest of the data group hashes)
 */
 pub fn check_dg1_sha512(dg1: DG1Data, e_content: EContentData, e_content_size: u32) {
-    assert(e_content_size <= ECONTENT_LENGTH, "eContent size is too large");
+    check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
     let dg1_size: u32 = get_dg1_size(dg1);
