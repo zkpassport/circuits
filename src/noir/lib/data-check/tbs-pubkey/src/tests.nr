@@ -1,4 +1,4 @@
-use super::{verify_rsa_pubkey_in_tbs, verify_ecdsa_pubkey_in_tbs};
+use super::{verify_ecdsa_pubkey_in_tbs, verify_rsa_pubkey_in_tbs};
 
 #[test]
 fn test_verify_rsa_pubkey_in_tbs() {

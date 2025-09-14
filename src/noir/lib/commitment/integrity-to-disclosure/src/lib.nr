@@ -1,6 +1,6 @@
 use common::{
-    calculate_private_nullifier, get_country_from_dg1,
-    hash_salt_country_signed_attr_dg1_e_content_private_nullifier, hash_salt_dg1_private_nullifier,
+    get_country_from_dg1, hash_salt_country_signed_attr_dg1_e_content_private_nullifier,
+    hash_salt_dg1_private_nullifier,
 };
 use utils::types::{DG1Data, EContentData, SignedAttrsData};
 
