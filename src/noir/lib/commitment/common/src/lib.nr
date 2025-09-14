@@ -1,6 +1,8 @@
 use poseidon::poseidon2::Poseidon2;
 use utils::{
-    constants::{DG1_LENGTH, ECONTENT_LENGTH, PASSPORT_MRZ_ISSUING_COUNTRY_INDEX, SIGNED_ATTRS_LENGTH},
+    constants::{
+        DG1_LENGTH, ECONTENT_LENGTH, PASSPORT_MRZ_ISSUING_COUNTRY_INDEX, SIGNED_ATTRS_LENGTH,
+    },
     pack_be_bytes_into_fields,
     types::{Alpha2CountryCode, Alpha3CountryCode, DG1Data, EContentData, SignedAttrsData},
 };
@@ -57,7 +59,7 @@ pub fn calculate_certificate_registry_leaf<let N: u32>(
     let unpacked_bytes: [u8; 4] =
         [cert_type as u8, country_bytes[0], country_bytes[1], country_bytes[2]];
     // Prepare and hash Poseidon2 inputs
-    let mut poseidon_inputs: [Field; 4 + (N + 30) / 31] = [0; 4 + (N + 30) / 31];
+    let mut poseidon_inputs: [Field; 4 + (N + 30) / 31] = std::mem::zeroed();
     poseidon_inputs[0] = tags[0];
     poseidon_inputs[1] = tags[1];
     poseidon_inputs[2] = tags[2];
@@ -110,7 +112,7 @@ pub fn hash_salt_dg1_private_nullifier(
     dg1: DG1Data,
     private_nullifier: Field,
 ) -> Field {
-    let mut result: [Field; 2 + ((DG1_LENGTH + 30) / 31)] = [0; 2 + ((DG1_LENGTH + 30) / 31)];
+    let mut result: [Field; 2 + ((DG1_LENGTH + 30) / 31)] = std::mem::zeroed();
     result[0] = salt;
 
     let packed_dg1: [Field; (DG1_LENGTH + 30) / 31] =
@@ -128,7 +130,7 @@ pub fn calculate_private_nullifier<let SIG: u32>(
     sod_sig: [u8; SIG],
 ) -> Field {
     let mut result: [Field; (DG1_LENGTH + 30) / 31 + (ECONTENT_LENGTH + 30) / 31 + (SIG + 30) / 31]
-         = [0; (DG1_LENGTH + 30) / 31 + (ECONTENT_LENGTH + 30) / 31 + (SIG + 30) / 31];
+         = std::mem::zeroed();
 
     let packed_dg1: [Field; (DG1_LENGTH + 30) / 31] =
         pack_be_bytes_into_fields::<DG1_LENGTH, _, 31>(dg1);
@@ -165,12 +167,8 @@ pub fn hash_salt_country_signed_attr_dg1_e_content_private_nullifier(
     let country_bytes: [u8; 3] = country.as_bytes();
 
     let mut result
-        : [Field; 4 + (SIGNED_ATTRS_LENGTH + 30) / 31 + ((DG1_LENGTH + 30) / 31) + ((ECONTENT_LENGTH + 30) / 31)] = [
-        0; 4
-            + (SIGNED_ATTRS_LENGTH + 30) / 31
-            + ((DG1_LENGTH + 30) / 31)
-            + ((ECONTENT_LENGTH + 30) / 31)
-    ];
+        : [Field; 4 + (SIGNED_ATTRS_LENGTH + 30) / 31 + ((DG1_LENGTH + 30) / 31) + ((ECONTENT_LENGTH + 30) / 31)] =
+        std::mem::zeroed();
     result[0] = salt;
 
     let packed_country: Field = pack_be_bytes_into_fields::<3, 1, 31>(country_bytes)[0];

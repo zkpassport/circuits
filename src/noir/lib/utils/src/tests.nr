@@ -7,9 +7,9 @@ use super::constants::{
     DG1_TO_MRZ_OFFSET, ID_CARD_MRZ_BIRTHDATE_INDEX, ID_CARD_MRZ_BIRTHDATE_LENGTH,
     ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX, ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH, ID_CARD_MRZ_NAME_INDEX,
     ID_CARD_MRZ_NAME_LENGTH, ID_CARD_MRZ_NATIONALITY_INDEX, PASSPORT_MRZ_BIRTHDATE_INDEX,
-    PASSPORT_MRZ_BIRTHDATE_LENGTH, PASSPORT_MRZ_ISSUING_COUNTRY_INDEX, PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
-    PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH, PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_LENGTH,
-    PASSPORT_MRZ_NATIONALITY_INDEX,
+    PASSPORT_MRZ_BIRTHDATE_LENGTH, PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
+    PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH, PASSPORT_MRZ_ISSUING_COUNTRY_INDEX,
+    PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_LENGTH, PASSPORT_MRZ_NATIONALITY_INDEX,
 };
 use super::types::{
     DG1Data, MRZData, MRZDOB, MRZDocumentNumber, MRZName, MRZNameIdCard, MRZNationality,
@@ -42,7 +42,7 @@ impl DG1Builder {
         get_mrz_from_dg1(self.dg1)
     }
 
-    pub fn is_id_card(mut self: Self) -> Self {
+    pub fn set_is_id_card(mut self: Self) -> Self {
         // Set the last two bytes to NON 0 to indicate an ID card
         self.dg1[93] = 1;
         self.dg1[94] = 1;
@@ -418,7 +418,7 @@ fn test_get_name_id_card() {
         60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60,
     ];
 
-    let dg1 = DG1Builder::new([0; 95]).is_id_card().with_name_id_card(name).build();
+    let dg1 = DG1Builder::new([0; 95]).set_is_id_card().with_name_id_card(name).build();
     let mrz_name = get_name_from_mrz(dg1);
     assert_eq(mrz_name, padded_name);
 }

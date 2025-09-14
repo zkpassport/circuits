@@ -1,31 +1,11 @@
 use date::Date;
 use poseidon::poseidon2::Poseidon2;
-use utils::{
-    constants::{
-        ID_CARD_MRZ_BIRTHDATE_INDEX, ID_CARD_MRZ_BIRTHDATE_LENGTH, PASSPORT_MRZ_BIRTHDATE_INDEX,
-        PASSPORT_MRZ_BIRTHDATE_LENGTH, PROOF_TYPE_AGE,
-    },
-    get_array_slice,
-    get_mrz_from_dg1,
-    is_id_card,
-    types::DG1Data,
-};
+use utils::{constants::PROOF_TYPE_AGE, get_dob_from_mrz, types::DG1Data};
 
 pub mod tests;
 
 fn get_birthdate(dg1: DG1Data, timestamp: u64) -> Date {
-    let mut birthdate_bytes = [0 as u8; 6];
-    let mrz = get_mrz_from_dg1(dg1);
-
-    // Get the slice of the MRZ representing the birthdate
-    if is_id_card(dg1) {
-        birthdate_bytes =
-            get_array_slice::<_, ID_CARD_MRZ_BIRTHDATE_LENGTH>(mrz, ID_CARD_MRZ_BIRTHDATE_INDEX);
-    } else {
-        // Otherwise it's an ID card
-        birthdate_bytes =
-            get_array_slice::<_, PASSPORT_MRZ_BIRTHDATE_LENGTH>(mrz, PASSPORT_MRZ_BIRTHDATE_INDEX);
-    }
+    let mut birthdate_bytes = get_dob_from_mrz(dg1);
 
     let current_date = Date::from_timestamp(timestamp);
 

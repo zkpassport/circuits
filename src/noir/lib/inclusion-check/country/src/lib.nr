@@ -44,7 +44,10 @@ pub fn check_nationality_inclusion<let N: u32>(dg1: DG1Data, country_list: [Alph
 ///
 /// * `dg1`: The MRZ
 /// * `country_list`: The list of countries
-pub fn check_issuing_country_inclusion<let N: u32>(dg1: DG1Data, country_list: [str<3>; N]) {
+pub fn check_issuing_country_inclusion<let N: u32>(
+    dg1: DG1Data,
+    country_list: [Alpha3CountryCode; N],
+) {
     let issuing_country_bytes = get_issuing_country_from_mrz(dg1);
 
     // Safety: get the index of the country in the list from an unconstrained function

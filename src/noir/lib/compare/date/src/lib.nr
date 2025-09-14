@@ -1,23 +1,13 @@
 use date::Date;
 use poseidon::poseidon2::Poseidon2;
 use utils::{
-    constants::{
-        ID_CARD_MRZ_BIRTHDATE_INDEX, ID_CARD_MRZ_EXPIRY_DATE_INDEX, PASSPORT_MRZ_BIRTHDATE_INDEX,
-        PASSPORT_MRZ_EXPIRY_DATE_INDEX, YYMMDD_DATE_LENGTH,
-    },
-    get_array_slice,
-    get_mrz_from_dg1,
-    is_id_card,
+    constants::YYMMDD_DATE_LENGTH, get_dob_from_mrz, get_expiry_date_from_mrz, is_id_card,
     types::DG1Data,
 };
 
 pub mod tests;
 
-fn get_date<let INDEX: u32>(dg1: DG1Data, threshold_date: Date) -> Date {
-    let mrz = get_mrz_from_dg1(dg1);
-
-    let date_bytes = get_array_slice::<_, YYMMDD_DATE_LENGTH>(mrz, INDEX);
-
+fn get_date(date_bytes: [u8; YYMMDD_DATE_LENGTH], threshold_date: Date) -> Date {
     // Create a Date object from the date using the current date as
     // the pivot year to differentiate between 20th and 21st centuries
     // as the format is "YYMMDD"
@@ -30,9 +20,9 @@ pub fn get_birthdate(dg1: DG1Data, current_date_timestamp: u64) -> Date {
 
     // Get the slice of the MRZ representing the birthdate
     if is_id_card(dg1) {
-        birthdate = get_date::<ID_CARD_MRZ_BIRTHDATE_INDEX>(dg1, current_date);
+        birthdate = get_date(get_dob_from_mrz(dg1), current_date);
     } else {
-        birthdate = get_date::<PASSPORT_MRZ_BIRTHDATE_INDEX>(dg1, current_date);
+        birthdate = get_date(get_dob_from_mrz(dg1), current_date);
     }
 
     birthdate
@@ -49,9 +39,9 @@ pub fn get_expiry_date(dg1: DG1Data, current_date_timestamp: u64) -> Date {
 
     // Get the slice of the MRZ representing the expiry date
     if is_id_card(dg1) {
-        expiry_date = get_date::<ID_CARD_MRZ_EXPIRY_DATE_INDEX>(dg1, threshold_year);
+        expiry_date = get_date(get_expiry_date_from_mrz(dg1), threshold_year);
     } else {
-        expiry_date = get_date::<PASSPORT_MRZ_EXPIRY_DATE_INDEX>(dg1, threshold_year);
+        expiry_date = get_date(get_expiry_date_from_mrz(dg1), threshold_year);
     }
 
     expiry_date

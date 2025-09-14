@@ -20,17 +20,20 @@ pub mod constants;
 
 use types::{
     DG1Data, MRZData, MRZName, MRZDOB, MRZYOB, MRZDocumentNumber, MRZNationality, MRZIssuingCountry,
+    MRZExpiryDate,
 };
 
 use constants::{
     ASCII_CODE_FOR_LESS_THAN, DG1_TO_MRZ_OFFSET, ID_CARD_MRZ_BIRTHDATE_INDEX,
-    ID_CARD_MRZ_BIRTHDATE_LENGTH, ID_CARD_MRZ_NATIONALITY_LENGTH, ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX,
-    ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH, ID_CARD_MRZ_NAME_INDEX, ID_CARD_MRZ_NAME_LENGTH,
-    ID_CARD_MRZ_NATIONALITY_INDEX, ID_CARD_MRZ_YEAR_OF_BIRTH_LENGTH, MAX_MRZ_LENGTH,
-    PASSPORT_MRZ_BIRTHDATE_INDEX, PASSPORT_MRZ_BIRTHDATE_LENGTH, PASSPORT_MRZ_ISSUING_COUNTRY_INDEX,
-    PASSPORT_MRZ_ISSUING_COUNTRY_LENGTH, PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
-    PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH, PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_LENGTH,
-    PASSPORT_MRZ_NATIONALITY_INDEX, PASSPORT_MRZ_NATIONALITY_LENGTH, PASSPORT_MRZ_YEAR_OF_BIRTH_LENGTH,
+    ID_CARD_MRZ_BIRTHDATE_LENGTH, ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX,
+    ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH, ID_CARD_MRZ_EXPIRY_DATE_INDEX, ID_CARD_MRZ_NAME_INDEX,
+    ID_CARD_MRZ_NAME_LENGTH, ID_CARD_MRZ_NATIONALITY_INDEX, ID_CARD_MRZ_NATIONALITY_LENGTH,
+    ID_CARD_MRZ_YEAR_OF_BIRTH_LENGTH, MAX_MRZ_LENGTH, PASSPORT_MRZ_BIRTHDATE_INDEX,
+    PASSPORT_MRZ_BIRTHDATE_LENGTH, PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
+    PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH, PASSPORT_MRZ_EXPIRY_DATE_INDEX,
+    PASSPORT_MRZ_ISSUING_COUNTRY_INDEX, PASSPORT_MRZ_ISSUING_COUNTRY_LENGTH,
+    PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_LENGTH, PASSPORT_MRZ_NATIONALITY_INDEX,
+    PASSPORT_MRZ_NATIONALITY_LENGTH, PASSPORT_MRZ_YEAR_OF_BIRTH_LENGTH, YYMMDD_DATE_LENGTH,
 };
 
 // D<<
@@ -137,7 +140,7 @@ pub fn pack_be_bytes_into_fields<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE
 }
 
 pub fn get_mrz_from_dg1(dg1: DG1Data) -> MRZData {
-    let mut mrz: MRZData = [0 as u8; MAX_MRZ_LENGTH];
+    let mut mrz: MRZData = std::mem::zeroed();
     for i in 0..MAX_MRZ_LENGTH {
         mrz[i] = dg1[i + DG1_TO_MRZ_OFFSET];
     }
@@ -187,7 +190,7 @@ where
 {
     for i in 0..N {
         if i >= len {
-            assert_eq(padded_array[i], T::default());
+            assert_eq(padded_array[i], std::mem::zeroed());
         }
     }
 }
@@ -195,14 +198,18 @@ where
 pub fn get_nationality_from_mrz(dg1: DG1Data) -> MRZNationality {
     let mrz = get_mrz_from_dg1(dg1);
 
-    let mut country_bytes: MRZNationality = [0; 3];
+    let mut country_bytes: MRZNationality = std::mem::zeroed();
 
     if is_id_card(dg1) {
-        country_bytes =
-            get_array_slice::<_, ID_CARD_MRZ_NATIONALITY_LENGTH>(mrz, ID_CARD_MRZ_NATIONALITY_INDEX);
+        country_bytes = get_array_slice::<_, ID_CARD_MRZ_NATIONALITY_LENGTH>(
+            mrz,
+            ID_CARD_MRZ_NATIONALITY_INDEX,
+        );
     } else {
-        country_bytes =
-            get_array_slice::<_, PASSPORT_MRZ_NATIONALITY_LENGTH>(mrz, PASSPORT_MRZ_NATIONALITY_INDEX);
+        country_bytes = get_array_slice::<_, PASSPORT_MRZ_NATIONALITY_LENGTH>(
+            mrz,
+            PASSPORT_MRZ_NATIONALITY_INDEX,
+        );
     }
 
     // Handle the special case of Germany
@@ -217,8 +224,10 @@ pub fn get_issuing_country_from_mrz(dg1: DG1Data) -> MRZIssuingCountry {
     let mrz = get_mrz_from_dg1(dg1);
     // No need to check if it's an ID card since the issuing country
     // is always at the same index for both passports and ID cards
-    let mut country_bytes =
-        get_array_slice::<_, PASSPORT_MRZ_ISSUING_COUNTRY_LENGTH>(mrz, PASSPORT_MRZ_ISSUING_COUNTRY_INDEX);
+    let mut country_bytes = get_array_slice::<_, PASSPORT_MRZ_ISSUING_COUNTRY_LENGTH>(
+        mrz,
+        PASSPORT_MRZ_ISSUING_COUNTRY_INDEX,
+    );
 
     // Handle the special case of Germany
     if (country_bytes == GERMANY_PASSPORT_CODE) {
@@ -302,6 +311,28 @@ pub fn get_yob_from_mrz_passport(mrz: MRZData) -> MRZYOB {
 /// Get the year of birth from the MRZ for an ID card
 pub fn get_yob_from_mrz_id_card(mrz: MRZData) -> MRZYOB {
     get_array_slice::<_, ID_CARD_MRZ_YEAR_OF_BIRTH_LENGTH>(mrz, ID_CARD_MRZ_BIRTHDATE_INDEX)
+}
+
+/// Get the expiry date from the MRZ
+///
+/// Conditionally calls the correct function based on the type of document
+pub fn get_expiry_date_from_mrz(dg1: DG1Data) -> MRZExpiryDate {
+    let mrz = get_mrz_from_dg1(dg1);
+    if is_id_card(dg1) {
+        get_expiry_date_id_card(mrz)
+    } else {
+        get_expiry_date_passport(mrz)
+    }
+}
+
+/// Get the expiry date from the MRZ for a passport
+pub fn get_expiry_date_passport(mrz: MRZData) -> MRZExpiryDate {
+    get_array_slice::<_, YYMMDD_DATE_LENGTH>(mrz, PASSPORT_MRZ_EXPIRY_DATE_INDEX)
+}
+
+/// Get the expiry date from the MRZ for an ID card
+pub fn get_expiry_date_id_card(mrz: MRZData) -> MRZExpiryDate {
+    get_array_slice::<_, YYMMDD_DATE_LENGTH>(mrz, ID_CARD_MRZ_EXPIRY_DATE_INDEX)
 }
 
 /// Get the document number from the MRZ
