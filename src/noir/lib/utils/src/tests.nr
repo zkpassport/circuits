@@ -6,24 +6,24 @@ use crate::{
 
 use super::constants::{
     DG1_TO_MRZ_OFFSET, ID_CARD_MRZ_BIRTHDATE_INDEX, ID_CARD_MRZ_BIRTHDATE_LENGTH,
-    ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX, ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH, ID_CARD_MRZ_NAME_INDEX,
-    ID_CARD_MRZ_NAME_LENGTH, ID_CARD_MRZ_NATIONALITY_INDEX, PASSPORT_MRZ_BIRTHDATE_INDEX,
-    PASSPORT_MRZ_BIRTHDATE_LENGTH, PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX,
-    PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH, PASSPORT_MRZ_ISSUING_COUNTRY_INDEX,
-    PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_LENGTH, PASSPORT_MRZ_NATIONALITY_INDEX, 
-    ID_CARD_MRZ_ISSUING_COUNTRY_INDEX
+    ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX, ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH,
+    ID_CARD_MRZ_ISSUING_COUNTRY_INDEX, ID_CARD_MRZ_NAME_INDEX, ID_CARD_MRZ_NAME_LENGTH,
+    ID_CARD_MRZ_NATIONALITY_INDEX, PASSPORT_MRZ_BIRTHDATE_INDEX, PASSPORT_MRZ_BIRTHDATE_LENGTH,
+    PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX, PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH,
+    PASSPORT_MRZ_ISSUING_COUNTRY_INDEX, PASSPORT_MRZ_NAME_INDEX, PASSPORT_MRZ_NAME_LENGTH,
+    PASSPORT_MRZ_NATIONALITY_INDEX,
 };
-use super::types::{
-    DG1Data, MRZData, MRZDOB, MRZDocumentNumber, MRZName, MRZNameIdCard, MRZNationality,
-    MRZIssuingCountry,
-};
-use super::{get_nationality_from_mrz, get_issuing_country_from_mrz, get_expiry_date_from_mrz};
-use super::constants::SAMPLE_DG1;
 use super::constants::EXTENDED_ID_CARD_SAMPLE_DG1;
-use super::get_dob_from_mrz;
-use super::get_yob_from_mrz;
-use super::get_document_number_from_mrz;
 use super::constants::ID_CARD_SAMPLE_DG1;
+use super::constants::SAMPLE_DG1;
+use super::get_dob_from_mrz;
+use super::get_document_number_from_mrz;
+use super::{get_expiry_date_from_mrz, get_issuing_country_from_mrz, get_nationality_from_mrz};
+use super::get_yob_from_mrz;
+use super::types::{
+    DG1Data, MRZData, MRZDOB, MRZDocumentNumber, MRZIssuingCountry, MRZName, MRZNameIdCard,
+    MRZNationality,
+};
 
 // Testing utilities
 
