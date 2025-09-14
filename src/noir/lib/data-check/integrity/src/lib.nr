@@ -2,17 +2,16 @@ use sha1::sha1;
 use sha256::{sha224_var, sha256_var};
 use sha512::{sha384, sha512};
 use utils::{
-    constants::{
-        ECONTENT_LENGTH, ID_CARD_DG1_LENGTH, PASSPORT_DG1_LENGTH, SHA1_DIGEST_LENGTH,
-        SHA224_DIGEST_LENGTH, SHA256_DIGEST_LENGTH, SHA384_DIGEST_LENGTH, SHA512_DIGEST_LENGTH,
-    },
+    constants::{ECONTENT_LENGTH, ID_CARD_DG1_LENGTH, PASSPORT_DG1_LENGTH},
     find_subarray_index,
     is_id_card,
     is_subarray_in_array,
     types::{DG1Data, EContentData},
 };
 
-fn get_dg1_size(dg1: DG1Data) -> u32 {
+pub mod tests;
+
+pub fn get_dg1_size(dg1: DG1Data) -> u32 {
     if is_id_card(dg1) {
         ID_CARD_DG1_LENGTH
     } else {
@@ -40,7 +39,7 @@ pub fn check_dg1_sha1(dg1: DG1Data, e_content: EContentData, e_content_size: u32
     // Check that the hash of dg1 is in the e_content, we use the actual size rather than generic size
     // of econtent to ignore the padding bytes at the end
     assert(
-        dg1_offset_in_e_content + SHA1_DIGEST_LENGTH <= e_content_size,
+        dg1_offset_in_e_content + dg1_hash.len() <= e_content_size,
         "Hash of dg1 not found in eContent",
     );
 }
@@ -84,7 +83,7 @@ pub fn check_dg1_sha224(dg1: DG1Data, e_content: EContentData, e_content_size: u
     // Check that the hash of dg1 is in the e_content, we use the actual size rather than generic size
     // of econtent to ignore the padding bytes at the end
     assert(
-        dg1_offset_in_e_content + SHA224_DIGEST_LENGTH <= e_content_size,
+        dg1_offset_in_e_content + dg1_hash.len() <= e_content_size,
         "Hash of dg1 not found in eContent",
     );
 }
@@ -126,7 +125,7 @@ pub fn check_dg1_sha256(dg1: DG1Data, e_content: EContentData, e_content_size: u
     // Check that the hash of dg1 is in the e_content, we use the actual size rather than generic size
     // of econtent to ignore the padding bytes at the end
     assert(
-        dg1_offset_in_e_content + SHA256_DIGEST_LENGTH <= e_content_size,
+        dg1_offset_in_e_content + dg1_hash.len() <= e_content_size,
         "Hash of dg1 not found in eContent",
     );
 }
@@ -169,7 +168,7 @@ pub fn check_dg1_sha384(dg1: DG1Data, e_content: EContentData, e_content_size: u
     // Check that the hash of dg1 is in the e_content, we use the actual size rather than generic size
     // of econtent to ignore the padding bytes at the end
     assert(
-        dg1_offset_in_e_content + SHA384_DIGEST_LENGTH <= e_content_size,
+        dg1_offset_in_e_content + dg1_hash.len() <= e_content_size,
         "Hash of dg1 not found in eContent",
     );
 }
@@ -214,7 +213,7 @@ pub fn check_dg1_sha512(dg1: DG1Data, e_content: EContentData, e_content_size: u
     // Check that the hash of dg1 is in the e_content, we use the actual size rather than generic size
     // of econtent to ignore the padding bytes at the end
     assert(
-        dg1_offset_in_e_content + SHA512_DIGEST_LENGTH <= e_content_size,
+        dg1_offset_in_e_content + dg1_hash.len() <= e_content_size,
         "Hash of dg1 not found in eContent",
     );
 }

@@ -5,7 +5,8 @@ use utils::constants::SAMPLE_DG1;
 #[test]
 fn test_get_birthdate() {
     let birthdate = get_birthdate(SAMPLE_DG1, 1757609123);
-    assert_eq(birthdate, Date::from_timestamp(595296000));
+    let expected_birthdate = Date::new(1988, 11, 12);
+    assert_eq(birthdate, expected_birthdate);
 }
 
 #[test]
