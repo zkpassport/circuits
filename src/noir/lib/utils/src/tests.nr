@@ -1,6 +1,7 @@
 use crate::{
-    find_subarray_index, get_mrz_from_dg1, get_name_from_mrz, pack_be_bytes_into_fields,
-    pack_be_bytes_into_u128s, unsafe_get_asn1_element_length,
+    check_zero_padding, find_subarray_index, get_mrz_from_dg1, get_name_from_mrz,
+    pack_be_bytes_into_fields, pack_be_bytes_into_u128s, split_array,
+    unsafe_get_asn1_element_length,
 };
 
 use super::constants::{
@@ -111,6 +112,8 @@ impl DG1Builder {
         self
     }
 }
+
+/// Packing bytes functions
 
 #[test]
 fn test_pack_be_bytes_into_u128() {
@@ -261,6 +264,8 @@ global TEST_BYTES: [u8; 512] = [
     0x93, 0xa9, 0x06, 0xa6, 0xbf, 0x52, 0xc2, 0xd3, 0xb6, 0xdc, 0xc3, 0xe5, 0x3e, 0x8d, 0xf2, 0xc2,
 ];
 
+/// ASN.1 functions
+
 #[test]
 fn test_unsafe_get_asn1_element_length() {
     let long_form_asn1_seq: [u8; _] = [
@@ -314,8 +319,10 @@ fn test_unsafe_get_asn1_element_length() {
     assert(short_parsed_length == 5);
 }
 
+/// Find subarray index functions
+
 #[test]
-fn test_find_substring_index_various_cases() {
+fn test_find_subarray_index_various_cases() {
     // Test case 1: Basic substring at index 3
     let needle1 = [0x04, 0x05, 0x06];
     let haystack1 = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a];
@@ -377,7 +384,7 @@ fn test_find_substring_index_various_cases() {
     assert_eq(index10, haystack10.len()); // Should equal haystack size
 }
 
-pub fn verify_substring_in_string<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+pub fn verify_subarray_in_array<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
     needle: [u8; NEEDLE_SIZE],
     haystack: [u8; HAYSTACK_SIZE],
 ) {
@@ -386,11 +393,35 @@ pub fn verify_substring_in_string<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
 }
 
 #[test]
-fn test_verify_substring_in_string() {
+fn test_verify_subarray_in_array() {
     let needle = [0x04, 0x05, 0x06];
     let haystack = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a];
-    verify_substring_in_string(needle, haystack);
+    verify_subarray_in_array(needle, haystack);
 }
+
+/// Miscellaneous functions
+
+#[test]
+fn test_split_array() {
+    let array = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06];
+    let (array_x, array_y) = split_array(array);
+    assert_eq(array_x, [0x01, 0x02, 0x03]);
+    assert_eq(array_y, [0x04, 0x05, 0x06]);
+}
+
+#[test]
+fn test_check_zero_padding() {
+    let array = [0x01, 0x02, 0x03, 0, 0, 0];
+    check_zero_padding(array, 3);
+}
+
+#[test(should_fail_with = "Array is not zero-padded")]
+fn test_check_zero_padding_fail() {
+    let array = [0x01, 0x02, 0x03, 0, 0, 0x06];
+    check_zero_padding(array, 3);
+}
+
+/// MRZ getters
 
 #[test]
 fn test_get_name_passport() {

@@ -2,7 +2,7 @@
 use commitment::commit_to_dsc;
 use sig_check_common::sha256_and_check_data_to_sign;
 use sig_check_ecdsa::verify_nist_p224;
-use utils::{concat_array, split_array, types::Alpha3CountryCode};
+use utils::{split_array, types::Alpha3CountryCode};
 
 fn main(
     certificate_registry_root: pub Field,
@@ -33,7 +33,7 @@ fn main(
         country,
         tbs_certificate,
         salt,
-        concat_array(csc_pubkey_x, csc_pubkey_y),
+        csc_pubkey_x.concat(csc_pubkey_y),
     );
     comm_out
 }

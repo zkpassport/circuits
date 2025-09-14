@@ -49,17 +49,6 @@ pub fn get_array_slice<let N: u32, let M: u32>(arr: [u8; N], start: u32) -> [u8;
     slice
 }
 
-// Reverse the bytes of an array so you can switch from
-// big endian to little endian order and vice versa
-pub fn reverse_bytes_array<let N: u32>(arr: [u8; N]) -> [u8; N] {
-    let mut reversed_arr = [0 as u8; N];
-    for i in 0..N {
-        // Reverse
-        reversed_arr[i] = arr[N - 1 - i];
-    }
-    reversed_arr
-}
-
 pub fn is_id_card(dg1: DG1Data) -> bool {
     // For passport, the last two bytes are 0
     // since the real length is 93 for passports
@@ -157,15 +146,6 @@ pub fn split_array<let N: u32>(array: [u8; N * 2]) -> ([u8; N], [u8; N]) {
     (array_x, array_y)
 }
 
-pub fn concat_array<let N: u32>(array_x: [u8; N], array_y: [u8; N]) -> [u8; N * 2] {
-    let mut array = [0 as u8; N * 2];
-    for i in 0..N {
-        array[i] = array_x[i];
-        array[i + N] = array_y[i];
-    }
-    array
-}
-
 /**
  * Concatenate two arrays (of different sizes) into one array
  */
@@ -190,7 +170,7 @@ where
 {
     for i in 0..N {
         if i >= len {
-            assert_eq(padded_array[i], std::mem::zeroed());
+            assert_eq(padded_array[i], std::mem::zeroed(), "Array is not zero-padded");
         }
     }
 }
@@ -385,7 +365,7 @@ pub unconstrained fn unsafe_get_asn1_element_length<let N: u32>(asn1: [u8; N]) -
     else {
         let nlen: u32 = (elem_len & 0x7F) as u32;
         assert(nlen > 0, "Zero length-of-length");
-        assert(nlen <= 4, "Length field too large");
+        assert(nlen <= 4, "Length > 4 not supported");
         assert(2 + nlen <= N, "Length bytes exceed buffer");
         // Parse big-endian content length
         let mut content_len: u32 = 0;

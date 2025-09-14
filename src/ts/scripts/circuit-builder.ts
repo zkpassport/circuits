@@ -157,7 +157,7 @@ const DSC_ECDSA_TEMPLATE = (
 use commitment::commit_to_dsc;
 use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 use sig_check_ecdsa::verify_${curve_family}_${curve_name};
-use utils::{concat_array, split_array, types::Alpha3CountryCode};
+use utils::{split_array, types::Alpha3CountryCode};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
@@ -186,7 +186,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         country,
         tbs_certificate,
         salt,
-        concat_array(csc_pubkey_x, csc_pubkey_y),
+        csc_pubkey_x.concat(csc_pubkey_y),
     );
     comm_out
 }
