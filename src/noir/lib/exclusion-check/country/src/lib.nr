@@ -16,6 +16,12 @@ unconstrained fn get_closest_index<let N: u32>(sorted_list: [u32; N], value: u32
 
 unconstrained fn get_last_index<let N: u32>(sorted_list: [u32; N]) -> i64 {
     let mut index: i64 = -1;
+    // If the last element is not 0, then it should be the last index
+    // Other conditions will be checked in constrained code
+    if sorted_list[N - 1] != 0 {
+        index = (N - 1) as i64;
+    }
+
     for i in 0..N {
         if sorted_list[i] == 0 {
             index = (i - 1) as i64;
