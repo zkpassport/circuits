@@ -129,5 +129,5 @@ pub fn calculate_param_commitment_sha2<let N: u32>(
         params[i * 3 + 3] = country_code[2];
     }
     let hash = sha256::sha256_var(params, (N * 3 + 1) as u64);
-    utils::pack_be_bytes_into_field::<32, 31>(hash)
+    utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

@@ -110,5 +110,5 @@ pub fn calculate_param_commitment_sha2(
     params[9] = min_age_required;
     params[10] = max_age_required;
     let hash = sha256::sha256_var(params, 11);
-    utils::pack_be_bytes_into_field::<32, 31>(hash)
+    utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

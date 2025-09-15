@@ -66,5 +66,5 @@ pub fn calculate_param_commitment_sha2(
         params[i] = disclosed_bytes[i - MAX_MRZ_LENGTH - 1];
     }
     let hash = sha256::sha256_var(params, (MAX_MRZ_LENGTH * 2 + 1) as u64);
-    utils::pack_be_bytes_into_field::<32, 31>(hash)
+    utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

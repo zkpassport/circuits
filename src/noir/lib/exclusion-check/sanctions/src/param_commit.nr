@@ -32,5 +32,5 @@ pub fn calculate_param_commitment_sha2(proof_type: u8, root_hash: Field) -> Fiel
         params[i] = root_hash_bytes[i - 1];
     }
     let hash = sha256::sha256_var(params, Sanctions_PARAM_COMMITMENT_SIZE as u64);
-    utils::pack_be_bytes_into_field::<32, 31>(hash)
+    utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

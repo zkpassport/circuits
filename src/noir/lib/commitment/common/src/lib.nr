@@ -1,8 +1,7 @@
 use poseidon::poseidon2::Poseidon2;
 use utils::{
-    constants::{
-        DG1_LENGTH, ECONTENT_LENGTH, PASSPORT_MRZ_ISSUING_COUNTRY_INDEX, SIGNED_ATTRS_LENGTH,
-    },
+    constants::{DG1_LENGTH, ECONTENT_LENGTH, SIGNED_ATTRS_LENGTH},
+    get_issuing_country_from_mrz,
     pack_be_bytes_into_fields,
     types::{Alpha2CountryCode, Alpha3CountryCode, DG1Data, EContentData, SignedAttrsData},
 };
@@ -59,31 +58,20 @@ pub fn calculate_certificate_registry_leaf<let N: u32>(
     let unpacked_bytes: [u8; 4] =
         [cert_type as u8, country_bytes[0], country_bytes[1], country_bytes[2]];
     // Prepare and hash Poseidon2 inputs
-    let mut poseidon_inputs: [Field; 4 + (N + 30) / 31] = std::mem::zeroed();
-    poseidon_inputs[0] = tags[0];
-    poseidon_inputs[1] = tags[1];
-    poseidon_inputs[2] = tags[2];
-    poseidon_inputs[3] = utils::pack_be_bytes_into_fields::<4, 1, 31>(unpacked_bytes)[0];
+    let mut hash_inputs: [Field; 4 + (N + 30) / 31] = std::mem::zeroed();
+    hash_inputs[0] = tags[0];
+    hash_inputs[1] = tags[1];
+    hash_inputs[2] = tags[2];
+    hash_inputs[3] = utils::pack_be_bytes_into_field::<4, 31>(unpacked_bytes);
     let packed_pubkey = utils::pack_be_bytes_into_fields::<N, (N + 30) / 31, 31>(public_key);
     for i in 0..packed_pubkey.len() {
-        poseidon_inputs[4 + i] = packed_pubkey[i] as Field;
+        hash_inputs[4 + i] = packed_pubkey[i] as Field;
     }
-    Poseidon2::hash(poseidon_inputs, poseidon_inputs.len())
+    Poseidon2::hash(hash_inputs, hash_inputs.len())
 }
 
 pub fn get_country_from_dg1(dg1: DG1Data) -> Alpha3CountryCode {
-    // There 5 padding bytes in the dg1 before the actual MRZ
-    let country_offset = 5 + PASSPORT_MRZ_ISSUING_COUNTRY_INDEX;
-    let mut country_bytes: [u8; 3] = [0; 3];
-    for i in 0..3 {
-        country_bytes[i] = dg1[country_offset + i];
-    }
-    let mut country = country_bytes.as_str_unchecked();
-    // A special case for Germany
-    if (country == "D<<") {
-        country = "DEU";
-    }
-    country
+    get_issuing_country_from_mrz(dg1).as_str_unchecked()
 }
 
 pub fn hash_salt_country_tbs<let TBS_MAX_SIZE: u32>(
@@ -92,19 +80,20 @@ pub fn hash_salt_country_tbs<let TBS_MAX_SIZE: u32>(
     tbs: [u8; TBS_MAX_SIZE],
 ) -> Field {
     let country_bytes: [u8; 3] = country.as_bytes();
-    let mut result: [Field; 2 + ((TBS_MAX_SIZE + 30) / 31)] = [0; 2 + ((TBS_MAX_SIZE + 30) / 31)];
-    result[0] = salt;
+    let mut hash_inputs: [Field; 2 + ((TBS_MAX_SIZE + 30) / 31)] =
+        [0; 2 + ((TBS_MAX_SIZE + 30) / 31)];
+    hash_inputs[0] = salt;
 
     let packed_country: Field = pack_be_bytes_into_fields::<3, 1, 31>(country_bytes)[0];
-    result[1] = packed_country;
+    hash_inputs[1] = packed_country;
 
     let packed_tbs: [Field; (TBS_MAX_SIZE + 30) / 31] =
         pack_be_bytes_into_fields::<TBS_MAX_SIZE, _, 31>(tbs);
     for i in 0..((TBS_MAX_SIZE + 30) / 31) {
-        result[2 + i] = packed_tbs[i];
+        hash_inputs[2 + i] = packed_tbs[i];
     }
 
-    Poseidon2::hash(result, 2 + ((TBS_MAX_SIZE + 30) / 31))
+    Poseidon2::hash(hash_inputs, 2 + ((TBS_MAX_SIZE + 30) / 31))
 }
 
 pub fn hash_salt_dg1_private_nullifier(
@@ -112,16 +101,16 @@ pub fn hash_salt_dg1_private_nullifier(
     dg1: DG1Data,
     private_nullifier: Field,
 ) -> Field {
-    let mut result: [Field; 2 + ((DG1_LENGTH + 30) / 31)] = std::mem::zeroed();
-    result[0] = salt;
+    let mut hash_inputs: [Field; 2 + ((DG1_LENGTH + 30) / 31)] = std::mem::zeroed();
+    hash_inputs[0] = salt;
 
     let packed_dg1: [Field; (DG1_LENGTH + 30) / 31] =
         pack_be_bytes_into_fields::<DG1_LENGTH, _, 31>(dg1);
     for i in 0..((DG1_LENGTH + 30) / 31) {
-        result[1 + i] = packed_dg1[i];
+        hash_inputs[1 + i] = packed_dg1[i];
     }
-    result[1 + ((DG1_LENGTH + 30) / 31)] = private_nullifier;
-    Poseidon2::hash(result, 2 + ((DG1_LENGTH + 30) / 31))
+    hash_inputs[1 + ((DG1_LENGTH + 30) / 31)] = private_nullifier;
+    Poseidon2::hash(hash_inputs, 2 + ((DG1_LENGTH + 30) / 31))
 }
 
 pub fn calculate_private_nullifier<let SIG: u32>(
@@ -129,28 +118,29 @@ pub fn calculate_private_nullifier<let SIG: u32>(
     e_content: EContentData,
     sod_sig: [u8; SIG],
 ) -> Field {
-    let mut result: [Field; (DG1_LENGTH + 30) / 31 + (ECONTENT_LENGTH + 30) / 31 + (SIG + 30) / 31]
-         = std::mem::zeroed();
+    let mut hash_inputs
+        : [Field; (DG1_LENGTH + 30) / 31 + (ECONTENT_LENGTH + 30) / 31 + (SIG + 30) / 31] =
+        std::mem::zeroed();
 
     let packed_dg1: [Field; (DG1_LENGTH + 30) / 31] =
         pack_be_bytes_into_fields::<DG1_LENGTH, _, 31>(dg1);
     for i in 0..((DG1_LENGTH + 30) / 31) {
-        result[i] = packed_dg1[i];
+        hash_inputs[i] = packed_dg1[i];
     }
 
     let packed_e_content: [Field; (ECONTENT_LENGTH + 30) / 31] =
         pack_be_bytes_into_fields::<ECONTENT_LENGTH, _, 31>(e_content);
     for i in 0..((ECONTENT_LENGTH + 30) / 31) {
-        result[(DG1_LENGTH + 30) / 31 + i] = packed_e_content[i];
+        hash_inputs[(DG1_LENGTH + 30) / 31 + i] = packed_e_content[i];
     }
 
     let packed_sod_sig: [Field; (SIG + 30) / 31] = pack_be_bytes_into_fields::<SIG, _, 31>(sod_sig);
     for i in 0..((SIG + 30) / 31) {
-        result[(DG1_LENGTH + 30) / 31 + ((ECONTENT_LENGTH + 30) / 31) + i] = packed_sod_sig[i];
+        hash_inputs[(DG1_LENGTH + 30) / 31 + ((ECONTENT_LENGTH + 30) / 31) + i] = packed_sod_sig[i];
     }
 
     Poseidon2::hash(
-        result,
+        hash_inputs,
         (DG1_LENGTH + 30) / 31 + ((ECONTENT_LENGTH + 30) / 31) + (SIG + 30) / 31,
     )
 }
@@ -166,41 +156,41 @@ pub fn hash_salt_country_signed_attr_dg1_e_content_private_nullifier(
 ) -> Field {
     let country_bytes: [u8; 3] = country.as_bytes();
 
-    let mut result
+    let mut hash_inputs
         : [Field; 4 + (SIGNED_ATTRS_LENGTH + 30) / 31 + ((DG1_LENGTH + 30) / 31) + ((ECONTENT_LENGTH + 30) / 31)] =
         std::mem::zeroed();
-    result[0] = salt;
+    hash_inputs[0] = salt;
 
     let packed_country: Field = pack_be_bytes_into_fields::<3, 1, 31>(country_bytes)[0];
-    result[1] = packed_country;
+    hash_inputs[1] = packed_country;
 
     let packed_signed_attr: [Field; (SIGNED_ATTRS_LENGTH + 30) / 31] =
         pack_be_bytes_into_fields::<SIGNED_ATTRS_LENGTH, _, 31>(signed_attr);
     for i in 0..((SIGNED_ATTRS_LENGTH + 30) / 31) {
-        result[2 + i] = packed_signed_attr[i];
+        hash_inputs[2 + i] = packed_signed_attr[i];
     }
 
-    result[2 + (SIGNED_ATTRS_LENGTH + 30) / 31] = signed_attr_size;
+    hash_inputs[2 + (SIGNED_ATTRS_LENGTH + 30) / 31] = signed_attr_size;
 
     let packed_dg1: [Field; (DG1_LENGTH + 30) / 31] =
         pack_be_bytes_into_fields::<DG1_LENGTH, _, 31>(dg1);
     for i in 0..((DG1_LENGTH + 30) / 31) {
-        result[3 + (SIGNED_ATTRS_LENGTH + 30) / 31 + i] = packed_dg1[i];
+        hash_inputs[3 + (SIGNED_ATTRS_LENGTH + 30) / 31 + i] = packed_dg1[i];
     }
 
     let packed_e_content: [Field; (ECONTENT_LENGTH + 30) / 31] =
         pack_be_bytes_into_fields::<ECONTENT_LENGTH, _, 31>(e_content);
     for i in 0..((ECONTENT_LENGTH + 30) / 31) {
-        result[3 + (SIGNED_ATTRS_LENGTH + 30) / 31 + ((DG1_LENGTH + 30) / 31) + i] =
+        hash_inputs[3 + (SIGNED_ATTRS_LENGTH + 30) / 31 + ((DG1_LENGTH + 30) / 31) + i] =
             packed_e_content[i];
     }
-    result[3
+    hash_inputs[3
     + (SIGNED_ATTRS_LENGTH + 30) / 31
     + ((DG1_LENGTH + 30) / 31)
     + ((ECONTENT_LENGTH + 30) / 31)] = private_nullifier;
 
     Poseidon2::hash(
-        result,
+        hash_inputs,
         4
             + (SIGNED_ATTRS_LENGTH + 30) / 31
             + ((DG1_LENGTH + 30) / 31)

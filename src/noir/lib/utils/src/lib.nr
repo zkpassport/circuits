@@ -56,11 +56,16 @@ pub fn is_id_card(dg1: DG1Data) -> bool {
     (dg1[93] != 0) & (dg1[94] != 0)
 }
 
-pub fn pack_be_bytes_into_field<let NBytes: u32, let MAX_FIELD_SIZE: u32>(
+pub fn pack_be_bytes_and_truncate_into_field<let NBytes: u32, let MAX_FIELD_SIZE_IN_BYTES: u32>(
     x: [u8; NBytes],
 ) -> Field {
+    std::static_assert(
+        MAX_FIELD_SIZE_IN_BYTES <= NBytes,
+        "MAX_FIELD_SIZE_IN_BYTES must be less than or equal to NBytes",
+    );
+
     let mut result: Field = 0;
-    for i in 0..MAX_FIELD_SIZE {
+    for i in 0..MAX_FIELD_SIZE_IN_BYTES {
         result *= 256;
         result += x[i] as Field;
     }
@@ -68,14 +73,31 @@ pub fn pack_be_bytes_into_field<let NBytes: u32, let MAX_FIELD_SIZE: u32>(
     result
 }
 
-pub fn pack_be_bytes_into_u128s<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE: u32>(
+pub fn pack_be_bytes_into_field<let NBytes: u32, let MAX_FIELD_SIZE_IN_BYTES: u32>(
+    x: [u8; NBytes],
+) -> Field {
+    std::static_assert(
+        NBytes <= MAX_FIELD_SIZE_IN_BYTES,
+        "NBytes must be less than or equal to MAX_FIELD_SIZE_IN_BYTES",
+    );
+
+    let mut result: Field = 0;
+    for i in 0..(MAX_FIELD_SIZE_IN_BYTES - (MAX_FIELD_SIZE_IN_BYTES - NBytes)) {
+        result *= 256;
+        result += x[i] as Field;
+    }
+    std::as_witness(result);
+    result
+}
+
+pub fn pack_be_bytes_into_u128s<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE_IN_BYTES: u32>(
     x: [u8; NBytes],
 ) -> [u128; N] {
     let mut result = [0 as u128; N];
 
     let mut limb: Field = 0;
     let mut k = 0;
-    for _j in 0..(MAX_FIELD_SIZE - (N * MAX_FIELD_SIZE - NBytes)) {
+    for _j in 0..(MAX_FIELD_SIZE_IN_BYTES - (N * MAX_FIELD_SIZE_IN_BYTES - NBytes)) {
         limb *= 256;
         limb += x[k] as Field;
         k += 1;
@@ -86,7 +108,7 @@ pub fn pack_be_bytes_into_u128s<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE:
 
     for i in 1..N {
         let mut limb: Field = 0;
-        for _j in 0..MAX_FIELD_SIZE {
+        for _j in 0..MAX_FIELD_SIZE_IN_BYTES {
             limb *= 256;
             limb += x[k] as Field;
             k += 1;
@@ -98,14 +120,14 @@ pub fn pack_be_bytes_into_u128s<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE:
     result
 }
 
-pub fn pack_be_bytes_into_fields<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE: u32>(
+pub fn pack_be_bytes_into_fields<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE_IN_BYTES: u32>(
     x: [u8; NBytes],
 ) -> [Field; N] {
     let mut result = [0 as Field; N];
 
     let mut limb: Field = 0;
     let mut k = 0;
-    for _j in 0..(MAX_FIELD_SIZE - (N * MAX_FIELD_SIZE - NBytes)) {
+    for _j in 0..(MAX_FIELD_SIZE_IN_BYTES - (N * MAX_FIELD_SIZE_IN_BYTES - NBytes)) {
         limb *= 256;
         limb += x[k] as Field;
         k += 1;
@@ -116,7 +138,7 @@ pub fn pack_be_bytes_into_fields<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE
 
     for i in 1..N {
         let mut limb: Field = 0;
-        for _j in 0..MAX_FIELD_SIZE {
+        for _j in 0..MAX_FIELD_SIZE_IN_BYTES {
             limb *= 256;
             limb += x[k] as Field;
             k += 1;

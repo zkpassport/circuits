@@ -1,13 +1,10 @@
 use date::Date;
 use poseidon::poseidon2::Poseidon2;
-use utils::{
-    constants::YYMMDD_DATE_LENGTH, get_dob_from_mrz, get_expiry_date_from_mrz, is_id_card,
-    types::DG1Data,
-};
+use utils::{get_dob_from_mrz, get_expiry_date_from_mrz, is_id_card, types::{DG1Data, YYMMDDDate}};
 
 pub mod tests;
 
-fn get_date(date_bytes: [u8; YYMMDD_DATE_LENGTH], threshold_date: Date) -> Date {
+fn get_date(date_bytes: YYMMDDDate, threshold_date: Date) -> Date {
     // Create a Date object from the date using the current date as
     // the pivot year to differentiate between 20th and 21st centuries
     // as the format is "YYMMDD"
@@ -139,5 +136,5 @@ pub fn calculate_param_commitment_sha2(
         params[i] = max_date_timestamp_bytes[i - 17];
     }
     let hash = sha256::sha256_var(params, 25);
-    utils::pack_be_bytes_into_field::<32, 31>(hash)
+    utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

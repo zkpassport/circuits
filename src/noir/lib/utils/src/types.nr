@@ -8,12 +8,16 @@ use super::constants::{
 pub type DG1Data = [u8; DG1_LENGTH];
 pub type MRZData = [u8; MAX_MRZ_LENGTH];
 
+// Dates
+pub type YYYYMMDDDate = [u8; YYMMDD_DATE_LENGTH];
+pub type YYMMDDDate = [u8; YYMMDD_DATE_LENGTH];
+
 // MRZ types
 pub type MRZName = [u8; 39];
 pub type MRZNameIdCard = [u8; 30];
-pub type MRZDOB = [u8; YYMMDD_DATE_LENGTH];
+pub type MRZDOB = YYMMDDDate;
 pub type MRZYOB = [u8; 2];
-pub type MRZExpiryDate = [u8; YYMMDD_DATE_LENGTH];
+pub type MRZExpiryDate = YYMMDDDate;
 pub type MRZDocumentNumber = [u8; 9];
 pub type MRZNationality = [u8; PASSPORT_MRZ_NATIONALITY_LENGTH];
 pub type MRZIssuingCountry = [u8; PASSPORT_MRZ_ISSUING_COUNTRY_LENGTH];
