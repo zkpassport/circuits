@@ -3,7 +3,7 @@ use utils::{get_issuing_country_from_mrz, get_nationality_from_mrz, types::DG1Da
 
 pub mod tests;
 
-unconstrained fn get_closest_index<let N: u32>(sorted_list: [u32; N], value: u32) -> i64 {
+pub unconstrained fn unsafe_get_closest_index<let N: u32>(sorted_list: [u32; N], value: u32) -> i64 {
     let mut index: i64 = -1;
     for i in 0..N {
         if sorted_list[i] > value {
@@ -14,7 +14,7 @@ unconstrained fn get_closest_index<let N: u32>(sorted_list: [u32; N], value: u32
     index
 }
 
-unconstrained fn get_last_index<let N: u32>(sorted_list: [u32; N]) -> i64 {
+pub unconstrained fn unsafe_get_last_index<let N: u32>(sorted_list: [u32; N]) -> i64 {
     let mut index: i64 = -1;
     // If the last element is not 0, then it should be the last index
     // Other conditions will be checked in constrained code
@@ -22,13 +22,107 @@ unconstrained fn get_last_index<let N: u32>(sorted_list: [u32; N]) -> i64 {
         index = (N - 1) as i64;
     }
 
-    for i in 0..N {
-        if sorted_list[i] == 0 {
-            index = (i - 1) as i64;
-            break;
+    if sorted_list[0] != 0 {
+        for i in 0..N {
+            if sorted_list[i] == 0 {
+                index = (i - 1) as i64;
+                break;
+            }
         }
     }
     index
+}
+
+pub fn constrain_last_index<let N: u32>(sorted_list: [u32; N], last_index: i64) {
+    if last_index != (N - 1) as i64 {
+        // i.e. if it's not the last index in the array.
+        // This will fail for last_index >= N - 1, due to out of bounds errors.
+
+        // If there are still 0s after the last nonzero element,
+        // then we need to check that the next element is 0
+        assert_eq(
+            sorted_list[(last_index + 1) as u32],
+            0,
+            "The list is not padded with 0s after the last nonzero element",
+        );
+    }
+
+    if last_index != -1 {
+        // I.e. if it's not the first index in the array.
+        // This will fail if last_index <= -2 also, due to out of bounds errors.
+        assert(sorted_list[last_index as u32] != 0, "The item at the last index must be nonzero");
+    }
+}
+
+pub fn get_last_index<let N: u32>(sorted_list: [u32; N]) -> i64 {
+    // Safety: the returned value is constrained below (with the assumptions that:
+    // - the list is sorted
+    // - every item after the first 0 is also 0
+    // )
+    let last_index = unsafe { unsafe_get_last_index(sorted_list) };
+
+    constrain_last_index(sorted_list, last_index);
+
+    last_index
+}
+
+pub fn constrain_closest_index<let N: u32>(
+    sorted_list: [u32; N],
+    value: u32,
+    closest_index_from_above: i64,
+) {
+    assert(closest_index_from_above < 0x80000000, "Closest index out of range"); // < 2^31
+
+    // Examples:
+    //    [FRA , USA , GBR , JPN , IRL , PRT , ITA]
+    //  ^   ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^   ^
+    //  |   |  |  |  |  |  |  |  |  |  |  |  |  |   |
+    //  0   1  1  2  2  3  3  4  4  5  5  6  6 -1  -1 <-- the returned closest index (from above), if the
+    //                                                    `value` sits at or between these
+    //                                                     elements in the array.
+    //
+    //    [FRA , USA , GBR , JPN ,  0  ,  0  ,  0]
+    //  ^   ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^   ^
+    //  |   |  |  |  |  |  |  |  |  |  |  |  |  |   |
+    //  0   1  1  2  2  3  3 -1 -1 -1 -1 -1 -1 -1  -1 <-- the returned closest index (from above), if the
+    //                                             `value` sits at or between these
+    //                                              elements in the array.
+    // Note: The country codes are converted to u32s by summing (weighted) 
+    // the ASCII codes of the letters so the list is sorted in ascending order 
+    // of the country codes.
+
+    // If the index is 0, it implies the whole list is > value, since it's sorted
+    if closest_index_from_above == 0 {
+        // So if the value is less than the first item, then it is not in the list
+        assert(value < sorted_list[0], "The country is in the list (not less than the first item)");
+    }
+    // Else, if the index is -1, then the `value` might still be at the "last" nonzero position in the list
+    else if closest_index_from_above == -1 {
+        // Get the index of the last item of the sorted list,
+        // i.e. the index of the last nonzero element in the list
+        let last_index = get_last_index(sorted_list);
+        // We ensure that the `value` is greater than the last item,
+        // which implies the value is not in the list (since it's sorted)
+        assert(
+            sorted_list[last_index as u32] < value,
+            "The country is in the list (not greater than the last item)",
+        );
+    } else {
+        let index = closest_index_from_above as u32;
+        // The `value` is somewhere in the middle of the first and last element of the list.
+        // We don't want the `value` to equal any item in the list, so we sandwich it between
+        // two consecutive items in the list:
+        // the one supposed to be less than the value and the one supposed to be greater than the value
+        // Note: Will fail with out of bounds errors if index >= N.
+        assert(
+            sorted_list[index - 1] < value,
+            "The country is in the list (not greater than the expected lower bound)",
+        );
+        assert(
+            value < sorted_list[index],
+            "The country is in the list (not less than the expected upper bound)",
+        );
+    }
 }
 
 pub fn check_country_list_sorted<let N: u32>(country_list: [u32; N]) -> bool {
@@ -37,7 +131,7 @@ pub fn check_country_list_sorted<let N: u32>(country_list: [u32; N]) -> bool {
     assert(country_list[0] != 0, "Country list cannot start with 0");
     for i in 0..N - 1 {
         // Zeroes mark the end of the list (i.e. start of the padding)
-        if !foundAZero & (country_list[i + 1] == 0) {
+        if country_list[i + 1] == 0 {
             foundAZero = true;
         }
         // If the current element is greater than the next element, then the list is not sorted
@@ -58,33 +152,9 @@ pub fn check_country_list_sorted<let N: u32>(country_list: [u32; N]) -> bool {
 fn check_exclusion<let N: u32>(country_sum: u32, country_list: [u32; N]) {
     // Safety: since the list is assumed to be sorted in ascending order, we can get the index to check against
     // from an unconstrained function
-    let closest_index = unsafe { get_closest_index(country_list, country_sum) };
-    if closest_index == -1 {
-        // Safety: get the index of the last element in the list that is not 0
-        let last_index = unsafe { get_last_index(country_list) };
-        assert(country_list[last_index as u32] > 0);
-        if last_index < (N - 1) as i64 {
-            // If there are still 0s after the last non-0 element,
-            // then we need to check that the next element is 0
-            assert_eq(country_list[last_index as u32 + 1], 0);
-        }
-        // If the index is -1, then the nationality sum is greater than all the elements in the list
-        assert(country_list[last_index as u32] < country_sum);
-    }
-    // Assert that either the index is the first element of the list or the previous element is less than the nationality sum
-    else if closest_index == 0 {
-        // Assert that the country at the index is greater than the nationality sum
-        assert(country_list[closest_index as u32] > country_sum);
-    }
-    // Cannot be done in a single if statement otherwise the second check will fail if closest_index is 0
-    else if country_list[closest_index as u32 - 1] < country_sum {
-        // Assert that the country at the index is greater than the nationality sum
-        assert(country_list[closest_index as u32] > country_sum);
-    } else {
-        // Otherwise it should fail
-        assert(false);
-    }
-    // If those two checks pass, then the nationality is not in the country list
+    let closest_index_from_above = unsafe { unsafe_get_closest_index(country_list, country_sum) };
+
+    constrain_closest_index(country_list, country_sum, closest_index_from_above);
 }
 
 /// Check if the nationality from the MRZ is not in the country list
