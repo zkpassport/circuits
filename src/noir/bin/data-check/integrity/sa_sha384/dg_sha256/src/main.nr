@@ -2,15 +2,16 @@
 use commitment::commit_to_disclosure;
 use data_check_expiry::check_expiry;
 use data_check_integrity::{check_dg1_sha256, check_signed_attributes_sha384};
+use utils::types::{DG1Data, EContentData, SignedAttrsData};
 
 fn main(
     current_date: pub u64,
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,
-    dg1: [u8; 95],
-    signed_attributes: [u8; 220],
-    e_content: [u8; 700],
+    dg1: DG1Data,
+    signed_attributes: SignedAttrsData,
+    e_content: EContentData,
     private_nullifier: Field,
 ) -> pub Field {
     // Check the ID is not expired first

@@ -45,6 +45,15 @@ jobs:
         run: |
           nargo test --package utils
           nargo test --package commitment_common
+          nargo test --package compare_age_lib
+          nargo test --package compare_date_lib
+          nargo test --package data_check_expiry_lib
+          nargo test --package data_check_integrity_lib
+          nargo test --package data_check_tbs_pubkey_lib
+          nargo test --package disclose_lib
+          nargo test --package exclusion_check_country_lib
+          nargo test --package inclusion_check_country_lib
+          nargo test --package exclusion_check_sanctions_lib
 
       - name: Calculate cache key for compiled circuits
         id: circuits-cache-key

@@ -57,19 +57,16 @@ ${dependencies.map(({ name, path }) => `${name} = { path = "${path}" }`).join("\
 `
 
 const STATIC_CIRCUITS = [
-  { name: "compare_citizenship", path: "./src/noir/bin/compare/citizenship" },
   { name: "compare_age", path: "./src/noir/bin/compare/age/standard" },
   { name: "compare_age_evm", path: "./src/noir/bin/compare/age/evm" },
   { name: "compare_expiry", path: "./src/noir/bin/compare/expiry/standard" },
   { name: "compare_expiry_evm", path: "./src/noir/bin/compare/expiry/evm" },
   { name: "compare_birthdate", path: "./src/noir/bin/compare/birthdate/standard" },
   { name: "compare_birthdate_evm", path: "./src/noir/bin/compare/birthdate/evm" },
-  { name: "disclose_flags", path: "./src/noir/bin/disclose/flags" },
   { name: "disclose_bytes", path: "./src/noir/bin/disclose/bytes/standard" },
   { name: "disclose_bytes_evm", path: "./src/noir/bin/disclose/bytes/evm" },
   { name: "bind", path: "./src/noir/bin/bind/standard" },
   { name: "bind_evm", path: "./src/noir/bin/bind/evm" },
-  { name: "data_check_expiry", path: "./src/noir/bin/data-check/expiry" },
   {
     name: "exclusion_check_issuing_country",
     path: "./src/noir/bin/exclusion-check/issuing-country/standard",
@@ -120,7 +117,6 @@ const LIB_CIRCUITS = [
   "src/noir/lib/commitment/integrity-to-disclosure",
   "src/noir/lib/commitment/scoped-nullifier",
   "src/noir/lib/compare/age",
-  "src/noir/lib/compare/citizenship",
   "src/noir/lib/compare/date",
   "src/noir/lib/data-check/expiry",
   "src/noir/lib/data-check/integrity",
@@ -161,7 +157,7 @@ const DSC_ECDSA_TEMPLATE = (
 use commitment::commit_to_dsc;
 use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 use sig_check_ecdsa::verify_${curve_family}_${curve_name};
-use utils::{concat_array, split_array};
+use utils::{split_array, types::Alpha3CountryCode};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
@@ -169,7 +165,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_hash_path: [Field; ${CERTIFICATE_REGISTRY_HEIGHT}],
     certificate_tags: [Field; 3],
     salt: Field,
-    country: str<3>,
+    country: Alpha3CountryCode,
     csc_pubkey_x: [u8; ${Math.ceil(bit_size / 8)}],
     csc_pubkey_y: [u8; ${Math.ceil(bit_size / 8)}],
     dsc_signature: [u8; ${Math.ceil(bit_size / 8) * 2}],
@@ -190,7 +186,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         country,
         tbs_certificate,
         salt,
-        concat_array(csc_pubkey_x, csc_pubkey_y),
+        csc_pubkey_x.concat(csc_pubkey_y),
     );
     comm_out
 }
@@ -205,6 +201,7 @@ const DSC_RSA_TEMPLATE = (
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_dsc;
 use sig_check_rsa::verify_signature;
+use utils::types::Alpha3CountryCode;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
@@ -212,7 +209,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_hash_path: [Field; ${CERTIFICATE_REGISTRY_HEIGHT}],
     certificate_tags: [Field; 3],
     salt: Field,
-    country: str<3>,
+    country: Alpha3CountryCode,
     tbs_certificate: [u8; ${tbs_max_len}],
     csc_pubkey: [u8; ${Math.ceil(bit_size / 8)}],
     csc_pubkey_redc_param: [u8; ${Math.ceil(bit_size / 8) + 1}],
@@ -259,19 +256,19 @@ use commitment::commit_to_id;
 use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
 use sig_check_common::${hash_algorithm}_and_check_data_to_sign;
 use sig_check_ecdsa::verify_${curve_family}_${curve_name};
-use utils::split_array;
+use utils::{split_array, types::{DG1Data, EContentData, SignedAttrsData}};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,
-    dg1: [u8; 95],
+    dg1: DG1Data,
     dsc_pubkey_x: [u8; ${Math.ceil(bit_size / 8)}],
     dsc_pubkey_y: [u8; ${Math.ceil(bit_size / 8)}],
     sod_signature: [u8; ${Math.ceil(bit_size / 8) * 2}],
     tbs_certificate: [u8; ${tbs_max_len}],
-    signed_attributes: [u8; ${SIGNED_ATTRIBUTES_SIZE}],
-    e_content: [u8; 700],
+    signed_attributes: SignedAttrsData,
+    e_content: EContentData,
 ) -> pub Field {
     // Get the length of signed_attributes by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid
@@ -310,19 +307,20 @@ const ID_DATA_RSA_TEMPLATE = (
 use commitment::commit_to_id;
 use data_check_tbs_pubkey::verify_rsa_pubkey_in_tbs;
 use sig_check_rsa::verify_signature;
+use utils::types::{DG1Data, EContentData, SignedAttrsData};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,
-    dg1: [u8; 95],
+    dg1: DG1Data,
     dsc_pubkey: [u8; ${Math.ceil(bit_size / 8)}],
     dsc_pubkey_redc_param: [u8; ${Math.ceil(bit_size / 8) + 1}],
     sod_signature: [u8; ${Math.ceil(bit_size / 8)}],
     tbs_certificate: [u8; ${tbs_max_len}],
-    signed_attributes: [u8; ${SIGNED_ATTRIBUTES_SIZE}],
+    signed_attributes: SignedAttrsData,
     exponent: u32,
-    e_content: [u8; 700],
+    e_content: EContentData,
 ) -> pub Field {
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate);
     // Get the length of signed_attributes by parsing the ASN.1
@@ -362,15 +360,16 @@ const DATA_INTEGRITY_CHECK_TEMPLATE = (
 use commitment::commit_to_disclosure;
 use data_check_expiry::check_expiry;
 use data_check_integrity::{check_dg1_${dg_hash_algorithm}, check_signed_attributes_${signed_attributes_hash_algorithm}};
+use utils::types::{DG1Data, EContentData, SignedAttrsData};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     current_date: pub u64,
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,
-    dg1: [u8; 95],
-    signed_attributes: [u8; ${SIGNED_ATTRIBUTES_SIZE}],
-    e_content: [u8; 700],
+    dg1: DG1Data,
+    signed_attributes: SignedAttrsData,
+    e_content: EContentData,
     private_nullifier: Field,
 ) -> pub Field {
     // Check the ID is not expired first

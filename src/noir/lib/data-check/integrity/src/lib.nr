@@ -1,23 +1,34 @@
 use sha1::sha1;
 use sha256::{sha224_var, sha256_var};
 use sha512::{sha384, sha512};
-use utils::{find_subarray_index, is_id_card, is_subarray_in_array};
+use utils::{
+    check_zero_padding,
+    constants::{ID_CARD_DG1_LENGTH, PASSPORT_DG1_LENGTH},
+    find_subarray_index,
+    is_id_card,
+    is_subarray_in_array,
+    types::{DG1Data, EContentData},
+};
+
+pub mod tests;
+
+pub fn get_dg1_size(dg1: DG1Data) -> u32 {
+    if is_id_card(dg1) {
+        ID_CARD_DG1_LENGTH
+    } else {
+        PASSPORT_DG1_LENGTH
+    }
+}
 
 /**
 * Computes the hash (using SHA1) of the first data group (containing the MRZ) and checks it is the same as the one
 * included in eContent at the offset provided (along with the rest of the data group hashes)
 */
-pub fn check_dg1_sha1(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32) {
-    assert(e_content_size <= 700, "eContent size is too large");
+pub fn check_dg1_sha1(dg1: DG1Data, e_content: EContentData, e_content_size: u32) {
+    check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
-    let mut dg1_size: u32 = 93;
-
-    // If it's an ID card then the array should not have any padding
-    // character
-    if is_id_card(dg1) {
-        dg1_size = 95;
-    }
+    let dg1_size: u32 = get_dg1_size(dg1);
 
     let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size);
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
@@ -28,7 +39,10 @@ pub fn check_dg1_sha1(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32) 
     let dg1_offset_in_e_content = find_subarray_index(dg1_hash, e_content);
     // Check that the hash of dg1 is in the e_content, we use the actual size rather than generic size
     // of econtent to ignore the padding bytes at the end
-    assert(dg1_offset_in_e_content + 20 <= e_content_size, "Hash of dg1 not found in eContent");
+    assert(
+        dg1_offset_in_e_content + dg1_hash.len() <= e_content_size,
+        "Hash of dg1 not found in eContent",
+    );
 }
 
 /**
@@ -37,7 +51,7 @@ pub fn check_dg1_sha1(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32) 
 */
 pub fn check_signed_attributes_sha1<let SA_SIZE: u32>(
     signed_attributes: [u8; SA_SIZE],
-    e_content: [u8; 700],
+    e_content: EContentData,
     e_content_size: u32,
 ) {
     let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size);
@@ -55,17 +69,11 @@ pub fn check_signed_attributes_sha1<let SA_SIZE: u32>(
 * Computes the hash (using SHA2-224) of the first data group (containing the MRZ) and checks it is the same as the one
 * included in eContent at the offset provided (along with the rest of the data group hashes)
 */
-pub fn check_dg1_sha224(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32) {
-    assert(e_content_size <= 700, "eContent size is too large");
+pub fn check_dg1_sha224(dg1: DG1Data, e_content: EContentData, e_content_size: u32) {
+    check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
-    let mut dg1_size: u64 = 93;
-
-    // If it's an ID card then the array should not have any padding
-    // character
-    if is_id_card(dg1) {
-        dg1_size = 95;
-    }
+    let dg1_size: u64 = get_dg1_size(dg1) as u64;
 
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
@@ -75,7 +83,10 @@ pub fn check_dg1_sha224(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32
     let dg1_offset_in_e_content = find_subarray_index(dg1_hash, e_content);
     // Check that the hash of dg1 is in the e_content, we use the actual size rather than generic size
     // of econtent to ignore the padding bytes at the end
-    assert(dg1_offset_in_e_content + 28 <= e_content_size, "Hash of dg1 not found in eContent");
+    assert(
+        dg1_offset_in_e_content + dg1_hash.len() <= e_content_size,
+        "Hash of dg1 not found in eContent",
+    );
 }
 
 /**
@@ -84,7 +95,7 @@ pub fn check_dg1_sha224(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32
 */
 pub fn check_signed_attributes_sha224<let SA_SIZE: u32>(
     signed_attributes: [u8; SA_SIZE],
-    e_content: [u8; 700],
+    e_content: EContentData,
     e_content_size: u32,
 ) {
     let computed_final_hash = sha224_var(e_content, e_content_size as u64);
@@ -100,17 +111,11 @@ pub fn check_signed_attributes_sha224<let SA_SIZE: u32>(
 * Computes the hash (using SHA2-256) of the first data group (containing the MRZ) and checks it is the same as the one
 * included in eContent at the offset provided (along with the rest of the data group hashes)
 */
-pub fn check_dg1_sha256(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32) {
-    assert(e_content_size <= 700, "eContent size is too large");
+pub fn check_dg1_sha256(dg1: DG1Data, e_content: EContentData, e_content_size: u32) {
+    check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
-    let mut dg1_size: u64 = 93;
-
-    // If it's an ID card then the array should not have any padding
-    // character
-    if is_id_card(dg1) {
-        dg1_size = 95;
-    }
+    let dg1_size: u64 = get_dg1_size(dg1) as u64;
 
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
@@ -120,7 +125,10 @@ pub fn check_dg1_sha256(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32
     let dg1_offset_in_e_content = find_subarray_index(dg1_hash, e_content);
     // Check that the hash of dg1 is in the e_content, we use the actual size rather than generic size
     // of econtent to ignore the padding bytes at the end
-    assert(dg1_offset_in_e_content + 32 <= e_content_size, "Hash of dg1 not found in eContent");
+    assert(
+        dg1_offset_in_e_content + dg1_hash.len() <= e_content_size,
+        "Hash of dg1 not found in eContent",
+    );
 }
 
 /**
@@ -129,7 +137,7 @@ pub fn check_dg1_sha256(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32
 */
 pub fn check_signed_attributes_sha256<let SA_SIZE: u32>(
     signed_attributes: [u8; SA_SIZE],
-    e_content: [u8; 700],
+    e_content: EContentData,
     e_content_size: u32,
 ) {
     let computed_final_hash = sha256_var(e_content, e_content_size as u64);
@@ -145,17 +153,11 @@ pub fn check_signed_attributes_sha256<let SA_SIZE: u32>(
 * Computes the hash (using SHA2-384) of the first data group (containing the MRZ) and checks it is the same as the one
 * included in eContent at the offset provided (along with the rest of the data group hashes)
 */
-pub fn check_dg1_sha384(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32) {
-    assert(e_content_size <= 700, "eContent size is too large");
+pub fn check_dg1_sha384(dg1: DG1Data, e_content: EContentData, e_content_size: u32) {
+    check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
-    let mut dg1_size: u32 = 93;
-
-    // If it's an ID card then the array should not have any padding
-    // character
-    if is_id_card(dg1) {
-        dg1_size = 95;
-    }
+    let dg1_size: u32 = get_dg1_size(dg1);
 
     let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size);
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
@@ -166,7 +168,10 @@ pub fn check_dg1_sha384(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32
     let dg1_offset_in_e_content = find_subarray_index(dg1_hash, e_content);
     // Check that the hash of dg1 is in the e_content, we use the actual size rather than generic size
     // of econtent to ignore the padding bytes at the end
-    assert(dg1_offset_in_e_content + 48 <= e_content_size, "Hash of dg1 not found in eContent");
+    assert(
+        dg1_offset_in_e_content + dg1_hash.len() <= e_content_size,
+        "Hash of dg1 not found in eContent",
+    );
 }
 
 /**
@@ -175,7 +180,7 @@ pub fn check_dg1_sha384(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32
 */
 pub fn check_signed_attributes_sha384<let SA_SIZE: u32>(
     signed_attributes: [u8; SA_SIZE],
-    e_content: [u8; 700],
+    e_content: EContentData,
     e_content_size: u32,
 ) {
     let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size);
@@ -193,17 +198,11 @@ pub fn check_signed_attributes_sha384<let SA_SIZE: u32>(
 * Computes the hash (using SHA2-512) of the first data group (containing the MRZ) and checks it is the same as the one
 * included in eContent at the offset provided (along with the rest of the data group hashes)
 */
-pub fn check_dg1_sha512(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32) {
-    assert(e_content_size <= 700, "eContent size is too large");
+pub fn check_dg1_sha512(dg1: DG1Data, e_content: EContentData, e_content_size: u32) {
+    check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
-    let mut dg1_size: u32 = 93;
-
-    // If it's an ID card then the array should not have any padding
-    // character
-    if is_id_card(dg1) {
-        dg1_size = 95;
-    }
+    let dg1_size: u32 = get_dg1_size(dg1);
 
     let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size);
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
@@ -214,7 +213,10 @@ pub fn check_dg1_sha512(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32
     let dg1_offset_in_e_content = find_subarray_index(dg1_hash, e_content);
     // Check that the hash of dg1 is in the e_content, we use the actual size rather than generic size
     // of econtent to ignore the padding bytes at the end
-    assert(dg1_offset_in_e_content + 64 <= e_content_size, "Hash of dg1 not found in eContent");
+    assert(
+        dg1_offset_in_e_content + dg1_hash.len() <= e_content_size,
+        "Hash of dg1 not found in eContent",
+    );
 }
 
 /**
@@ -223,7 +225,7 @@ pub fn check_dg1_sha512(dg1: [u8; 95], e_content: [u8; 700], e_content_size: u32
 */
 pub fn check_signed_attributes_sha512<let SA_SIZE: u32>(
     signed_attributes: [u8; SA_SIZE],
-    e_content: [u8; 700],
+    e_content: EContentData,
     e_content_size: u32,
 ) {
     let e_content_bounded_vec = BoundedVec::from_parts(e_content, e_content_size);

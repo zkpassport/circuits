@@ -1,12 +1,12 @@
 use commitment::nullify;
 use compare_date_lib::{calculate_param_commitment_sha2, compare_date, get_expiry_date};
-use utils::PROOF_TYPE_EXPIRY_DATE;
+use utils::{constants::PROOF_TYPE_EXPIRY_DATE, types::DG1Data};
 
 fn main(
     comm_in: pub Field,
     salt: Field,
     private_nullifier: Field,
-    dg1: [u8; 95],
+    dg1: DG1Data,
     // @committed
     // The current date timestamp is public so verifiers can check the date
     // provided to the proof is correct

@@ -1,3 +1,5 @@
+pub mod tests;
+
 /// Check that an RSA public key exists in a certificate TBS
 pub fn verify_rsa_pubkey_in_tbs<let PUBKEY_SIZE: u32, let TBS_SIZE: u32>(
     pubkey: [u8; PUBKEY_SIZE],

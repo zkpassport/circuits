@@ -1,5 +1,5 @@
 [package]
-name = "data_check_integrity_lib"
+name = "data_check_tbs_pubkey_lib"
 type = "lib"
 authors = ["Theo Madzou", "Michael Elliot"]
 compiler_version = ">=1.0.0"

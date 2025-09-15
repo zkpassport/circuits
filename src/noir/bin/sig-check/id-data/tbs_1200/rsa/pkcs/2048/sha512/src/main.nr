@@ -2,19 +2,20 @@
 use commitment::commit_to_id;
 use data_check_tbs_pubkey::verify_rsa_pubkey_in_tbs;
 use sig_check_rsa::verify_signature;
+use utils::types::{DG1Data, EContentData, SignedAttrsData};
 
 fn main(
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,
-    dg1: [u8; 95],
+    dg1: DG1Data,
     dsc_pubkey: [u8; 256],
     dsc_pubkey_redc_param: [u8; 257],
     sod_signature: [u8; 256],
     tbs_certificate: [u8; 1200],
-    signed_attributes: [u8; 220],
+    signed_attributes: SignedAttrsData,
     exponent: u32,
-    e_content: [u8; 700],
+    e_content: EContentData,
 ) -> pub Field {
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate);
     // Get the length of signed_attributes by parsing the ASN.1

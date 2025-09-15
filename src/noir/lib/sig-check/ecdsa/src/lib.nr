@@ -37,7 +37,6 @@ use ecdsa::ecdsa::{
     verify_secp256r1_ecdsa, verify_secp384r1_ecdsa, verify_secp521r1_ecdsa,
 };
 use std::ecdsa_secp256r1;
-use utils::concat_array;
 
 pub fn verify_nist_p192<let HASH_BYTE_SIZE: u32>(
     pubkey_x: [u8; 24],
@@ -84,7 +83,7 @@ pub fn verify_nist_p256_blackbox<let HASH_BYTE_SIZE: u32>(
     signature_s: [u8; 32],
     msg_hash: [u8; HASH_BYTE_SIZE],
 ) -> bool {
-    let signature = concat_array(signature_r, signature_s);
+    let signature = signature_r.concat(signature_s);
     ecdsa_secp256r1::verify_signature(pubkey_x, pubkey_y, signature, msg_hash)
 }
 
