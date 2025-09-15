@@ -5,88 +5,12 @@ pragma solidity >=0.8.21;
 import {IVerifier} from "../src/OuterCount4.sol";
 import {DateUtils} from "../src/DateUtils.sol";
 import {StringUtils} from "../src/StringUtils.sol";
-import {ArrayUtils} from "../src/ArrayUtils.sol";
 import {IRootRegistry} from "../src/IRootRegistry.sol";
-import {CommittedInputLen, SANCTIONS_TREES_ROOT} from "../src/Constants.sol";
-
-enum ProofType {
-  DISCLOSE,
-  AGE,
-  BIRTHDATE,
-  EXPIRY_DATE,
-  NATIONALITY_INCLUSION,
-  NATIONALITY_EXCLUSION,
-  ISSUING_COUNTRY_INCLUSION,
-  ISSUING_COUNTRY_EXCLUSION,
-  BIND,
-  SANCTIONS
-}
-
-enum BoundDataIdentifier {
-  NONE,
-  USER_ADDRESS,
-  CHAIN_ID,
-  CUSTOM_DATA
-}
-
-// Add this struct to group parameters
-struct ProofVerificationParams {
-  bytes32 vkeyHash;
-  bytes proof;
-  bytes32[] publicInputs;
-  bytes committedInputs;
-  uint256[] committedInputCounts;
-  uint256 validityPeriodInSeconds;
-  string domain;
-  string scope;
-  bool devMode;
-}
+import {InputsExtractor} from "../src/InputsExtractor.sol";
+import {CommittedInputLen, SANCTIONS_TREES_ROOT, MRZIndex, MRZLength, SECONDS_BETWEEN_1900_AND_1970} from "../src/Constants.sol";
+import {ProofType, ProofVerificationParams, BoundDataIdentifier, DisclosedData} from "../src/Types.sol";
 
 contract ZKPassportVerifier {
-  // Constants
-  // Index for the country of issuance of the passport
-  uint256 constant PASSPORT_MRZ_COUNTRY_INDEX = 2;
-  // Index for the three letter code of the country of citizenship
-  // Note that the first three letter code (index 2) in the MRZ is the country of issuance
-  // not citizenship. It is important to keep in mind for residence permits
-  // where the issuing country differs from the citizenship country
-  uint256 constant PASSPORT_MRZ_NATIONALITY_INDEX = 54;
-  // Index for the gender of the passport holder (M, F or < if unspecified)
-  uint256 constant PASSPORT_MRZ_GENDER_INDEX = 64;
-  // Index for the date of expiry (YYMMDD)
-  uint256 constant PASSPORT_MRZ_EXPIRY_DATE_INDEX = 65;
-  // Index for the date of birth (YYMMDD) in TD1 (i.e. passport) MRZ
-  uint256 constant PASSPORT_MRZ_BIRTHDATE_INDEX = 57;
-  // Index for the document number in the MRZ
-  uint256 constant PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX = 44;
-  // Index for the document type in the MRZ
-  uint256 constant PASSPORT_MRZ_DOCUMENT_TYPE_INDEX = 0;
-  // Index for the name of the passport holder
-  uint256 constant PASSPORT_MRZ_NAME_INDEX = 5;
-  // Length of the MRZ on a passport
-  uint256 constant PASSPORT_MRZ_LENGTH = 88;
-
-  // Index for the country of issuance of the ID card
-  uint256 constant ID_CARD_MRZ_COUNTRY_INDEX = 2;
-  // Note that the first three letter code (index 2) in the MRZ is the country of issuance
-  // not citizenship. It is important to keep in mind for residence permits
-  // where the issuing country differs from the citizenship country
-  uint256 constant ID_CARD_MRZ_NATIONALITY_INDEX = 45;
-  // Index for the gender of the passport holder (M, F or < if unspecified)
-  uint256 constant ID_CARD_MRZ_GENDER_INDEX = 37;
-  // Index for the date of expiry (YYMMDD)
-  uint256 constant ID_CARD_MRZ_EXPIRY_DATE_INDEX = 38;
-  // Index for the date of birth (YYMMDD) in TD3 (i.e. ID cards) MRZ
-  uint256 constant ID_CARD_MRZ_BIRTHDATE_INDEX = 30;
-  // Index for the document number in the MRZ
-  uint256 constant ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX = 5;
-  // Index for the document type in the MRZ
-  uint256 constant ID_CARD_MRZ_DOCUMENT_TYPE_INDEX = 0;
-  // Index for the name of the passport holder
-  uint256 constant ID_CARD_MRZ_NAME_INDEX = 60;
-  // Length of the MRZ on an ID card
-  uint256 constant ID_CARD_MRZ_LENGTH = 90;
-
   bytes32 public constant CERTIFICATE_REGISTRY_ID = bytes32(uint256(1));
   bytes32 public constant CIRCUIT_REGISTRY_ID = bytes32(uint256(2));
   bytes32 public constant SANCTIONS_REGISTRY_ID = bytes32(uint256(3));
@@ -94,6 +18,7 @@ contract ZKPassportVerifier {
   address public admin;
   bool public paused;
 
+  // Mapping from vkey hash of each Outer Circuit to its Ultra Honk Verifier address
   mapping(bytes32 => address) public vkeyHashToVerifier;
 
   // Maybe make this immutable as this should most likely not change
@@ -170,281 +95,319 @@ contract ZKPassportVerifier {
     uint256 currentDateTimeStamp = uint256(publicInputs[2]);
     return DateUtils.isDateValid(currentDateTimeStamp, validityPeriodInSeconds);
   }
-
+  
   function getDisclosedData(
-    bytes calldata discloseBytes,
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
     bool isIDCard
-  )
-    public
-    pure
-    returns (
-      string memory name,
-      string memory issuingCountry,
-      string memory nationality,
-      string memory gender,
-      string memory birthDate,
-      string memory expiryDate,
-      string memory documentNumber,
-      string memory documentType
-    )
-  {
-    if (!isIDCard) {
-      name = string(discloseBytes[PASSPORT_MRZ_NAME_INDEX:PASSPORT_MRZ_NAME_INDEX + 39]);
-      issuingCountry = string(
-        discloseBytes[PASSPORT_MRZ_COUNTRY_INDEX:PASSPORT_MRZ_COUNTRY_INDEX + 3]
-      );
-      nationality = string(
-        discloseBytes[PASSPORT_MRZ_NATIONALITY_INDEX:PASSPORT_MRZ_NATIONALITY_INDEX + 3]
-      );
-      gender = string(discloseBytes[PASSPORT_MRZ_GENDER_INDEX:PASSPORT_MRZ_GENDER_INDEX + 1]);
-      birthDate = string(
-        discloseBytes[PASSPORT_MRZ_BIRTHDATE_INDEX:PASSPORT_MRZ_BIRTHDATE_INDEX + 6]
-      );
-      expiryDate = string(
-        discloseBytes[PASSPORT_MRZ_EXPIRY_DATE_INDEX:PASSPORT_MRZ_EXPIRY_DATE_INDEX + 6]
-      );
-      documentNumber = string(
-        discloseBytes[PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX:PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX + 9]
-      );
-      documentType = string(
-        discloseBytes[PASSPORT_MRZ_DOCUMENT_TYPE_INDEX:PASSPORT_MRZ_DOCUMENT_TYPE_INDEX + 2]
-      );
+  ) public pure returns (DisclosedData memory disclosedData) {
+    (, bytes memory discloseBytes) = InputsExtractor.getDiscloseProofInputs(committedInputs, committedInputCounts);
+    disclosedData = InputsExtractor.getDisclosedData(discloseBytes, isIDCard);
+  }
+
+  function isAgeAboveOrEqual(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint8 minAge,
+    uint256 validity
+  ) public view returns (bool) {
+    (uint256 currentDate, uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(committedInputs, committedInputCounts);
+    require(DateUtils.isDateValid(currentDate, validity), "Current date is not valid");
+    require(max == 0, "The proof upper bound must be 0, please use isAgeBetween instead");
+    return minAge == min;
+  }
+
+  function isAgeAbove(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint8 minAge,
+    uint256 validity
+  ) public view returns (bool) {
+    return isAgeAboveOrEqual(committedInputs, committedInputCounts, minAge + 1, validity);
+  }
+
+  function isAgeBetween(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint8 minAge,
+    uint8 maxAge,
+    uint256 validity
+  ) public view returns (bool) {
+    (uint256 currentDate, uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(committedInputs, committedInputCounts);
+    require(DateUtils.isDateValid(currentDate, validity), "Current date is not valid");
+    require(minAge <= maxAge, "Min age must be less than or equal to max age");
+    require(min != 0, "The proof lower bound must be non-zero, please use isAgeBelowOrEqual instead");
+    require(max != 0, "The proof upper bound must be non-zero, please use isAgeAboveOrEqual instead");
+    return minAge == min && maxAge == max;
+  }
+
+  function isAgeBelowOrEqual(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint8 maxAge,
+    uint256 validity
+  ) public view returns (bool) {
+    (uint256 currentDate, uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(committedInputs, committedInputCounts);
+    require(DateUtils.isDateValid(currentDate, validity), "Current date is not valid");
+    require(min == 0, "The proof lower bound must be 0, please use isAgeBetween instead");
+    return maxAge == max;
+  }
+
+  function isAgeBelow(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint8 maxAge,
+    uint256 validity
+  ) public view returns (bool) {
+    require(maxAge > 0, "Max age must be greater than 0");
+    return isAgeBelowOrEqual(committedInputs, committedInputCounts, maxAge - 1, validity);
+  }
+
+  function isAgeEqual(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint8 age,
+    uint256 validity
+  ) public view returns (bool) {
+    return isAgeBetween(committedInputs, committedInputCounts, age, age, validity);
+  }
+
+  function isDateAboveOrEqual(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint256 minDate,
+    ProofType proofType,
+    uint256 validity
+  ) private view returns (bool) {
+    (uint256 currentDate, uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(committedInputs, committedInputCounts, proofType);
+    require(DateUtils.isDateValid(currentDate, validity), "Current date is not valid");
+    require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
+    if (proofType == ProofType.BIRTHDATE) {
+      require(max == 0, "The proof upper bound must be 0, please use isBirthdateBetween instead");
+      return minDate == min - SECONDS_BETWEEN_1900_AND_1970;
     } else {
-      name = string(discloseBytes[ID_CARD_MRZ_NAME_INDEX:ID_CARD_MRZ_NAME_INDEX + 30]);
-      issuingCountry = string(
-        discloseBytes[ID_CARD_MRZ_COUNTRY_INDEX:ID_CARD_MRZ_COUNTRY_INDEX + 3]
-      );
-      nationality = string(
-        discloseBytes[ID_CARD_MRZ_NATIONALITY_INDEX:ID_CARD_MRZ_NATIONALITY_INDEX + 3]
-      );
-      gender = string(discloseBytes[ID_CARD_MRZ_GENDER_INDEX:ID_CARD_MRZ_GENDER_INDEX + 1]);
-      birthDate = string(
-        discloseBytes[ID_CARD_MRZ_BIRTHDATE_INDEX:ID_CARD_MRZ_BIRTHDATE_INDEX + 6]
-      );
-      expiryDate = string(
-        discloseBytes[ID_CARD_MRZ_EXPIRY_DATE_INDEX:ID_CARD_MRZ_EXPIRY_DATE_INDEX + 6]
-      );
-      documentNumber = string(
-        discloseBytes[ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX:ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX + 9]
-      );
-      documentType = string(
-        discloseBytes[ID_CARD_MRZ_DOCUMENT_TYPE_INDEX:ID_CARD_MRZ_DOCUMENT_TYPE_INDEX + 2]
-      );
+      require(max == 0, "The proof upper bound must be 0, please use isExpiryDateBetween instead");
+      return minDate == min;
     }
   }
 
-  function getDiscloseProofInputs(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts
-  ) public pure returns (bytes memory discloseMask, bytes memory discloseBytes) {
-    uint256 offset = 0;
-    bool found = false;
-    for (uint256 i = 0; i < committedInputCounts.length; i++) {
-      // Disclose circuits have 181 bytes of committed inputs
-      // The first byte is the proof type
-      if (committedInputCounts[i] == CommittedInputLen.DISCLOSE_BYTES) {
-        require(committedInputs[offset] == bytes1(uint8(ProofType.DISCLOSE)), "Invalid proof type");
-        discloseMask = committedInputs[offset + 1:offset + 91];
-        discloseBytes = committedInputs[offset + 91:offset + 181];
-        found = true;
-      }
-      offset += committedInputCounts[i];
-    }
-    require(found, "Disclose proof inputs not found");
-  }
-
-  function getDateProofInputs(
+  function isDateBetween(
     bytes calldata committedInputs,
     uint256[] calldata committedInputCounts,
-    ProofType proofType
-  ) public pure returns (uint256 currentDate, uint256 minDate, uint256 maxDate) {
-    uint256 offset = 0;
-    bool found = false;
-    for (uint256 i = 0; i < committedInputCounts.length; i++) {
-      // Date circuits have 25 bytes of committed inputs
-      // The first byte is the proof type
-      if (
-        committedInputCounts[i] == CommittedInputLen.COMPARE_EXPIRY &&
-        committedInputs[offset] == bytes1(uint8(proofType))
-      ) {
-        // Get rid of the padding 0s bytes as the timestamp is contained within the first 64 bits
-        // i.e. 256 - 64 = 192
-        currentDate = uint256(bytes32(committedInputs[offset + 1:offset + 9])) >> 192;
-        minDate = uint256(bytes32(committedInputs[offset + 9:offset + 17])) >> 192;
-        maxDate = uint256(bytes32(committedInputs[offset + 17:offset + 25])) >> 192;
-        found = true;
-      }
-      offset += committedInputCounts[i];
+    uint256 minDate,
+    uint256 maxDate,
+    ProofType proofType,
+    uint256 validity
+  ) private view returns (bool) {
+    (uint256 currentDate, uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(committedInputs, committedInputCounts, proofType);
+    require(DateUtils.isDateValid(currentDate, validity), "Current date is not valid");
+    require(minDate <= maxDate, "Min date must be less than or equal to max date");
+    require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
+    if (proofType == ProofType.BIRTHDATE) {
+      require(min != 0, "The proof lower bound must be non-zero, please use isBirthdateBelowOrEqual instead");
+      require(max != 0, "The proof upper bound must be non-zero, please use isBirthdateAboveOrEqual instead");
+      return minDate == min - SECONDS_BETWEEN_1900_AND_1970 && maxDate == max - SECONDS_BETWEEN_1900_AND_1970;
+    } else {
+      require(min != 0, "The proof lower bound must be non-zero, please use isExpiryDateBelowOrEqual instead");
+      require(max != 0, "The proof upper bound must be non-zero, please use isExpiryDateAboveOrEqual instead");
+      return minDate == min && maxDate == max;
     }
-    require(found, "Date proof inputs not found");
   }
 
-  function getAgeProofInputs(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts
-  ) public pure returns (uint256 currentDate, uint8 minAge, uint8 maxAge) {
-    uint256 offset = 0;
-    bool found = false;
-    for (uint256 i = 0; i < committedInputCounts.length; i++) {
-      // The age circuit has 11 bytes of committed inputs
-      // The first byte is the proof type
-      if (committedInputCounts[i] == CommittedInputLen.COMPARE_AGE) {
-        require(committedInputs[offset] == bytes1(uint8(ProofType.AGE)), "Invalid proof type");
-        // Get rid of the padding 0s bytes as the timestamp is contained within the first 64 bits
-        // i.e. 256 - 64 = 192
-        currentDate = uint256(bytes32(committedInputs[offset + 1:offset + 9])) >> 192;
-        minAge = uint8(committedInputs[offset + 9]);
-        maxAge = uint8(committedInputs[offset + 10]);
-        found = true;
-      }
-      offset += committedInputCounts[i];
-    }
-    require(found, "Age proof inputs not found");
-  }
-
-  function getCountryProofInputs(
+  function isDateBelowOrEqual(
     bytes calldata committedInputs,
     uint256[] calldata committedInputCounts,
+    uint256 maxDate,
+    ProofType proofType,
+    uint256 validity
+  ) private view returns (bool) {
+    (uint256 currentDate, uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(committedInputs, committedInputCounts, proofType);
+    require(DateUtils.isDateValid(currentDate, validity), "Current date is not valid");
+    require(min == 0, "The proof lower bound must be 0, please use isDateBetween instead");
+    require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
+    if (proofType == ProofType.BIRTHDATE) {
+      require(max != 0, "The proof upper bound must be non-zero, please use isBirthdateAboveOrEqual instead");
+      return maxDate == max - SECONDS_BETWEEN_1900_AND_1970;
+    } else {
+      require(max != 0, "The proof upper bound must be non-zero, please use isExpiryDateAboveOrEqual instead");
+      return maxDate == max;
+    }
+  }
+
+  function isBirthdateAboveOrEqual(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint256 minDate,
+    uint256 validity
+  ) public view returns (bool) {
+    return isDateAboveOrEqual(committedInputs, committedInputCounts, minDate, ProofType.BIRTHDATE, validity);
+  }
+
+  function isBirthdateAbove(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint256 minDate,
+    uint256 validity
+  ) public view returns (bool) {
+    return isDateAboveOrEqual(committedInputs, committedInputCounts, minDate + 1 days, ProofType.BIRTHDATE, validity);
+  }
+
+  function isBirthdateBetween(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint256 minDate,
+    uint256 maxDate,
+    uint256 validity
+  ) public view returns (bool) {
+    return isDateBetween(committedInputs, committedInputCounts, minDate, maxDate, ProofType.BIRTHDATE, validity);
+  }
+
+  function isBirthdateBelowOrEqual(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint256 maxDate,
+    uint256 validity
+  ) public view returns (bool) {
+    return isDateBelowOrEqual(committedInputs, committedInputCounts, maxDate, ProofType.BIRTHDATE, validity);
+  }
+
+  function isBirthdateBelow(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint256 maxDate,
+    uint256 validity
+  ) public view returns (bool) {
+    return isDateBelowOrEqual(committedInputs, committedInputCounts, maxDate - 1 days, ProofType.BIRTHDATE, validity);
+  }
+
+  function isBirthdateEqual(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint256 date,
+    uint256 validity
+  ) public view returns (bool) {
+    return isDateBetween(committedInputs, committedInputCounts, date, date, ProofType.BIRTHDATE, validity);
+  }
+
+  function isExpiryDateAboveOrEqual(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint256 minDate,
+    uint256 validity
+  ) public view returns (bool) {
+    return isDateAboveOrEqual(committedInputs, committedInputCounts, minDate, ProofType.EXPIRY_DATE, validity);
+  }
+
+  function isExpiryDateAbove(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint256 minDate,
+    uint256 validity
+  ) public view returns (bool) {
+    return isDateAboveOrEqual(committedInputs, committedInputCounts, minDate + 1 days, ProofType.EXPIRY_DATE, validity);
+  }
+
+  function isExpiryDateBetween(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint256 minDate,
+    uint256 maxDate,
+    uint256 validity
+  ) public view returns (bool) {
+    return isDateBetween(committedInputs, committedInputCounts, minDate, maxDate, ProofType.EXPIRY_DATE, validity);
+  }
+
+  function isExpiryDateBelowOrEqual(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint256 maxDate,
+    uint256 validity
+  ) public view returns (bool) {
+    return isDateBelowOrEqual(committedInputs, committedInputCounts, maxDate, ProofType.EXPIRY_DATE, validity);
+  }
+
+  function isExpiryDateBelow(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint256 maxDate,
+    uint256 validity
+  ) public view returns (bool) {
+    return isDateBelowOrEqual(committedInputs, committedInputCounts, maxDate - 1 days, ProofType.EXPIRY_DATE, validity);
+  }
+
+  function isExpiryDateEqual(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    uint256 date,
+    uint256 validity
+  ) public view returns (bool) {
+    return isDateBetween(committedInputs, committedInputCounts, date, date, ProofType.EXPIRY_DATE, validity);
+  }
+
+  function isCountryInOrOut(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    string[] memory countryList,
     ProofType proofType
-  ) public pure returns (string[] memory countryList) {
-    uint256 offset = 0;
-    bool found = false;
-    for (uint256 i = 0; i < committedInputCounts.length; i++) {
-      // Country (inclusion and exclusion) circuits have 601 bytes of committed inputs
-      // The first byte is the proof type
-      if (
-        committedInputCounts[i] == CommittedInputLen.INCL_NATIONALITY &&
-        committedInputs[offset] == bytes1(uint8(proofType))
-      ) {
-        countryList = new string[](200);
-        for (uint256 j = 0; j < 200; j++) {
-          if (committedInputs[offset + j * 3 + 1] == 0) {
-            // We don't need to include the padding bytes
-            break;
-          }
-          countryList[j] = string(committedInputs[offset + j * 3 + 1:offset + j * 3 + 3 + 1]);
-        }
-        found = true;
-      }
-      offset += committedInputCounts[i];
+  ) private pure returns (bool) {
+    (string[] memory inputCountryList, uint256 inputCountryListLength) = InputsExtractor.getCountryProofInputs(committedInputs, committedInputCounts, proofType);
+    if (countryList.length != inputCountryListLength) {
+      return false;
     }
-    require(found, "Country proof inputs not found");
+    for (uint256 i = 0; i < inputCountryListLength; i++) {
+      if (!StringUtils.equals(countryList[i], inputCountryList[i])) {
+        return false;
+      }
+    }
+    return true;
   }
 
-  function getBindProofInputs(
+  function isNationalityIn(
     bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts
-  ) public pure returns (bytes memory data) {
-    uint256 offset = 0;
-    bool found = false;
-    for (uint256 i = 0; i < committedInputCounts.length; i++) {
-      // The bind data circuit has 501 bytes of committed inputs
-      // The first byte is the proof type
-      if (committedInputCounts[i] == CommittedInputLen.BIND) {
-        require(committedInputs[offset] == bytes1(uint8(ProofType.BIND)), "Invalid proof type");
-        // Get the length of the data from the tag length encoded in the data
-        // The developer should check on their side the actual data returned before
-        // the padding bytes by asserting the values returned from getBoundData meets
-        // what they expect
-        uint256 dataLength = 0;
-        while (dataLength < 500) {
-          if (
-            committedInputs[offset + 1 + dataLength] ==
-            bytes1(uint8(BoundDataIdentifier.USER_ADDRESS))
-          ) {
-            uint16 addressLength = uint16(
-              bytes2(committedInputs[offset + 1 + dataLength + 1:offset + 1 + dataLength + 3])
-            );
-            dataLength += 2 + addressLength + 1;
-          } else if (
-            committedInputs[offset + 1 + dataLength] == bytes1(uint8(BoundDataIdentifier.CHAIN_ID))
-          ) {
-            uint16 chainIdLength = uint16(
-              bytes2(committedInputs[offset + 1 + dataLength + 1:offset + 1 + dataLength + 3])
-            );
-            dataLength += 2 + chainIdLength + 1;
-          } else if (
-            committedInputs[offset + 1 + dataLength] ==
-            bytes1(uint8(BoundDataIdentifier.CUSTOM_DATA))
-          ) {
-            uint16 customDataLength = uint16(
-              bytes2(committedInputs[offset + 1 + dataLength + 1:offset + 1 + dataLength + 3])
-            );
-            dataLength += 2 + customDataLength + 1;
-          } else {
-            break;
-          }
-        }
-        require(dataLength > 0 && dataLength <= 500, "Invalid data length");
-
-        // Verify all padding bytes are zeros
-        for (uint256 j = dataLength; j < 500; j++) {
-          require(committedInputs[offset + 1 + j] == 0, "Invalid padding");
-        }
-
-        data = committedInputs[offset + 1:offset + 501];
-        found = true;
-      }
-      offset += committedInputCounts[i];
-    }
-    require(found, "Bind data proof inputs not found");
+    uint256[] calldata committedInputCounts,
+    string[] memory countryList
+  ) public pure returns (bool) {
+    return isCountryInOrOut(committedInputs, committedInputCounts, countryList, ProofType.NATIONALITY_INCLUSION);
   }
 
-  function getSanctionsProofInputs(
+  function isIssuingCountryIn(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    string[] memory countryList
+  ) public pure returns (bool) {
+    return isCountryInOrOut(committedInputs, committedInputCounts, countryList, ProofType.ISSUING_COUNTRY_INCLUSION);
+  }
+
+  function isNationalityOut(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    string[] memory countryList
+  ) public pure returns (bool) {
+    return isCountryInOrOut(committedInputs, committedInputCounts, countryList, ProofType.NATIONALITY_EXCLUSION);
+  }
+
+  function isIssuingCountryOut(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts,
+    string[] memory countryList
+  ) public pure returns (bool) {
+    return isCountryInOrOut(committedInputs, committedInputCounts, countryList, ProofType.ISSUING_COUNTRY_EXCLUSION);
+  }
+
+  function getBoundData(
     bytes calldata committedInputs,
     uint256[] calldata committedInputCounts
-  ) public pure returns (bytes32 sanctionsTreesCommitment) {
-    uint256 offset = 0;
-    bool found = false;
-    for (uint256 i = 0; i < committedInputCounts.length; ++i) {
-      if (committedInputCounts[i] == CommittedInputLen.SANCTIONS) {
-        require(
-          committedInputs[offset] == bytes1(uint8(ProofType.SANCTIONS)),
-          "Invalid proof type"
-        );
-
-        sanctionsTreesCommitment = bytes32(committedInputs[offset + 1:offset + 33]);
-        found = true;
-      }
-      offset += committedInputCounts[i];
-    }
-    require(found, "Sanctions proof inputs not found");
+  ) public pure returns (address senderAddress, uint256 chainId, string memory customData) {
+    bytes memory data = InputsExtractor.getBindProofInputs(committedInputs, committedInputCounts);
+    (senderAddress, chainId, customData) = InputsExtractor.getBoundData(data);
   }
 
   function enforceSanctionsRoot(
     bytes calldata committedInputs,
     uint256[] calldata committedInputCounts
   ) public view {
-    bytes32 proofSanctionsRoot = getSanctionsProofInputs(committedInputs, committedInputCounts);
+    bytes32 proofSanctionsRoot = InputsExtractor.getSanctionsProofInputs(committedInputs, committedInputCounts);
     _validateSanctionsRoot(proofSanctionsRoot);
-  }
-
-  function getBoundData(
-    bytes calldata data
-  ) public pure returns (address senderAddress, uint256 chainId, string memory customData) {
-    uint256 offset = 0;
-    while (offset < 500) {
-      if (data[offset] == bytes1(uint8(BoundDataIdentifier.USER_ADDRESS))) {
-        uint16 addressLength = uint16(bytes2(data[offset + 1:offset + 3]));
-        senderAddress = address(bytes20(data[offset + 3:offset + 3 + addressLength]));
-        offset += 2 + addressLength + 1;
-      } else if (data[offset] == bytes1(uint8(BoundDataIdentifier.CHAIN_ID))) {
-        uint16 chainIdLength = uint16(bytes2(data[offset + 1:offset + 3]));
-        require(chainIdLength <= 32, "Chain id length too long");
-        // bytes32 right pads while we want to left pad
-        // so we shift the bytes to the right by 256 - (chainIdLength * 8)
-        chainId = uint256(
-          bytes32(data[offset + 3:offset + 3 + chainIdLength]) >> (256 - (chainIdLength * 8))
-        );
-        offset += 2 + chainIdLength + 1;
-      } else if (data[offset] == bytes1(uint8(BoundDataIdentifier.CUSTOM_DATA))) {
-        uint16 customDataLength = uint16(bytes2(data[offset + 1:offset + 3]));
-        customData = string(data[offset + 3:offset + 3 + customDataLength]);
-        offset += 2 + customDataLength + 1;
-      } else {
-        break;
-      }
-    }
   }
 
   function verifyScopes(

@@ -4,8 +4,8 @@ pragma solidity >=0.8.21;
 
 import {DateUtils} from "../src/DateUtils.sol";
 import {StringUtils} from "../src/StringUtils.sol";
-import {ArrayUtils} from "../src/ArrayUtils.sol";
-import {ZKPassportVerifier, ProofType, ProofVerificationParams} from "../src/ZKPassportVerifier.sol";
+import {DisclosedData} from "../src/Types.sol";
+import {ZKPassportVerifier, ProofType, ProofVerificationParams, DisclosedData} from "../src/ZKPassportVerifier.sol";
 import {console} from "forge-std/console.sol";
 
 contract SampleContract {
@@ -46,68 +46,6 @@ contract SampleContract {
     validSubscope = _subscope;
   }
 
-  function checkAge(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts
-  ) internal view {
-    // Get the age condition checked in the proof
-    (uint256 currentDate, uint8 minAge, uint8 maxAge) = zkPassportVerifier.getAgeProofInputs(
-      committedInputs,
-      committedInputCounts
-    );
-    // Make sure the date used for the proof makes sense
-    require(block.timestamp >= currentDate, "Date used in proof is in the future");
-    // This is the condition for checking the age is 18 or above
-    // Max age is set to 0 and therefore ignored in the proof, so it's equivalent to no upper limit
-    // Min age is set to 18, so the user needs to be at least 18 years old
-    require(minAge == 18 && maxAge == 0, "User needs to be above 18");
-  }
-
-  function getNationality(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
-    bool isIDCard
-  ) internal view returns (string memory) {
-    // Get the disclosed bytes of data from the proof
-    (, bytes memory disclosedBytes) = zkPassportVerifier.getDiscloseProofInputs(
-      committedInputs,
-      committedInputCounts
-    );
-    // Get the nationality from the disclosed data and ignore the rest
-    // Passing the disclosed bytes returned by the previous function
-    // this function will format it for you so you can use the data you need
-    (, , string memory nationality, , , , , ) = zkPassportVerifier.getDisclosedData(
-      disclosedBytes,
-      isIDCard
-    );
-    return nationality;
-  }
-
-  function checkNationalityExclusion(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts
-  ) internal view {
-    string[] memory nationalityExclusionList = zkPassportVerifier.getCountryProofInputs(
-      committedInputs,
-      committedInputCounts,
-      ProofType.NATIONALITY_EXCLUSION
-    );
-    // The exclusion check relies on the country list being sorted in
-    // ascending order, if it is not, then the proof has no value
-    require(
-      ArrayUtils.isSortedAscending(nationalityExclusionList),
-      "Nationality exclusion countries must be sorted in ascending order"
-    );
-    // Let's check the exclusion list checked what we expect
-    // Here we expect Spain, Italy and Portugal
-    require(
-      StringUtils.equals(nationalityExclusionList[0], "ESP") &&
-        StringUtils.equals(nationalityExclusionList[1], "ITA") &&
-        StringUtils.equals(nationalityExclusionList[2], "PRT"),
-      "Not the expected exclusion list"
-    );
-  }
-
   /**
    * @notice Register a user using a ZKPassport proof
    * @dev No need to understand what the parameters are, the getSolidityVerifierParameters function
@@ -130,18 +68,22 @@ contract SampleContract {
       zkPassportVerifier.verifyScopes(params.publicInputs, validScope, validSubscope),
       "Invalid scope or subscope"
     );
-    checkAge(params.committedInputs, params.committedInputCounts);
-    string memory nationality = getNationality(
+    require(zkPassportVerifier.isAgeAboveOrEqual(params.committedInputs, params.committedInputCounts, 18, 1 days), "Age is not 18+");
+    DisclosedData memory disclosedData = zkPassportVerifier.getDisclosedData(
       params.committedInputs,
       params.committedInputCounts,
       isIDCard
     );
-    checkNationalityExclusion(params.committedInputs, params.committedInputCounts);
+    string[] memory nationalityExclusionList = new string[](3);
+    nationalityExclusionList[0] = "ESP";
+    nationalityExclusionList[1] = "ITA";
+    nationalityExclusionList[2] = "PRT";
+    require(zkPassportVerifier.isNationalityOut(params.committedInputs, params.committedInputCounts, nationalityExclusionList), "Nationality is part of the exclusion list");
 
     // If all good, mark the user as verified
     isVerified[uniqueIdentifier] = true;
     // Store the nationality for later use
-    userNationality[uniqueIdentifier] = nationality;
+    userNationality[uniqueIdentifier] = disclosedData.nationality;
     // Attach the unique identifier to the user address
     // So they don't have to run the check again if they use the same address
     userUniqueIdentifier[msg.sender] = uniqueIdentifier;
