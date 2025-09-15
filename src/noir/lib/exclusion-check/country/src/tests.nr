@@ -1,4 +1,7 @@
-use super::{check_country_list_sorted, check_exclusion, unsafe_get_closest_index, get_last_index, constrain_last_index};
+use super::{
+    check_country_list_sorted, check_exclusion, constrain_last_index, get_last_index,
+    unsafe_get_closest_index,
+};
 
 #[test]
 fn test_get_closest_index_before_first_item() {
@@ -74,7 +77,6 @@ fn test_constrain_last_index_last_index_non_zero() {
     let last_index = 5;
     constrain_last_index(country_list, last_index);
 }
-
 
 #[test]
 fn test_country_list_sorting_check() {

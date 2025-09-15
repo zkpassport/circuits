@@ -1,5 +1,6 @@
 use poseidon::poseidon2::Poseidon2;
 use utils::{
+    constants::EMPTY_ALPHA3_COUNTRY_CODE,
     get_issuing_country_from_mrz,
     get_nationality_from_mrz,
     types::{Alpha3CountryCode, DG1Data},
@@ -7,12 +8,22 @@ use utils::{
 
 pub mod tests;
 
-unconstrained fn get_index<let N: u32>(list: [Alpha3CountryCode; N], value: [u8; 3]) -> i32 {
+pub unconstrained fn unsafe_get_index<let N: u32>(
+    list: [Alpha3CountryCode; N],
+    value: [u8; 3],
+) -> i32 {
+    // In practice, the list will be 200 countries, so this check might be overdoing it
+    std::static_assert(N < 0x80000000, "Country list size must be less than 2^31");
+
     let mut index: i32 = -1;
-    for i in 0..N {
-        let list_item = list[i].as_bytes();
-        if (list_item[0] == value[0]) & (list_item[1] == value[1]) & (list_item[2] == value[2]) {
-            index = i as i32;
+    // If the value is the empty country code, then we skip the check
+    // and let the function return -1 as if it was not found
+    if value != EMPTY_ALPHA3_COUNTRY_CODE.as_bytes() {
+        for i in 0..N {
+            let list_item = list[i].as_bytes();
+            if (list_item == value) {
+                index = i as i32;
+            }
         }
     }
     index
@@ -28,7 +39,7 @@ pub fn check_nationality_inclusion<let N: u32>(dg1: DG1Data, country_list: [Alph
     let nationality_bytes = get_nationality_from_mrz(dg1);
 
     // Safety: get the index of the country in the list from an unconstrained function
-    let country_index = unsafe { get_index(country_list, nationality_bytes) };
+    let country_index = unsafe { unsafe_get_index(country_list, nationality_bytes) };
     // Assert that the country was found
     assert(country_index != -1, "Country not found in the list");
 
@@ -51,7 +62,7 @@ pub fn check_issuing_country_inclusion<let N: u32>(
     let issuing_country_bytes = get_issuing_country_from_mrz(dg1);
 
     // Safety: get the index of the country in the list from an unconstrained function
-    let country_index = unsafe { get_index(country_list, issuing_country_bytes) };
+    let country_index = unsafe { unsafe_get_index(country_list, issuing_country_bytes) };
     // Assert that the country was found
     assert(country_index != -1, "Country not found in the list");
 

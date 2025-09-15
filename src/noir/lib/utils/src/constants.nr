@@ -121,6 +121,8 @@ pub global SHA384_DIGEST_LENGTH: u32 = 48;
 // SHA512 digest length
 pub global SHA512_DIGEST_LENGTH: u32 = 64;
 
+pub global EMPTY_ALPHA3_COUNTRY_CODE: str<3> = "\0\0\0";
+
 // P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<<<
 pub global SAMPLE_DG1: [u8; DG1_LENGTH] = [
     0x61, 0x5B, 0x5F, 0x1F, 0x58, 80, 60, 65, 85, 83, 83, 73, 76, 86, 69, 82, 72, 65, 78, 68, 60,

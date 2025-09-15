@@ -3,7 +3,10 @@ use utils::{get_issuing_country_from_mrz, get_nationality_from_mrz, types::DG1Da
 
 pub mod tests;
 
-pub unconstrained fn unsafe_get_closest_index<let N: u32>(sorted_list: [u32; N], value: u32) -> i64 {
+pub unconstrained fn unsafe_get_closest_index<let N: u32>(
+    sorted_list: [u32; N],
+    value: u32,
+) -> i64 {
     let mut index: i64 = -1;
     for i in 0..N {
         if sorted_list[i] > value {
@@ -87,8 +90,8 @@ pub fn constrain_closest_index<let N: u32>(
     //  0   1  1  2  2  3  3 -1 -1 -1 -1 -1 -1 -1  -1 <-- the returned closest index (from above), if the
     //                                             `value` sits at or between these
     //                                              elements in the array.
-    // Note: The country codes are converted to u32s by summing (weighted) 
-    // the ASCII codes of the letters so the list is sorted in ascending order 
+    // Note: The country codes are converted to u32s by summing (weighted)
+    // the ASCII codes of the letters so the list is sorted in ascending order
     // of the country codes.
 
     // If the index is 0, it implies the whole list is > value, since it's sorted
