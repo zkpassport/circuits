@@ -95,7 +95,13 @@ contract ZKPassportVerifier {
     uint256 currentDateTimeStamp = uint256(publicInputs[PublicInput.CURRENT_DATE_INDEX]);
     return DateUtils.isDateValid(currentDateTimeStamp, validityPeriodInSeconds);
   }
-  
+
+  /**
+   * @notice Gets the data disclosed by the proof
+   * @param params The proof verification parameters
+   * @param isIDCard Whether the proof is an ID card
+   * @return disclosedData The data disclosed by the proof
+   */
   function getDisclosedData(    
     ProofVerificationParams calldata params,
     bool isIDCard
@@ -104,6 +110,12 @@ contract ZKPassportVerifier {
     disclosedData = InputsExtractor.getDisclosedData(discloseBytes, isIDCard);
   }
 
+  /**
+   * @notice Checks if the age is above or equal to the given age
+   * @param minAge The age must be above or equal to this age
+   * @param params The proof verification parameters
+   * @return True if the age is above or equal to the given age, false otherwise
+   */
   function isAgeAboveOrEqual(
     uint8 minAge,
     ProofVerificationParams calldata params
@@ -114,6 +126,12 @@ contract ZKPassportVerifier {
     return minAge == min;
   }
 
+  /**
+   * @notice Checks if the age is above the given age
+   * @param minAge The age must be above this age
+   * @param params The proof verification parameters
+   * @return True if the age is above the given age, false otherwise
+   */
   function isAgeAbove(
     uint8 minAge,
     ProofVerificationParams calldata params
@@ -121,6 +139,13 @@ contract ZKPassportVerifier {
     return isAgeAboveOrEqual(minAge + 1, params);
   }
 
+  /**
+   * @notice Checks if the age is in the given range
+   * @param minAge The age must be greater than or equal to this age
+   * @param maxAge The age must be less than or equal to this age
+   * @param params The proof verification parameters
+   * @return True if the age is in the given range, false otherwise
+   */
   function isAgeBetween(
     uint8 minAge,
     uint8 maxAge,
@@ -134,6 +159,12 @@ contract ZKPassportVerifier {
     return minAge == min && maxAge == max;
   }
 
+  /**
+   * @notice Checks if the age is below or equal to the given age
+   * @param maxAge The age must be below or equal to this age
+   * @param params The proof verification parameters
+   * @return True if the age is below or equal to the given age, false otherwise
+   */
   function isAgeBelowOrEqual(
     uint8 maxAge,
     ProofVerificationParams calldata params
@@ -144,6 +175,12 @@ contract ZKPassportVerifier {
     return maxAge == max;
   }
 
+  /**
+   * @notice Checks if the age is below the given age
+   * @param maxAge The age must be below this age
+   * @param params The proof verification parameters
+   * @return True if the age is below the given age, false otherwise
+   */
   function isAgeBelow(
     uint8 maxAge,
     ProofVerificationParams calldata params
@@ -152,6 +189,12 @@ contract ZKPassportVerifier {
     return isAgeBelowOrEqual(maxAge - 1, params);
   }
 
+  /**
+   * @notice Checks if the age is equal to the given age
+   * @param age The age must be equal to this age
+   * @param params The proof verification parameters
+   * @return True if the age is equal to the given age, false otherwise
+   */
   function isAgeEqual(
     uint8 age,
     ProofVerificationParams calldata params
@@ -159,7 +202,7 @@ contract ZKPassportVerifier {
     return isAgeBetween(age, age, params);
   }
 
-  function isDateAboveOrEqual(
+  function isDateAfterOrEqual(
     uint256 minDate,
     ProofType proofType,
     ProofVerificationParams calldata params
@@ -197,7 +240,7 @@ contract ZKPassportVerifier {
     }
   }
 
-  function isDateBelowOrEqual(
+  function isDateBeforeOrEqual(
     uint256 maxDate,
     ProofType proofType,
     ProofVerificationParams calldata params
@@ -215,20 +258,39 @@ contract ZKPassportVerifier {
     }
   }
 
-  function isBirthdateAboveOrEqual(
+  /**
+   * @notice Checks if the birthdate is after or equal to the given date
+   * @param minDate The birthdate must be after or equal to this date
+   * @param params The proof verification parameters
+   * @return True if the birthdate is after or equal to the given date, false otherwise
+   */
+  function isBirthdateAfterOrEqual(
     uint256 minDate,
     ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateAboveOrEqual(minDate, ProofType.BIRTHDATE, params);
+    return isDateAfterOrEqual(minDate, ProofType.BIRTHDATE, params);
   }
 
-  function isBirthdateAbove(
+  /**
+   * @notice Checks if the birthdate is after the given date
+   * @param minDate The birthdate must be after this date
+   * @param params The proof verification parameters
+   * @return True if the birthdate is after the given date, false otherwise
+   */
+  function isBirthdateAfter(
     uint256 minDate,
     ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateAboveOrEqual(minDate + 1 days, ProofType.BIRTHDATE, params);
+    return isDateAfterOrEqual(minDate + 1 days, ProofType.BIRTHDATE, params);
   }
 
+  /**
+   * @notice Checks if the birthdate is between the given dates
+   * @param minDate The birthdate must be after or equal to this date
+   * @param maxDate The birthdate must be before or equal to this date
+   * @param params The proof verification parameters
+   * @return True if the birthdate is between the given dates, false otherwise
+   */
   function isBirthdateBetween(
     uint256 minDate,
     uint256 maxDate,
@@ -237,20 +299,38 @@ contract ZKPassportVerifier {
     return isDateBetween(minDate, maxDate, ProofType.BIRTHDATE, params);
   }
 
-  function isBirthdateBelowOrEqual(
+  /**
+   * @notice Checks if the birthdate is before or equal to the given date
+   * @param maxDate The birthdate must be before or equal to this date
+   * @param params The proof verification parameters
+   * @return True if the birthdate is before or equal to the given date, false otherwise
+   */
+  function isBirthdateBeforeOrEqual(
     uint256 maxDate,
     ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateBelowOrEqual(maxDate, ProofType.BIRTHDATE, params);
+    return isDateBeforeOrEqual(maxDate, ProofType.BIRTHDATE, params);
   }
 
-  function isBirthdateBelow(
+  /**
+   * @notice Checks if the birthdate is before the given date
+   * @param maxDate The birthdate must be before this date
+   * @param params The proof verification parameters
+   * @return True if the birthdate is before the given date, false otherwise
+   */
+  function isBirthdateBefore(
     uint256 maxDate,
       ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateBelowOrEqual(maxDate - 1 days, ProofType.BIRTHDATE, params);
+    return isDateBeforeOrEqual(maxDate - 1 days, ProofType.BIRTHDATE, params);
   }
 
+  /**
+   * @notice Checks if the birthdate is equal to the given date
+   * @param date The birthdate must be equal to this date
+   * @param params The proof verification parameters
+   * @return True if the birthdate is equal to the given date, false otherwise
+   */
   function isBirthdateEqual(
     uint256 date,
     ProofVerificationParams calldata params
@@ -258,20 +338,39 @@ contract ZKPassportVerifier {
     return isDateBetween(date, date, ProofType.BIRTHDATE, params);
   }
 
-  function isExpiryDateAboveOrEqual(
+  /**
+   * @notice Checks if the expiry date is after or equal to the given date
+   * @param minDate The expiry date must be after or equal to this date
+   * @param params The proof verification parameters
+   * @return True if the expiry date is after or equal to the given date, false otherwise
+   */
+  function isExpiryDateAfterOrEqual(
     uint256 minDate,
     ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateAboveOrEqual(minDate, ProofType.EXPIRY_DATE, params);
+    return isDateAfterOrEqual(minDate, ProofType.EXPIRY_DATE, params);
   }
 
-  function isExpiryDateAbove(
+  /**
+   * @notice Checks if the expiry date is after the given date
+   * @param minDate The expiry date must be after this date
+   * @param params The proof verification parameters
+   * @return True if the expiry date is after the given date, false otherwise
+   */
+  function isExpiryDateAfter(
     uint256 minDate,
     ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateAboveOrEqual(minDate + 1 days, ProofType.EXPIRY_DATE, params);
+    return isDateAfterOrEqual(minDate + 1 days, ProofType.EXPIRY_DATE, params);
   }
 
+  /**
+   * @notice Checks if the expiry date is between the given dates
+   * @param minDate The expiry date must be after or equal to this date
+   * @param maxDate The expiry date must be before or equal to this date
+   * @param params The proof verification parameters
+   * @return True if the expiry date is between the given dates, false otherwise
+   */
   function isExpiryDateBetween(
     uint256 minDate,
     uint256 maxDate,
@@ -280,20 +379,38 @@ contract ZKPassportVerifier {
     return isDateBetween(minDate, maxDate, ProofType.EXPIRY_DATE, params);
   }
 
-  function isExpiryDateBelowOrEqual(
+  /**
+   * @notice Checks if the expiry date is before or equal to the given date
+   * @param maxDate The expiry date must be before or equal to this date
+   * @param params The proof verification parameters
+   * @return True if the expiry date is before or equal to the given date, false otherwise
+   */
+  function isExpiryDateBeforeOrEqual(
     uint256 maxDate,
     ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateBelowOrEqual(maxDate, ProofType.EXPIRY_DATE, params);
+    return isDateBeforeOrEqual(maxDate, ProofType.EXPIRY_DATE, params);
   }
 
-  function isExpiryDateBelow(
+  /**
+   * @notice Checks if the expiry date is before the given date
+   * @param maxDate The expiry date must be before this date
+   * @param params The proof verification parameters
+   * @return True if the expiry date is before the given date, false otherwise
+   */
+  function isExpiryDateBefore(
     uint256 maxDate,
     ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateBelowOrEqual(maxDate - 1 days, ProofType.EXPIRY_DATE, params);
+    return isDateBeforeOrEqual(maxDate - 1 days, ProofType.EXPIRY_DATE, params);
   }
 
+  /**
+   * @notice Checks if the expiry date is equal to the given date
+   * @param date The expiry date must be equal to this date
+   * @param params The proof verification parameters
+   * @return True if the expiry date is equal to the given date, false otherwise
+   */
   function isExpiryDateEqual(
     uint256 date,
     ProofVerificationParams calldata params
@@ -318,6 +435,12 @@ contract ZKPassportVerifier {
     return true;
   }
 
+  /**
+   * @notice Checks if the nationality is in the list of countries
+   * @param countryList The list of countries (needs to match exactly the list of countries in the proof)
+   * @param params The proof verification parameters
+   * @return True if the nationality is in the list of countries, false otherwise
+   */
   function isNationalityIn(
     string[] memory countryList,
     ProofVerificationParams calldata params
@@ -325,6 +448,12 @@ contract ZKPassportVerifier {
     return isCountryInOrOut(countryList, ProofType.NATIONALITY_INCLUSION, params);
   }
 
+  /**
+   * @notice Checks if the issuing country is in the list of countries
+   * @param countryList The list of countries (needs to match exactly the list of countries in the proof)
+   * @param params The proof verification parameters
+   * @return True if the issuing country is in the list of countries, false otherwise
+   */
   function isIssuingCountryIn(
     string[] memory countryList,
     ProofVerificationParams calldata params
@@ -332,6 +461,13 @@ contract ZKPassportVerifier {
     return isCountryInOrOut(countryList, ProofType.ISSUING_COUNTRY_INCLUSION, params);
   }
 
+  /**
+   * @notice Checks if the nationality is not in the list of countries
+   * @param countryList The list of countries (needs to match exactly the list of countries in the proof)
+   * Note: The list of countries must be sorted in alphabetical order
+   * @param params The proof verification parameters
+   * @return True if the nationality is not in the list of countries, false otherwise
+   */
   function isNationalityOut(
     string[] memory countryList,
     ProofVerificationParams calldata params
@@ -339,6 +475,13 @@ contract ZKPassportVerifier {
     return isCountryInOrOut(countryList, ProofType.NATIONALITY_EXCLUSION, params);
   }
 
+  /**
+   * @notice Checks if the issuing country is not in the list of countries
+   * @param countryList The list of countries (needs to match exactly the list of countries in the proof)
+   * Note: The list of countries must be sorted in alphabetical order
+   * @param params The proof verification parameters
+   * @return True if the issuing country is not in the list of countries, false otherwise
+   */
   function isIssuingCountryOut(
     string[] memory countryList,
     ProofVerificationParams calldata params
@@ -346,6 +489,13 @@ contract ZKPassportVerifier {
     return isCountryInOrOut(countryList, ProofType.ISSUING_COUNTRY_EXCLUSION, params);
   }
 
+  /**
+   * @notice Gets the data bound to the proof
+   * @param params The proof verification parameters
+   * @return senderAddress The sender address
+   * @return chainId The chain ID
+   * @return customData The custom data (encoded as an ASCII string)
+   */
   function getBoundData(
     ProofVerificationParams calldata params
   ) public pure returns (address senderAddress, uint256 chainId, string memory customData) {
@@ -353,6 +503,10 @@ contract ZKPassportVerifier {
     (senderAddress, chainId, customData) = InputsExtractor.getBoundData(data);
   }
 
+  /**
+   * @notice Enforces that the proof checks against the expected sanction list(s)
+   * @param params The proof verification parameters
+   */
   function enforceSanctionsRoot(
     ProofVerificationParams calldata params
   ) public view {
@@ -360,6 +514,13 @@ contract ZKPassportVerifier {
     _validateSanctionsRoot(proofSanctionsRoot);
   }
 
+  /**
+   * @notice Verifies that the proof was generated for the given domain and scope
+   * @param publicInputs The public inputs of the proof
+   * @param domain The domain to check against
+   * @param scope The scope to check against
+   * @return True if the proof was generated for the given domain and scope, false otherwise
+   */
   function verifyScopes(
     bytes32[] calldata publicInputs,
     string calldata domain,

@@ -253,26 +253,26 @@ contract ZKPassportVerifierTest is TestUtils {
     (bool result, bytes32 scopedNullifier) = zkPassportVerifier.verifyProof(params);
     assertEq(result, true);
 
-    vm.startSnapshotGas("ZKPassportVerifier isBirthdateBelowOrEqual");
-    bool isBirthdateBelowOrEqual = zkPassportVerifier.isBirthdateBelowOrEqual(
+    vm.startSnapshotGas("ZKPassportVerifier isBirthdateBeforeOrEqual");
+    bool isBirthdateBeforeOrEqual = zkPassportVerifier.isBirthdateBeforeOrEqual(
         PROOF_GENERATION_DATE,
         params
       );
-    uint256 gasUsedIsBirthdateBelowOrEqual = vm.stopSnapshotGas();
-    console.log("Gas used in ZKPassportVerifier isBirthdateBelowOrEqual");
-    console.log(gasUsedIsBirthdateBelowOrEqual);
-    assertEq(isBirthdateBelowOrEqual, true);
+    uint256 gasUsedIsBirthdateBeforeOrEqual = vm.stopSnapshotGas();
+    console.log("Gas used in ZKPassportVerifier isBirthdateBeforeOrEqual");
+    console.log(gasUsedIsBirthdateBeforeOrEqual);
+    assertEq(isBirthdateBeforeOrEqual, true);
 
     {
-      vm.startSnapshotGas("ZKPassportVerifier isExpiryDateAboveOrEqual");
-      bool isExpiryDateAboveOrEqual = zkPassportVerifier.isExpiryDateAboveOrEqual(
+      vm.startSnapshotGas("ZKPassportVerifier isExpiryDateAfterOrEqual");
+      bool isExpiryDateAfterOrEqual = zkPassportVerifier.isExpiryDateAfterOrEqual(
           PROOF_GENERATION_DATE,
           params
         );
-      uint256 gasUsedIsExpiryDateAboveOrEqual = vm.stopSnapshotGas();
-      console.log("Gas used in ZKPassportVerifier isExpiryDateAboveOrEqual");
-      console.log(gasUsedIsExpiryDateAboveOrEqual);
-      assertEq(isExpiryDateAboveOrEqual, true);
+      uint256 gasUsedIsExpiryDateAfterOrEqual = vm.stopSnapshotGas();
+      console.log("Gas used in ZKPassportVerifier isExpiryDateAfterOrEqual");
+      console.log(gasUsedIsExpiryDateAfterOrEqual);
+      assertEq(isExpiryDateAfterOrEqual, true);
     }
     {
       vm.startSnapshotGas("ZKPassportVerifier isIssuingCountryIn");
