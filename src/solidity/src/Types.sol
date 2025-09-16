@@ -23,7 +23,6 @@ enum BoundDataIdentifier {
 }
 
 // Group parameters for the proof verification
-// Suggested comment for here (I had to add this to be able to follow the contract, so it feels like a worthwhile comment):
 //
 // publicInputs:
 // - 0: certificate_registry_root: pub Field,

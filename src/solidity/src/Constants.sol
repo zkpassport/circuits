@@ -19,6 +19,19 @@ library CommittedInputLen {
   uint256 constant SANCTIONS = 33;
 }
 
+// Gather all the public input indices in one place
+library PublicInput {
+  uint256 constant CERTIFICATE_REGISTRY_ROOT_INDEX = 0;
+  uint256 constant CIRCUIT_REGISTRY_ROOT_INDEX = 1;
+  uint256 constant CURRENT_DATE_INDEX = 2;
+  uint256 constant SCOPE_INDEX = 3;
+  uint256 constant SUBSCOPE_INDEX = 4;
+  uint256 constant PARAM_COMMITMENTS_INDEX = 5;
+  // The length of the public inputs excluding the param commitments
+  uint256 constant PUBLIC_INPUTS_BEFORE_PARAM_COMMITMENTS_LENGTH = 6;
+}
+
+// Gather all the MRZ indices in one place
 library MRZIndex {
   // Index for the country of issuance of the passport
   uint256 constant PASSPORT_MRZ_ISSUING_COUNTRY_INDEX = 2;
@@ -60,6 +73,7 @@ library MRZIndex {
   uint256 constant ID_CARD_MRZ_NAME_INDEX = 60;
 }
 
+// Gather all the MRZ field lengths in one place
 library MRZLength {
   uint256 constant PASSPORT_MRZ_LENGTH = 88;
   uint256 constant ID_CARD_MRZ_LENGTH = 90;

@@ -7,7 +7,7 @@ import {DateUtils} from "../src/DateUtils.sol";
 import {StringUtils} from "../src/StringUtils.sol";
 import {IRootRegistry} from "../src/IRootRegistry.sol";
 import {InputsExtractor} from "../src/InputsExtractor.sol";
-import {CommittedInputLen, SANCTIONS_TREES_ROOT, MRZIndex, MRZLength, SECONDS_BETWEEN_1900_AND_1970} from "../src/Constants.sol";
+import {CommittedInputLen, SANCTIONS_TREES_ROOT, MRZIndex, MRZLength, SECONDS_BETWEEN_1900_AND_1970, PublicInput} from "../src/Constants.sol";
 import {ProofType, ProofVerificationParams, BoundDataIdentifier, DisclosedData} from "../src/Types.sol";
 
 contract ZKPassportVerifier {
@@ -92,7 +92,7 @@ contract ZKPassportVerifier {
     bytes32[] memory publicInputs,
     uint256 validityPeriodInSeconds
   ) internal view returns (bool) {
-    uint256 currentDateTimeStamp = uint256(publicInputs[2]);
+    uint256 currentDateTimeStamp = uint256(publicInputs[PublicInput.CURRENT_DATE_INDEX]);
     return DateUtils.isDateValid(currentDateTimeStamp, validityPeriodInSeconds);
   }
   
@@ -425,7 +425,7 @@ contract ZKPassportVerifier {
     bytes32 subscopeHash = StringUtils.isEmpty(scope)
       ? bytes32(0)
       : sha256(abi.encodePacked(scope)) >> 8;
-    return publicInputs[3] == scopeHash && publicInputs[4] == subscopeHash;
+    return publicInputs[PublicInput.SCOPE_INDEX] == scopeHash && publicInputs[PublicInput.SUBSCOPE_INDEX] == subscopeHash;
   }
 
   function verifyCommittedInputs(
@@ -483,10 +483,10 @@ contract ZKPassportVerifier {
     address verifier = _getVerifier(params.vkeyHash);
 
     // Validate certificate registry root
-    _validateCertificateRoot(params.publicInputs[0]);
+    _validateCertificateRoot(params.publicInputs[PublicInput.CERTIFICATE_REGISTRY_ROOT_INDEX]);
 
     // Validate circuit registry root
-    _validateCircuitRoot(params.publicInputs[1]);
+    _validateCircuitRoot(params.publicInputs[PublicInput.CIRCUIT_REGISTRY_ROOT_INDEX]);
 
     // Checks the date of the proof
     require(
@@ -500,7 +500,7 @@ contract ZKPassportVerifier {
     // Verifies the commitments against the committed inputs
     verifyCommittedInputs(
       // Extracts the commitments from the public inputs
-      params.publicInputs[5:params.publicInputs.length - 1],
+      params.publicInputs[PublicInput.PARAM_COMMITMENTS_INDEX:params.publicInputs.length - 1],
       params.committedInputs,
       params.committedInputCounts
     );
@@ -511,6 +511,10 @@ contract ZKPassportVerifier {
       params.publicInputs[params.publicInputs.length - 1] != bytes32(uint256(1)) || params.devMode,
       "Mock proofs are only allowed in dev mode"
     );
+
+    // Make sure the committedInputCounts length matches the number of param commitments in the public inputs
+    // to ensure all the param commitments are covered
+    require(params.committedInputCounts.length == params.publicInputs.length - PublicInput.PUBLIC_INPUTS_BEFORE_PARAM_COMMITMENTS_LENGTH, "Invalid committed input counts length");
 
     return (
       IVerifier(verifier).verify(params.proof, params.publicInputs),
