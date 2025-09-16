@@ -96,45 +96,38 @@ contract ZKPassportVerifier {
     return DateUtils.isDateValid(currentDateTimeStamp, validityPeriodInSeconds);
   }
   
-  function getDisclosedData(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
+  function getDisclosedData(    
+    ProofVerificationParams calldata params,
     bool isIDCard
   ) public pure returns (DisclosedData memory disclosedData) {
-    (, bytes memory discloseBytes) = InputsExtractor.getDiscloseProofInputs(committedInputs, committedInputCounts);
+    (, bytes memory discloseBytes) = InputsExtractor.getDiscloseProofInputs(params.committedInputs, params.committedInputCounts);
     disclosedData = InputsExtractor.getDisclosedData(discloseBytes, isIDCard);
   }
 
   function isAgeAboveOrEqual(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint8 minAge,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
-    (uint256 currentDate, uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(committedInputs, committedInputCounts);
-    require(DateUtils.isDateValid(currentDate, validity), "Current date is not valid");
+    (uint256 currentDate, uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(params.committedInputs, params.committedInputCounts);
+    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "Current date is not valid");
     require(max == 0, "The proof upper bound must be 0, please use isAgeBetween instead");
     return minAge == min;
   }
 
   function isAgeAbove(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint8 minAge,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isAgeAboveOrEqual(committedInputs, committedInputCounts, minAge + 1, validity);
+    return isAgeAboveOrEqual(minAge + 1, params);
   }
 
   function isAgeBetween(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint8 minAge,
     uint8 maxAge,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
-    (uint256 currentDate, uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(committedInputs, committedInputCounts);
-    require(DateUtils.isDateValid(currentDate, validity), "Current date is not valid");
+    (uint256 currentDate, uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(params.committedInputs, params.committedInputCounts);
+    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "Current date is not valid");
     require(minAge <= maxAge, "Min age must be less than or equal to max age");
     require(min != 0, "The proof lower bound must be non-zero, please use isAgeBelowOrEqual instead");
     require(max != 0, "The proof upper bound must be non-zero, please use isAgeAboveOrEqual instead");
@@ -142,45 +135,37 @@ contract ZKPassportVerifier {
   }
 
   function isAgeBelowOrEqual(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint8 maxAge,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
-    (uint256 currentDate, uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(committedInputs, committedInputCounts);
-    require(DateUtils.isDateValid(currentDate, validity), "Current date is not valid");
+    (uint256 currentDate, uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(params.committedInputs, params.committedInputCounts);
+    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "Current date is not valid");
     require(min == 0, "The proof lower bound must be 0, please use isAgeBetween instead");
     return maxAge == max;
   }
 
   function isAgeBelow(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint8 maxAge,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
     require(maxAge > 0, "Max age must be greater than 0");
-    return isAgeBelowOrEqual(committedInputs, committedInputCounts, maxAge - 1, validity);
+    return isAgeBelowOrEqual(maxAge - 1, params);
   }
 
   function isAgeEqual(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint8 age,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isAgeBetween(committedInputs, committedInputCounts, age, age, validity);
+    return isAgeBetween(age, age, params);
   }
 
   function isDateAboveOrEqual(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint256 minDate,
     ProofType proofType,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) private view returns (bool) {
-    (uint256 currentDate, uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(committedInputs, committedInputCounts, proofType);
-    require(DateUtils.isDateValid(currentDate, validity), "Current date is not valid");
+    (uint256 currentDate, uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(params.committedInputs, params.committedInputCounts, proofType);
+    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "Current date is not valid");
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
       require(max == 0, "The proof upper bound must be 0, please use isBirthdateBetween instead");
@@ -192,15 +177,13 @@ contract ZKPassportVerifier {
   }
 
   function isDateBetween(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint256 minDate,
     uint256 maxDate,
     ProofType proofType,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) private view returns (bool) {
-    (uint256 currentDate, uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(committedInputs, committedInputCounts, proofType);
-    require(DateUtils.isDateValid(currentDate, validity), "Current date is not valid");
+    (uint256 currentDate, uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(params.committedInputs, params.committedInputCounts, proofType);
+    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "Current date is not valid");
     require(minDate <= maxDate, "Min date must be less than or equal to max date");
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
@@ -215,14 +198,12 @@ contract ZKPassportVerifier {
   }
 
   function isDateBelowOrEqual(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint256 maxDate,
     ProofType proofType,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) private view returns (bool) {
-    (uint256 currentDate, uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(committedInputs, committedInputCounts, proofType);
-    require(DateUtils.isDateValid(currentDate, validity), "Current date is not valid");
+    (uint256 currentDate, uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(params.committedInputs, params.committedInputCounts, proofType);
+    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "Current date is not valid");
     require(min == 0, "The proof lower bound must be 0, please use isDateBetween instead");
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
@@ -235,122 +216,97 @@ contract ZKPassportVerifier {
   }
 
   function isBirthdateAboveOrEqual(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint256 minDate,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateAboveOrEqual(committedInputs, committedInputCounts, minDate, ProofType.BIRTHDATE, validity);
+    return isDateAboveOrEqual(minDate, ProofType.BIRTHDATE, params);
   }
 
   function isBirthdateAbove(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint256 minDate,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateAboveOrEqual(committedInputs, committedInputCounts, minDate + 1 days, ProofType.BIRTHDATE, validity);
+    return isDateAboveOrEqual(minDate + 1 days, ProofType.BIRTHDATE, params);
   }
 
   function isBirthdateBetween(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint256 minDate,
     uint256 maxDate,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateBetween(committedInputs, committedInputCounts, minDate, maxDate, ProofType.BIRTHDATE, validity);
+    return isDateBetween(minDate, maxDate, ProofType.BIRTHDATE, params);
   }
 
   function isBirthdateBelowOrEqual(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint256 maxDate,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateBelowOrEqual(committedInputs, committedInputCounts, maxDate, ProofType.BIRTHDATE, validity);
+    return isDateBelowOrEqual(maxDate, ProofType.BIRTHDATE, params);
   }
 
   function isBirthdateBelow(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint256 maxDate,
-    uint256 validity
+      ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateBelowOrEqual(committedInputs, committedInputCounts, maxDate - 1 days, ProofType.BIRTHDATE, validity);
+    return isDateBelowOrEqual(maxDate - 1 days, ProofType.BIRTHDATE, params);
   }
 
   function isBirthdateEqual(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint256 date,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateBetween(committedInputs, committedInputCounts, date, date, ProofType.BIRTHDATE, validity);
+    return isDateBetween(date, date, ProofType.BIRTHDATE, params);
   }
 
   function isExpiryDateAboveOrEqual(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint256 minDate,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateAboveOrEqual(committedInputs, committedInputCounts, minDate, ProofType.EXPIRY_DATE, validity);
+    return isDateAboveOrEqual(minDate, ProofType.EXPIRY_DATE, params);
   }
 
   function isExpiryDateAbove(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint256 minDate,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateAboveOrEqual(committedInputs, committedInputCounts, minDate + 1 days, ProofType.EXPIRY_DATE, validity);
+    return isDateAboveOrEqual(minDate + 1 days, ProofType.EXPIRY_DATE, params);
   }
 
   function isExpiryDateBetween(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint256 minDate,
     uint256 maxDate,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateBetween(committedInputs, committedInputCounts, minDate, maxDate, ProofType.EXPIRY_DATE, validity);
+    return isDateBetween(minDate, maxDate, ProofType.EXPIRY_DATE, params);
   }
 
   function isExpiryDateBelowOrEqual(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint256 maxDate,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateBelowOrEqual(committedInputs, committedInputCounts, maxDate, ProofType.EXPIRY_DATE, validity);
+    return isDateBelowOrEqual(maxDate, ProofType.EXPIRY_DATE, params);
   }
 
   function isExpiryDateBelow(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint256 maxDate,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateBelowOrEqual(committedInputs, committedInputCounts, maxDate - 1 days, ProofType.EXPIRY_DATE, validity);
+    return isDateBelowOrEqual(maxDate - 1 days, ProofType.EXPIRY_DATE, params);
   }
 
   function isExpiryDateEqual(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     uint256 date,
-    uint256 validity
+    ProofVerificationParams calldata params
   ) public view returns (bool) {
-    return isDateBetween(committedInputs, committedInputCounts, date, date, ProofType.EXPIRY_DATE, validity);
+    return isDateBetween(date, date, ProofType.EXPIRY_DATE, params);
   }
 
   function isCountryInOrOut(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
     string[] memory countryList,
-    ProofType proofType
+    ProofType proofType,
+    ProofVerificationParams calldata params
   ) private pure returns (bool) {
-    (string[] memory inputCountryList, uint256 inputCountryListLength) = InputsExtractor.getCountryProofInputs(committedInputs, committedInputCounts, proofType);
+    (string[] memory inputCountryList, uint256 inputCountryListLength) = InputsExtractor.getCountryProofInputs(params.committedInputs, params.committedInputCounts, proofType);
     if (countryList.length != inputCountryListLength) {
       return false;
     }
@@ -363,50 +319,44 @@ contract ZKPassportVerifier {
   }
 
   function isNationalityIn(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
-    string[] memory countryList
+    string[] memory countryList,
+    ProofVerificationParams calldata params
   ) public pure returns (bool) {
-    return isCountryInOrOut(committedInputs, committedInputCounts, countryList, ProofType.NATIONALITY_INCLUSION);
+    return isCountryInOrOut(countryList, ProofType.NATIONALITY_INCLUSION, params);
   }
 
   function isIssuingCountryIn(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
-    string[] memory countryList
+    string[] memory countryList,
+    ProofVerificationParams calldata params
   ) public pure returns (bool) {
-    return isCountryInOrOut(committedInputs, committedInputCounts, countryList, ProofType.ISSUING_COUNTRY_INCLUSION);
+    return isCountryInOrOut(countryList, ProofType.ISSUING_COUNTRY_INCLUSION, params);
   }
 
   function isNationalityOut(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
-    string[] memory countryList
+    string[] memory countryList,
+    ProofVerificationParams calldata params
   ) public pure returns (bool) {
-    return isCountryInOrOut(committedInputs, committedInputCounts, countryList, ProofType.NATIONALITY_EXCLUSION);
+    return isCountryInOrOut(countryList, ProofType.NATIONALITY_EXCLUSION, params);
   }
 
   function isIssuingCountryOut(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
-    string[] memory countryList
+    string[] memory countryList,
+    ProofVerificationParams calldata params
   ) public pure returns (bool) {
-    return isCountryInOrOut(committedInputs, committedInputCounts, countryList, ProofType.ISSUING_COUNTRY_EXCLUSION);
+    return isCountryInOrOut(countryList, ProofType.ISSUING_COUNTRY_EXCLUSION, params);
   }
 
   function getBoundData(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts
+    ProofVerificationParams calldata params
   ) public pure returns (address senderAddress, uint256 chainId, string memory customData) {
-    bytes memory data = InputsExtractor.getBindProofInputs(committedInputs, committedInputCounts);
+    bytes memory data = InputsExtractor.getBindProofInputs(params.committedInputs, params.committedInputCounts);
     (senderAddress, chainId, customData) = InputsExtractor.getBoundData(data);
   }
 
   function enforceSanctionsRoot(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts
+    ProofVerificationParams calldata params
   ) public view {
-    bytes32 proofSanctionsRoot = InputsExtractor.getSanctionsProofInputs(committedInputs, committedInputCounts);
+    bytes32 proofSanctionsRoot = InputsExtractor.getSanctionsProofInputs(params.committedInputs, params.committedInputCounts);
     _validateSanctionsRoot(proofSanctionsRoot);
   }
 
