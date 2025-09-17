@@ -33,15 +33,16 @@ contract Deploy is Script {
   ];
 
   address[] public verifierAddresses = [
-    address(0x65Bd288f4318e8A306801ebD82a4162eF86eb3FC),
-    address(0x43Af964E1AD9473e1F6f2191D7235150084905cF),
-    address(0x83D72b75DAa56d4824Bd34e31CAE4257d50dF568),
-    address(0xce9da8FF5b338e2B08984a764dE1A2CbEf8571a2),
-    address(0x19B9C870cA60Cb97292fe5D6e95c8D2A51CC4b75),
-    address(0x262582FA03Ac4c36aecc5fd791EE1d0992DA79F9),
-    address(0x734Eeff3B0e848395d1A596bde92f91f50e7d77C),
-    address(0xF35075143f366046E91a895418677B8593962445),
-    address(0x3e79F7dAa28ad340161675077919af0b26281B5c)
+    address(0x64E9bD7f679F8071D16998E08B58a063c73f44C8),
+    address(0x4e57c1449073a4a95f7621403ec1C69D52CF9D5F),
+    address(0x76097BEAd68a53EF0eA57306D66036D31be4b507),
+    address(0x1c92d21Fed596d5d996C933C46fd20Ceb8e3b041),
+    address(0xdDE3967db4b6781aDE41cf7c063a754CEfa1b57A),
+    address(0xceF07773eE255d8555515F44afB8815A9f874e8A),
+    address(0x99b76B1Bb194d5a42cB64082974a8a7874FF3457),
+    address(0x3df13524C347a009c336Ec939dE088C9c15CC07B),
+    address(0x00a27Ed99788c6c6D0bDbF839A08f37a81535297),
+    address(0x342b62Eb25db2bEa154B6DF56e1C015af3a9e137)
   ];
 
   function run() public {
@@ -74,7 +75,8 @@ contract Deploy is Script {
     vm.serializeAddress(verifiers, "outer_count_9", verifierAddresses[5]);
     vm.serializeAddress(verifiers, "outer_count_10", verifierAddresses[6]);
     vm.serializeAddress(verifiers, "outer_count_11", verifierAddresses[7]);
-    verifiers = vm.serializeAddress(verifiers, "outer_count_12", verifierAddresses[8]);
+    vm.serializeAddress(verifiers, "outer_count_12", verifierAddresses[8]);
+    verifiers = vm.serializeAddress(verifiers, "outer_count_13", verifierAddresses[9]);
 
     // Create the main JSON object
     string memory mainJson = "main";
