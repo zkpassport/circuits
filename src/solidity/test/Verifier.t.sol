@@ -3,7 +3,7 @@
 pragma solidity >=0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
-import {IVerifier, HonkVerifier} from "../src/OuterCount5.sol";
+import {IVerifier, HonkVerifier} from "../src/ultra-honk-verifiers/OuterCount5.sol";
 import {TestUtils} from "./Utils.t.sol";
 
 contract VerifierTest is TestUtils {

@@ -108,7 +108,7 @@ const processFile = async (
   const vkeyPath = path.join(TARGET_DIR, `${outputName}_vkey`)
   const gateCountPath = path.join(TARGET_DIR, `${outputName}.size.json`)
   const solidityVerifierPath = path.join(
-    "src/solidity/src",
+    "src/solidity/src/ultra-honk-verifiers",
     `${snakeToPascal(outputName)}.sol`.replace("Evm", ""),
   )
   try {
