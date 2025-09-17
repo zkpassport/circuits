@@ -212,6 +212,8 @@ contract ZKPassportVerifier {
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
       require(max == 0, "The proof upper bound must be 0, please use isBirthdateBetween instead");
+      // Birthdate comparison dates use 1900 as the starting epoch so the proof can take in value
+      // prior to 1970, so we need to subtract the difference between 1900 and 1970 (starting UNIX epoch)
       return minDate == min - SECONDS_BETWEEN_1900_AND_1970;
     } else {
       require(max == 0, "The proof upper bound must be 0, please use isExpiryDateBetween instead");
@@ -232,6 +234,8 @@ contract ZKPassportVerifier {
     if (proofType == ProofType.BIRTHDATE) {
       require(min != 0, "The proof lower bound must be non-zero, please use isBirthdateBelowOrEqual instead");
       require(max != 0, "The proof upper bound must be non-zero, please use isBirthdateAboveOrEqual instead");
+      // Birthdate comparison dates use 1900 as the starting epoch so the proof can take in values
+      // prior to 1970, so we need to subtract the difference between 1900 and 1970 (starting UNIX epoch)
       return minDate == min - SECONDS_BETWEEN_1900_AND_1970 && maxDate == max - SECONDS_BETWEEN_1900_AND_1970;
     } else {
       require(min != 0, "The proof lower bound must be non-zero, please use isExpiryDateBelowOrEqual instead");
@@ -251,6 +255,8 @@ contract ZKPassportVerifier {
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
       require(max != 0, "The proof upper bound must be non-zero, please use isBirthdateAboveOrEqual instead");
+      // Birthdate comparison dates use 1900 as the starting epoch so the proof can take in value
+      // prior to 1970, so we need to subtract the difference between 1900 and 1970 (starting UNIX epoch)
       return maxDate == max - SECONDS_BETWEEN_1900_AND_1970;
     } else {
       require(max != 0, "The proof upper bound must be non-zero, please use isExpiryDateAboveOrEqual instead");
