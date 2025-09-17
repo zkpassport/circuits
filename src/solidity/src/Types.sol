@@ -57,3 +57,9 @@ struct DisclosedData {
     string documentNumber;
     string documentType;
 }
+
+struct BoundData {
+  address senderAddress;
+  uint256 chainId;
+  string customData;
+}

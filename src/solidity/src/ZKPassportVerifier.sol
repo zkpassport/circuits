@@ -2,13 +2,13 @@
 // Copyright 2025 ZKPassport
 pragma solidity >=0.8.21;
 
-import {IVerifier} from "../src/OuterCount4.sol";
+import {IVerifier} from "../src/ultra-honk-verifiers/OuterCount4.sol";
 import {DateUtils} from "../src/DateUtils.sol";
 import {StringUtils} from "../src/StringUtils.sol";
 import {IRootRegistry} from "../src/IRootRegistry.sol";
 import {InputsExtractor} from "../src/InputsExtractor.sol";
 import {CommittedInputLen, SANCTIONS_TREES_ROOT, MRZIndex, MRZLength, SECONDS_BETWEEN_1900_AND_1970, PublicInput} from "../src/Constants.sol";
-import {ProofType, ProofVerificationParams, BoundDataIdentifier, DisclosedData} from "../src/Types.sol";
+import {ProofType, ProofVerificationParams, BoundDataIdentifier, DisclosedData, BoundData} from "../src/Types.sol";
 
 contract ZKPassportVerifier {
   bytes32 public constant CERTIFICATE_REGISTRY_ID = bytes32(uint256(1));
@@ -121,7 +121,7 @@ contract ZKPassportVerifier {
     ProofVerificationParams calldata params
   ) public view returns (bool) {
     (uint256 currentDate, uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(params.committedInputs, params.committedInputCounts);
-    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "Current date is not valid");
+    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "The current date used in the proof does not fall within the validity period");
     require(max == 0, "The proof upper bound must be 0, please use isAgeBetween instead");
     return minAge == min;
   }
@@ -152,7 +152,7 @@ contract ZKPassportVerifier {
     ProofVerificationParams calldata params
   ) public view returns (bool) {
     (uint256 currentDate, uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(params.committedInputs, params.committedInputCounts);
-    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "Current date is not valid");
+    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "The current date used in the proof does not fall within the validity period");
     require(minAge <= maxAge, "Min age must be less than or equal to max age");
     require(min != 0, "The proof lower bound must be non-zero, please use isAgeBelowOrEqual instead");
     require(max != 0, "The proof upper bound must be non-zero, please use isAgeAboveOrEqual instead");
@@ -170,7 +170,7 @@ contract ZKPassportVerifier {
     ProofVerificationParams calldata params
   ) public view returns (bool) {
     (uint256 currentDate, uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(params.committedInputs, params.committedInputCounts);
-    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "Current date is not valid");
+    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "The current date used in the proof does not fall within the validity period");
     require(min == 0, "The proof lower bound must be 0, please use isAgeBetween instead");
     return maxAge == max;
   }
@@ -208,7 +208,7 @@ contract ZKPassportVerifier {
     ProofVerificationParams calldata params
   ) private view returns (bool) {
     (uint256 currentDate, uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(params.committedInputs, params.committedInputCounts, proofType);
-    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "Current date is not valid");
+    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "The current date used in the proof does not fall within the validity period");
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
       require(max == 0, "The proof upper bound must be 0, please use isBirthdateBetween instead");
@@ -226,7 +226,7 @@ contract ZKPassportVerifier {
     ProofVerificationParams calldata params
   ) private view returns (bool) {
     (uint256 currentDate, uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(params.committedInputs, params.committedInputCounts, proofType);
-    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "Current date is not valid");
+    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "The current date used in the proof does not fall within the validity period");
     require(minDate <= maxDate, "Min date must be less than or equal to max date");
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
@@ -246,7 +246,7 @@ contract ZKPassportVerifier {
     ProofVerificationParams calldata params
   ) private view returns (bool) {
     (uint256 currentDate, uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(params.committedInputs, params.committedInputCounts, proofType);
-    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "Current date is not valid");
+    require(DateUtils.isDateValid(currentDate, params.validityPeriodInSeconds), "The current date used in the proof does not fall within the validity period");
     require(min == 0, "The proof lower bound must be 0, please use isDateBetween instead");
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
@@ -492,15 +492,13 @@ contract ZKPassportVerifier {
   /**
    * @notice Gets the data bound to the proof
    * @param params The proof verification parameters
-   * @return senderAddress The sender address
-   * @return chainId The chain ID
-   * @return customData The custom data (encoded as an ASCII string)
+   * @return boundData The data bound to the proof
    */
   function getBoundData(
     ProofVerificationParams calldata params
-  ) public pure returns (address senderAddress, uint256 chainId, string memory customData) {
+  ) public pure returns (BoundData memory boundData) {
     bytes memory data = InputsExtractor.getBindProofInputs(params.committedInputs, params.committedInputCounts);
-    (senderAddress, chainId, customData) = InputsExtractor.getBoundData(data);
+    (boundData.senderAddress, boundData.chainId, boundData.customData) = InputsExtractor.getBoundData(data);
   }
 
   /**
@@ -602,11 +600,11 @@ contract ZKPassportVerifier {
     // Checks the date of the proof
     require(
       checkDate(params.publicInputs, params.validityPeriodInSeconds),
-      "Proof expired or date is invalid"
+      "The proof was generated outside the validity period"
     );
 
     // Validate scopes if provided
-    require(verifyScopes(params.publicInputs, params.domain, params.scope), "Invalid scopes");
+    require(verifyScopes(params.publicInputs, params.domain, params.scope), "Invalid domain or scope");
 
     // Verifies the commitments against the committed inputs
     verifyCommittedInputs(

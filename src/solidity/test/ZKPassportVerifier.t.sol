@@ -4,11 +4,11 @@ pragma solidity >=0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ZKPassportVerifier, ProofType, ProofVerificationParams} from "../src/ZKPassportVerifier.sol";
-import {HonkVerifier as OuterVerifier5} from "../src/OuterCount5.sol";
-import {HonkVerifier as OuterVerifier12} from "../src/OuterCount12.sol";
+import {HonkVerifier as OuterVerifier5} from "../src/ultra-honk-verifiers/OuterCount5.sol";
+import {HonkVerifier as OuterVerifier12} from "../src/ultra-honk-verifiers/OuterCount12.sol";
 import {TestUtils} from "./Utils.t.sol";
 import {CommittedInputLen} from "../src/Constants.sol";
-import {DisclosedData} from "../src/Types.sol";
+import {DisclosedData, BoundData} from "../src/Types.sol";
 
 contract ZKPassportVerifierTest is TestUtils {
   OuterVerifier5 public verifier5;
@@ -128,14 +128,14 @@ contract ZKPassportVerifierTest is TestUtils {
     );
 
     vm.startSnapshotGas("ZKPassportVerifier getBoundData");
-    (address senderAddress, uint256 chainId, string memory customData) = zkPassportVerifier
+    BoundData memory boundData = zkPassportVerifier
       .getBoundData(params);
     uint256 gasUsedGetBoundData = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier getBoundData");
     console.log(gasUsedGetBoundData);
-    assertEq(senderAddress, 0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8);
-    assertEq(chainId, 31337);
-    assertEq(customData, "email:test@test.com,customer_id:1234567890");
+    assertEq(boundData.senderAddress, 0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8);
+    assertEq(boundData.chainId, 31337);
+    assertEq(boundData.customData, "email:test@test.com,customer_id:1234567890");
   }
 
   function test_VerifyAllSubproofsProof() public {

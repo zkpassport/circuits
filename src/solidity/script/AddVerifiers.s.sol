@@ -5,16 +5,16 @@ pragma solidity >=0.8.21;
 import {Script, console} from "forge-std/Script.sol";
 import {ZKPassportVerifier} from "../src/ZKPassportVerifier.sol";
 import {stdJson} from "forge-std/StdJson.sol";
-import {HonkVerifier as OuterCount4Verifier} from "../src/OuterCount4.sol";
-import {HonkVerifier as OuterCount5Verifier} from "../src/OuterCount5.sol";
-import {HonkVerifier as OuterCount6Verifier} from "../src/OuterCount6.sol";
-import {HonkVerifier as OuterCount7Verifier} from "../src/OuterCount7.sol";
-import {HonkVerifier as OuterCount8Verifier} from "../src/OuterCount8.sol";
-import {HonkVerifier as OuterCount9Verifier} from "../src/OuterCount9.sol";
-import {HonkVerifier as OuterCount10Verifier} from "../src/OuterCount10.sol";
-import {HonkVerifier as OuterCount11Verifier} from "../src/OuterCount11.sol";
-import {HonkVerifier as OuterCount12Verifier} from "../src/OuterCount12.sol";
-import {HonkVerifier as OuterCount13Verifier} from "../src/OuterCount13.sol";
+import {HonkVerifier as OuterCount4Verifier} from "../src/ultra-honk-verifiers/OuterCount4.sol";
+import {HonkVerifier as OuterCount5Verifier} from "../src/ultra-honk-verifiers/OuterCount5.sol";
+import {HonkVerifier as OuterCount6Verifier} from "../src/ultra-honk-verifiers/OuterCount6.sol";
+import {HonkVerifier as OuterCount7Verifier} from "../src/ultra-honk-verifiers/OuterCount7.sol";
+import {HonkVerifier as OuterCount8Verifier} from "../src/ultra-honk-verifiers/OuterCount8.sol";
+import {HonkVerifier as OuterCount9Verifier} from "../src/ultra-honk-verifiers/OuterCount9.sol";
+import {HonkVerifier as OuterCount10Verifier} from "../src/ultra-honk-verifiers/OuterCount10.sol";
+import {HonkVerifier as OuterCount11Verifier} from "../src/ultra-honk-verifiers/OuterCount11.sol";
+import {HonkVerifier as OuterCount12Verifier} from "../src/ultra-honk-verifiers/OuterCount12.sol";
+import {HonkVerifier as OuterCount13Verifier} from "../src/ultra-honk-verifiers/OuterCount13.sol";
 
 contract Deploy is Script {
   using stdJson for string;
