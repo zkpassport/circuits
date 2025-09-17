@@ -4,6 +4,9 @@ pragma solidity >=0.8.21;
 
 bytes32 constant SANCTIONS_TREES_ROOT = 0x27cea23b989f5246d6577568d11cff22537f10fb47729dc004d1bf464ce37bd3;
 uint256 constant SECONDS_BETWEEN_1900_AND_1970 = 2208988800;
+uint256 constant COUNTRY_LIST_LENGTH = 200;
+uint256 constant BOUND_DATA_LENGTH = 500;
+uint256 constant TIMESTAMP_LENGTH = 8;
 
 // The lengths of the preimages of the `param_commitments` of the various disclosure circuits.
 library CommittedInputLen {
@@ -77,6 +80,7 @@ library MRZIndex {
 library MRZLength {
   uint256 constant PASSPORT_MRZ_LENGTH = 88;
   uint256 constant ID_CARD_MRZ_LENGTH = 90;
+  uint256 constant MRZ_MAX_LENGTH = 90;
   uint256 constant PASSPORT_MRZ_ISSUING_COUNTRY_LENGTH = 3;
   uint256 constant ID_CARD_MRZ_ISSUING_COUNTRY_LENGTH = 3;
   uint256 constant PASSPORT_MRZ_NATIONALITY_LENGTH = 3;

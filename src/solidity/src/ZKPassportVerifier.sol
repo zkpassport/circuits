@@ -551,6 +551,8 @@ contract ZKPassportVerifier {
       require(calculatedCommitment == paramCommitments[i], "Invalid commitment");
       offset += committedInputCounts[i];
     }
+    // Check that all the committed inputs have been covered, otherwise something is wrong
+    require(offset == committedInputs.length, "Invalid committed inputs length");
   }
 
   function _getVerifier(bytes32 vkeyHash) internal view returns (address) {
@@ -588,7 +590,8 @@ contract ZKPassportVerifier {
    */
   function verifyProof(
     ProofVerificationParams calldata params
-  ) external view whenNotPaused returns (bool, bytes32) {
+  ) external view whenNotPaused returns (bool isValid, bytes32 uniqueIdentifier) {
+    // Get the verifier for the Outer Circuit corresponding to the vkey hash
     address verifier = _getVerifier(params.vkeyHash);
 
     // Validate certificate registry root
@@ -604,6 +607,10 @@ contract ZKPassportVerifier {
     );
 
     // Validate scopes if provided
+    // It is recommended to verify this against static variables in your contract
+    // by calling the verifyScopes function directly or setting domain and scope in the params
+    // inside your smart contract function before calling verifyProof
+    // Check SampleContract.sol for an example
     require(verifyScopes(params.publicInputs, params.domain, params.scope), "Invalid domain or scope");
 
     // Verifies the commitments against the committed inputs
@@ -616,6 +623,8 @@ contract ZKPassportVerifier {
 
     // Allow mock proofs in dev mode
     // Mock proofs are recognisable by their unique identifier set to 1
+    // Note: On mainnets, this stage won't be reached as the ZKR certificates will not be part
+    // of the mainnet registries and the verification will fail at _validateCertificateRoot
     require(
       params.publicInputs[params.publicInputs.length - 1] != bytes32(uint256(1)) || params.devMode,
       "Mock proofs are only allowed in dev mode"
@@ -625,9 +634,14 @@ contract ZKPassportVerifier {
     // to ensure all the param commitments are covered
     require(params.committedInputCounts.length == params.publicInputs.length - PublicInput.PUBLIC_INPUTS_BEFORE_PARAM_COMMITMENTS_LENGTH, "Invalid committed input counts length");
 
-    return (
-      IVerifier(verifier).verify(params.proof, params.publicInputs),
-      params.publicInputs[params.publicInputs.length - 1]
-    );
+    // Call the UltraHonk verifier for the given Outer Circuit to verify if the actual proof is valid
+    isValid = IVerifier(verifier).verify(params.proof, params.publicInputs);
+
+    // Get the unique identifier from the public inputs
+    uint256 uniqueIdentifierIndex = params.publicInputs.length - 1;
+    uniqueIdentifier = params.publicInputs[uniqueIdentifierIndex];
+
+    // Not actually needed but it makes it clearer what is returned
+    return (isValid, uniqueIdentifier);
   }
 }
