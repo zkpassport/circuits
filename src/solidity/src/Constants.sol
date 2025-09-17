@@ -2,7 +2,6 @@
 // Copyright 2025 ZKPassport
 pragma solidity >=0.8.21;
 
-bytes32 constant SANCTIONS_TREES_ROOT = 0x27cea23b989f5246d6577568d11cff22537f10fb47729dc004d1bf464ce37bd3;
 uint256 constant SECONDS_BETWEEN_1900_AND_1970 = 2208988800;
 uint256 constant COUNTRY_LIST_LENGTH = 200;
 uint256 constant BOUND_DATA_LENGTH = 500;

@@ -7,7 +7,7 @@ import {DateUtils} from "../src/DateUtils.sol";
 import {StringUtils} from "../src/StringUtils.sol";
 import {IRootRegistry} from "../src/IRootRegistry.sol";
 import {InputsExtractor} from "../src/InputsExtractor.sol";
-import {CommittedInputLen, SANCTIONS_TREES_ROOT, MRZIndex, MRZLength, SECONDS_BETWEEN_1900_AND_1970, PublicInput} from "../src/Constants.sol";
+import {CommittedInputLen, MRZIndex, MRZLength, SECONDS_BETWEEN_1900_AND_1970, PublicInput} from "../src/Constants.sol";
 import {ProofType, ProofVerificationParams, BoundDataIdentifier, DisclosedData, BoundData} from "../src/Types.sol";
 
 contract ZKPassportVerifier {
