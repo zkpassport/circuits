@@ -1,4 +1,4 @@
-use common::{calculate_scoped_nullifier, hash_salt_dg1_private_nullifier};
+use common::{calculate_scoped_nullifier, hash_salt_dg1_dg2_hash_private_nullifier};
 use utils::{get_issuing_country_from_mrz, types::DG1Data};
 
 // The ZKR (or Zero Knowledge Republic) is a mock country used for testing purposes
@@ -31,12 +31,21 @@ pub fn nullify(
     comm_in: Field,
     salt: Field,
     dg1: DG1Data,
+    dg2_hash_normalized: Field,
+    dg2_hash_type: u32,
     private_nullifier: Field,
     service_scope: Field,
     service_subscope: Field,
 ) -> Field {
     assert(
-        comm_in == hash_salt_dg1_private_nullifier(salt, dg1, private_nullifier),
+        comm_in
+            == hash_salt_dg1_dg2_hash_private_nullifier(
+                salt,
+                dg1,
+                dg2_hash_normalized,
+                dg2_hash_type,
+                private_nullifier,
+            ),
         "Commitment from 3rd subproof doesn't match in disclosure proof",
     );
     let mut scoped_nullifier =

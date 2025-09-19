@@ -7,6 +7,8 @@ fn main(
     salt: Field,
     private_nullifier: Field,
     dg1: DG1Data,
+    dg2_hash_normalized: Field,
+    dg2_hash_type: u32,
     // @committed
     // The current date timestamp is public so verifiers can check the date
     // provided to the proof is correct
@@ -36,6 +38,8 @@ fn main(
         comm_in,
         salt,
         dg1,
+        dg2_hash_normalized,
+        dg2_hash_type,
         private_nullifier,
         service_scope,
         service_subscope,

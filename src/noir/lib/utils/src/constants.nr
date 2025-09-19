@@ -121,6 +121,14 @@ pub global SHA384_DIGEST_LENGTH: u32 = 48;
 // SHA512 digest length
 pub global SHA512_DIGEST_LENGTH: u32 = 64;
 
+pub global SHA1_IDENTIFIER: u32 = 1;
+pub global SHA224_IDENTIFIER: u32 = 2;
+pub global SHA256_IDENTIFIER: u32 = 3;
+pub global SHA384_IDENTIFIER: u32 = 4;
+pub global SHA512_IDENTIFIER: u32 = 5;
+
+pub global DG2_MAX_HASH_SIZE: u32 = SHA512_DIGEST_LENGTH;
+
 pub global EMPTY_ALPHA3_COUNTRY_CODE: str<3> = "\0\0\0";
 
 // P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<<<

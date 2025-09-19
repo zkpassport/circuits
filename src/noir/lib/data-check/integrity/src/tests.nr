@@ -2,13 +2,14 @@ use super::{
     check_dg1_sha1, check_dg1_sha224, check_dg1_sha256, check_dg1_sha384, check_dg1_sha512,
     check_signed_attributes_sha1, check_signed_attributes_sha224, check_signed_attributes_sha256,
     check_signed_attributes_sha384, check_signed_attributes_sha512, get_dg1_size,
+    get_dg2_hash_from_econtent, DG2_HASH_DER_IDENTIFIER,
 };
 use sha1::sha1::sha1_var;
 use sha256::{sha224_var, sha256_var};
 use sha512::{sha384::sha384_var, sha512::sha512_var};
-use utils::constants::{
-    ECONTENT_LENGTH, ID_CARD_DG1_LENGTH, ID_CARD_SAMPLE_DG1, PASSPORT_DG1_LENGTH, SAMPLE_DG1,
-    SIGNED_ATTRS_LENGTH,
+use utils::constants::{ 
+    ECONTENT_LENGTH, ID_CARD_DG1_LENGTH, ID_CARD_SAMPLE_DG1,
+    PASSPORT_DG1_LENGTH, SAMPLE_DG1, SIGNED_ATTRS_LENGTH,
 };
 
 #[test]
@@ -21,6 +22,36 @@ fn test_get_dg1_size_passport() {
 fn test_get_dg1_size_id_card() {
     let dg1_size = get_dg1_size(ID_CARD_SAMPLE_DG1);
     assert_eq(dg1_size, ID_CARD_DG1_LENGTH);
+}
+
+#[test]
+fn test_get_dg2_hash_from_econtent() {
+    // Create a sample dg2 full of 1s
+    let dg2 = [1 as u8; 100];
+    let mut e_content = [0; ECONTENT_LENGTH];
+
+    // Hash dg2
+    let dg2_hash = sha256_var(dg2, 100);
+
+    // Add the 0x30 sequence preceding the DER sequence
+    e_content[100 - DG2_HASH_DER_IDENTIFIER.len() - 3] = 0x30;
+    // Add the size of the DER sequence just after the 0x30 sequence
+    e_content[100 - DG2_HASH_DER_IDENTIFIER.len() - 2] = 5 + dg2_hash.len() as u8;
+    // Add the expected DER sequence preceding the hash of DG2
+    for i in 0..DG2_HASH_DER_IDENTIFIER.len() {
+        e_content[i + 100 - DG2_HASH_DER_IDENTIFIER.len() - 1] = DG2_HASH_DER_IDENTIFIER[i];
+    }
+    // Add the size of the hash of DG2 just after the DER sequence
+    e_content[100 - 1] = dg2_hash.len() as u8;
+    // Finally add the hash of DG2 just after the size of the hash
+    for i in 0..dg2_hash.len() {
+        e_content[i + 100] = dg2_hash[i];
+    }
+    let e_content_size = 200;
+    // Get the hash of DG2 from eContent
+    let dg2_hash_from_econtent = get_dg2_hash_from_econtent(e_content, e_content_size);
+    // Assert that the hash retrieved from eContent is the same as the hash of dg2
+    assert_eq(dg2_hash, dg2_hash_from_econtent);
 }
 
 #[test]

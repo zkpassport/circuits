@@ -1,8 +1,13 @@
 // This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_disclosure;
 use data_check_expiry::check_expiry;
-use data_check_integrity::{check_dg1_sha256, check_signed_attributes_sha384};
-use utils::types::{DG1Data, EContentData, SignedAttrsData};
+use data_check_integrity::{
+    check_dg1_sha256, check_signed_attributes_sha384, get_dg2_hash_from_econtent,
+};
+use utils::{
+    constants::{SHA256_DIGEST_LENGTH, SHA256_IDENTIFIER},
+    types::{DG1Data, EContentData, SignedAttrsData},
+};
 
 fn main(
     current_date: pub u64,
@@ -28,11 +33,17 @@ fn main(
     let signed_attributes_size =
         unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) };
     check_signed_attributes_sha384(signed_attributes, e_content, e_content_size);
-    let comm_out = commit_to_disclosure(
+
+    // Get the hash of DG2 from eContent
+    let dg2_hash = get_dg2_hash_from_econtent(e_content, e_content_size);
+
+    let comm_out = commit_to_disclosure::<SHA256_DIGEST_LENGTH>(
         comm_in,
         salt_in,
         salt_out,
         dg1,
+        dg2_hash,
+        SHA256_IDENTIFIER,
         signed_attributes,
         signed_attributes_size as Field,
         e_content,
