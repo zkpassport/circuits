@@ -7,6 +7,8 @@ fn main(
     salt: Field,
     private_nullifier: Field,
     dg1: DG1Data,
+    dg2_hash_normalized: Field,
+    dg2_hash_type: u32,
     // @committed
     // The disclose mask is public (via the parameter commitment) so verifiers can check the mask
     disclose_mask: DiscloseMask,
@@ -20,6 +22,8 @@ fn main(
         comm_in,
         salt,
         dg1,
+        dg2_hash_normalized,
+        dg2_hash_type,
         private_nullifier,
         service_scope,
         service_subscope,

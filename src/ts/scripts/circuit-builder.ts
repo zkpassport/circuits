@@ -4,10 +4,6 @@ import { exec, execSync } from "child_process"
 import { compileCircuit } from "../utils"
 import {
   CERTIFICATE_REGISTRY_HEIGHT,
-  HASH_ALGORITHM_SHA1,
-  HASH_ALGORITHM_SHA256,
-  HASH_ALGORITHM_SHA384,
-  HASH_ALGORITHM_SHA512,
 } from "@zkpassport/utils"
 
 // Function to ensure directory exists
@@ -38,6 +34,18 @@ function getHashAlgorithmByteSize(
   } else if (hash_algorithm === "sha512") {
     return 64
   }
+}
+
+function getHashAlgorithmIdentifier(
+  hash_algorithm: "sha1" | "sha224" | "sha256" | "sha384" | "sha512",
+) {
+  return `${hash_algorithm.toUpperCase()}_IDENTIFIER`
+}
+
+function getHashAlgorithmDigestLength(
+  hash_algorithm: "sha1" | "sha224" | "sha256" | "sha384" | "sha512",
+) {
+  return `${hash_algorithm.toUpperCase()}_DIGEST_LENGTH`
 }
 
 const NARGO_TEMPLATE = (
@@ -359,8 +367,8 @@ const DATA_INTEGRITY_CHECK_TEMPLATE = (
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_disclosure;
 use data_check_expiry::check_expiry;
-use data_check_integrity::{check_dg1_${dg_hash_algorithm}, check_signed_attributes_${signed_attributes_hash_algorithm}};
-use utils::types::{DG1Data, EContentData, SignedAttrsData};
+use data_check_integrity::{check_dg1_${dg_hash_algorithm}, check_signed_attributes_${signed_attributes_hash_algorithm}, get_dg2_hash_from_econtent};
+use utils::{types::{DG1Data, EContentData, SignedAttrsData}, constants::{${getHashAlgorithmIdentifier(dg_hash_algorithm)}, ${getHashAlgorithmDigestLength(dg_hash_algorithm)}}};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     current_date: pub u64,
@@ -391,11 +399,17 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         e_content,
         e_content_size,
     );
-    let comm_out = commit_to_disclosure(
+
+    // Get the hash of DG2 from eContent
+    let dg2_hash = get_dg2_hash_from_econtent(e_content, e_content_size);
+
+    let comm_out = commit_to_disclosure::<${getHashAlgorithmDigestLength(dg_hash_algorithm)}>(
         comm_in,
         salt_in,
         salt_out,
         dg1,
+        dg2_hash,
+        ${getHashAlgorithmIdentifier(dg_hash_algorithm)},
         signed_attributes,
         signed_attributes_size as Field,
         e_content,
