@@ -15,8 +15,15 @@ pub fn calculate_scoped_nullifier(
     private_nullifier: Field,
     service_scope: Field,
     service_subscope: Field,
+    nullifier_secret: Field,
 ) -> Field {
-    Poseidon2::hash([private_nullifier, service_scope, service_subscope], 3)
+    // A nullifier secret set to 0 means it should be ignored and the nullifier should be computed without it
+    // Otherwise, the nullifier should be computed with the secret
+    if nullifier_secret != 0 {
+        Poseidon2::hash([private_nullifier, service_scope, service_subscope, nullifier_secret], 4)
+    } else {
+        Poseidon2::hash([private_nullifier, service_scope, service_subscope], 3)
+    }
 }
 
 /// Only used for testing purposes for now

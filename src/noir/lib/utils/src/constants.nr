@@ -123,6 +123,20 @@ pub global SHA512_DIGEST_LENGTH: u32 = 64;
 
 pub global EMPTY_ALPHA3_COUNTRY_CODE: str<3> = "\0\0\0";
 
+// The different nullifier types
+
+// Nullifier purely derived from the private nullifier and the scopes
+// with no secret
+pub global NON_SALTED_NULLIFIER: Field = 0;
+// Nullifier derived from the private nullifier and the scopes with a secret
+pub global SALTED_NULLIFIER: Field = 1;
+// Nullifier purely derived from the private nullifier and the scopes with no secret
+// Used for mock proofs (i.e. ZKR)
+pub global NON_SALTED_MOCK_NULLIFIER: Field = 2;
+// Nullifier derived from the private nullifier and the scopes with a secret
+// Used for mock proofs (i.e. ZKR)
+pub global SALTED_MOCK_NULLIFIER: Field = 3;
+
 // P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<<<
 pub global SAMPLE_DG1: [u8; DG1_LENGTH] = [
     0x61, 0x5B, 0x5F, 0x1F, 0x58, 80, 60, 65, 85, 83, 83, 73, 76, 86, 69, 82, 72, 65, 78, 68, 60,

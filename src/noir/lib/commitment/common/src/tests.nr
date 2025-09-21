@@ -1,4 +1,4 @@
-use super::{calculate_certificate_registry_leaf, compute_merkle_root, has_value_in_tags};
+use super::{calculate_certificate_registry_leaf, compute_merkle_root, has_value_in_tags, calculate_scoped_nullifier};
 use poseidon::poseidon2::Poseidon2;
 
 #[test]
@@ -289,4 +289,22 @@ fn test_get_vkey_hash() {
     ];
     let vkey_hash = get_vkey_hash(vkey);
     assert(vkey_hash == 0x159c7f9777839c2449c0a0f90b411569ed72aaa9d090c82c9c028adf5419d3d6);
+}
+
+#[test]
+fn test_calculate_scoped_nullifier() {
+    let private_nullifier = 1;
+    let service_scope = 2;
+    let service_subscope = 3;
+
+    // Calculate the non-salted scoped nullifier
+    let non_salted_scoped_nullifier = calculate_scoped_nullifier(private_nullifier, service_scope, service_subscope, 0);
+    assert(non_salted_scoped_nullifier == 0x23864adb160dddf590f1d3303683ebcb914f828e2635f6e85a32f0a1aecd3dd8);
+    
+    // Calculate the salted scoped nullifier (with the same private nullifier, service scope and service subscope)
+    let salted_scoped_nullifier = calculate_scoped_nullifier(private_nullifier, service_scope, service_subscope, 1);
+    assert(salted_scoped_nullifier == 0x0e51739f6a6687eb1956c4f475b39498e4358763075aa707642c9796d55cee14);
+    
+    // Because one is salted and the other is not, they should be different even if the private nullifier, service scope and service subscope are the same
+    assert(non_salted_scoped_nullifier != salted_scoped_nullifier);
 }

@@ -21,9 +21,10 @@ fn main(
     // the date provided to the proof is correct
     // If the maximum date timestamp is 0, it is not checked
     max_date: u64,
+    nullifier_secret: Field,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub (Field, Field) {
+) -> pub (Field, Field, Field) {
     let expiry_date = get_expiry_date(dg1, current_date);
     // Verify the expiry date of the ID holder
     // Uses the usual unix epoch year of 1970 as the epoch year as expiry dates are in the future
@@ -32,13 +33,14 @@ fn main(
     // Use Poseidon2 to calculate the parameter commitment so the prover has less work to do
     let param_commitment =
         calculate_param_commitment(PROOF_TYPE_EXPIRY_DATE, current_date, min_date, max_date);
-    let nullifier = nullify(
+    let (nullifier, nullifier_type) = nullify(
         comm_in,
         salt,
         dg1,
         private_nullifier,
         service_scope,
         service_subscope,
+        nullifier_secret,
     );
-    (param_commitment, nullifier)
+    (param_commitment, nullifier_type, nullifier)
 }

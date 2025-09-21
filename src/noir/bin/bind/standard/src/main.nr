@@ -12,18 +12,20 @@ fn main(
     // provided to the proof is correct
     // TODO: change to [Field; 512] in the next breaking change update
     data: [Field; 500],
+    nullifier_secret: Field,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub (Field, Field) {
-    let nullifier = nullify(
+) -> pub (Field, Field,Field) {
+    let (nullifier, nullifier_type) = nullify(
         comm_in,
         salt,
         dg1,
         private_nullifier,
         service_scope,
         service_subscope,
+        nullifier_secret,
     );
     // Use Poseidon2 to calculate the parameter commitment so the prover has less work to do
     let param_commitment = calculate_param_commitment(data);
-    (param_commitment, nullifier)
+    (param_commitment, nullifier_type, nullifier)
 }
