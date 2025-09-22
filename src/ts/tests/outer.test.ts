@@ -347,6 +347,7 @@ describe("outer proof", () => {
         3n,
         0n,
         0n,
+        0n,
         nowTimestamp,
       )
       if (!ageInputs) throw new Error("Unable to generate compare-age greater than circuit inputs")
@@ -915,6 +916,7 @@ describe("outer proof - evm optimised", () => {
         3n,
         0n,
         0n,
+        0n,
         nowTimestamp,
       )
       if (!ageInputs) throw new Error("Unable to generate compare-age greater than circuit inputs")
@@ -940,6 +942,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         expiryDateQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
         nowTimestamp,
@@ -968,6 +971,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         birthDateQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
         nowTimestamp,

@@ -33,6 +33,6 @@ fn main(
     );
     // Use Poseidon2 to calculate the parameter commitment so the prover has less work to do
     let param_commitment =
-        calculate_param_commitment( PROOF_TYPE_NATIONALITY_EXCLUSION, country_list);
+        calculate_param_commitment(PROOF_TYPE_NATIONALITY_EXCLUSION, country_list);
     (param_commitment, nullifier_type, nullifier)
 }

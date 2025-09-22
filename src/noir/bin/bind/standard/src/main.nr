@@ -15,7 +15,7 @@ fn main(
     nullifier_secret: Field,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub (Field, Field,Field) {
+) -> pub (Field, Field, Field) {
     let (nullifier, nullifier_type) = nullify(
         comm_in,
         salt,
