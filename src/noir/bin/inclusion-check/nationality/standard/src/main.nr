@@ -7,6 +7,8 @@ fn main(
     salt: Field,
     private_nullifier: Field,
     dg1: DG1Data,
+    dg2_hash_normalized: Field,
+    dg2_hash_type: u32,
     // @committed
     // There are roughly 200 countries in the world
     // so we can safely pad it to 200
@@ -21,6 +23,8 @@ fn main(
         comm_in,
         salt,
         dg1,
+        dg2_hash_normalized,
+        dg2_hash_type,
         private_nullifier,
         service_scope,
         service_subscope,

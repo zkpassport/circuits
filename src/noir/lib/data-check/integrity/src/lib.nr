@@ -5,12 +5,56 @@ use utils::{
     check_zero_padding,
     constants::{ID_CARD_DG1_LENGTH, PASSPORT_DG1_LENGTH},
     find_subarray_index,
+    get_array_slice,
     is_id_card,
     is_subarray_in_array,
     types::{DG1Data, EContentData},
 };
 
 pub mod tests;
+
+// The DER sequence preceding the hash of DG2
+// the following byte being the size of the hash
+pub global DG2_HASH_DER_IDENTIFIER: [u8; 4] = [0x02, 0x01, 0x02, 0x04];
+
+/**
+* Gets the hash of DG2 from eContent by using the expected DER sequence preceding it
+*/
+pub fn get_dg2_hash_from_econtent<let HASH_SIZE: u32>(
+    e_content: EContentData,
+    e_content_size: u32,
+) -> [u8; HASH_SIZE] {
+    let dg2_hash_der_identifier_offset = find_subarray_index(DG2_HASH_DER_IDENTIFIER, e_content);
+    assert(dg2_hash_der_identifier_offset != e_content.len(), "DG2 hash not found in eContent");
+
+    assert_eq(
+        e_content[dg2_hash_der_identifier_offset - 2],
+        0x30,
+        "Unexpected value preceding DG2 hash",
+    );
+    // 5 stands for the 4 elements of DG2_HASH_DER_IDENTIFIER plus the size of the hash
+    assert_eq(
+        e_content[dg2_hash_der_identifier_offset - 1],
+        5 + HASH_SIZE as u8,
+        "DG2 hash size is not the expected size",
+    );
+
+    let dg2_hash_size_offset = dg2_hash_der_identifier_offset + DG2_HASH_DER_IDENTIFIER.len();
+    let dg2_hash_size = e_content[dg2_hash_size_offset];
+    // We make sure the size of the hash is the expected size
+    assert_eq(dg2_hash_size, (HASH_SIZE as u8), "DG2 hash size is not the expected size");
+
+    let dg2_hash_offset_in_e_content = dg2_hash_size_offset + 1;
+    // We make sure the hash is within the expected bounds of eContent
+    assert(
+        dg2_hash_offset_in_e_content + HASH_SIZE <= e_content_size,
+        "DG2 hash not found in eContent",
+    );
+
+    // Finally we get the hash of DG2 and return it
+    let dg2_hash: [u8; HASH_SIZE] = get_array_slice(e_content, dg2_hash_offset_in_e_content);
+    dg2_hash
+}
 
 pub fn get_dg1_size(dg1: DG1Data) -> u32 {
     if is_id_card(dg1) {
