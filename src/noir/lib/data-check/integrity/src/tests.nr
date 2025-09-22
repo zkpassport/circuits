@@ -1,15 +1,15 @@
 use super::{
     check_dg1_sha1, check_dg1_sha224, check_dg1_sha256, check_dg1_sha384, check_dg1_sha512,
     check_signed_attributes_sha1, check_signed_attributes_sha224, check_signed_attributes_sha256,
-    check_signed_attributes_sha384, check_signed_attributes_sha512, get_dg1_size,
-    get_dg2_hash_from_econtent, DG2_HASH_DER_IDENTIFIER,
+    check_signed_attributes_sha384, check_signed_attributes_sha512, DG2_HASH_DER_IDENTIFIER,
+    get_dg1_size, get_dg2_hash_from_econtent,
 };
 use sha1::sha1::sha1_var;
 use sha256::{sha224_var, sha256_var};
 use sha512::{sha384::sha384_var, sha512::sha512_var};
-use utils::constants::{ 
-    ECONTENT_LENGTH, ID_CARD_DG1_LENGTH, ID_CARD_SAMPLE_DG1,
-    PASSPORT_DG1_LENGTH, SAMPLE_DG1, SIGNED_ATTRS_LENGTH,
+use utils::constants::{
+    ECONTENT_LENGTH, ID_CARD_DG1_LENGTH, ID_CARD_SAMPLE_DG1, PASSPORT_DG1_LENGTH, SAMPLE_DG1,
+    SIGNED_ATTRS_LENGTH,
 };
 
 #[test]
