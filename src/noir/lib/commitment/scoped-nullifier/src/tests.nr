@@ -1,7 +1,7 @@
 use super::nullify;
-use common::hash_salt_dg1_private_nullifier;
+use common::hash_salt_dg1_dg2_hash_private_nullifier;
 use utils::constants::{
-    ID_CARD_SAMPLE_DG1, NON_SALTED_MOCK_NULLIFIER, NON_SALTED_NULLIFIER, SALTED_MOCK_NULLIFIER,
+    SHA256_IDENTIFIER, ID_CARD_SAMPLE_DG1, NON_SALTED_MOCK_NULLIFIER, NON_SALTED_NULLIFIER, SALTED_MOCK_NULLIFIER,
     SALTED_NULLIFIER, SAMPLE_DG1,
 };
 
@@ -11,17 +11,20 @@ fn test_nullify() {
     let service_scope = 2;
     let service_subscope = 3;
     let nullifier_secret = 4;
-
     let salt = 5;
+    let dg2_hash_normalized = 6;
+    let dg2_hash_type = SHA256_IDENTIFIER;
 
-    let comm_in = hash_salt_dg1_private_nullifier(salt, SAMPLE_DG1, private_nullifier);
-    let mock_comm_in = hash_salt_dg1_private_nullifier(salt, ID_CARD_SAMPLE_DG1, private_nullifier);
+    let comm_in = hash_salt_dg1_dg2_hash_private_nullifier(salt, SAMPLE_DG1, dg2_hash_normalized, dg2_hash_type, private_nullifier);
+    let mock_comm_in = hash_salt_dg1_dg2_hash_private_nullifier(salt, ID_CARD_SAMPLE_DG1, dg2_hash_normalized, dg2_hash_type, private_nullifier);
 
     // Non-salted nullifier
     let (non_salted_scoped_nullifier, nullifier_type) = nullify(
         comm_in,
         salt,
         SAMPLE_DG1,
+        dg2_hash_normalized,
+        dg2_hash_type,
         private_nullifier,
         service_scope,
         service_subscope,
@@ -38,6 +41,8 @@ fn test_nullify() {
         comm_in,
         salt,
         SAMPLE_DG1,
+        dg2_hash_normalized,
+        dg2_hash_type,
         private_nullifier,
         service_scope,
         service_subscope,
@@ -58,6 +63,8 @@ fn test_nullify() {
         mock_comm_in,
         salt,
         ID_CARD_SAMPLE_DG1,
+        dg2_hash_normalized,
+        dg2_hash_type,
         private_nullifier,
         service_scope,
         service_subscope,
@@ -74,6 +81,8 @@ fn test_nullify() {
         mock_comm_in,
         salt,
         ID_CARD_SAMPLE_DG1,
+        dg2_hash_normalized,
+        dg2_hash_type,
         private_nullifier,
         service_scope,
         service_subscope,
