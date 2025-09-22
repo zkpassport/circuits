@@ -11,6 +11,12 @@ pub mod tests;
 pub global CSC_CERT_TYPE: u8 = 1;
 pub global DSC_CERT_TYPE: u8 = 2;
 
+pub fn normalize_dg2_hash<let DG2_HASH_SIZE: u32>(dg2_hash: [u8; DG2_HASH_SIZE]) -> Field {
+    let packed_dg2_hash: [Field; (DG2_HASH_SIZE + 30) / 31] =
+        pack_be_bytes_into_fields::<DG2_HASH_SIZE, _, 31>(dg2_hash);
+    Poseidon2::hash(packed_dg2_hash, (DG2_HASH_SIZE + 30) / 31)
+}
+
 pub fn calculate_scoped_nullifier(
     private_nullifier: Field,
     service_scope: Field,
@@ -96,12 +102,14 @@ pub fn hash_salt_country_tbs<let TBS_MAX_SIZE: u32>(
     Poseidon2::hash(hash_inputs, 2 + ((TBS_MAX_SIZE + 30) / 31))
 }
 
-pub fn hash_salt_dg1_private_nullifier(
+pub fn hash_salt_dg1_dg2_hash_private_nullifier(
     salt: Field,
     dg1: DG1Data,
+    dg2_hash_normalized: Field,
+    dg2_hash_type: u32,
     private_nullifier: Field,
 ) -> Field {
-    let mut hash_inputs: [Field; 2 + ((DG1_LENGTH + 30) / 31)] = std::mem::zeroed();
+    let mut hash_inputs: [Field; 4 + ((DG1_LENGTH + 30) / 31)] = std::mem::zeroed();
     hash_inputs[0] = salt;
 
     let packed_dg1: [Field; (DG1_LENGTH + 30) / 31] =
@@ -109,8 +117,15 @@ pub fn hash_salt_dg1_private_nullifier(
     for i in 0..((DG1_LENGTH + 30) / 31) {
         hash_inputs[1 + i] = packed_dg1[i];
     }
-    hash_inputs[1 + ((DG1_LENGTH + 30) / 31)] = private_nullifier;
-    Poseidon2::hash(hash_inputs, 2 + ((DG1_LENGTH + 30) / 31))
+
+    // Commits over the "normalised" dg2 hash
+    // i.e. the hash of dg2 hashed into a single field with Poseidon2
+    hash_inputs[1 + ((DG1_LENGTH + 30) / 31)] = dg2_hash_normalized;
+    // Commit over the dg2 hash type (SHA1, SHA224, SHA256, SHA384 or SHA512)
+    hash_inputs[2 + ((DG1_LENGTH + 30) / 31)] = dg2_hash_type as Field;
+
+    hash_inputs[3 + ((DG1_LENGTH + 30) / 31)] = private_nullifier;
+    Poseidon2::hash(hash_inputs, 4 + ((DG1_LENGTH + 30) / 31))
 }
 
 pub fn calculate_private_nullifier<let SIG: u32>(
