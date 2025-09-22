@@ -20,6 +20,7 @@ members = [
     "src/noir/bin/inclusion-check/nationality/evm",
     "src/noir/bin/exclusion-check/sanctions/standard",
     "src/noir/bin/exclusion-check/sanctions/evm",
+    "src/noir/bin/facematch",
     "src/noir/bin/sig-check/dsc/tbs_700/ecdsa/nist/p192/sha1",
     "src/noir/bin/sig-check/dsc/tbs_700/ecdsa/nist/p192/sha256",
     "src/noir/bin/sig-check/dsc/tbs_700/ecdsa/nist/p192/sha384",
@@ -640,5 +641,6 @@ members = [
     "src/noir/lib/sig-check/ecdsa",
     "src/noir/lib/sig-check/rsa",
     "src/noir/lib/utils",
-    "src/noir/lib/exclusion-check/sanctions"
+    "src/noir/lib/exclusion-check/sanctions",
+    "src/noir/lib/facematch"
 ]

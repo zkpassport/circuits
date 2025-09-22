@@ -1,0 +1,10 @@
+[package]
+name = "facematch"
+type = "bin"
+authors = ["Theo Madzou", "Michael Elliot"]
+compiler_version = ">=1.0.0"
+
+[dependencies]
+facematch = { path = "../../lib/facematch" }
+commitment = { path = "../../lib/commitment/scoped-nullifier" }
+utils = { path = "../../lib/utils" }

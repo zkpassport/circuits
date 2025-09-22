@@ -1,5 +1,6 @@
 crs
 target
+target.*
 proofs
 vkeys
 Prover.toml
