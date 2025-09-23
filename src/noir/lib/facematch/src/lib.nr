@@ -1,12 +1,15 @@
 use constants::{
     AAGUID_DEVELOPMENT, AAGUID_PRODUCTION, APP_ATTEST_ENV_DEVELOPMENT, APP_ATTEST_ENV_PRODUCTION,
-    APP_ID_MAX_LEN, AUTH_DATA_MAX_LEN, CLIENT_DATA_HASH_LEN, OID_APPLE_NONCE_ID, OID_APPLE_APP_ID
+    APP_ID_MAX_LEN, AUTH_DATA_MAX_LEN, CLIENT_DATA_HASH_LEN, OID_APPLE_APP_ID, OID_APPLE_NONCE_ID,
 };
+use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
 use sha256;
 use sha512::sha384;
 use sig_check_ecdsa::verify_nist_p384;
-use utils::{check_zero_padding, find_subarray_index, get_array_slice, poseidon2_hash_packed, unsafe_get_asn1_element_length};
-use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
+use utils::{
+    check_zero_padding, find_subarray_index, get_array_slice, poseidon2_hash_packed,
+    unsafe_get_asn1_element_length,
+};
 
 pub mod tests;
 pub mod constants;

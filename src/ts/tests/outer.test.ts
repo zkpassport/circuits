@@ -216,7 +216,7 @@ describe("outer proof", () => {
     expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2030, 0, 1))
     expect(disclosedData.gender).toBe("M")
     expect(nullifier).toEqual(
-    779855614087059216963642638396438072807460693353731593953501664068287689340n,
+    12325127392437250582769496268240031154309698121799819247312891532490058715832n,
     )
     const discloseCommitmentIn = getCommitmentInFromDisclosureProof(proof)
     expect(discloseCommitmentIn).toEqual(integrityCheckToDisclosureCommitment)
@@ -297,7 +297,7 @@ describe("outer proof", () => {
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        779855614087059216963642638396438072807460693353731593953501664068287689340n,
+        12325127392437250582769496268240031154309698121799819247312891532490058715832n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
@@ -448,7 +448,7 @@ describe("outer proof", () => {
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        779855614087059216963642638396438072807460693353731593953501664068287689340n,
+        12325127392437250582769496268240031154309698121799819247312891532490058715832n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
@@ -631,7 +631,7 @@ describe("outer proof - evm optimised", () => {
     expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1988, 10, 12))
     expect(disclosedData.gender).toBe("M")
     expect(nullifier).toEqual(
-      4721170378885156317428488923010239726308591232293531695919010613758228710886n,
+      14654017650295677224077533752726382150796590025573894447676296112825134791175n,
     )
     const discloseCommitmentIn = getCommitmentInFromDisclosureProof(proof)
     expect(discloseCommitmentIn).toEqual(integrityCheckToDisclosureCommitment)
@@ -758,7 +758,7 @@ describe("outer proof - evm optimised", () => {
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        4721170378885156317428488923010239726308591232293531695919010613758228710886n,
+        14654017650295677224077533752726382150796590025573894447676296112825134791175n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
@@ -1175,7 +1175,7 @@ describe("outer proof - evm optimised", () => {
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        4721170378885156317428488923010239726308591232293531695919010613758228710886n,
+        14654017650295677224077533752726382150796590025573894447676296112825134791175n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)

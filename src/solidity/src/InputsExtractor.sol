@@ -3,7 +3,7 @@
 pragma solidity >=0.8.21;
 
 import {MRZIndex, MRZLength, CommittedInputLen, COUNTRY_LIST_LENGTH, BOUND_DATA_LENGTH, TIMESTAMP_LENGTH} from "../src/Constants.sol";
-import {DisclosedData, ProofType} from "../src/Types.sol";
+import {DisclosedData, ProofType, FaceMatchMode, Environment} from "../src/Types.sol";
 import {BoundDataIdentifier} from "../src/Types.sol";
 
 library InputsExtractor {
@@ -252,5 +252,26 @@ library InputsExtractor {
         break;
       }
     }
+  }
+
+  function getFacematchProofInputs(
+    bytes calldata committedInputs,
+    uint256[] calldata committedInputCounts
+  ) public pure returns (bytes32 rootKeyHash, Environment environment, bytes32 appId, FaceMatchMode facematchMode) {
+    uint256 offset = 0;
+    uint256 foundCount = 0;
+    for (uint256 i = 0; i < committedInputCounts.length; i++) {
+      if (committedInputCounts[i] == CommittedInputLen.FACEMATCH && committedInputs[offset] == bytes1(uint8(ProofType.FACEMATCH))) {
+        offset += 1;
+        rootKeyHash = bytes32(committedInputs[offset:offset + 32]);
+        environment = Environment(uint8(bytes1(committedInputs[offset + 32:offset + 33])));
+        appId = bytes32(committedInputs[offset + 33:offset + 65]);
+        facematchMode = FaceMatchMode(uint8(bytes1(committedInputs[offset + 65:offset + 66])));
+        foundCount++;
+      }
+      offset += committedInputCounts[i];
+    }
+    require(foundCount > 0, "Facematch proof inputs not found");
+    require(foundCount == 1, "Found multiple facematch proofs, the proof should only have one");
   }
 }
