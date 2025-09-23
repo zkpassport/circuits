@@ -229,6 +229,6 @@ fn test_main() {
         app_id,
         facematch_mode,
     );
-    assert(param_commitment == 0x14b544bb7296b877b4f75c61b98cc40fc7ee5a0201340cb89e6e77429c71e6b5);
+    assert(param_commitment == 0x4937febb950deb440e619a6b5adc25c27193d6eb852e7f97dd9ad2e1f5fd73);
     assert(nullifier == 0x23e6d64d15c131d84badbfdbd06bf9c4b8794c5541737c9fcb884ee18f78b81c);
 }

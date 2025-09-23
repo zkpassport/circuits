@@ -21,6 +21,7 @@ members = [
     "src/noir/bin/exclusion-check/sanctions/standard",
     "src/noir/bin/exclusion-check/sanctions/evm",
     "src/noir/bin/facematch/standard",
+    "src/noir/bin/facematch/evm",
     "src/noir/bin/sig-check/dsc/tbs_700/ecdsa/nist/p192/sha1",
     "src/noir/bin/sig-check/dsc/tbs_700/ecdsa/nist/p192/sha256",
     "src/noir/bin/sig-check/dsc/tbs_700/ecdsa/nist/p192/sha384",

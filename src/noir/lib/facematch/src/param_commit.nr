@@ -34,7 +34,7 @@ pub fn calculate_param_commitment_sha2(
     params[33] = environment;
     let app_id_bytes: [u8; 32] = app_id.to_be_bytes();
     for i in 0..app_id_bytes.len() {
-        params[i + 33] = app_id_bytes[i];
+        params[i + 34] = app_id_bytes[i];
     }
     params[66] = facematch_mode;
 

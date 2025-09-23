@@ -1,5 +1,5 @@
 [package]
-name = "facematch"
+name = "facematch_evm"
 type = "bin"
 authors = ["Theo Madzou", "Michael Elliot"]
 compiler_version = ">=1.0.0"
