@@ -3,6 +3,7 @@ use utils::{
     constants::{DG1_LENGTH, ECONTENT_LENGTH, SIGNED_ATTRS_LENGTH},
     get_issuing_country_from_mrz,
     pack_be_bytes_into_fields,
+    pack_le_bytes_into_fields,
     poseidon2_hash_packed,
     types::{Alpha2CountryCode, Alpha3CountryCode, DG1Data, EContentData, SignedAttrsData},
 };
@@ -13,8 +14,7 @@ pub global CSC_CERT_TYPE: u8 = 1;
 pub global DSC_CERT_TYPE: u8 = 2;
 
 pub fn normalize_dg2_hash<let DG2_HASH_SIZE: u32>(dg2_hash: [u8; DG2_HASH_SIZE]) -> Field {
-    let packed_dg2_hash: [Field; (DG2_HASH_SIZE + 30) / 31] =
-        pack_be_bytes_into_fields::<DG2_HASH_SIZE, _, 31>(dg2_hash);
+    let packed_dg2_hash: [Field; _] = pack_le_bytes_into_fields::<31, _>(dg2_hash);
     Poseidon2::hash(packed_dg2_hash, (DG2_HASH_SIZE + 30) / 31)
 }
 
