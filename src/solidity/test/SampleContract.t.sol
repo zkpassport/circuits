@@ -18,7 +18,7 @@ contract SampleContractTest is TestUtils {
   string constant PUBLIC_INPUTS_PATH = "./test/fixtures/all_subproofs_public_inputs.json";
   string constant COMMITTED_INPUTS_PATH = "./test/fixtures/all_subproofs_committed_inputs.hex";
   bytes32 constant VKEY_HASH = 0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4;
-  uint256 constant CURRENT_DATE = 1756239313;
+  uint256 constant CURRENT_DATE = 1758628390;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
@@ -79,7 +79,7 @@ contract SampleContractTest is TestUtils {
     sampleContract.doStuff();
     assertEq(
       uniqueIdentifier,
-      bytes32(uint256(0x0a70167613fa7c456b46f57e91d4fc40c1a7895f55bb7d36ef0ac17ff05045e6))
+      bytes32(uint256(0x2065e14c01f142deef4e8670e21deb080c54729153cc6517859dd7c92f08ba07))
     );
     assertEq(sampleContract.userNationality(uniqueIdentifier), "AUS");
     assertEq(sampleContract.isVerified(uniqueIdentifier), true);

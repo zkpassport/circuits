@@ -173,6 +173,7 @@ describe("subcircuits - RSA PKCS", () => {
         SALT,
         0n,
         0n,
+        0n,
         nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
@@ -211,6 +212,7 @@ describe("subcircuits - RSA PKCS", () => {
         helper.passport as any,
         query,
         SALT,
+        0n,
         0n,
         0n,
         nowTimestamp,

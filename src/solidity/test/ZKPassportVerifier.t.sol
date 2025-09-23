@@ -29,8 +29,8 @@ contract ZKPassportVerifierTest is TestUtils {
     bytes32(uint256(0x04b98c6f867d6a7f86d514b72c3be8f41b7aa6f49fdc17514c9f9f0a2ac3ef9a));
   bytes32 constant OUTER_PROOF_12_VKEY_HASH =
     bytes32(uint256(0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4));
-  uint256 constant CURRENT_DATE = 1756239313;
-  uint256 constant PROOF_GENERATION_DATE = 1756235561;
+  uint256 constant CURRENT_DATE = 1758628390;
+  uint256 constant PROOF_GENERATION_DATE = 1758627749;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
@@ -81,7 +81,7 @@ contract ZKPassportVerifierTest is TestUtils {
     assertEq(result, true);
     assertEq(
       scopedNullifier,
-      bytes32(0x0a70167613fa7c456b46f57e91d4fc40c1a7895f55bb7d36ef0ac17ff05045e6)
+      bytes32(0x2065e14c01f142deef4e8670e21deb080c54729153cc6517859dd7c92f08ba07)
     );
 
     vm.startSnapshotGas("ZKPassportVerifier getDisclosedData");
@@ -124,7 +124,7 @@ contract ZKPassportVerifierTest is TestUtils {
     assertEq(result, true);
     assertEq(
       scopedNullifier,
-      bytes32(0x0a70167613fa7c456b46f57e91d4fc40c1a7895f55bb7d36ef0ac17ff05045e6)
+      bytes32(0x2065e14c01f142deef4e8670e21deb080c54729153cc6517859dd7c92f08ba07)
     );
 
     vm.startSnapshotGas("ZKPassportVerifier getBoundData");
@@ -178,7 +178,7 @@ contract ZKPassportVerifierTest is TestUtils {
     assertEq(result, true);
     assertEq(
       scopedNullifier,
-      bytes32(0x0a70167613fa7c456b46f57e91d4fc40c1a7895f55bb7d36ef0ac17ff05045e6)
+      bytes32(0x2065e14c01f142deef4e8670e21deb080c54729153cc6517859dd7c92f08ba07)
     );
 
     vm.startSnapshotGas("ZKPassportVerifier isAgeAboveOrEqual");
