@@ -222,7 +222,7 @@ export function generateEncapContentInfo(dg1Hash: Uint8Array, hashAlgorithm: Has
     new ASN.DataGroupHash({
       number: ASN.DataGroupNumber.dataGroup2,
       // @ts-ignore-error
-      hash: new Uint8Array(dg1Hash.length).buffer, // Fill it with 0s and match the length of the dg1Hash
+      hash: new Uint8Array(dg1Hash.length).fill(0x02).buffer, // Fill it with 0x02s and match the length of the dg1Hash
     }),
   ]
 

@@ -1,9 +1,9 @@
 {
   "name": "circuits",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "scripts": {
     "lint": "tsc --project src/ts/tsconfig.json --noEmit && nargo fmt --check",
-    "test": "TZ=UTC jest circuits.test.ts",
+    "test": "TZ=UTC jest circuits.test.ts --runInBand --verbose",
     "generate": "tsx src/ts/scripts/circuit-builder.ts generate && nargo fmt",
     "compile": "tsx src/ts/scripts/circuit-builder.ts generate compile && nargo fmt",
     "compile:test": "scripts/ci-compile-circuits.sh",
@@ -35,7 +35,7 @@
     "@types/node": "^22.10.1",
     "@types/node-forge": "^1.3.11",
     "@zkpassport/poseidon2": "^0.6.1",
-    "@zkpassport/utils": "^0.23.0",
+    "@zkpassport/utils": "^0.23.1",
     "aws-cdk": "^2.176.0",
     "aws-cdk-lib": "^2.176.0",
     "babel-jest": "^29.7.0",

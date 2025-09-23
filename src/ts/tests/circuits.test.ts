@@ -41,9 +41,13 @@ import {
   getCurrentDateFromIntegrityProof,
   getCountryWeightedSum,
   rightPadArrayWithZeros,
+  getFacematchCircuitInputs,
+  getFacematchParameterCommitment,
+  getFacematchEvmParameterCommitment,
+  packLeBytesAndHashPoseidon2,
 } from "@zkpassport/utils"
 import type { PackagedCertificate, Query } from "@zkpassport/utils"
-import { beforeAll, describe, expect, test } from "@jest/globals"
+import { beforeAll, afterAll, describe, expect, test } from "@jest/globals"
 import * as path from "path"
 import { TestHelper } from "../test-helper"
 import { generateSigningCertificates, signSod } from "../passport-generator"
@@ -53,11 +57,11 @@ import { generateSod } from "../sod-generator"
 import { serializeAsn, createUTCDate } from "../utils"
 import { Circuit } from "../circuits"
 import fs from "fs"
+import FIXTURES_FACEMATCH from "./fixtures/facematch"
 
 // Test constants
 const SALT = 3n
-const EXPECTED_NULLIFIER =
-  4853682424986581472334861422312401004117384679706333968331573984300501658337n
+const EXPECTED_NULLIFIER = 0x1b6617360623d7592f436ed0c003d60a41d40c55604dbea26c60923b8a1c3b6en
 const nowTimestamp = getNowTimestamp()
 
 describe("subcircuits - RSA PKCS", () => {
@@ -156,6 +160,88 @@ describe("subcircuits - RSA PKCS", () => {
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 30000)
+  })
+
+  describe("facematch", () => {
+    test("verify facematch", async () => {
+      const query: Query = { facematch: { mode: "regular" } }
+      let inputs = await getFacematchCircuitInputs(
+        helper.passport as any,
+        query,
+        SALT,
+        0n,
+        0n,
+        nowTimestamp,
+      )
+      if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
+      const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH }
+      const circuit = Circuit.from("facematch")
+      const proof = await circuit.prove(combinedInputs, {
+        witness: await circuit.solve(combinedInputs),
+        useCli: true,
+        circuitName: "facematch",
+      })
+      await circuit.destroy()
+
+      // Calculate expected parameter commitment and compare with the one returned from the circuit
+      const root_key_leaf = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340bn
+      const environment = 0n
+      const app_id = new Uint8Array([
+        ...new TextEncoder().encode("YL5MS3Z639.app.zkpassport.appattest-prototype"),
+      ])
+      const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
+      const facematch_mode = 1n
+      const calculatedParamCommitment = await getFacematchParameterCommitment(
+        root_key_leaf,
+        environment,
+        app_id_hash,
+        facematch_mode,
+      )
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof) // 0x14b544bb7296b877b4f75c61b98cc40fc7ee5a0201340cb89e6e77429c71e6b5n
+      expect(calculatedParamCommitment).toEqual(paramCommitment)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
+    }, 90000)
+
+    test("verify facematch evm", async () => {
+      const query: Query = { facematch: { mode: "regular" } }
+      let inputs = await getFacematchCircuitInputs(
+        helper.passport as any,
+        query,
+        SALT,
+        0n,
+        0n,
+        nowTimestamp,
+      )
+      if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
+      const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH }
+      const circuit = Circuit.from("facematch_evm")
+      const proof = await circuit.prove(combinedInputs, {
+        witness: await circuit.solve(combinedInputs),
+        useCli: true,
+        circuitName: "facematch_evm",
+      })
+      await circuit.destroy()
+
+      // Calculate expected parameter commitment and compare with the one returned from the circuit
+      const root_key_leaf = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340bn
+      const environment = 0n
+      const app_id = new Uint8Array([
+        ...new TextEncoder().encode("YL5MS3Z639.app.zkpassport.appattest-prototype"),
+      ])
+      const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
+      const facematch_mode = 1n
+      const calculatedParamCommitment = await getFacematchEvmParameterCommitment(
+        root_key_leaf,
+        environment,
+        app_id_hash,
+        facematch_mode,
+      )
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof) // 0x4937febb950deb440e619a6b5adc25c27193d6eb852e7f97dd9ad2e1f5fd73n
+      expect(calculatedParamCommitment).toEqual(paramCommitment)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
+    }, 90000)
   })
 
   describe("disclose", () => {
