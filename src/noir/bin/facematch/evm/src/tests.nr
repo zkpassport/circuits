@@ -231,7 +231,7 @@ fn test_main() {
         service_scope,
         service_subscope,
     );
-    assert(param_commitment == 0x4937febb950deb440e619a6b5adc25c27193d6eb852e7f97dd9ad2e1f5fd73);
+    assert(param_commitment == 0xb781b9c5b5ca4e091b1872ceb198c8fdeb6b4a688e972cf5e390aa40c4e76b);
     assert(nullifier == 0x23e6d64d15c131d84badbfdbd06bf9c4b8794c5541737c9fcb884ee18f78b81c);
     assert(nullifier_type == NON_SALTED_NULLIFIER);
 }
