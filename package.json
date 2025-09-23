@@ -7,9 +7,9 @@
     "generate": "tsx src/ts/scripts/circuit-builder.ts generate && nargo fmt",
     "compile": "tsx src/ts/scripts/circuit-builder.ts generate compile && nargo fmt",
     "compile:test": "scripts/ci-compile-circuits.sh",
-    "test-contracts": "cd src/solidity && ./run-tests.sh && cd ../..",
     "package-circuits": "tsx --max-old-space-size=8192 src/ts/scripts/circuit-packager && cp target/packaged/manifest.json src/ts/tests/fixtures/circuit-manifest.json",
-    "generate-fixtures": "tsx --max-old-space-size=8192 src/ts/scripts/generate-fixtures.ts"
+    "generate-fixtures": "tsx --max-old-space-size=8192 src/ts/scripts/generate-fixtures.ts",
+    "test-contracts": "cd src/solidity && ./run-tests.sh && cd ../.."
   },
   "dependencies": {
     "@aws-sdk/client-cloudfront": "^3.730.0",
