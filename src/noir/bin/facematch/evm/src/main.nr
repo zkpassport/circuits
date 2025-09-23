@@ -116,10 +116,6 @@ fn main(
     let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
     let param_commitment =
         calculate_param_commitment_sha2(root_key_leaf, environment, app_id_hash, facematch_mode);
-    println(f"root_key_leaf: {root_key_leaf}");
-    println(f"environment: {environment}");
-    println(f"app_id_hash: {app_id_hash}");
-    println(f"facematch_mode: {facematch_mode}");
 
     (param_commitment, nullifier)
 }
