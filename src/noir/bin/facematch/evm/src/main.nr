@@ -20,8 +20,6 @@ fn main(
     dg1: DG1Data,
     dg2_hash_normalized: Field,
     dg2_hash_type: u32,
-    service_scope: pub Field,
-    service_subscope: pub Field,
     // @committed
     // Hash of root_key (the attestation registry leaf) is commitment to (via parameter commitment) and can be verified outside the circuit
     root_key: [u8; 96],
@@ -41,7 +39,10 @@ fn main(
     // @committed
     // facematch_mode is commitment to (via parameter commitment) and can be verified outside the circuit
     facematch_mode: u8, // FACEMATCH_MODE_REGULAR (1) or FACEMATCH_MODE_STRICT (2)
-) -> pub (Field, Field) {
+    nullifier_secret: Field,
+    service_scope: pub Field,
+    service_subscope: pub Field,
+) -> pub (Field, Field, Field) {
     // Split the root and intermediate key into x and y coordinates
     let (root_key_x, root_key_y) = split_array(root_key);
     let (intermediate_key_x, intermediate_key_y) = split_array(intermediate_key);
@@ -102,7 +103,7 @@ fn main(
         "Failed to verify dg2_hash in client_data",
     );
 
-    let nullifier = nullify(
+    let (nullifier, nullifier_type) = nullify(
         comm_in,
         salt,
         dg1,
@@ -111,11 +112,12 @@ fn main(
         private_nullifier,
         service_scope,
         service_subscope,
+        nullifier_secret,
     );
 
     let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
     let param_commitment =
         calculate_param_commitment_sha2(root_key_leaf, environment, app_id_hash, facematch_mode);
 
-    (param_commitment, nullifier)
+    (param_commitment, nullifier_type, nullifier)
 }

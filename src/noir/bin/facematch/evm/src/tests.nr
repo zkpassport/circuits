@@ -1,5 +1,5 @@
 use facematch::constants;
-use utils::types::DG1Data;
+use utils::{constants::NON_SALTED_NULLIFIER, types::DG1Data};
 
 #[test]
 fn test_main() {
@@ -207,16 +207,15 @@ fn test_main() {
     let dg2_hash_type: u32 = 3;
     let service_scope: Field = 0;
     let service_subscope: Field = 0;
+    let nullifier_secret: Field = 0;
 
-    let (param_commitment, nullifier) = crate::main(
+    let (param_commitment, nullifier_type, nullifier) = crate::main(
         comm_in,
         salt,
         private_nullifier,
         dg1,
         dg2_hash_normalized,
         dg2_hash_type,
-        service_scope,
-        service_subscope,
         root_key,
         intermediate_key,
         intermediate_tbs,
@@ -228,7 +227,11 @@ fn test_main() {
         environment,
         app_id,
         facematch_mode,
+        nullifier_secret,
+        service_scope,
+        service_subscope,
     );
     assert(param_commitment == 0x4937febb950deb440e619a6b5adc25c27193d6eb852e7f97dd9ad2e1f5fd73);
     assert(nullifier == 0x23e6d64d15c131d84badbfdbd06bf9c4b8794c5541737c9fcb884ee18f78b81c);
+    assert(nullifier_type == NON_SALTED_NULLIFIER);
 }
