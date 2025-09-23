@@ -61,7 +61,7 @@ import FIXTURES_FACEMATCH from "./fixtures/facematch"
 
 // Test constants
 const SALT = 3n
-const EXPECTED_NULLIFIER = 0x1b6617360623d7592f436ed0c003d60a41d40c55604dbea26c60923b8a1c3b6en
+const EXPECTED_NULLIFIER = 0xf03bc01b2dd79b1b8906831e8bd47f1cdf7435e8f38010a9cd1978a1b13a26an
 const nowTimestamp = getNowTimestamp()
 
 describe("subcircuits - RSA PKCS", () => {
@@ -174,6 +174,8 @@ describe("subcircuits - RSA PKCS", () => {
         nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
+      expect(BigInt(inputs.comm_in)).toEqual(integrityCheckCommitment)
+
       const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH }
       const circuit = Circuit.from("facematch")
       const proof = await circuit.prove(combinedInputs, {
@@ -214,6 +216,8 @@ describe("subcircuits - RSA PKCS", () => {
         nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
+      expect(BigInt(inputs.comm_in)).toEqual(integrityCheckCommitment)
+
       const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH }
       const circuit = Circuit.from("facematch_evm")
       const proof = await circuit.prove(combinedInputs, {
