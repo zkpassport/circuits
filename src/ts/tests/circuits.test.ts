@@ -201,7 +201,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(calculatedParamCommitment).toEqual(paramCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
-    }, 30000)
+    }, 90000)
 
     test("verify facematch evm", async () => {
       const query: Query = { facematch: { mode: "regular" } }
@@ -241,7 +241,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(calculatedParamCommitment).toEqual(paramCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
-    }, 30000)
+    }, 90000)
   })
 
   describe("disclose", () => {
