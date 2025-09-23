@@ -1,8 +1,8 @@
 use super::nullify;
 use common::hash_salt_dg1_dg2_hash_private_nullifier;
 use utils::constants::{
-    SHA256_IDENTIFIER, ID_CARD_SAMPLE_DG1, NON_SALTED_MOCK_NULLIFIER, NON_SALTED_NULLIFIER, SALTED_MOCK_NULLIFIER,
-    SALTED_NULLIFIER, SAMPLE_DG1,
+    ID_CARD_SAMPLE_DG1, NON_SALTED_MOCK_NULLIFIER, NON_SALTED_NULLIFIER, SALTED_MOCK_NULLIFIER,
+    SALTED_NULLIFIER, SAMPLE_DG1, SHA256_IDENTIFIER,
 };
 
 #[test]
@@ -15,8 +15,20 @@ fn test_nullify() {
     let dg2_hash_normalized = 6;
     let dg2_hash_type = SHA256_IDENTIFIER;
 
-    let comm_in = hash_salt_dg1_dg2_hash_private_nullifier(salt, SAMPLE_DG1, dg2_hash_normalized, dg2_hash_type, private_nullifier);
-    let mock_comm_in = hash_salt_dg1_dg2_hash_private_nullifier(salt, ID_CARD_SAMPLE_DG1, dg2_hash_normalized, dg2_hash_type, private_nullifier);
+    let comm_in = hash_salt_dg1_dg2_hash_private_nullifier(
+        salt,
+        SAMPLE_DG1,
+        dg2_hash_normalized,
+        dg2_hash_type,
+        private_nullifier,
+    );
+    let mock_comm_in = hash_salt_dg1_dg2_hash_private_nullifier(
+        salt,
+        ID_CARD_SAMPLE_DG1,
+        dg2_hash_normalized,
+        dg2_hash_type,
+        private_nullifier,
+    );
 
     // Non-salted nullifier
     let (non_salted_scoped_nullifier, nullifier_type) = nullify(

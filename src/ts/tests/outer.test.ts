@@ -598,6 +598,7 @@ describe("outer proof - evm optimised", () => {
       helper.passport as any,
       query,
       3n,
+      0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
     )
@@ -662,6 +663,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         bindQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -780,6 +782,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         nationalityInclusionQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -813,6 +816,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         nationalityExclusionQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -846,6 +850,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         issuingCountryInclusionQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -880,6 +885,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         issuingCountryExclusionQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -996,6 +1002,7 @@ describe("outer proof - evm optimised", () => {
       const sanctionsExclusionInputs = await getSanctionsExclusionCheckCircuitInputs(
         helper.passport as any,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
