@@ -2,9 +2,7 @@ import * as fs from "fs"
 import * as path from "path"
 import { exec, execSync } from "child_process"
 import { compileCircuit } from "../utils"
-import {
-  CERTIFICATE_REGISTRY_HEIGHT,
-} from "@zkpassport/utils"
+import { CERTIFICATE_REGISTRY_HEIGHT } from "@zkpassport/utils"
 
 // Function to ensure directory exists
 function ensureDirectoryExistence(filePath: string) {
@@ -115,6 +113,14 @@ const STATIC_CIRCUITS = [
     name: "exclusion_check_sanctions_evm",
     path: "./src/noir/bin/exclusion-check/sanctions/evm",
   },
+  {
+    name: "facematch",
+    path: "./src/noir/bin/facematch/standard",
+  },
+  {
+    name: "facematch_evm",
+    path: "./src/noir/bin/facematch/evm",
+  },
 ]
 
 const LIB_CIRCUITS = [
@@ -137,6 +143,7 @@ const LIB_CIRCUITS = [
   "src/noir/lib/sig-check/rsa",
   "src/noir/lib/utils",
   "src/noir/lib/exclusion-check/sanctions",
+  "src/noir/lib/facematch",
 ]
 
 const WORKSPACE_NARGO_TEMPLATE = (dependencies: string[]) => `[workspace]
@@ -368,7 +375,9 @@ const DATA_INTEGRITY_CHECK_TEMPLATE = (
 use commitment::commit_to_disclosure;
 use data_check_expiry::check_expiry;
 use data_check_integrity::{check_dg1_${dg_hash_algorithm}, check_signed_attributes_${signed_attributes_hash_algorithm}, get_dg2_hash_from_econtent};
-use utils::{types::{DG1Data, EContentData, SignedAttrsData}, constants::{${getHashAlgorithmIdentifier(dg_hash_algorithm)}, ${getHashAlgorithmDigestLength(dg_hash_algorithm)}}};
+use utils::{types::{DG1Data, EContentData, SignedAttrsData}, constants::{${getHashAlgorithmIdentifier(
+  dg_hash_algorithm,
+)}, ${getHashAlgorithmDigestLength(dg_hash_algorithm)}}};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     current_date: pub u64,
@@ -383,7 +392,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     // Check the ID is not expired first
     check_expiry(dg1, current_date);
     // Get the length of e_content by parsing the ASN.1
-    // Safety: This is safe because the length must be correct for econtent to hash to 
+    // Safety: This is safe because the length must be correct for econtent to hash to
     // the expected digest in signed attributes as checked below in check_signed_attributes_${dg_hash_algorithm}
     let e_content_size =
         unsafe { utils::unsafe_get_asn1_element_length(e_content) };

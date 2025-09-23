@@ -36,14 +36,19 @@ use constants::{
     PASSPORT_MRZ_NATIONALITY_LENGTH, PASSPORT_MRZ_YEAR_OF_BIRTH_LENGTH, YYMMDD_DATE_LENGTH,
 };
 
+use poseidon::poseidon2::Poseidon2;
+
 // D<<
 global GERMANY_PASSPORT_CODE: [u8; 3] = [68, 60, 60];
 // DEU
 global GERMANY_ISO_CODE: [u8; 3] = [68, 69, 85];
 
-pub fn get_array_slice<let N: u32, let M: u32>(arr: [u8; N], start: u32) -> [u8; M] {
-    let mut slice = [0 as u8; M];
-    for i in 0..M {
+pub fn get_array_slice<let N: u32, let SLICE_LEN: u32>(
+    arr: [u8; N],
+    start: u32,
+) -> [u8; SLICE_LEN] {
+    let mut slice = [0 as u8; SLICE_LEN];
+    for i in 0..SLICE_LEN {
         slice[i] = arr[start + i];
     }
     slice
@@ -459,4 +464,44 @@ pub unconstrained fn find_subarray_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTA
         }
     }
     result
+}
+
+fn pack_le_bytes_into_fields_internal<let BYTES_PER_FIELD: u32, let NUM_BYTES: u32, let NUM_FIELDS: u32>(
+    x: [u8; NUM_BYTES],
+) -> [Field; NUM_FIELDS] {
+    let mut result = [0 as Field; NUM_FIELDS];
+    let mut k = 0;
+    // Pack all fields in little-endian order
+    for field_index in 0..NUM_FIELDS {
+        let remaining_bytes = NUM_BYTES - k;
+        let chunk_size = if remaining_bytes > BYTES_PER_FIELD {
+            BYTES_PER_FIELD
+        } else {
+            remaining_bytes
+        };
+        let mut limb: Field = 0;
+        // Pack bytes in little-endian order (reverse the chunk)
+        for j in 0..chunk_size {
+            limb *= 256;
+            limb += x[k + chunk_size - 1 - j] as Field;
+        }
+        k += chunk_size;
+        std::as_witness(limb);
+        result[field_index] = limb;
+    }
+    result
+}
+
+pub fn pack_le_bytes_into_fields<let BYTES_PER_FIELD: u32, let NUM_BYTES: u32>(
+    x: [u8; NUM_BYTES],
+) -> [Field; _] {
+    pack_le_bytes_into_fields_internal::<BYTES_PER_FIELD, NUM_BYTES, (NUM_BYTES + BYTES_PER_FIELD - 1) / BYTES_PER_FIELD>(
+        x,
+    )
+}
+
+pub fn poseidon2_hash_packed<let NUM_BYTES: u32>(padded_input: [u8; NUM_BYTES], len: u32) -> Field {
+    let packed: [Field; _] = pack_le_bytes_into_fields::<31, _>(padded_input);
+    let num_of_fields: u32 = (len + 31 - 1) / 31;
+    Poseidon2::hash_fixed(packed, num_of_fields)
 }

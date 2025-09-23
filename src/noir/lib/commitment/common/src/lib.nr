@@ -3,6 +3,7 @@ use utils::{
     constants::{DG1_LENGTH, ECONTENT_LENGTH, SIGNED_ATTRS_LENGTH},
     get_issuing_country_from_mrz,
     pack_be_bytes_into_fields,
+    poseidon2_hash_packed,
     types::{Alpha2CountryCode, Alpha3CountryCode, DG1Data, EContentData, SignedAttrsData},
 };
 
@@ -238,4 +239,16 @@ pub fn compute_merkle_root<let N: u32>(leaf: Field, index: Field, hash_path: [Fi
         current = Poseidon2::hash([hash_left, hash_right], 2);
     }
     current
+}
+
+pub fn calculate_attestation_registry_leaf<let ROOT_KEY_SIZE: u32>(
+    root_key_type: u8,
+    root_key: [u8; ROOT_KEY_SIZE],
+) -> Field {
+    let mut bytes: [u8; ROOT_KEY_SIZE + 1] = [0; ROOT_KEY_SIZE + 1];
+    bytes[0] = root_key_type;
+    for i in 0..ROOT_KEY_SIZE {
+        bytes[1 + i] = root_key[i];
+    }
+    poseidon2_hash_packed(bytes, ROOT_KEY_SIZE + 1)
 }
