@@ -7,8 +7,8 @@ import {DateUtils} from "../src/DateUtils.sol";
 import {StringUtils} from "../src/StringUtils.sol";
 import {IRootRegistry} from "../src/IRootRegistry.sol";
 import {InputsExtractor} from "../src/InputsExtractor.sol";
-import {CommittedInputLen, MRZIndex, MRZLength, SECONDS_BETWEEN_1900_AND_1970, PublicInput} from "../src/Constants.sol";
-import {ProofType, ProofVerificationParams, BoundDataIdentifier, DisclosedData, BoundData} from "../src/Types.sol";
+import {CommittedInputLen, MRZIndex, MRZLength, SECONDS_BETWEEN_1900_AND_1970, PublicInput, AppAttest} from "../src/Constants.sol";
+import {ProofType, ProofVerificationParams, BoundDataIdentifier, DisclosedData, BoundData, FaceMatchMode, Environment, NullifierType} from "../src/Types.sol";
 
 contract ZKPassportVerifier {
   bytes32 public constant CERTIFICATE_REGISTRY_ID = bytes32(uint256(1));
@@ -519,6 +519,24 @@ contract ZKPassportVerifier {
   }
 
   /**
+   * @notice Checks if the proof is tied to a FaceMatch verification
+   * @param faceMatchMode The FaceMatch mode expected to be used in the verification
+   * @param params The proof verification parameters
+   * @return True if the proof is tied to a valid FaceMatch verification, false otherwise
+   */
+  function isFaceMatchVerified(
+    FaceMatchMode faceMatchMode,
+    ProofVerificationParams calldata params
+  ) public pure returns (bool) {
+    (bytes32 rootKeyHash, Environment environment, bytes32 appId, FaceMatchMode retrievedFaceMatchMode) = InputsExtractor.getFacematchProofInputs(params.committedInputs, params.committedInputCounts);
+    bool isProduction = environment == Environment.PRODUCTION;
+    bool isCorrectMode = retrievedFaceMatchMode == faceMatchMode;
+    bool isCorrectRootKeyHash = rootKeyHash == AppAttest.APPLE_ROOT_KEY_HASH;
+    bool isCorrectAppIdHash = appId == AppAttest.APP_ID_HASH;
+    return isProduction && isCorrectMode && isCorrectRootKeyHash && isCorrectAppIdHash;
+  }
+
+  /**
    * @notice Verifies that the proof was generated for the given domain and scope
    * @param publicInputs The public inputs of the proof
    * @param domain The domain to check against
@@ -627,18 +645,28 @@ contract ZKPassportVerifier {
       params.committedInputCounts
     );
 
+    NullifierType nullifierType = NullifierType(uint256(params.publicInputs[params.publicInputs.length - 2]));
+
     // Allow mock proofs in dev mode
-    // Mock proofs are recognisable by their unique identifier set to 1
     // Note: On mainnets, this stage won't be reached as the ZKR certificates will not be part
     // of the mainnet registries and the verification will fail at _validateCertificateRoot
     require(
-      params.publicInputs[params.publicInputs.length - 1] != bytes32(uint256(1)) || params.devMode,
+      (nullifierType != NullifierType.NON_SALTED_MOCK_NULLIFIER && nullifierType != NullifierType.SALTED_MOCK_NULLIFIER)
+      || params.devMode,
       "Mock proofs are only allowed in dev mode"
+    );
+    
+    // For now, only non-salted nullifiers are supported
+    // but salted nullifiers can be used in dev mode
+    // They will be later once a proper registration mechanism is implemented
+    require(
+      nullifierType == NullifierType.NON_SALTED_NULLIFIER || params.devMode,
+      "Salted nullifiers are not supported for now"
     );
 
     // Make sure the committedInputCounts length matches the number of param commitments in the public inputs
     // to ensure all the param commitments are covered
-    require(params.committedInputCounts.length == params.publicInputs.length - PublicInput.PUBLIC_INPUTS_BEFORE_PARAM_COMMITMENTS_LENGTH, "Invalid committed input counts length");
+    require(params.committedInputCounts.length == params.publicInputs.length - PublicInput.PUBLIC_INPUTS_EXCLUDING_PARAM_COMMITMENTS_LENGTH, "Invalid committed input counts length");
 
     // Call the UltraHonk verifier for the given Outer Circuit to verify if the actual proof is valid
     isValid = IVerifier(verifier).verify(params.proof, params.publicInputs);

@@ -1,228 +1,27 @@
+use constants::{
+    AAGUID_DEVELOPMENT, AAGUID_PRODUCTION, APP_ATTEST_ENV_DEVELOPMENT, APP_ATTEST_ENV_PRODUCTION,
+    APP_ID_MAX_LEN, AUTH_DATA_MAX_LEN, CLIENT_DATA_HASH_LEN, OID_APPLE_APP_ID, OID_APPLE_NONCE_ID,
+};
+use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
+use sha256;
+use sha512::sha384;
+use sig_check_ecdsa::verify_nist_p384;
+use utils::{
+    check_zero_padding, find_subarray_index, get_array_slice, poseidon2_hash_packed,
+    unsafe_get_asn1_element_length,
+};
+
 pub mod tests;
 pub mod constants;
 pub mod param_commit;
 pub use commitment::calculate_attestation_registry_leaf;
-use constants::{
-    AAGUID_DEVELOPMENT, AAGUID_PRODUCTION, APP_ATTEST_ENV_DEVELOPMENT, APP_ATTEST_ENV_PRODUCTION,
-    APP_ID_MAX_LEN, AUTH_DATA_MAX_LEN, CLIENT_DATA_HASH_LEN,
-};
-use sha256;
-use sha512::sha384;
-use sig_check_ecdsa::verify_nist_p384;
-use utils::{get_array_slice, poseidon2_hash_packed};
-
-/// Returns total TLV length (tag + length field + content) for any
-/// ASN.1 element using DER/BER **definite-length** encoding with a
-/// single-byte tag (tag number field < 31).
-pub unconstrained fn unsafe_get_asn1_element_length<let N: u32>(asn1: [u8; N]) -> u32 {
-    let tag: u8 = asn1[0];
-    let elem_len: u8 = asn1[1];
-
-    // Need at least tag(1) + length(1)
-    assert(N >= 2, "TLV too short");
-    // Only support single-byte tag number (no high-tag-number 0x1F)
-    assert((tag & 0x1F) < 0x1F, "High-tag-number form not supported");
-    // BER indefinite-length (0x80) is not supported here
-    assert(elem_len != 0x80, "Indefinite length not supported");
-
-    // Short form: content length is in low 7 bits
-    if (elem_len & 0x80) == 0 {
-        let content_len: u32 = (elem_len & 0x7F) as u32;
-        let total: u32 = 2 + content_len;
-        assert(total <= N, "TLV exceeds buffer");
-        total
-    }
-    // Long form: low 7 bits = number of following length bytes
-    else {
-        let nlen: u32 = (elem_len & 0x7F) as u32;
-        assert(nlen > 0, "Zero length-of-length");
-        assert(nlen <= 4, "Length field too large");
-        assert(2 + nlen <= N, "Length bytes exceed buffer");
-        // Parse big-endian content length
-        let mut content_len: u32 = 0;
-        for i in 0..nlen {
-            content_len = content_len * 256 + (asn1[2 + i] as u32);
-        }
-        let total: u32 = 2 + nlen + content_len;
-        assert(total <= N, "TLV exceeds buffer");
-        total
-    }
-}
-
-pub fn check_zero_padding<let N: u32, T>(padded_array: [T; N], len: u32)
-where
-    T: Eq,
-    T: Default,
-{
-    for i in 0..N {
-        if i >= len {
-            assert_eq(padded_array[i], T::default());
-        }
-    }
-}
-
-/// Find the index of the first occurrence of the needle in the haystack
-/// Returns the index of the first occurrence of the needle in the haystack
-/// Returns HAYSTACK_SIZE if the needle is not found
-pub fn find_substring_index<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
-    needle: [u8; NEEDLE_SIZE],
-    haystack: [u8; HAYSTACK_SIZE],
-) -> u32 {
-    // Safety: This is safe because the offset is only used as a starting point
-    // to verify the substring exists
-    let offsetUnchecked = unsafe { find_substring_index_unsafe(needle, haystack) };
-    let mut offset = offsetUnchecked;
-    // Check if offset is valid before attempting verification
-    if (offsetUnchecked < HAYSTACK_SIZE) & (offsetUnchecked + NEEDLE_SIZE <= HAYSTACK_SIZE) {
-        for i in 0..NEEDLE_SIZE {
-            if haystack[i + offsetUnchecked] != needle[i] {
-                offset = HAYSTACK_SIZE;
-            }
-        }
-    } else {
-        // If offset is out of bounds, needle was not found
-        offset = HAYSTACK_SIZE;
-    }
-    offset
-}
-
-/// Safety: This is safe because the offset is only used as a starting point
-/// to verify the substring exists
-pub unconstrained fn find_substring_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
-    needle: [u8; NEEDLE_SIZE],
-    haystack: [u8; HAYSTACK_SIZE],
-) -> u32 {
-    let mut result = HAYSTACK_SIZE; // Default to "not found" value
-    // Handle edge cases
-    if NEEDLE_SIZE == 0 {
-        result = 0;
-    } else if NEEDLE_SIZE <= HAYSTACK_SIZE {
-        // Search for the needle in the haystack
-        for i in 0..(HAYSTACK_SIZE - NEEDLE_SIZE + 1) {
-            let mut found = true;
-            for j in 0..NEEDLE_SIZE {
-                if haystack[i + j] != needle[j] {
-                    found = false;
-                    break;
-                }
-            }
-            if found {
-                result = i;
-                break;
-            }
-        }
-    }
-    result
-}
-
-#[test]
-fn test_find_substring_index_various_cases() {
-    // Test case 1: Basic substring at index 3
-    let needle1 = [0x04, 0x05, 0x06];
-    let haystack1 = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a];
-    let index1 = find_substring_index(needle1, haystack1);
-    assert_eq(index1, 3);
-
-    // Test case 2: Substring at the beginning
-    let needle2 = [0x01, 0x02];
-    let haystack2 = [0x01, 0x02, 0x03, 0x04, 0x05];
-    let index2 = find_substring_index(needle2, haystack2);
-    assert_eq(index2, 0);
-
-    // Test case 3: Substring at the end
-    let needle3 = [0x04, 0x05];
-    let haystack3 = [0x01, 0x02, 0x03, 0x04, 0x05];
-    let index3 = find_substring_index(needle3, haystack3);
-    assert_eq(index3, 3);
-
-    // Test case 4: Single byte needle
-    let needle4 = [0x03];
-    let haystack4 = [0x01, 0x02, 0x03, 0x04, 0x05];
-    let index4 = find_substring_index(needle4, haystack4);
-    assert_eq(index4, 2);
-
-    // Test case 5: Empty needle (should return 0)
-    let needle5: [u8; 0] = [];
-    let haystack5 = [0x01, 0x02, 0x03, 0x04, 0x05];
-    let index5 = find_substring_index(needle5, haystack5);
-    assert_eq(index5, 0);
-
-    // Test case 6: Needle not found - completely different bytes
-    let needle6 = [0xff, 0xee, 0xdd];
-    let haystack6 = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a];
-    let index6 = find_substring_index(needle6, haystack6);
-    assert_eq(index6, haystack6.len()); // Should equal haystack size
-
-    // Test case 7: Needle larger than haystack
-    let needle7 = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06];
-    let haystack7 = [0x01, 0x02, 0x03];
-    let index7 = find_substring_index(needle7, haystack7);
-    assert_eq(index7, haystack7.len()); // Should equal haystack size
-
-    // Test case 8: Partial match at the end but incomplete
-    let needle8 = [0x09, 0x0a, 0x0b];
-    let haystack8 = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a];
-    let index8 = find_substring_index(needle8, haystack8);
-    assert_eq(index8, haystack8.len()); // Should equal haystack size
-
-    // Test case 9: Multiple false matches (partial matches)
-    let needle9 = [0x01, 0x01, 0x02];
-    let haystack9 = [0x01, 0x03, 0x01, 0x04, 0x01, 0x01, 0x03, 0x05, 0x06, 0x07];
-    let index9 = find_substring_index(needle9, haystack9);
-    assert_eq(index9, haystack9.len()); // Should equal haystack size
-
-    // Test case 10: Needle appears to match but fails verification
-    let needle10 = [0x02, 0x03, 0x04];
-    let haystack10 = [0x01, 0x02, 0x03, 0x05, 0x06, 0x07, 0x08, 0x09];
-    let index10 = find_substring_index(needle10, haystack10);
-    assert_eq(index10, haystack10.len()); // Should equal haystack size
-}
-
-pub fn verify_substring_in_string<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
-    needle: [u8; NEEDLE_SIZE],
-    haystack: [u8; HAYSTACK_SIZE],
-) {
-    let offset = find_substring_index(needle, haystack);
-    assert(offset < HAYSTACK_SIZE, "Needle not found in haystack")
-}
-
-#[test]
-fn test_verify_substring_in_string() {
-    let needle = [0x04, 0x05, 0x06];
-    let haystack = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a];
-    verify_substring_in_string(needle, haystack);
-}
-
-// ------------------------------------------------------------------------------------------------
-
-/// Check that an ECDSA public key x and y coord exists in a TBS certificate
-pub fn verify_ecdsa_pubkey_in_tbs<let PUBKEY_SIZE: u32, let TBS_SIZE: u32>(
-    pubkey_x: [u8; PUBKEY_SIZE],
-    pubkey_y: [u8; PUBKEY_SIZE],
-    tbs: [u8; TBS_SIZE],
-) {
-    let pubkey_offset = find_substring_index(pubkey_x, tbs);
-    for i in 0..PUBKEY_SIZE {
-        // This check is already guaranteed by find_substring_index
-        // assert(
-        //     tbs[i + pubkey_offset] == pubkey_x[i],
-        //     "Public key x coord not found in TBS certificate",
-        // );
-        assert(
-            tbs[i + pubkey_offset + PUBKEY_SIZE] == pubkey_y[i],
-            "Public key y coord not found in TBS certificate",
-        );
-    }
-}
-
-// ------------------------------------------------------------------------------------------------
 
 /// Extract the 32-byte nonce from Apple's App Attest certificate extension
 /// OID: 1.2.840.113635.100.8.2
 /// The nonce is stored in an ASN.1 OCTET STRING within the extension
 pub fn get_nonce_from_credential_tbs<let TBS_MAX_LEN: u32>(tbs: [u8; TBS_MAX_LEN]) -> [u8; 32] {
     // Find Apple App Attest nonce extension OID in the TBS certificate
-    let oid_offset = find_substring_index(constants::OID_APPLE_NONCE_ID, tbs);
+    let oid_offset = find_subarray_index(OID_APPLE_NONCE_ID, tbs);
     assert(oid_offset < TBS_MAX_LEN, "Nonce OID not found in credential certificate");
     // Look for OCTET STRING tag (04 20) within the next 10 bytes
     let NONCE_SEARCH_DISTANCE = 10;
@@ -457,7 +256,7 @@ pub fn get_app_id_from_credential_tbs<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: 
     tbs: [u8; TBS_MAX_LEN],
 ) -> ([u8; APP_ID_MAX_LEN], u32) {
     // Find Apple App Attest app ID extension OID in the TBS certificate
-    let oid_offset = find_substring_index(constants::OID_APPLE_APP_ID, tbs);
+    let oid_offset = find_subarray_index(OID_APPLE_APP_ID, tbs);
     assert(oid_offset < TBS_MAX_LEN, "App ID OID not found in credential certificate");
 
     // Look for the 6th item in the sequence (tagged with BF 89 34)

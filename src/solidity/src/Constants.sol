@@ -19,6 +19,7 @@ library CommittedInputLen {
   uint256 constant EXCL_NATIONALITY = 601;
   uint256 constant BIND = 501;
   uint256 constant SANCTIONS = 33;
+  uint256 constant FACEMATCH = 67;
 }
 
 // Gather all the public input indices in one place
@@ -30,7 +31,7 @@ library PublicInput {
   uint256 constant SUBSCOPE_INDEX = 4;
   uint256 constant PARAM_COMMITMENTS_INDEX = 5;
   // The length of the public inputs excluding the param commitments
-  uint256 constant PUBLIC_INPUTS_BEFORE_PARAM_COMMITMENTS_LENGTH = 6;
+  uint256 constant PUBLIC_INPUTS_EXCLUDING_PARAM_COMMITMENTS_LENGTH = 7;
 }
 
 // Gather all the MRZ indices in one place
@@ -98,4 +99,11 @@ library MRZLength {
   uint256 constant ID_CARD_MRZ_NAME_LENGTH = 30;
   uint256 constant PASSPORT_MRZ_YEAR_OF_BIRTH_LENGTH = 2;
   uint256 constant ID_CARD_MRZ_YEAR_OF_BIRTH_LENGTH = 2;
+}
+
+library AppAttest {
+  // ZKPassport App ID hash
+  // Little-endian packed and poseidon2 hash of `app.zkpassport.zkpassport`
+  bytes32 constant APP_ID_HASH = 0x067041deed02d9d2df216a420b50404bdf5bcb0026db2602a4142e380a9d6e2a;
+  bytes32 constant APPLE_ROOT_KEY_HASH = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340b;
 }

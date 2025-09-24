@@ -20,14 +20,16 @@ pub fn prepare_disclosure_inputs(
     param_commitment: Field,
     service_scope: Field,
     service_subscope: Field,
+    nullifier_type: Field,
     scoped_nullifier: Field,
-) -> [Field; 5] {
-    let mut result: [Field; 5] = [0; 5];
+) -> [Field; 6] {
+    let mut result: [Field; 6] = [0; 6];
     result[0] = comm_in;
     result[1] = service_scope;
     result[2] = service_subscope;
     result[3] = param_commitment;
-    result[4] = scoped_nullifier;
+    result[4] = nullifier_type;
+    result[5] = scoped_nullifier;
     result
 }
 

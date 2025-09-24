@@ -14,10 +14,11 @@ fn main(
     // provided to the proof is correct
     // TODO: change to [Field; 512] in the next breaking change update
     data: [u8; 500],
+    nullifier_secret: Field,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub (Field, Field) {
-    let nullifier = nullify(
+) -> pub (Field, Field, Field) {
+    let (nullifier, nullifier_type) = nullify(
         comm_in,
         salt,
         dg1,
@@ -26,9 +27,10 @@ fn main(
         private_nullifier,
         service_scope,
         service_subscope,
+        nullifier_secret,
     );
     // Use SHA2-256 to calculate the parameter commitment so the parameter commitment can be
     // reconstructed by verifiers on EVM chains
     let param_commitment = calculate_param_commitment_sha2(data);
-    (param_commitment, nullifier)
+    (param_commitment, nullifier_type, nullifier)
 }

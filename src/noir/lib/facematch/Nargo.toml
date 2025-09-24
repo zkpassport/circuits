@@ -11,3 +11,4 @@ sig_check_ecdsa = { path = "../sig-check/ecdsa" }
 sha256 = { tag = "v0.1.4", git = "https://github.com/noir-lang/sha256" }
 sha512 = { tag = "v0.1.0", git = "https://github.com/zkpassport/sha512" }
 poseidon = { tag = "v0.1.2", git = "https://github.com/zkpassport/noir_poseidon2" }
+data_check_tbs_pubkey = { path = "../data-check/tbs-pubkey" }

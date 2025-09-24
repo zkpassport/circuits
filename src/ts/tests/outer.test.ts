@@ -216,7 +216,7 @@ describe("outer proof", () => {
     expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2030, 0, 1))
     expect(disclosedData.gender).toBe("M")
     expect(nullifier).toEqual(
-    779855614087059216963642638396438072807460693353731593953501664068287689340n,
+    2650684516642119190462868389024749567829027632273482260700375874186000116367n,
     )
     const discloseCommitmentIn = getCommitmentInFromDisclosureProof(proof)
     expect(discloseCommitmentIn).toEqual(integrityCheckToDisclosureCommitment)
@@ -297,7 +297,7 @@ describe("outer proof", () => {
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        779855614087059216963642638396438072807460693353731593953501664068287689340n,
+        2650684516642119190462868389024749567829027632273482260700375874186000116367n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
@@ -345,6 +345,7 @@ describe("outer proof", () => {
         helper.passport as any,
         query,
         3n,
+        0n,
         0n,
         0n,
         nowTimestamp,
@@ -447,7 +448,7 @@ describe("outer proof", () => {
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        779855614087059216963642638396438072807460693353731593953501664068287689340n,
+        2650684516642119190462868389024749567829027632273482260700375874186000116367n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
@@ -597,6 +598,7 @@ describe("outer proof - evm optimised", () => {
       helper.passport as any,
       query,
       3n,
+      0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
     )
@@ -629,7 +631,7 @@ describe("outer proof - evm optimised", () => {
     expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1988, 10, 12))
     expect(disclosedData.gender).toBe("M")
     expect(nullifier).toEqual(
-      4721170378885156317428488923010239726308591232293531695919010613758228710886n,
+      10455987025658600788647347178354495781954726142214514817383254467530589488225n,
     )
     const discloseCommitmentIn = getCommitmentInFromDisclosureProof(proof)
     expect(discloseCommitmentIn).toEqual(integrityCheckToDisclosureCommitment)
@@ -661,6 +663,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         bindQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -755,7 +758,7 @@ describe("outer proof - evm optimised", () => {
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        4721170378885156317428488923010239726308591232293531695919010613758228710886n,
+        10455987025658600788647347178354495781954726142214514817383254467530589488225n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
@@ -779,6 +782,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         nationalityInclusionQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -812,6 +816,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         nationalityExclusionQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -845,6 +850,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         issuingCountryInclusionQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -879,6 +885,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         issuingCountryExclusionQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -915,6 +922,7 @@ describe("outer proof - evm optimised", () => {
         3n,
         0n,
         0n,
+        0n,
         nowTimestamp,
       )
       if (!ageInputs) throw new Error("Unable to generate compare-age greater than circuit inputs")
@@ -940,6 +948,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         expiryDateQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
         nowTimestamp,
@@ -968,6 +977,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         birthDateQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
         nowTimestamp,
@@ -992,6 +1002,7 @@ describe("outer proof - evm optimised", () => {
       const sanctionsExclusionInputs = await getSanctionsExclusionCheckCircuitInputs(
         helper.passport as any,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -1164,7 +1175,7 @@ describe("outer proof - evm optimised", () => {
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        4721170378885156317428488923010239726308591232293531695919010613758228710886n,
+        10455987025658600788647347178354495781954726142214514817383254467530589488225n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)

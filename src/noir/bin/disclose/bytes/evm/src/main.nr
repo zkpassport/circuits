@@ -12,13 +12,14 @@ fn main(
     // @committed
     // The disclose mask is public (via the parameter commitment) so verifiers can check the mask
     disclose_mask: DiscloseMask,
+    nullifier_secret: Field,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub (Field, Field) {
+) -> pub (Field, Field, Field) {
     // @committed
     // The disclose bytes are public (via the parameter commitment) so verifiers can check the bytes
     let disclosed_bytes = get_disclosed_bytes(dg1, disclose_mask);
-    let scoped_nullifier = nullify(
+    let (scoped_nullifier, nullifier_type) = nullify(
         comm_in,
         salt,
         dg1,
@@ -27,9 +28,10 @@ fn main(
         private_nullifier,
         service_scope,
         service_subscope,
+        nullifier_secret,
     );
     // Use SHA2-256 to calculate the parameter commitment so the parameter commitment can be
     // reconstructed by verifiers on EVM chains
     let param_commitment = calculate_param_commitment_sha2(disclose_mask, disclosed_bytes);
-    (param_commitment, scoped_nullifier)
+    (param_commitment, nullifier_type, scoped_nullifier)
 }

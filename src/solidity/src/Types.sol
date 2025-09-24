@@ -12,7 +12,8 @@ enum ProofType {
   ISSUING_COUNTRY_INCLUSION,
   ISSUING_COUNTRY_EXCLUSION,
   BIND,
-  SANCTIONS
+  SANCTIONS,
+  FACEMATCH
 }
 
 enum BoundDataIdentifier {
@@ -20,6 +21,24 @@ enum BoundDataIdentifier {
   USER_ADDRESS,
   CHAIN_ID,
   CUSTOM_DATA
+}
+
+enum FaceMatchMode {
+  NONE,
+  REGULAR,
+  STRICT
+}
+
+enum Environment {
+  DEVELOPMENT,
+  PRODUCTION
+}
+
+enum NullifierType {
+  NON_SALTED_NULLIFIER,
+  SALTED_NULLIFIER,
+  NON_SALTED_MOCK_NULLIFIER,
+  SALTED_MOCK_NULLIFIER
 }
 
 // Group parameters for the proof verification

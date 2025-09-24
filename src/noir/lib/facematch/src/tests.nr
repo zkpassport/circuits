@@ -2,10 +2,12 @@ use crate::constants;
 use crate::{
     get_app_id_from_credential_tbs, get_dg2_hash_from_client_data,
     get_facematch_mode_from_client_data, get_nonce_from_credential_tbs, get_tbs_not_before_date,
-    unsafe_calculate_auth_data_length, unsafe_get_asn1_element_length,
-    verify_dg2_hash_in_client_data,
+    unsafe_calculate_auth_data_length, verify_dg2_hash_in_client_data,
 };
-use utils::{get_array_slice, pack_le_bytes_into_fields, poseidon2_hash_packed};
+use utils::{
+    get_array_slice, pack_le_bytes_into_fields, poseidon2_hash_packed,
+    unsafe_get_asn1_element_length,
+};
 
 #[test]
 fn test_calculate_auth_data_length() {

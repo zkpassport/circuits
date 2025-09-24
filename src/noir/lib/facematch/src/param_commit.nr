@@ -1,7 +1,7 @@
 use poseidon::poseidon2::Poseidon2;
+use utils::constants::PROOF_TYPE_FACEMATCH;
 
 global FACEMATCH_PARAM_COMMITMENT_EVM_BYTES: u32 = 67;
-global PROOF_TYPE_FACEMATCH: u8 = 11;
 
 pub fn calculate_param_commitment(
     root_key_leaf: Field,
