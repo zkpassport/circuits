@@ -24,6 +24,9 @@ import {
   getServiceScopeHash,
   getServiceSubscopeHash,
   rightPadArrayWithZeros,
+  getFacematchCircuitInputs,
+  getFacematchEvmParameterCommitment,
+  packLeBytesAndHashPoseidon2,
 } from "@zkpassport/utils"
 import * as path from "path"
 import * as fs from "fs"
@@ -34,6 +37,7 @@ import { TestHelper } from "../test-helper"
 import { serializeAsn } from "../utils"
 import circuitManifest from "../tests/fixtures/circuit-manifest.json"
 import { numberToBytesBE } from "@noble/curves/utils"
+import FIXTURES_FACEMATCH from "./fixtures/facematch"
 
 interface SubproofData {
   proof: string[]
@@ -254,11 +258,62 @@ class FixtureGenerator {
     }
   }
 
+  async generateFacematchProof(): Promise<{ subproof: SubproofData; committedInputs: string }> {
+    console.log("Generating facematch proof...")
+
+    const facematchCircuit = Circuit.from("facematch_evm")
+    const inputs = await getFacematchCircuitInputs(
+      this.helper.passport as any,
+      { facematch: { mode: "regular" } },
+      3n,
+      0n,
+      getServiceScopeHash("zkpassport.id"),
+      getServiceSubscopeHash("bigproof"),
+      this.nowTimestamp,
+    )
+    if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
+
+    const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH }
+    const facematchProof = await facematchCircuit.prove(combinedInputs, {
+      useCli: true,
+      recursive: true,
+      circuitName: "facematch_evm",
+    })
+    const root_key_leaf = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340bn
+    const environment = 1n
+    const app_id = new Uint8Array([
+      ...new TextEncoder().encode("YL5MS3Z639.app.zkpassport.zkpassport"),
+    ])
+    const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
+    const facematch_mode = 1n
+    const paramCommitment = getParameterCommitmentFromDisclosureProof(facematchProof)
+    const vkey = (await facematchCircuit.getVerificationKey({ evm: false })).vkeyFields
+    const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
+
+    const committedInputs =
+      ProofType.FACEMATCH.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(root_key_leaf, 32))
+      .map((x) => x.toString(16).padStart(2, "0"))
+      .join("") + environment.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(app_id_hash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + facematch_mode.toString(16).padStart(2, "0")
+
+    await facematchCircuit.destroy()
+
+    return {
+      subproof: {
+        proof: facematchProof.proof,
+        publicInputs: facematchProof.publicInputs,
+        vkey,
+        vkeyHash,
+        paramCommitment,
+      },
+      committedInputs,
+    }
+  }
+
   async generateAdditionalProofs(): Promise<{
     subproofs: SubproofData[]
     committedInputs: string
   }> {
-    console.log("Generating additional proofs for 12 subproofs test...")
+    console.log("Generating additional proofs for 13 subproofs test...")
 
     const additionalSubproofs: SubproofData[] = []
     let allCommittedInputs = ""
@@ -643,9 +698,12 @@ class FixtureGenerator {
       "outer_count_5",
     )
 
-    // Generate 12 subproofs fixtures
+    // Generate 13 subproofs fixtures
     const { subproofs: additionalSubproofs, committedInputs: additionalCommittedInputs } =
       await this.generateAdditionalProofs()
+
+    const { subproof: facematchSubproof, committedInputs: facematchCommittedInputs } =
+      await this.generateFacematchProof()
 
     const elevenSubproofsData = [
       this.subproofs.get(0)!,
@@ -653,21 +711,22 @@ class FixtureGenerator {
       this.subproofs.get(2)!,
       discloseSubproof,
       ...additionalSubproofs,
+      facematchSubproof,
     ]
 
-    const outerProof12 = await this.generateOuterProof(
+    const outerProof13 = await this.generateOuterProof(
       elevenSubproofsData,
-      "outer_count_12",
-      "outer_count_12",
+      "outer_count_13",
+      "outer_count_13",
     )
 
     const fixtures = {
       validProof: outerProof5.proof.map((x) => x.replace("0x", "")).join(""),
       validPublicInputs: outerProof5.publicInputs,
       validCommittedInputs: discloseCommittedInputs + bindCommittedInputs,
-      allSubproofsProof: outerProof12.proof.map((x) => x.replace("0x", "")).join(""),
-      allSubproofsPublicInputs: outerProof12.publicInputs,
-      allSubproofsCommittedInputs: discloseCommittedInputs + additionalCommittedInputs,
+      allSubproofsProof: outerProof13.proof.map((x) => x.replace("0x", "")).join(""),
+      allSubproofsPublicInputs: outerProof13.publicInputs,
+      allSubproofsCommittedInputs: discloseCommittedInputs + additionalCommittedInputs + facematchCommittedInputs,
     }
 
     await this.writeFixturesToFiles(fixtures)

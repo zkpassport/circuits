@@ -5,14 +5,14 @@ pragma solidity >=0.8.21;
 import {Test, console} from "forge-std/Test.sol";
 import {ZKPassportVerifier, ProofType, ProofVerificationParams} from "../src/ZKPassportVerifier.sol";
 import {HonkVerifier as OuterVerifier5} from "../src/ultra-honk-verifiers/OuterCount5.sol";
-import {HonkVerifier as OuterVerifier12} from "../src/ultra-honk-verifiers/OuterCount12.sol";
+import {HonkVerifier as OuterVerifier13} from "../src/ultra-honk-verifiers/OuterCount13.sol";
 import {TestUtils} from "./Utils.t.sol";
 import {CommittedInputLen} from "../src/Constants.sol";
-import {DisclosedData, BoundData} from "../src/Types.sol";
+import {DisclosedData, BoundData, FaceMatchMode} from "../src/Types.sol";
 
 contract ZKPassportVerifierTest is TestUtils {
   OuterVerifier5 public verifier5;
-  OuterVerifier12 public verifier12;
+  OuterVerifier13 public verifier13;
   ZKPassportVerifier public zkPassportVerifier;
 
   // Path to the proof file - using files directly in project root
@@ -27,25 +27,25 @@ contract ZKPassportVerifierTest is TestUtils {
 
   bytes32 constant VKEY_HASH =
     bytes32(uint256(0x04b98c6f867d6a7f86d514b72c3be8f41b7aa6f49fdc17514c9f9f0a2ac3ef9a));
-  bytes32 constant OUTER_PROOF_12_VKEY_HASH =
+  bytes32 constant OUTER_PROOF_13_VKEY_HASH =
     bytes32(uint256(0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4));
-  uint256 constant CURRENT_DATE = 1758671590;
-  uint256 constant PROOF_GENERATION_DATE = 1758671384;
+  uint256 constant CURRENT_DATE = 1758893249;
+  uint256 constant PROOF_GENERATION_DATE = 1758893049;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
     zkPassportVerifier = new ZKPassportVerifier(vm.envAddress("ROOT_REGISTRY_ADDRESS"));
     // Deploy the UltraHonkVerifier
     verifier5 = new OuterVerifier5();
-    verifier12 = new OuterVerifier12();
+    verifier13 = new OuterVerifier13();
 
     // Add the verifier to the ZKPassportVerifier
     bytes32[] memory vkeyHashes = new bytes32[](2);
     vkeyHashes[0] = VKEY_HASH;
-    vkeyHashes[1] = OUTER_PROOF_12_VKEY_HASH;
+    vkeyHashes[1] = OUTER_PROOF_13_VKEY_HASH;
     address[] memory verifiers = new address[](2);
     verifiers[0] = address(verifier5);
-    verifiers[1] = address(verifier12);
+    verifiers[1] = address(verifier13);
     zkPassportVerifier.addVerifiers(vkeyHashes, verifiers);
   }
 
@@ -146,7 +146,7 @@ contract ZKPassportVerifierTest is TestUtils {
 
     // Contains in order the number of bytes of committed inputs for each disclosure proofs
     // that was verified by the final recursive proof
-    uint256[] memory committedInputCounts = new uint256[](9);
+    uint256[] memory committedInputCounts = new uint256[](10);
     committedInputCounts[0] = CommittedInputLen.DISCLOSE_BYTES;
     committedInputCounts[1] = CommittedInputLen.INCL_NATIONALITY;
     committedInputCounts[2] = CommittedInputLen.EXCL_NATIONALITY;
@@ -156,12 +156,13 @@ contract ZKPassportVerifierTest is TestUtils {
     committedInputCounts[6] = CommittedInputLen.COMPARE_EXPIRY;
     committedInputCounts[7] = CommittedInputLen.COMPARE_BIRTHDATE;
     committedInputCounts[8] = CommittedInputLen.SANCTIONS;
+    committedInputCounts[9] = CommittedInputLen.FACEMATCH;
 
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
     vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
-      vkeyHash: OUTER_PROOF_12_VKEY_HASH,
+      vkeyHash: OUTER_PROOF_13_VKEY_HASH,
       proof: proof,
       publicInputs: publicInputs,
       committedInputs: committedInputs,
@@ -227,7 +228,7 @@ contract ZKPassportVerifierTest is TestUtils {
 
     // Contains in order the number of bytes of committed inputs for each disclosure proofs
     // that was verified by the final recursive proof
-    uint256[] memory committedInputCounts = new uint256[](9);
+    uint256[] memory committedInputCounts = new uint256[](10);
     committedInputCounts[0] = CommittedInputLen.DISCLOSE_BYTES;
     committedInputCounts[1] = CommittedInputLen.INCL_NATIONALITY;
     committedInputCounts[2] = CommittedInputLen.EXCL_NATIONALITY;
@@ -237,10 +238,11 @@ contract ZKPassportVerifierTest is TestUtils {
     committedInputCounts[6] = CommittedInputLen.COMPARE_EXPIRY;
     committedInputCounts[7] = CommittedInputLen.COMPARE_BIRTHDATE;
     committedInputCounts[8] = CommittedInputLen.SANCTIONS;
+    committedInputCounts[9] = CommittedInputLen.FACEMATCH;
 
     vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
-      vkeyHash: OUTER_PROOF_12_VKEY_HASH,
+      vkeyHash: OUTER_PROOF_13_VKEY_HASH,
       proof: loadBytesFromFile(ALL_SUBPROOFS_PROOF_PATH),
       publicInputs: loadBytes32FromFile(ALL_SUBPROOFS_PUBLIC_INPUTS_PATH),
       committedInputs: committedInputs,
@@ -299,6 +301,17 @@ contract ZKPassportVerifierTest is TestUtils {
       uint256 gasUsedEnforceSanctionsRoot = vm.stopSnapshotGas();
       console.log("Gas used in ZKPassportVerifier enforceSanctionsRoot");
       console.log(gasUsedEnforceSanctionsRoot);
+    }
+
+    {
+      vm.startSnapshotGas("ZKPassportVerifier isFaceMatchVerified");
+      bool isFacematchVerified = zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, params);
+      uint256 gasUsedIsFaceMatchVerified = vm.stopSnapshotGas();
+      console.log("Gas used in ZKPassportVerifier isFaceMatchVerified");
+      console.log(gasUsedIsFaceMatchVerified);
+      assertEq(isFacematchVerified, true);
+      // Should be false because the facematch mode is not strict but regular
+      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.STRICT, params), false);
     }
   }
 }

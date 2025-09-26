@@ -50,7 +50,8 @@ enum NullifierType {
 // - 3: service_scope: pub Field,
 // - 4: service_subscope: pub Field,
 // - 5:5+N: param_commitments: pub [Field; N],
-// - 5+N: scoped_nullifier: pub Field,
+// - 5+N: nullifier_type: pub u8,
+// - 6+N: scoped_nullifier: pub Field,
 //
 // committedInputs: the preimages of the `param_commitments` of the disclosure proofs.
 // committedInputCounts: offsets to locate the committedInputs of each of the param_commitments of the public_inputs.

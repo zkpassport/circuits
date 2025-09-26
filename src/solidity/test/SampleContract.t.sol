@@ -4,13 +4,13 @@ pragma solidity >=0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ZKPassportVerifier, ProofType, ProofVerificationParams} from "../src/ZKPassportVerifier.sol";
-import {HonkVerifier as OuterVerifier12} from "../src/ultra-honk-verifiers/OuterCount12.sol";
+import {HonkVerifier as OuterVerifier13} from "../src/ultra-honk-verifiers/OuterCount13.sol";
 import {SampleContract} from "../src/SampleContract.sol";
 import {TestUtils} from "./Utils.t.sol";
 import {CommittedInputLen} from "../src/Constants.sol";
 
 contract SampleContractTest is TestUtils {
-  OuterVerifier12 public verifier;
+  OuterVerifier13 public verifier;
   ZKPassportVerifier public zkPassportVerifier;
   SampleContract public sampleContract;
   // Path to the proof file - using files directly in project root
@@ -18,13 +18,13 @@ contract SampleContractTest is TestUtils {
   string constant PUBLIC_INPUTS_PATH = "./test/fixtures/all_subproofs_public_inputs.json";
   string constant COMMITTED_INPUTS_PATH = "./test/fixtures/all_subproofs_committed_inputs.hex";
   bytes32 constant VKEY_HASH = 0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4;
-  uint256 constant CURRENT_DATE = 1758671590;
+  uint256 constant CURRENT_DATE = 1758893249;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
     zkPassportVerifier = new ZKPassportVerifier(vm.envAddress("ROOT_REGISTRY_ADDRESS"));
     // Deploy the UltraHonkVerifier
-    verifier = new OuterVerifier12();
+    verifier = new OuterVerifier13();
 
     // Add the verifier to the ZKPassportVerifier
     bytes32[] memory vkeyHashes = new bytes32[](1);
@@ -45,7 +45,7 @@ contract SampleContractTest is TestUtils {
 
     // Contains in order the number of bytes of committed inputs for each disclosure proofs
     // that was verified by the final recursive proof
-    uint256[] memory committedInputCounts = new uint256[](9);
+    uint256[] memory committedInputCounts = new uint256[](10);
     committedInputCounts[0] = CommittedInputLen.DISCLOSE_BYTES;
     committedInputCounts[1] = CommittedInputLen.INCL_NATIONALITY;
     committedInputCounts[2] = CommittedInputLen.EXCL_NATIONALITY;
@@ -55,6 +55,7 @@ contract SampleContractTest is TestUtils {
     committedInputCounts[6] = CommittedInputLen.COMPARE_EXPIRY;
     committedInputCounts[7] = CommittedInputLen.COMPARE_BIRTHDATE;
     committedInputCounts[8] = CommittedInputLen.SANCTIONS;
+    committedInputCounts[9] = CommittedInputLen.FACEMATCH;
 
     // The sender cannot call this function cause they are not verified
     vm.expectRevert("User is not verified");
