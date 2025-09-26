@@ -24,6 +24,8 @@ import {
   getServiceScopeHash,
   getServiceSubscopeHash,
   rightPadArrayWithZeros,
+  getAgeParameterCommitment,
+  getAgeEVMParameterCommitment,
 } from "@zkpassport/utils"
 import * as path from "path"
 import * as fs from "fs"
@@ -208,7 +210,7 @@ class FixtureGenerator {
       bind: {
         user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8",
         chain: "local_anvil",
-        custom_data: "email:test@test.com,customer_id:1234567890",
+        // custom_data: "email:test@test.com,customer_id:1234567890",
       },
     }
 
@@ -244,6 +246,162 @@ class FixtureGenerator {
       subproof: {
         proof: proof.proof,
         publicInputs: proof.publicInputs,
+        vkey,
+        vkeyHash,
+        paramCommitment,
+      },
+      committedInputs,
+    }
+  }
+
+  async generateSanctionsProof(): Promise<{ subproof: SubproofData; committedInputs: string }> {
+    console.log("Generating sanctions proof...")
+
+    const sanctionsQuery: Query = {
+      sanctions: {
+        countries: "all",
+        lists: "all",
+      },
+    }
+
+    const inputs = await getSanctionsExclusionCheckCircuitInputs(
+      this.helper.passport as any,
+      3n,
+      getServiceScopeHash("zkpassport.id"),
+      getServiceSubscopeHash("bigproof"),
+    )
+    if (!inputs) throw new Error("Unable to generate sanctions circuit inputs")
+
+    const sanctionsCircuit = Circuit.from("exclusion_check_sanctions_evm")
+    const proof = await sanctionsCircuit.prove(inputs, {
+      recursive: true,
+      useCli: true,
+      circuitName: `exclusion_check_sanctions_evm`,
+    })
+
+    const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+    const vkey = (await sanctionsCircuit.getVerificationKey({ evm: false })).vkeyFields
+    const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
+
+    const committedInputs =
+      ProofType.SANCTIONS_EXCLUSION.toString(16).padStart(2, "0") +
+      inputs.root.slice(2).padStart(64, "0")
+
+    await sanctionsCircuit.destroy()
+
+    return {
+      subproof: {
+        proof: proof.proof,
+        publicInputs: proof.publicInputs,
+        vkey,
+        vkeyHash,
+        paramCommitment,
+      },
+      committedInputs,
+    }
+  }
+
+  async generateCountryExclusionCheck(): Promise<{ subproof: SubproofData; committedInputs: string }> {
+    console.log("Generating country exclusion check proof...")
+
+    const countryExclusionQuery: Query = {
+      nationality: { out: ["PRK", "UKR", "IRN", "CUB"] },
+    }
+
+    const inputs = await getNationalityExclusionCircuitInputs(
+      this.helper.passport as any,
+      countryExclusionQuery,
+      3n,
+      getServiceScopeHash("zkpassport.id"),
+      getServiceSubscopeHash("bigproof"),
+    )
+    if (!inputs) throw new Error("Unable to generate country exclusion circuit inputs")
+
+    const exclusionCircuit = Circuit.from("exclusion_check_nationality_evm")
+    const exclusionProof = await exclusionCircuit.prove(inputs, {
+      recursive: true,
+      useCli: true,
+      circuitName: `exclusion_check_nationality_evm`,
+    })
+
+    const paramCommitment = getParameterCommitmentFromDisclosureProof(exclusionProof)
+    const vkey = (await exclusionCircuit.getVerificationKey({ evm: false })).vkeyFields
+    const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
+
+    const committedInputs =
+        ProofType.NATIONALITY_EXCLUSION.toString(16).padStart(2, "0") +
+          rightPadArrayWithZeros(
+            inputs.country_list
+              .map((c: number) =>
+                Array.from(new TextEncoder().encode(getCountryFromWeightedSum(c))),
+              ) 
+              .flat(),
+            600,
+          )
+            .map((x) => x.toString(16).padStart(2, "0"))
+            .join("");
+
+    await exclusionCircuit.destroy()
+
+    return {
+      subproof: {
+        proof: exclusionProof.proof,
+        publicInputs: exclusionProof.publicInputs,
+        vkey,
+        vkeyHash,
+        paramCommitment,
+      },
+      committedInputs,
+    }
+  }
+
+  async generateAgeProof(): Promise<{ subproof: SubproofData; committedInputs: string }> {
+    console.log("Generating age proof...")
+
+    const ageQuery: Query = {
+      age: { gte: 18 },
+    }
+
+    const inputs = await getAgeCircuitInputs(
+      this.helper.passport as any,
+      ageQuery,
+      3n,
+      getServiceScopeHash("zkpassport.id"),
+      getServiceSubscopeHash("bigproof"),
+      this.nowTimestamp,
+    )
+    if (!inputs) throw new Error("Unable to generate age circuit inputs")
+
+    const ageCircuit = Circuit.from("compare_age_evm")
+    const ageProof = await ageCircuit.prove(inputs, {
+      recursive: true,
+      useCli: true,
+      circuitName: `compare_age_evm`,
+    })
+
+    const paramCommitment = getParameterCommitmentFromDisclosureProof(ageProof)
+    const vkey = (await ageCircuit.getVerificationKey({ evm: false })).vkeyFields
+    const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
+
+    const paramCommit = await getAgeEVMParameterCommitment(this.nowTimestamp, inputs.min_age_required, inputs.max_age_required)
+    console.log("paramCommitment", paramCommitment)
+    console.log("paramCommit manual", paramCommit)
+
+    const committedInputs =
+      ProofType.AGE.toString(16).padStart(2, "0") +
+      Array.from(numberToBytesBE(inputs.current_date, 8))
+        .map((x) => x.toString(16).padStart(2, "0"))
+        .join("") +
+      inputs.min_age_required.toString(16).padStart(2, "0") +
+      inputs.max_age_required.toString(16).padStart(2, "0")
+    
+
+    await ageCircuit.destroy()
+
+    return {
+      subproof: {
+        proof: ageProof.proof,
+        publicInputs: ageProof.publicInputs,
         vkey,
         vkeyHash,
         paramCommitment,
@@ -566,9 +724,9 @@ class FixtureGenerator {
     validProof: string
     validPublicInputs: string[]
     validCommittedInputs: string
-    allSubproofsProof: string
-    allSubproofsPublicInputs: string[]
-    allSubproofsCommittedInputs: string
+    // allSubproofsProof: string
+    // allSubproofsPublicInputs: string[]
+    // allSubproofsCommittedInputs: string
   }) {
     const outputPath = path.join(__dirname, "..", "..", "solidity", "test", "fixtures")
 
@@ -580,27 +738,27 @@ class FixtureGenerator {
 
     // Write proof files (hex)
     fs.writeFileSync(path.join(outputPath, "valid_proof.hex"), fixtures.validProof)
-    fs.writeFileSync(path.join(outputPath, "all_subproofs_proof.hex"), fixtures.allSubproofsProof)
+    // fs.writeFileSync(path.join(outputPath, "all_subproofs_proof.hex"), fixtures.allSubproofsProof)
 
     // Write public inputs files (JSON)
     fs.writeFileSync(
       path.join(outputPath, "valid_public_inputs.json"),
       JSON.stringify({ inputs: fixtures.validPublicInputs }, null, 2),
     )
-    fs.writeFileSync(
-      path.join(outputPath, "all_subproofs_public_inputs.json"),
-      JSON.stringify({ inputs: fixtures.allSubproofsPublicInputs }, null, 2),
-    )
+    // fs.writeFileSync(
+    //   path.join(outputPath, "all_subproofs_public_inputs.json"),
+    //   JSON.stringify({ inputs: fixtures.allSubproofsPublicInputs }, null, 2),
+    // )
 
     // Write committed inputs files (hex)
     fs.writeFileSync(
       path.join(outputPath, "valid_committed_inputs.hex"),
       fixtures.validCommittedInputs,
     )
-    fs.writeFileSync(
-      path.join(outputPath, "all_subproofs_committed_inputs.hex"),
-      fixtures.allSubproofsCommittedInputs,
-    )
+    // fs.writeFileSync(
+    //   path.join(outputPath, "all_subproofs_committed_inputs.hex"),
+    //   fixtures.allSubproofsCommittedInputs,
+    // )
 
     console.log("All fixtures written successfully!")
   }
@@ -619,45 +777,58 @@ class FixtureGenerator {
     const { subproof: bindSubproof, committedInputs: bindCommittedInputs } =
       await this.generateBindProof()
 
-    const fiveSubproofsData = [
-      this.subproofs.get(0)!,
-      this.subproofs.get(1)!,
-      this.subproofs.get(2)!,
-      discloseSubproof,
-      bindSubproof,
-    ]
+    const { subproof: sanctionsSubproof, committedInputs: sanctionsCommittedInputs } =
+      await this.generateSanctionsProof()
+    
+    const { subproof: countryExclusionSubproof, committedInputs: countryExclusionCommittedInputs } =
+      await this.generateCountryExclusionCheck()
+    
+    const { subproof: ageSubproof, committedInputs: ageCommittedInputs } =
+      await this.generateAgeProof()
 
-    const outerProof5 = await this.generateOuterProof(
-      fiveSubproofsData,
-      "outer_count_5",
-      "outer_count_5",
-    )
+    // console.log("committed inputs",countryExclusionCommittedInputs)
 
     // Generate 12 subproofs fixtures
-    const { subproofs: additionalSubproofs, committedInputs: additionalCommittedInputs } =
-      await this.generateAdditionalProofs()
+    // const { subproofs: additionalSubproofs, committedInputs: additionalCommittedInputs } =
+    //   await this.generateAdditionalProofs()
 
-    const elevenSubproofsData = [
+    const sevenSubproofsData = [
       this.subproofs.get(0)!,
       this.subproofs.get(1)!,
       this.subproofs.get(2)!,
-      discloseSubproof,
-      ...additionalSubproofs,
+      bindSubproof,
+      sanctionsSubproof,
+      countryExclusionSubproof,
+      ageSubproof,
     ]
 
-    const outerProof12 = await this.generateOuterProof(
-      elevenSubproofsData,
-      "outer_count_12",
-      "outer_count_12",
+    const outerProof6 = await this.generateOuterProof(
+      sevenSubproofsData,
+      "outer_count_7",
+      "outer_count_7",
     )
 
+    // const twelveSubproofsData = [
+    //   this.subproofs.get(0)!,
+    //   this.subproofs.get(1)!,
+    //   this.subproofs.get(2)!,
+    //   discloseSubproof,
+    //   ...additionalSubproofs,
+    // ]
+
+    // const outerProof12 = await this.generateOuterProof(
+    //   twelveSubproofsData,
+    //   "outer_count_12",
+    //   "outer_count_12",
+    // )
+
     const fixtures = {
-      validProof: outerProof5.proof.map((x) => x.replace("0x", "")).join(""),
-      validPublicInputs: outerProof5.publicInputs,
-      validCommittedInputs: discloseCommittedInputs + bindCommittedInputs,
-      allSubproofsProof: outerProof12.proof.map((x) => x.replace("0x", "")).join(""),
-      allSubproofsPublicInputs: outerProof12.publicInputs,
-      allSubproofsCommittedInputs: discloseCommittedInputs + additionalCommittedInputs,
+      validProof: outerProof6.proof.map((x) => x.replace("0x", "")).join(""),
+      validPublicInputs: outerProof6.publicInputs,
+      validCommittedInputs: bindCommittedInputs + sanctionsCommittedInputs + countryExclusionCommittedInputs + ageCommittedInputs,
+      // allSubproofsProof: outerProof12.proof.map((x) => x.replace("0x", "")).join(""),
+      // allSubproofsPublicInputs: outerProof12.publicInputs,
+      // allSubproofsCommittedInputs: discloseCommittedInputs + additionalCommittedInputs,
     }
 
     await this.writeFixturesToFiles(fixtures)
