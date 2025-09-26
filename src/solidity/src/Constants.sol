@@ -103,7 +103,8 @@ library MRZLength {
 
 library AppAttest {
   // ZKPassport App ID hash
-  // Little-endian packed and poseidon2 hash of `app.zkpassport.zkpassport`
-  bytes32 constant APP_ID_HASH = 0x067041deed02d9d2df216a420b50404bdf5bcb0026db2602a4142e380a9d6e2a;
+  // Little-endian packed and poseidon2 hash of `YL5MS3Z639.app.zkpassport.zkpassport`
+  bytes32 constant APP_ID_HASH = 0x1fa73686cf510f8f85757b0602de0dd72a13e68ae2092462be8b72662e7f179b;
+  // The hash of Apple's root certificate public key
   bytes32 constant APPLE_ROOT_KEY_HASH = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340b;
 }
