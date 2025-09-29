@@ -180,11 +180,11 @@ describe("subcircuits - RSA PKCS", () => {
       expect(BigInt(inputs.comm_in)).toEqual(integrityCheckCommitment)
 
       const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH }
-      const circuit = Circuit.from("facematch")
+      const circuit = Circuit.from("facematch_ios")
       const proof = await circuit.prove(combinedInputs, {
         witness: await circuit.solve(combinedInputs),
         useCli: true,
-        circuitName: "facematch",
+        circuitName: "facematch_ios",
       })
       await circuit.destroy()
 
@@ -223,11 +223,11 @@ describe("subcircuits - RSA PKCS", () => {
       expect(BigInt(inputs.comm_in)).toEqual(integrityCheckCommitment)
 
       const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH }
-      const circuit = Circuit.from("facematch_evm")
+      const circuit = Circuit.from("facematch_ios_evm")
       const proof = await circuit.prove(combinedInputs, {
         witness: await circuit.solve(combinedInputs),
         useCli: true,
-        circuitName: "facematch_evm",
+        circuitName: "facematch_ios_evm",
       })
       await circuit.destroy()
 

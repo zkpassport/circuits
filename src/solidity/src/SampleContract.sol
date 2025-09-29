@@ -65,19 +65,19 @@ contract SampleContract {
     // Check the proof was generated using your domain name (scope) and the subscope
     // you specified
     require(
-      zkPassportVerifier.verifyScopes(params.publicInputs, validDomain, validScope),
+      zkPassportVerifier.verifyScopes(params.proofVerificationData.publicInputs, validDomain, validScope),
       "Invalid domain or scope"
     );
-    require(zkPassportVerifier.isAgeAboveOrEqual(18, params), "Age is not 18+");
+    require(zkPassportVerifier.isAgeAboveOrEqual(18, params.commitments, params.serviceConfig), "Age is not 18+");
     DisclosedData memory disclosedData = zkPassportVerifier.getDisclosedData(
-      params,
-      isIDCard
+      params.commitments,
+      isIDCard  
     );
     string[] memory nationalityExclusionList = new string[](3);
     nationalityExclusionList[0] = "ESP";
     nationalityExclusionList[1] = "ITA";
     nationalityExclusionList[2] = "PRT";
-    require(zkPassportVerifier.isNationalityOut(nationalityExclusionList, params), "Nationality is part of the exclusion list");
+    require(zkPassportVerifier.isNationalityOut(nationalityExclusionList, params.commitments), "Nationality is part of the exclusion list");
 
     // If all good, mark the user as verified
     isVerified[uniqueIdentifier] = true;

@@ -1039,11 +1039,11 @@ describe("outer proof - evm optimised", () => {
         nowTimestamp,
       )
       const combinedInputs = { ...facematchInputs, ...FIXTURES_FACEMATCH }
-      const facematchCircuit = Circuit.from("facematch_evm")
+      const facematchCircuit = Circuit.from("facematch_ios_evm")
       const facematchProof = await facematchCircuit.prove(combinedInputs, {
         useCli: true,
         recursive: true,
-        circuitName: "facematch_evm",
+        circuitName: "facematch_ios_evm",
       })
       const root_key_leaf = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340bn
       const environment = 0n

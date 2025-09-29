@@ -1,8 +1,14 @@
-use crate::constants;
+use super::constants::{AAGUID_DEVELOPMENT};
+use crate::constants::{
+    CREDENTIAL_TBS_MAX_LEN, APP_ID_MAX_LEN, MAX_FIELD_BYTES, FACEMATCH_MODE_REGULAR,
+};
 use crate::{
-    get_app_id_from_credential_tbs, get_dg2_hash_from_client_data,
-    get_facematch_mode_from_client_data, get_nonce_from_credential_tbs, get_tbs_not_before_date,
-    unsafe_calculate_auth_data_length, verify_dg2_hash_in_client_data,
+    get_dg2_hash_from_client_data,
+    get_facematch_mode_from_client_data, get_tbs_not_before_date, verify_dg2_hash_in_client_data
+};
+use super::{
+    get_nonce_from_credential_tbs,
+    unsafe_calculate_auth_data_length,
 };
 use utils::{
     get_array_slice, pack_le_bytes_into_fields, poseidon2_hash_packed,
@@ -49,12 +55,12 @@ fn test_verify_auth_data_aaguid() {
     ];
     // AAGUID (16): 617070617474657374646576656c6f70 -> ASCII appattestdevelop (development environment)
     let aaguid: [u8; 16] = get_array_slice::<_, 16>(auth_data, 37);
-    assert(aaguid == constants::AAGUID_DEVELOPMENT);
+    assert(aaguid == AAGUID_DEVELOPMENT);
 }
 
 #[test]
 fn test_get_not_before_date() {
-    let credential_tbs: [u8; constants::CREDENTIAL_TBS_MAX_LEN] = [
+    let credential_tbs: [u8; CREDENTIAL_TBS_MAX_LEN] = [
         0x30, 0x82, 0x03, 0x4c, 0xa0, 0x03, 0x02, 0x01, 0x02, 0x02, 0x06, 0x01, 0x98, 0xc0, 0x5b,
         0xa0, 0x4f, 0x30, 0x0a, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x02, 0x30,
         0x4f, 0x31, 0x23, 0x30, 0x21, 0x06, 0x03, 0x55, 0x04, 0x03, 0x0c, 0x1a, 0x41, 0x70, 0x70,
@@ -203,10 +209,11 @@ fn test_get_not_before_date() {
         "GeneralizedTime notBefore date mismatch",
     );
 }
+use super::get_app_id_from_credential_tbs;
 
 #[test]
 fn test_get_app_id_from_credential_tbs() {
-    let credential_tbs: [u8; constants::CREDENTIAL_TBS_MAX_LEN] = [
+    let credential_tbs: [u8; CREDENTIAL_TBS_MAX_LEN] = [
         0x30, 0x82, 0x03, 0x4c, 0xa0, 0x03, 0x02, 0x01, 0x02, 0x02, 0x06, 0x01, 0x98, 0xc0, 0x5b,
         0xa0, 0x4f, 0x30, 0x0a, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x02, 0x30,
         0x4f, 0x31, 0x23, 0x30, 0x21, 0x06, 0x03, 0x55, 0x04, 0x03, 0x0c, 0x1a, 0x41, 0x70, 0x70,
@@ -283,10 +290,10 @@ fn test_get_app_id_from_credential_tbs() {
     ];
 
     // Extract the app_id from the TBS
-    let (app_id, app_id_len): ([u8; constants::APP_ID_MAX_LEN], u32) =
+    let (app_id, app_id_len): ([u8; APP_ID_MAX_LEN], u32) =
         get_app_id_from_credential_tbs(credential_tbs);
     // The expected app_id (45 bytes followed by zeros padding to 100 bytes)
-    let mut expected_app_id: [u8; constants::APP_ID_MAX_LEN] = [0; constants::APP_ID_MAX_LEN];
+    let mut expected_app_id: [u8; APP_ID_MAX_LEN] = [0; APP_ID_MAX_LEN];
     // Copy the 45 app ID bytes into the expected array
     for i in 0..45 {
         expected_app_id[i] = our_apple_app_id[i];
@@ -367,9 +374,9 @@ fn test_pack_le_bytes_into_fields() {
         0x00, 0x00, 0x00,
     ];
     let packed_1: [Field; _] =
-        pack_le_bytes_into_fields::<constants::MAX_FIELD_BYTES, _>(TEST_BYTES_1);
+        pack_le_bytes_into_fields::<MAX_FIELD_BYTES, _>(TEST_BYTES_1);
     let packed_2: [Field; _] =
-        pack_le_bytes_into_fields::<constants::MAX_FIELD_BYTES, _>(TEST_BYTES_2);
+        pack_le_bytes_into_fields::<MAX_FIELD_BYTES, _>(TEST_BYTES_2);
     let expected_1 =
         [0x11111111111111111111111111111111111111111111111111111111131211, 0x2524232221];
     let expected_2 =
@@ -517,7 +524,7 @@ fn test_get_facematch_mode_from_client_data() {
         0x28, 0x30, 0x0a, 0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00,
     ];
-    let expected_mode = constants::FACEMATCH_MODE_REGULAR;
+    let expected_mode = FACEMATCH_MODE_REGULAR;
     let mode = get_facematch_mode_from_client_data(client_data);
     assert(mode == expected_mode);
 }

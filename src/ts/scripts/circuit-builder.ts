@@ -114,12 +114,20 @@ const STATIC_CIRCUITS = [
     path: "./src/noir/bin/exclusion-check/sanctions/evm",
   },
   {
-    name: "facematch",
-    path: "./src/noir/bin/facematch/standard",
+    name: "facematch_ios",
+    path: "./src/noir/bin/facematch/ios/standard",
   },
   {
-    name: "facematch_evm",
-    path: "./src/noir/bin/facematch/evm",
+    name: "facematch_ios_evm",
+    path: "./src/noir/bin/facematch/ios/evm",
+  },
+  {
+    name: "facematch_android",
+    path: "./src/noir/bin/facematch/android/standard",
+  },
+  {
+    name: "facematch_android_evm",
+    path: "./src/noir/bin/facematch/android/evm",
   },
 ]
 
