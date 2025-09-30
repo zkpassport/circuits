@@ -8,3 +8,6 @@ compiler_version = ">=1.0.0"
 facematch = { path = "../../../../lib/facematch" }
 commitment = { path = "../../../../lib/commitment/scoped-nullifier" }
 utils = { path = "../../../../lib/utils" }
+sig_check_rsa = { path = "../../../../lib/sig-check/rsa" }
+sig_check_ecdsa = { path = "../../../../lib/sig-check/ecdsa" }
+data_check_tbs_pubkey = { path = "../../../../lib/data-check/tbs-pubkey" }
