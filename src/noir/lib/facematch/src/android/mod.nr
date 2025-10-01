@@ -1,17 +1,15 @@
-use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
 use crate::constants::APP_ID_MAX_LEN;
+use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
 use sha256;
 use sha512::sha384;
-use sig_check_ecdsa::{verify_nist_p384, verify_nist_p256};
+use sig_check_ecdsa::{verify_nist_p256, verify_nist_p384};
 use utils::{
     check_zero_padding, find_subarray_index, get_array_slice, poseidon2_hash_packed,
     unsafe_get_asn1_element_length,
 };
 
 pub mod constants;
-use constants::{
-    OID_ANDROID_KEY_ATTESTATION, ANDROID_KEY_ORIGIN_GENERATED,
-};
+use constants::{ANDROID_KEY_ORIGIN_GENERATED, OID_ANDROID_KEY_ATTESTATION};
 //pub mod tests;
 
 pub fn get_app_id_from_credential_tbs<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: u32>(
@@ -19,7 +17,10 @@ pub fn get_app_id_from_credential_tbs<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: 
 ) -> ([u8; APP_ID_MAX_LEN], u32) {
     // Find Android Key Attestation extension OID in the TBS certificate
     let oid_offset = find_subarray_index(OID_ANDROID_KEY_ATTESTATION, tbs);
-    assert(oid_offset < TBS_MAX_LEN, "Android Key Attestation OID not found in credential certificate");
+    assert(
+        oid_offset < TBS_MAX_LEN,
+        "Android Key Attestation OID not found in credential certificate",
+    );
 
     // Look for the 6th item in the sequence (tagged with BF 85 45)
     // The 6th item contains the app ID as an OCTET STRING
@@ -28,19 +29,27 @@ pub fn get_app_id_from_credential_tbs<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: 
     let mut attestation_app_id_sequence_offset = TBS_MAX_LEN; // Default to not found
     let mut found_attestation_app_id_sequence = false;
     // Search for the attestation app id sequence tag pattern (BF 85 45) within the extension
-    // attestationApplicationId [709] EXPLICIT OCTET STRING 
+    // attestationApplicationId [709] EXPLICIT OCTET STRING
     for i in 0..APP_ID_SEARCH_DISTANCE {
-        if (oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i + 2 < TBS_MAX_LEN) & !found_attestation_app_id_sequence {
+        if (oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i + 2 < TBS_MAX_LEN)
+            & !found_attestation_app_id_sequence {
             if (tbs[oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i] == 0xbf)
                 & (tbs[oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i + 1] == 0x85)
                 & (tbs[oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i + 2] == 0x45) {
-                attestation_app_id_sequence_offset = oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i + 4; // Skip the tag and length
+                attestation_app_id_sequence_offset =
+                    oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i + 4; // Skip the tag and length
                 found_attestation_app_id_sequence = true;
             }
         }
     }
-    assert(found_attestation_app_id_sequence, "Attestation app id sequence not found in app ID extension");
-    assert(attestation_app_id_sequence_offset < TBS_MAX_LEN, "Attestation app id sequence offset out of bounds");
+    assert(
+        found_attestation_app_id_sequence,
+        "Attestation app id sequence not found in app ID extension",
+    );
+    assert(
+        attestation_app_id_sequence_offset < TBS_MAX_LEN,
+        "Attestation app id sequence offset out of bounds",
+    );
 
     // Look for OCTET STRING tag (0x04) and read the length dynamically
     let mut app_id_offset = TBS_MAX_LEN; // Default to not found
@@ -80,12 +89,13 @@ pub fn get_app_id_from_credential_tbs<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: 
     (app_id, app_id_length)
 }
 
-pub fn get_key_origin_from_credential_tbs<let TBS_MAX_LEN: u32>(
-    tbs: [u8; TBS_MAX_LEN],
-) -> u8 {
+pub fn get_key_origin_from_credential_tbs<let TBS_MAX_LEN: u32>(tbs: [u8; TBS_MAX_LEN]) -> u8 {
     // Find Android Key Attestation extension OID in the TBS certificate
     let oid_offset = find_subarray_index(OID_ANDROID_KEY_ATTESTATION, tbs);
-    assert(oid_offset < TBS_MAX_LEN, "Android Key Attestation OID not found in credential certificate");
+    assert(
+        oid_offset < TBS_MAX_LEN,
+        "Android Key Attestation OID not found in credential certificate",
+    );
 
     // Look for the key origin in the TBS certificate
     let key_origin_offset = oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + 1;
@@ -99,14 +109,15 @@ pub fn get_key_origin_from_credential_tbs<let TBS_MAX_LEN: u32>(
     let KEY_ORIGIN_SEARCH_DISTANCE = 400;
     // Search for the key origin tag pattern (BF 85 3E) within the extension
     for i in 0..KEY_ORIGIN_SEARCH_DISTANCE {
-        if (oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i + 2 < TBS_MAX_LEN) & !found_key_origin {
+        if (oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i + 2 < TBS_MAX_LEN)
+            & !found_key_origin {
             if (tbs[oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i] == 0xBF)
                 & (tbs[oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i + 1] == 0x85)
                 & (tbs[oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i + 2] == 0x3E)
                 // The length should be 3 bytes (the tag of an integer, length of the integer, and the integer itself)
                 & (tbs[oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i + 3] == 0x03)
                 // The integer tag is 0x02
-                & (tbs[oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i + 4] == 0x02) 
+                & (tbs[oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i + 4] == 0x02)
                 // The integer should only be 1 byte as it's a small enum
                 & (tbs[oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i + 5] == 0x01) {
                 key_origin_offset = oid_offset + OID_ANDROID_KEY_ATTESTATION.len() + i + 6;

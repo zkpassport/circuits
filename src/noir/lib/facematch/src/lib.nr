@@ -3,10 +3,7 @@ use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
 use sha256;
 use sha512::sha384;
 use sig_check_ecdsa::verify_nist_p384;
-use utils::{
-    check_zero_padding, poseidon2_hash_packed,
-    unsafe_get_asn1_element_length,
-};
+use utils::{check_zero_padding, poseidon2_hash_packed, unsafe_get_asn1_element_length};
 
 pub mod android;
 pub mod ios;

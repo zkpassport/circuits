@@ -1,15 +1,12 @@
-use super::constants::{AAGUID_DEVELOPMENT};
 use crate::constants::{
-    CREDENTIAL_TBS_MAX_LEN, APP_ID_MAX_LEN, MAX_FIELD_BYTES, FACEMATCH_MODE_REGULAR,
+    APP_ID_MAX_LEN, CREDENTIAL_TBS_MAX_LEN, FACEMATCH_MODE_REGULAR, MAX_FIELD_BYTES,
 };
 use crate::{
-    get_dg2_hash_from_client_data,
-    get_facematch_mode_from_client_data, get_tbs_not_before_date, verify_dg2_hash_in_client_data
+    get_dg2_hash_from_client_data, get_facematch_mode_from_client_data, get_tbs_not_before_date,
+    verify_dg2_hash_in_client_data,
 };
-use super::{
-    get_nonce_from_credential_tbs,
-    unsafe_calculate_auth_data_length,
-};
+use super::constants::AAGUID_DEVELOPMENT;
+use super::{get_nonce_from_credential_tbs, unsafe_calculate_auth_data_length};
 use utils::{
     get_array_slice, pack_le_bytes_into_fields, poseidon2_hash_packed,
     unsafe_get_asn1_element_length,
@@ -373,10 +370,8 @@ fn test_pack_le_bytes_into_fields() {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00,
     ];
-    let packed_1: [Field; _] =
-        pack_le_bytes_into_fields::<MAX_FIELD_BYTES, _>(TEST_BYTES_1);
-    let packed_2: [Field; _] =
-        pack_le_bytes_into_fields::<MAX_FIELD_BYTES, _>(TEST_BYTES_2);
+    let packed_1: [Field; _] = pack_le_bytes_into_fields::<MAX_FIELD_BYTES, _>(TEST_BYTES_1);
+    let packed_2: [Field; _] = pack_le_bytes_into_fields::<MAX_FIELD_BYTES, _>(TEST_BYTES_2);
     let expected_1 =
         [0x11111111111111111111111111111111111111111111111111111111131211, 0x2524232221];
     let expected_2 =

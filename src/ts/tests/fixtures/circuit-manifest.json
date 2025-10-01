@@ -1,6 +1,6 @@
 {
   "version": "0.9.1",
-  "root": "0x0a2c3d89e231953c7b6b5a8f8fcb8a5f789c42669da1820d523a863eb20bdefc",
+  "root": "0x26a05850dbce771aaded880b7e1ca1e97767cce90730eaa85f19f1b9d178a708",
   "circuits": {
     "bind": {
       "hash": "0x1cc04a8a2ad4fafe74f29805f68d14329a3ea12c7703a2778e5dc7d3a176b18c",
@@ -211,6 +211,11 @@
       "hash": "0x12a840d377c399a24557319e0d33382fb8fec20c6000ff5693e0eba9d1414561",
       "cid": "QmTkX1vRpVJ7sDnwmhH2fxaPk9f3CujLVcT953vnS8eikQ",
       "size": 860289
+    },
+    "facematch_android": {
+      "hash": "0x075c4b2d14866e9ab3929969049736578bbcc3dc8b1ab028e4109d282788f943",
+      "cid": "QmUuomn7ZCe4y7fQ4PWGHoo2qw2th3mJoioYV7jnyGU1tT",
+      "size": 963285
     },
     "facematch_evm": {
       "hash": "0x21c922f63d0dd2169510b388d73edae753fcab3e1d1fbeb262f860991d381996",

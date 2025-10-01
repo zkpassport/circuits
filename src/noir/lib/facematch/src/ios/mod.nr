@@ -1,12 +1,8 @@
+use crate::constants::{APP_ATTEST_ENV_DEVELOPMENT, APP_ATTEST_ENV_PRODUCTION, CLIENT_DATA_HASH_LEN};
 use utils::{find_subarray_index, get_array_slice, unsafe_get_asn1_element_length};
-use crate::constants::{
-    APP_ATTEST_ENV_PRODUCTION, APP_ATTEST_ENV_DEVELOPMENT, CLIENT_DATA_HASH_LEN
-};
 pub mod constants;
-use constants::{
-    OID_APPLE_APP_ID, OID_APPLE_NONCE_ID, AAGUID_PRODUCTION, AAGUID_DEVELOPMENT,
-};
 use crate::get_client_data_hash;
+use constants::{AAGUID_DEVELOPMENT, AAGUID_PRODUCTION, OID_APPLE_APP_ID, OID_APPLE_NONCE_ID};
 pub mod tests;
 
 /// Extract the 32-byte nonce from Apple's App Attest certificate extension
@@ -38,7 +34,6 @@ pub fn get_nonce_from_credential_tbs<let TBS_MAX_LEN: u32>(tbs: [u8; TBS_MAX_LEN
     }
     nonce
 }
-
 
 /// Extract the app ID from Apple's App Attest certificate extension
 /// OID: 1.2.840.113635.100.8.5

@@ -1,8 +1,10 @@
 use commitment::nullify;
 use facematch::{
-    calculate_attestation_registry_leaf, ios::{verify_auth_data_and_client_data, verify_environment, get_app_id_from_credential_tbs},
+    calculate_attestation_registry_leaf,
     get_facematch_mode_from_client_data,
-    verify_credential_certificate, verify_dg2_hash_in_client_data,
+    ios::{get_app_id_from_credential_tbs, verify_auth_data_and_client_data, verify_environment},
+    verify_credential_certificate,
+    verify_dg2_hash_in_client_data,
     verify_intermediate_certificate,
 };
 use facematch::constants::{

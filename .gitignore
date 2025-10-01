@@ -22,4 +22,4 @@ output-fixtures
 settings.json
 
 src/noir/lib/facematch/src/android/tests.nr
-src/noir/bin/facematch/android/standard/src/tests.nr
+src/noir/bin/facematch/android/**/src/tests.nr
