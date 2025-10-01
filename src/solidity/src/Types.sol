@@ -41,6 +41,12 @@ enum NullifierType {
   SALTED_MOCK_NULLIFIER
 }
 
+enum OS {
+  ANY,
+  IOS,
+  ANDROID
+}
+
 struct ProofVerificationData {
   bytes32 vkeyHash;
   bytes proof;

@@ -8,7 +8,7 @@ import {StringUtils} from "../src/StringUtils.sol";
 import {IRootRegistry} from "../src/IRootRegistry.sol";
 import {InputsExtractor} from "../src/InputsExtractor.sol";
 import {CommittedInputLen, MRZIndex, MRZLength, SECONDS_BETWEEN_1900_AND_1970, PublicInput, AppAttest} from "../src/Constants.sol";
-import {ProofType, ProofVerificationParams, BoundDataIdentifier, DisclosedData, BoundData, FaceMatchMode, Environment, NullifierType, Commitments, ServiceConfig} from "../src/Types.sol";
+import {ProofType, ProofVerificationParams, BoundDataIdentifier, DisclosedData, BoundData, FaceMatchMode, Environment, NullifierType, Commitments, ServiceConfig, OS} from "../src/Types.sol";
 
 contract ZKPassportVerifier {
   bytes32 public constant CERTIFICATE_REGISTRY_ID = bytes32(uint256(1));
@@ -560,18 +560,20 @@ contract ZKPassportVerifier {
   /**
    * @notice Checks if the proof is tied to a FaceMatch verification
    * @param faceMatchMode The FaceMatch mode expected to be used in the verification
+   * @param os The operating system on which the proof should have been generated (Any (0), iOS (1), Android (2))
    * @param commitments The commitments
    * @return True if the proof is tied to a valid FaceMatch verification, false otherwise
    */
   function isFaceMatchVerified(
     FaceMatchMode faceMatchMode,
+    OS os,
     Commitments calldata commitments
   ) public pure returns (bool) {
     (bytes32 rootKeyHash, Environment environment, bytes32 appId, FaceMatchMode retrievedFaceMatchMode) = InputsExtractor.getFacematchProofInputs(commitments);
     bool isProduction = environment == Environment.PRODUCTION;
     bool isCorrectMode = retrievedFaceMatchMode == faceMatchMode;
-    bool isCorrectRootKeyHash = rootKeyHash == AppAttest.APPLE_ROOT_KEY_HASH;
-    bool isCorrectAppIdHash = appId == AppAttest.APP_ID_HASH;
+    bool isCorrectRootKeyHash = (rootKeyHash == AppAttest.APPLE_ROOT_KEY_HASH && (os == OS.IOS || os == OS.ANY)) || (rootKeyHash == AppAttest.GOOGLE_RSA_ROOT_KEY_HASH && (os == OS.ANDROID || os == OS.ANY));
+    bool isCorrectAppIdHash = (appId == AppAttest.IOS_APP_ID_HASH && (os == OS.IOS || os == OS.ANY)) || (appId == AppAttest.ANDROID_APP_ID_HASH && (os == OS.ANDROID || os == OS.ANY));
     return isProduction && isCorrectMode && isCorrectRootKeyHash && isCorrectAppIdHash;
   }
 

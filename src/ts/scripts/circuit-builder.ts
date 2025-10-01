@@ -122,14 +122,6 @@ const STATIC_CIRCUITS = [
     name: "facematch_ios_evm",
     path: "./src/noir/bin/facematch/ios/evm",
   },
-  {
-    name: "facematch_android",
-    path: "./src/noir/bin/facematch/android/standard",
-  },
-  {
-    name: "facematch_android_evm",
-    path: "./src/noir/bin/facematch/android/evm",
-  },
 ]
 
 const LIB_CIRCUITS = [
