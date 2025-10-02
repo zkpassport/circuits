@@ -64,7 +64,7 @@ done
 
 # Compile facematch (force brillig fails for this circuit at present)
 # TODO: Fix this once the force brillig issue is resolved
-echo "Compiling facematch (constrained)"
-nargo compile --force --package facematch
-echo "Compiling facematch_evm (constrained)"
-nargo compile --force --package facematch_evm
+echo "Compiling facematch_ios (constrained)"
+nargo compile --force --package facematch_ios
+echo "Compiling facematch_ios_evm (constrained)"
+nargo compile --force --package facematch_ios_evm
