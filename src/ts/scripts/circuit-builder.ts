@@ -994,7 +994,7 @@ function generateFaceMatchAndroidCircuit(
   )  
   const intermediate_certificates_count = intermediate_signature_algorithms.length
   const intermediate_certificates_str = intermediate_signature_algorithms.map(({ signature_algorithm, hash_algorithm, bit_size }) => `ik_${signature_algorithm === "rsa" ? "rsa_" : "ecdsa_p"}${bit_size}_${hash_algorithm}`).join("_")
-  const name = `face_match_android_rk_${root_signature_algorithm}_ik_count_${intermediate_certificates_count}_${intermediate_certificates_str}${evm ? "_evm" : ""}`
+  const name = `facematch_android_rk_${root_signature_algorithm}_ik_count_${intermediate_certificates_count}_${intermediate_certificates_str}${evm ? "_evm" : ""}`
   const relativePath = `../../../../../../${"../".repeat(intermediate_certificates_count)}`
   const nargoFile = NARGO_TEMPLATE(name, [
     { name: "facematch", path: `${relativePath}lib/facematch` },

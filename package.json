@@ -1,6 +1,6 @@
 {
   "name": "circuits",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "scripts": {
     "lint": "tsc --project src/ts/tsconfig.json --noEmit && nargo fmt --check",
     "test": "TZ=UTC jest circuits.test.ts --runInBand --verbose",

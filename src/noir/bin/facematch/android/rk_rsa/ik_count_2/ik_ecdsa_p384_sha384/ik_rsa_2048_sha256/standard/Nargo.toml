@@ -1,5 +1,5 @@
 [package]
-name = "face_match_android_rk_rsa_ik_count_2_ik_ecdsa_p384_sha384_ik_rsa_2048_sha256"
+name = "facematch_android_rk_rsa_ik_count_2_ik_ecdsa_p384_sha384_ik_rsa_2048_sha256"
 type = "bin"
 authors = ["Theo Madzou", "Michael Elliot"]
 compiler_version = ">=1.0.0"
