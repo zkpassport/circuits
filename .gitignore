@@ -20,3 +20,6 @@ src/solidity/snapshots
 src/ts/tests/fixtures/zkr/keypairs
 output-fixtures
 settings.json
+
+src/noir/lib/facematch/src/android/tests.nr
+src/noir/bin/facematch/android/**/src/tests.nr

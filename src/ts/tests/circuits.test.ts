@@ -164,7 +164,7 @@ describe("subcircuits - RSA PKCS", () => {
     }, 30000)
   })
 
-  describe("facematch", () => {
+  describe("facematch ios", () => {
     test("verify facematch", async () => {
       const query: Query = { facematch: { mode: "regular" } }
       let inputs = await getFacematchCircuitInputs(
@@ -179,22 +179,24 @@ describe("subcircuits - RSA PKCS", () => {
       if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
       expect(BigInt(inputs.comm_in)).toEqual(integrityCheckCommitment)
 
-      const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH }
-      const circuit = Circuit.from("facematch")
+      const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH.ios_regular_mode_dev }
+      const circuit = Circuit.from("facematch_ios")
       const proof = await circuit.prove(combinedInputs, {
         witness: await circuit.solve(combinedInputs),
         useCli: true,
-        circuitName: "facematch",
+        circuitName: "facematch_ios",
       })
       await circuit.destroy()
 
       // Calculate expected parameter commitment and compare with the one returned from the circuit
       const root_key_leaf = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340bn
+      // Development environment
       const environment = 0n
       const app_id = new Uint8Array([
         ...new TextEncoder().encode("YL5MS3Z639.app.zkpassport.appattest-prototype"),
       ])
       const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
+      // Regular mode
       const facematch_mode = 1n
       const calculatedParamCommitment = await getFacematchParameterCommitment(
         root_key_leaf,
@@ -203,6 +205,51 @@ describe("subcircuits - RSA PKCS", () => {
         facematch_mode,
       )
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof) // 0x14b544bb7296b877b4f75c61b98cc40fc7ee5a0201340cb89e6e77429c71e6b5n
+      expect(calculatedParamCommitment).toEqual(paramCommitment)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
+    }, 90000)
+
+    test("verify facematch - strict mode", async () => {
+      const query: Query = { facematch: { mode: "strict" } }
+      let inputs = await getFacematchCircuitInputs(
+        helper.passport as any,
+        query,
+        SALT,
+        0n,
+        0n,
+        0n,
+        nowTimestamp,
+      )
+      if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
+      expect(BigInt(inputs.comm_in)).toEqual(integrityCheckCommitment)
+
+      const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH.ios_strict_mode_prod }
+      const circuit = Circuit.from("facematch_ios")
+      const proof = await circuit.prove(combinedInputs, {
+        witness: await circuit.solve(combinedInputs),
+        useCli: true,
+        circuitName: "facematch_ios",
+      })
+      await circuit.destroy()
+
+      // Calculate expected parameter commitment and compare with the one returned from the circuit
+      const root_key_leaf = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340bn
+      // Production environment
+      const environment = 1n
+      const app_id = new Uint8Array([
+        ...new TextEncoder().encode("YL5MS3Z639.app.zkpassport.zkpassport"),
+      ])
+      const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
+      // Strict mode
+      const facematch_mode = 2n
+      const calculatedParamCommitment = await getFacematchParameterCommitment(
+        root_key_leaf,
+        environment,
+        app_id_hash,
+        facematch_mode,
+      )
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(calculatedParamCommitment).toEqual(paramCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
@@ -222,22 +269,24 @@ describe("subcircuits - RSA PKCS", () => {
       if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
       expect(BigInt(inputs.comm_in)).toEqual(integrityCheckCommitment)
 
-      const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH }
-      const circuit = Circuit.from("facematch_evm")
+      const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH.ios_regular_mode_prod }
+      const circuit = Circuit.from("facematch_ios_evm")
       const proof = await circuit.prove(combinedInputs, {
         witness: await circuit.solve(combinedInputs),
         useCli: true,
-        circuitName: "facematch_evm",
+        circuitName: "facematch_ios_evm",
       })
       await circuit.destroy()
 
       // Calculate expected parameter commitment and compare with the one returned from the circuit
       const root_key_leaf = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340bn
-      const environment = 0n
+      // Production environment
+      const environment = 1n
       const app_id = new Uint8Array([
-        ...new TextEncoder().encode("YL5MS3Z639.app.zkpassport.appattest-prototype"),
+        ...new TextEncoder().encode("YL5MS3Z639.app.zkpassport.zkpassport"),
       ])
       const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
+      // Regular mode
       const facematch_mode = 1n
       const calculatedParamCommitment = await getFacematchEvmParameterCommitment(
         root_key_leaf,
@@ -246,6 +295,100 @@ describe("subcircuits - RSA PKCS", () => {
         facematch_mode,
       )
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof) // 0x4937febb950deb440e619a6b5adc25c27193d6eb852e7f97dd9ad2e1f5fd73n
+      expect(calculatedParamCommitment).toEqual(paramCommitment)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
+    }, 90000)
+  })
+
+  describe("facematch android", () => {
+    test("verify facematch", async () => {
+      const query: Query = { facematch: { mode: "regular" } }
+      let inputs = await getFacematchCircuitInputs(
+        helper.passport as any,
+        query,
+        SALT,
+        0n,
+        0n,
+        0n,
+        nowTimestamp,
+      )
+      if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
+      expect(BigInt(inputs.comm_in)).toEqual(integrityCheckCommitment)
+
+      const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH.android_regular_mode_dev }
+      const circuit = Circuit.from("facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256")
+      const proof = await circuit.prove(combinedInputs, {
+        witness: await circuit.solve(combinedInputs),
+        useCli: true,
+        // Root RSA key, 3 intermediate certificates (ECDSA P384, ECDSA P256, ECDSA P256) and the credential (P-256)
+        circuitName: "facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256",
+      })
+      await circuit.destroy()
+
+      // Calculate expected parameter commitment and compare with the one returned from the circuit
+      const root_key_leaf = 0x16700a2d9168a194fc85f237af5829b5a2be05b8ae8ac4879ada34cf54a9c211n
+      // Development environment
+      const environment = 0n
+      const app_id = new Uint8Array([
+        ...new TextEncoder().encode("app.zkpassport.zkpassport"),
+      ])
+      const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
+      // Regular mode
+      const facematch_mode = 1n
+      const calculatedParamCommitment = await getFacematchParameterCommitment(
+        root_key_leaf,
+        environment,
+        app_id_hash,
+        facematch_mode,
+      )
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+      expect(calculatedParamCommitment).toEqual(paramCommitment)
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
+    }, 90000)
+
+    test("verify facematch evm", async () => {
+      const query: Query = { facematch: { mode: "strict" } }
+      let inputs = await getFacematchCircuitInputs(
+        helper.passport as any,
+        query,
+        SALT,
+        0n,
+        0n,
+        0n,
+        nowTimestamp,
+      )
+      if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
+      expect(BigInt(inputs.comm_in)).toEqual(integrityCheckCommitment)
+
+      const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH.android_strict_mode_dev }
+      const circuit = Circuit.from("facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256_evm")
+      const proof = await circuit.prove(combinedInputs, {
+        witness: await circuit.solve(combinedInputs),
+        useCli: true,
+        // Root RSA key, 3 intermediate certificates (ECDSA P384, ECDSA P256, ECDSA P256) and the credential (P-256)
+        circuitName: "facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256_evm",
+      })
+      await circuit.destroy()
+
+      // Calculate expected parameter commitment and compare with the one returned from the circuit
+      const root_key_leaf = 0x16700a2d9168a194fc85f237af5829b5a2be05b8ae8ac4879ada34cf54a9c211n
+      // Development environment
+      const environment = 0n
+      const app_id = new Uint8Array([
+        ...new TextEncoder().encode("app.zkpassport.zkpassport"),
+      ])
+      const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
+      // Strict mode
+      const facematch_mode = 2n
+      const calculatedParamCommitment = await getFacematchEvmParameterCommitment(
+        root_key_leaf,
+        environment,
+        app_id_hash,
+        facematch_mode,
+      )
+      const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(calculatedParamCommitment).toEqual(paramCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)

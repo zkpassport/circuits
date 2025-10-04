@@ -3,6 +3,7 @@ import * as path from "path"
 import { exec, execSync } from "child_process"
 import { compileCircuit } from "../utils"
 import { CERTIFICATE_REGISTRY_HEIGHT } from "@zkpassport/utils"
+import { sign } from "crypto"
 
 // Function to ensure directory exists
 function ensureDirectoryExistence(filePath: string) {
@@ -114,12 +115,12 @@ const STATIC_CIRCUITS = [
     path: "./src/noir/bin/exclusion-check/sanctions/evm",
   },
   {
-    name: "facematch",
-    path: "./src/noir/bin/facematch/standard",
+    name: "facematch_ios",
+    path: "./src/noir/bin/facematch/ios/standard",
   },
   {
-    name: "facematch_evm",
-    path: "./src/noir/bin/facematch/evm",
+    name: "facematch_ios_evm",
+    path: "./src/noir/bin/facematch/ios/evm",
   },
 ]
 
@@ -425,6 +426,198 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         private_nullifier,
     );
     comm_out
+}
+`
+
+const FACEMATCH_ANDROID_TEMPLATE = (
+  root_signature_algorithm: "rsa" | "ecdsa",
+  intermediate_signature_algorithms: {
+    signature_algorithm: "rsa" | "ecdsa"
+    bit_size: number
+    hash_algorithm: "sha1" | "sha224" | "sha256" | "sha384" | "sha512"
+  }[],
+  evm: boolean = false,
+  unconstrained: boolean = false,
+) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
+use commitment::nullify;
+use facematch::{
+    calculate_attestation_registry_leaf, android::{get_app_id_from_credential_tbs},
+    get_facematch_mode_from_client_data,
+    verify_credential_certificate, verify_dg2_hash_in_client_data,
+    verify_intermediate_certificate, get_tbs_hash_sha384, get_tbs_hash_sha256, get_client_data_hash_for_signature
+};
+use sig_check_rsa::verify_signature;
+use sig_check_ecdsa::{verify_nist_p384, verify_nist_p256_blackbox as verify_nist_p256};
+use data_check_tbs_pubkey::{verify_ecdsa_pubkey_in_tbs, verify_rsa_pubkey_in_tbs};
+use facematch::constants::{
+    APP_ID_MAX_LEN, ATTESTATION_KEY_TYPE_GOOGLE, CLIENT_DATA_MAX_LEN,
+    CREDENTIAL_TBS_MAX_LEN,
+};
+use facematch::param_commit::{calculate_param_commitment, calculate_param_commitment_sha2};
+use utils::{poseidon2_hash_packed, split_array, types::DG1Data, unsafe_get_asn1_element_length};
+
+${unconstrained ? "unconstrained " : ""}fn main(
+    comm_in: pub Field,
+    salt: Field,
+    private_nullifier: Field,
+    dg1: DG1Data,
+    dg2_hash_normalized: Field,
+    dg2_hash_type: u32,
+    // @committed
+    // Hash of root_key (the attestation registry leaf) is commitment to (via parameter commitment) and can be verified outside the circuit
+    ${root_signature_algorithm === "rsa" ? `
+    // There are only two possible root keys, right now the RSA one is the only one used
+    // but the new one to be rolled out in February 2026 will be ECDSA P384 so both should be supported
+    // c.f. https://developer.android.com/privacy-and-security/security-key-attestation#root_certificate
+    root_key: [u8; 512],
+    root_key_redc_param: [u8; 513],
+    ` : `
+    // There are only two possible root keys, right now the RSA one is the only one used
+    // but the new one to be rolled out in February 2026 will be ECDSA P384, so support is ready for this one
+    // c.f. https://developer.android.com/privacy-and-security/security-key-attestation#root_certificate
+    root_key: [u8; 96],
+    `}
+    // Intermediate certificates from up (root) to bottom (leaf/credential) of the chain
+    ${intermediate_signature_algorithms.map(({ signature_algorithm, hash_algorithm, bit_size }, index) => `
+    intermediate_${index + 1}_key: [u8; ${signature_algorithm === "rsa" ? Math.ceil(bit_size / 8) : Math.ceil(bit_size / 4)}],
+    ${signature_algorithm === "rsa" ? `
+    intermediate_${index + 1}_key_redc_param: [u8; ${Math.ceil(bit_size / 8) + 1}],
+    ` : ``}
+    intermediate_${index + 1}_tbs: [u8; ${signature_algorithm === "rsa" ? 1000 : 500}],
+    // ${index === 0 ? "RSA" : intermediate_signature_algorithms[index - 1].signature_algorithm} signature from the ${index === 0 ? "root" : `intermediate certificate #${index}`} over the intermediate certificate #${index + 1} TBS
+    intermediate_${index + 1}_sig: [u8; ${index === 0 ? root_signature_algorithm === "rsa" ? 512 : 96 : intermediate_signature_algorithms[index - 1].signature_algorithm === "rsa" ? Math.ceil(intermediate_signature_algorithms[index - 1].bit_size / 8) : Math.ceil(intermediate_signature_algorithms[index - 1].bit_size / 4)}],
+    `).join("")}
+    // This is the leaf certificate derived from the private key in the KeyStore
+    // so we have control over the signature algorithm used (i.e P-256 with SHA256)
+    // so client_data_sig will always be P-256 with SHA256
+    credential_key: [u8; 64],
+    credential_tbs: [u8; CREDENTIAL_TBS_MAX_LEN],
+    // P-256 signature from the third intermediate certificate over the credential certificate TBS
+    credential_sig: [u8; ${intermediate_signature_algorithms[intermediate_signature_algorithms.length - 1].signature_algorithm === "rsa" ? Math.ceil(intermediate_signature_algorithms[intermediate_signature_algorithms.length - 1].bit_size / 8) : Math.ceil(intermediate_signature_algorithms[intermediate_signature_algorithms.length - 1].bit_size / 4)}],
+    client_data: [u8; CLIENT_DATA_MAX_LEN],
+    // P-256 signature from the credential (i.e. leaf) certificate over the client data TBS
+    client_data_sig: [u8; 64],
+    // @committed
+    // environment is commitment to (via parameter commitment) and can be verified outside the circuit
+    environment: u8, // APP_ATTEST_ENV_DEVELOPMENT (0) or APP_ATTEST_ENV_PRODUCTION (1)
+    // @committed
+    // Hash of app_id is commitment to (via parameter commitment) and can be verified outside the circuit
+    app_id: [u8; APP_ID_MAX_LEN],
+    // @committed
+    // facematch_mode is commitment to (via parameter commitment) and can be verified outside the circuit
+    facematch_mode: u8, // FACEMATCH_MODE_REGULAR (1) or FACEMATCH_MODE_STRICT (2)
+    nullifier_secret: Field,
+    service_scope: pub Field,
+    service_subscope: pub Field,
+) -> pub (Field, Field, Field) {
+    ${intermediate_signature_algorithms.map(({ signature_algorithm, hash_algorithm, bit_size }, index) => signature_algorithm === "ecdsa" ? `
+    let (intermediate_${index + 1}_key_x, intermediate_${index + 1}_key_y) = split_array(intermediate_${index + 1}_key);
+    ` : ``).join("")}
+
+    let root_key_leaf = calculate_attestation_registry_leaf(ATTESTATION_KEY_TYPE_GOOGLE, root_key);
+
+    // Verify the intermediate certificate was signed by the root key
+    // and the intermediate public key is in the intermediate certificate TBS
+    ${intermediate_signature_algorithms[0].signature_algorithm === "ecdsa" ? `
+    verify_ecdsa_pubkey_in_tbs(intermediate_1_key_x, intermediate_1_key_y, intermediate_1_tbs);
+    ` : `
+    verify_rsa_pubkey_in_tbs(intermediate_1_key, intermediate_1_tbs);
+    `}
+    let intermediate_1_tbs_len = unsafe { unsafe_get_asn1_element_length(intermediate_1_tbs) };
+    ${root_signature_algorithm === "rsa" ? `
+    assert(verify_signature::<_, 0, _, 32>(root_key, intermediate_1_sig, root_key_redc_param, 65537, intermediate_1_tbs, intermediate_1_tbs_len), "Failed to verify intermediate certificate");
+    ` : `
+    let (root_key_x, root_key_y) = split_array(root_key);
+    let intermediate_1_tbs_hash = get_tbs_hash_sha384(intermediate_1_tbs);
+    let (intermediate_1_sig_r, intermediate_1_sig_s) = split_array(intermediate_1_sig);
+    assert(verify_nist_p384(root_key_x, root_key_y, intermediate_1_sig_r, intermediate_1_sig_s, intermediate_1_tbs_hash), "Failed to verify intermediate certificate");
+    `}
+
+    ${intermediate_signature_algorithms.map(({ signature_algorithm, hash_algorithm, bit_size }, index) => {
+     if (index === 0) {
+      return ``;
+     }
+     let result = signature_algorithm === "ecdsa" ? `
+      let (intermediate_${index + 1}_key_x, intermediate_${index + 1}_key_y) = split_array(intermediate_${index + 1}_key);
+      verify_ecdsa_pubkey_in_tbs(intermediate_${index + 1}_key_x, intermediate_${index + 1}_key_y, intermediate_${index + 1}_tbs);
+      let (intermediate_${index + 1}_sig_r, intermediate_${index + 1}_sig_s) = split_array(intermediate_${index + 1}_sig);
+      let intermediate_${index + 1}_tbs_hash = get_tbs_hash_${intermediate_signature_algorithms[index - 1].hash_algorithm}(intermediate_${index + 1}_tbs);
+      ` : `
+      verify_rsa_pubkey_in_tbs(intermediate_${index + 1}_key, intermediate_${index + 1}_tbs);
+      let (intermediate_${index + 1}_sig_r, intermediate_${index + 1}_sig_s) = split_array(intermediate_${index + 1}_sig);
+      let intermediate_${index + 1}_tbs_hash = get_tbs_hash_${intermediate_signature_algorithms[index - 1].hash_algorithm}(intermediate_${index + 1}_tbs);
+      `;
+      if (intermediate_signature_algorithms[index - 1].signature_algorithm === "ecdsa") {
+        result += `
+        assert(verify_nist_p${intermediate_signature_algorithms[index - 1].bit_size}(intermediate_${index}_key_x, intermediate_${index}_key_y, intermediate_${index + 1}_sig_r, intermediate_${index + 1}_sig_s, intermediate_${index + 1}_tbs_hash), "Failed to verify intermediate certificate");
+        `;
+      } else {
+        result += `
+        let intermediate_${index + 1}_tbs_len = unsafe { unsafe_get_asn1_element_length(intermediate_${index + 1}_tbs) };
+        assert(verify_signature::<_, 0, _, ${getHashAlgorithmByteSize(intermediate_signature_algorithms[index - 1].hash_algorithm)}>(intermediate_${index}_key, intermediate_${index + 1}_sig, intermediate_${index}_key_redc_param, 65537, intermediate_${index + 1}_tbs, intermediate_${index + 1}_tbs_len), "Failed to verify intermediate certificate");
+        `;
+      }
+     return result;
+    }).join("")}
+
+    let (credential_key_x, credential_key_y) = split_array(credential_key);
+    verify_ecdsa_pubkey_in_tbs(credential_key_x, credential_key_y, credential_tbs);
+    ${intermediate_signature_algorithms[intermediate_signature_algorithms.length - 1].signature_algorithm === "ecdsa" ? `
+    let (credential_sig_r, credential_sig_s) = split_array(credential_sig);
+    ` : ``}
+    let credential_tbs_hash = get_tbs_hash_${intermediate_signature_algorithms[intermediate_signature_algorithms.length - 1].hash_algorithm}(credential_tbs);
+    ${intermediate_signature_algorithms[intermediate_signature_algorithms.length - 1].signature_algorithm === "ecdsa" ? `
+    assert(
+         verify_nist_p${intermediate_signature_algorithms[intermediate_signature_algorithms.length - 1].bit_size}(intermediate_${intermediate_signature_algorithms.length}_key_x, intermediate_${intermediate_signature_algorithms.length}_key_y, credential_sig_r, credential_sig_s, credential_tbs_hash),
+        "Failed to verify credential certificate",
+    );
+    ` : `
+    let credential_tbs_len = unsafe { unsafe_get_asn1_element_length(credential_tbs) };
+    assert(verify_signature::<_, 0, _, ${getHashAlgorithmByteSize(intermediate_signature_algorithms[intermediate_signature_algorithms.length - 1].hash_algorithm)}>(intermediate_${intermediate_signature_algorithms.length}_key, credential_sig, intermediate_${intermediate_signature_algorithms.length}_key_redc_param, 65537, credential_tbs, credential_tbs_len), "Failed to verify credential certificate");
+    `}
+
+    let (client_data_sig_r, client_data_sig_s) = split_array(client_data_sig);
+    let client_data_len = unsafe { unsafe_get_asn1_element_length(client_data) };
+    let client_data_hash = get_client_data_hash_for_signature(client_data, client_data_len);
+    assert(
+         verify_nist_p256(credential_key_x, credential_key_y, client_data_sig_r, client_data_sig_s, client_data_hash),
+        "Failed to verify client data hash",
+    );
+
+    // Verify the app ID in the credential certificate TBS matches the expected app ID
+    let (tbs_app_id, app_id_length): ([u8; APP_ID_MAX_LEN], u32) =
+        get_app_id_from_credential_tbs(credential_tbs);
+    assert(tbs_app_id == app_id, "Failed to verify app_id");
+
+    // Verify the facematch mode in client_data matches the expected facematch mode
+    assert(
+        get_facematch_mode_from_client_data(client_data) == facematch_mode,
+        "Failed to verify facematch_mode in client_data",
+    );
+
+    // Verify the normalized dg2_hash in client_data matches the expected normalized dg2_hash
+    assert(
+        verify_dg2_hash_in_client_data(dg2_hash_normalized, client_data),
+        "Failed to verify dg2_hash in client_data",
+    );
+
+    let (nullifier, nullifier_type) = nullify(
+        comm_in,
+        salt,
+        dg1,
+        dg2_hash_normalized,
+        dg2_hash_type,
+        private_nullifier,
+        service_scope,
+        service_subscope,
+        nullifier_secret,
+    );
+
+    let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
+    let param_commitment =
+        ${evm ? "calculate_param_commitment_sha2" : "calculate_param_commitment"}(root_key_leaf, environment, app_id_hash, facematch_mode);
+
+    (param_commitment, nullifier_type, nullifier)
 }
 `
 
@@ -783,6 +976,45 @@ function generateDataIntegrityCheckCircuit(
   generatedCircuits.push({ name, path: folderPath })
 }
 
+function generateFaceMatchAndroidCircuit(
+  root_signature_algorithm: "rsa" | "ecdsa",
+  intermediate_signature_algorithms: {
+    signature_algorithm: "rsa" | "ecdsa"
+    bit_size: number
+    hash_algorithm: "sha1" | "sha224" | "sha256" | "sha384" | "sha512"
+  }[],
+  evm: boolean = false,
+  unconstrained: boolean = false,
+) {
+  const noirFile = FACEMATCH_ANDROID_TEMPLATE(
+    root_signature_algorithm,
+    intermediate_signature_algorithms,
+    evm,
+    unconstrained,
+  )  
+  const intermediate_certificates_count = intermediate_signature_algorithms.length
+  const intermediate_certificates_str = intermediate_signature_algorithms.map(({ signature_algorithm, hash_algorithm, bit_size }) => `ik_${signature_algorithm === "rsa" ? "rsa_" : "ecdsa_p"}${bit_size}_${hash_algorithm}`).join("_")
+  const name = `facematch_android_rk_${root_signature_algorithm}_ik_count_${intermediate_certificates_count}_${intermediate_certificates_str}${evm ? "_evm" : ""}`
+  const relativePath = `../../../../../../${"../".repeat(intermediate_certificates_count)}`
+  const nargoFile = NARGO_TEMPLATE(name, [
+    { name: "facematch", path: `${relativePath}lib/facematch` },
+    { name: "sig_check_rsa", path: `${relativePath}lib/sig-check/rsa` },
+    { name: "sig_check_ecdsa", path: `${relativePath}lib/sig-check/ecdsa` },
+    { name: "data_check_tbs_pubkey", path: `${relativePath}lib/data-check/tbs-pubkey` },
+    { name: "commitment", path: `${relativePath}lib/commitment/scoped-nullifier` },
+    { name: "utils", path: `${relativePath}lib/utils` },
+  ])
+  const intermediate_certificates_path = intermediate_signature_algorithms.map(({ signature_algorithm, hash_algorithm, bit_size }) => `ik_${signature_algorithm === "rsa" ? "rsa_" : "ecdsa_p"}${bit_size}_${hash_algorithm}`).join("/")
+  const folderPath = `./src/noir/bin/facematch/android/rk_${root_signature_algorithm}/ik_count_${intermediate_certificates_count}/${intermediate_certificates_path}${evm ? "/evm" : "/standard"}`
+  const noirFilePath = `${folderPath}/src/main.nr`
+  const nargoFilePath = `${folderPath}/Nargo.toml`
+  ensureDirectoryExistence(noirFilePath)
+  fs.writeFileSync(noirFilePath, noirFile)
+  ensureDirectoryExistence(nargoFilePath)
+  fs.writeFileSync(nargoFilePath, nargoFile)
+  generatedCircuits.push({ name, path: folderPath })
+}
+
 function generateOuterCircuit(disclosure_proofs_count: number, unconstrained: boolean = false) {
   const noirFile = OUTER_CIRCUIT_TEMPLATE(disclosure_proofs_count, unconstrained)
   const name = `outer_count_${disclosure_proofs_count + 3}`
@@ -923,6 +1155,40 @@ const generateDataIntegrityCheckCircuits = ({
         dg_hash_algorithm as "sha1" | "sha224" | "sha256" | "sha384" | "sha512",
         unconstrained,
       )
+    })
+  })
+}
+
+const generateFaceMatchAndroidCircuits = ({ unconstrained = false }: { unconstrained: boolean }) => {
+  const intermediate_signature_algorithms: { signature_algorithm: "ecdsa" | "rsa"; hash_algorithm: "sha256" | "sha384"; bit_size: number }[] = [
+    { signature_algorithm: "ecdsa", hash_algorithm: "sha256", bit_size: 256 },
+    { signature_algorithm: "ecdsa", hash_algorithm: "sha384", bit_size: 384 },
+    { signature_algorithm: "rsa", hash_algorithm: "sha256", bit_size: 2048 },
+    { signature_algorithm: "rsa", hash_algorithm: "sha256", bit_size: 4096 },
+  ]
+  // Don't generate the circuits for the ECDSA root key as it's not used yet (only in February 2026)
+  const root_signature_algorithms: ("rsa" | "ecdsa")[] = ["rsa"]
+  console.log("Generating FaceMatch Android circuits...")
+  root_signature_algorithms.forEach((root_signature_algorithm) => {
+    // Non-EVM
+    intermediate_signature_algorithms.forEach((a) => {
+      generateFaceMatchAndroidCircuit(root_signature_algorithm, [a], false, unconstrained)
+      intermediate_signature_algorithms.forEach((b) => {
+        generateFaceMatchAndroidCircuit(root_signature_algorithm, [a, b], false, unconstrained)
+        intermediate_signature_algorithms.forEach((c) => {
+          generateFaceMatchAndroidCircuit(root_signature_algorithm, [a, b, c], false, unconstrained)
+        })
+      })
+    })
+    // EVM
+    intermediate_signature_algorithms.forEach((a) => {
+      generateFaceMatchAndroidCircuit(root_signature_algorithm, [a], true, unconstrained)
+      intermediate_signature_algorithms.forEach((b) => {
+        generateFaceMatchAndroidCircuit(root_signature_algorithm, [a, b], true, unconstrained)
+        intermediate_signature_algorithms.forEach((c) => {
+          generateFaceMatchAndroidCircuit(root_signature_algorithm, [a, b, c], true, unconstrained)
+        })
+      })
     })
   })
 }
@@ -1147,6 +1413,7 @@ if (args.includes("generate")) {
   generateIdDataCircuits({ unconstrained })
   generateDataIntegrityCheckCircuits({ unconstrained })
   generateOuterCircuits({ unconstrained })
+  generateFaceMatchAndroidCircuits({ unconstrained })
   generateWorkspaceToml()
 }
 

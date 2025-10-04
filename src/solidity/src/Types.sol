@@ -41,6 +41,30 @@ enum NullifierType {
   SALTED_MOCK_NULLIFIER
 }
 
+enum OS {
+  ANY,
+  IOS,
+  ANDROID
+}
+
+struct ProofVerificationData {
+  bytes32 vkeyHash;
+  bytes proof;
+  bytes32[] publicInputs;
+}
+
+struct Commitments {
+  bytes committedInputs;
+  uint256[] committedInputCounts;
+}
+
+struct ServiceConfig {
+  uint256 validityPeriodInSeconds;
+  string domain;
+  string scope;
+  bool devMode;
+}
+
 // Group parameters for the proof verification
 //
 // publicInputs:
@@ -56,15 +80,9 @@ enum NullifierType {
 // committedInputs: the preimages of the `param_commitments` of the disclosure proofs.
 // committedInputCounts: offsets to locate the committedInputs of each of the param_commitments of the public_inputs.
 struct ProofVerificationParams {
-  bytes32 vkeyHash;
-  bytes proof;
-  bytes32[] publicInputs;
-  bytes committedInputs;
-  uint256[] committedInputCounts;
-  uint256 validityPeriodInSeconds;
-  string domain;
-  string scope;
-  bool devMode;
+  ProofVerificationData proofVerificationData;
+  Commitments commitments;
+  ServiceConfig serviceConfig;
 }
 
 struct DisclosedData {

@@ -102,9 +102,14 @@ library MRZLength {
 }
 
 library AppAttest {
-  // ZKPassport App ID hash
+  // ZKPassport iOS App ID hash
   // Little-endian packed and poseidon2 hash of `YL5MS3Z639.app.zkpassport.zkpassport`
-  bytes32 constant APP_ID_HASH = 0x1fa73686cf510f8f85757b0602de0dd72a13e68ae2092462be8b72662e7f179b;
+  bytes32 constant IOS_APP_ID_HASH = 0x1fa73686cf510f8f85757b0602de0dd72a13e68ae2092462be8b72662e7f179b;
+  // ZKPassport Android App ID hash
+  // Little-endian packed and poseidon2 hash of `com.zkpassport.zkpassport`
+  bytes32 constant ANDROID_APP_ID_HASH = 0x24d9929b248be7eeecaa98e105c034a50539610f3fdd4cb9c8983ef4100d615d;
   // The hash of Apple's root certificate public key
   bytes32 constant APPLE_ROOT_KEY_HASH = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340b;
+  // The hash of Google's RSA root certificate public key
+  bytes32 constant GOOGLE_RSA_ROOT_KEY_HASH = 0x16700a2d9168a194fc85f237af5829b5a2be05b8ae8ac4879ada34cf54a9c211;
 }

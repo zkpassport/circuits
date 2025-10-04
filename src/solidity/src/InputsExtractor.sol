@@ -4,7 +4,7 @@ pragma solidity >=0.8.21;
 
 import {MRZIndex, MRZLength, CommittedInputLen, COUNTRY_LIST_LENGTH, BOUND_DATA_LENGTH, TIMESTAMP_LENGTH} from "../src/Constants.sol";
 import {DisclosedData, ProofType, FaceMatchMode, Environment} from "../src/Types.sol";
-import {BoundDataIdentifier} from "../src/Types.sol";
+import {BoundDataIdentifier, Commitments} from "../src/Types.sol";
 
 library InputsExtractor {
 
@@ -62,49 +62,47 @@ library InputsExtractor {
   }
 
   function getDiscloseProofInputs(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts
+    Commitments calldata commitments
   ) public pure returns (bytes memory discloseMask, bytes memory discloseBytes) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    for (uint256 i = 0; i < committedInputCounts.length; i++) {
+    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
       // Disclose circuits have 181 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == CommittedInputLen.DISCLOSE_BYTES && committedInputs[offset] == bytes1(uint8(ProofType.DISCLOSE))) {
+      if (commitments.committedInputCounts[i] == CommittedInputLen.DISCLOSE_BYTES && commitments.committedInputs[offset] == bytes1(uint8(ProofType.DISCLOSE))) {
         offset += 1;
-        discloseMask = committedInputs[offset:offset + MRZLength.MRZ_MAX_LENGTH];
-        discloseBytes = committedInputs[offset + MRZLength.MRZ_MAX_LENGTH:offset + MRZLength.MRZ_MAX_LENGTH * 2];
+        discloseMask = commitments.committedInputs[offset:offset + MRZLength.MRZ_MAX_LENGTH];
+        discloseBytes = commitments.committedInputs[offset + MRZLength.MRZ_MAX_LENGTH:offset + MRZLength.MRZ_MAX_LENGTH * 2];
         foundCount++;
       }
-      offset += committedInputCounts[i];
+      offset += commitments.committedInputCounts[i];
     }
     require(foundCount > 0, "Disclose proof inputs not found");
     require(foundCount == 1, "Found multiple disclose proofs, the proof should only have one");
   }
 
   function getDateProofInputs(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
+    Commitments calldata commitments,
     ProofType proofType
   ) public pure returns (uint256 currentDate, uint256 minDate, uint256 maxDate) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    for (uint256 i = 0; i < committedInputCounts.length; i++) {
+    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
       // Date circuits have 25 bytes of committed inputs
       // The first byte is the proof type
       if (
-        committedInputCounts[i] == CommittedInputLen.COMPARE_EXPIRY &&
-        committedInputs[offset] == bytes1(uint8(proofType))
+        commitments.committedInputCounts[i] == CommittedInputLen.COMPARE_EXPIRY &&
+        commitments.committedInputs[offset] == bytes1(uint8(proofType))
       ) {
         offset += 1;
         // Get rid of the padding 0s bytes as the timestamp is contained within the first 64 bits
         // i.e. 256 - 64 = 192
-        currentDate = uint256(bytes32(committedInputs[offset:offset + TIMESTAMP_LENGTH])) >> 192;
-        minDate = uint256(bytes32(committedInputs[offset + TIMESTAMP_LENGTH:offset + TIMESTAMP_LENGTH * 2])) >> 192;
-        maxDate = uint256(bytes32(committedInputs[offset + TIMESTAMP_LENGTH * 2:offset + TIMESTAMP_LENGTH * 3])) >> 192;
+        currentDate = uint256(bytes32(commitments.committedInputs[offset:offset + TIMESTAMP_LENGTH])) >> 192;
+        minDate = uint256(bytes32(commitments.committedInputs[offset + TIMESTAMP_LENGTH:offset + TIMESTAMP_LENGTH * 2])) >> 192;
+        maxDate = uint256(bytes32(commitments.committedInputs[offset + TIMESTAMP_LENGTH * 2:offset + TIMESTAMP_LENGTH * 3])) >> 192;
         foundCount++;
       }
-      offset += committedInputCounts[i];
+      offset += commitments.committedInputCounts[i];
     }
     if (proofType == ProofType.BIRTHDATE) {
       require(foundCount > 0, "Compare birthdate proof inputs not found");
@@ -116,58 +114,56 @@ library InputsExtractor {
   }
 
   function getAgeProofInputs(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts
+    Commitments calldata commitments
   ) public pure returns (uint256 currentDate, uint8 minAge, uint8 maxAge) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    for (uint256 i = 0; i < committedInputCounts.length; i++) {
+    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
       // The age circuit has 11 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == CommittedInputLen.COMPARE_AGE && committedInputs[offset] == bytes1(uint8(ProofType.AGE))) {
+      if (commitments.committedInputCounts[i] == CommittedInputLen.COMPARE_AGE && commitments.committedInputs[offset] == bytes1(uint8(ProofType.AGE))) {
         // Get rid of the padding 0s bytes as the timestamp is contained within the first 64 bits
         // i.e. 256 - 64 = 192
-        currentDate = uint256(bytes32(committedInputs[offset + 1:offset + 9])) >> 192;
-        minAge = uint8(committedInputs[offset + 9]);
-        maxAge = uint8(committedInputs[offset + 10]);
+        currentDate = uint256(bytes32(commitments.committedInputs[offset + 1:offset + 9])) >> 192;
+        minAge = uint8(commitments.committedInputs[offset + 9]);
+        maxAge = uint8(commitments.committedInputs[offset + 10]);
         foundCount++;
       }
-      offset += committedInputCounts[i];
+      offset += commitments.committedInputCounts[i];
     }
     require(foundCount > 0, "Compare age proof inputs not found");
     require(foundCount == 1, "Found multiple compare age proofs, the proof should only have one");
   }
 
   function getCountryProofInputs(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts,
+    Commitments calldata commitments,
     ProofType proofType
   ) public pure returns (string[] memory countryList, uint256 length) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    for (uint256 i = 0; i < committedInputCounts.length; i++) {
+    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
       // Country (inclusion and exclusion) circuits have 601 bytes of committed inputs
       // The first byte is the proof type
       if (
-        committedInputCounts[i] == CommittedInputLen.INCL_NATIONALITY &&
-        committedInputs[offset] == bytes1(uint8(proofType))
+        commitments.committedInputCounts[i] == CommittedInputLen.INCL_NATIONALITY &&
+        commitments.committedInputs[offset] == bytes1(uint8(proofType))
       ) {
         countryList = new string[](COUNTRY_LIST_LENGTH);
         offset += 1;
         for (uint256 j = 0; j < COUNTRY_LIST_LENGTH; j++) {
-          if (committedInputs[offset] == 0) {
+          if (commitments.committedInputs[offset] == 0) {
             length = j;
             // The circuit constrains that once we've reached the first `0`,
             // we won't encounter any further nonzero values.
             // We don't need to include the padding bytes
             break;
           }
-          countryList[j] = string(committedInputs[offset:offset + 3]);
+          countryList[j] = string(commitments.committedInputs[offset:offset + 3]);
           offset += 3;
         }
         foundCount++;
       }
-      offset += committedInputCounts[i];
+      offset += commitments.committedInputCounts[i];
     }
     if (proofType == ProofType.ISSUING_COUNTRY_INCLUSION) {
       require(foundCount > 0, "Inclusion country proof inputs not found");
@@ -185,36 +181,34 @@ library InputsExtractor {
   }
 
   function getBindProofInputs(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts
+    Commitments calldata commitments
   ) public pure returns (bytes memory data) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    for (uint256 i = 0; i < committedInputCounts.length; i++) {
+    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
       // The bind data circuit has 501 bytes of committed inputs
       // The first byte is the proof type
-      if (committedInputCounts[i] == CommittedInputLen.BIND && committedInputs[offset] == bytes1(uint8(ProofType.BIND))) {
-        data = committedInputs[offset + 1:offset + BOUND_DATA_LENGTH + 1];
+      if (commitments.committedInputCounts[i] == CommittedInputLen.BIND && commitments.committedInputs[offset] == bytes1(uint8(ProofType.BIND))) {
+        data = commitments.committedInputs[offset + 1:offset + BOUND_DATA_LENGTH + 1];
         foundCount++;
       }
-      offset += committedInputCounts[i];
+      offset += commitments.committedInputCounts[i];
     }
     require(foundCount > 0, "Bind data proof inputs not found");
     require(foundCount == 1, "Found multiple bind data proofs, the proof should only have one");
   }
 
   function getSanctionsProofInputs(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts
+    Commitments calldata commitments
   ) public pure returns (bytes32 sanctionsTreesCommitment) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    for (uint256 i = 0; i < committedInputCounts.length; ++i) {
-      if (committedInputCounts[i] == CommittedInputLen.SANCTIONS && committedInputs[offset] == bytes1(uint8(ProofType.SANCTIONS))) {
-        sanctionsTreesCommitment = bytes32(committedInputs[offset + 1:offset + 33]);
+    for (uint256 i = 0; i < commitments.committedInputCounts.length; ++i) {
+      if (commitments.committedInputCounts[i] == CommittedInputLen.SANCTIONS && commitments.committedInputs[offset] == bytes1(uint8(ProofType.SANCTIONS))) {
+        sanctionsTreesCommitment = bytes32(commitments.committedInputs[offset + 1:offset + 33]);
         foundCount++;
       }
-      offset += committedInputCounts[i];
+      offset += commitments.committedInputCounts[i];
     }
     require(foundCount > 0, "Sanctions proof inputs not found");
     require(foundCount == 1, "Found multiple sanctions proofs, the proof should only have one");
@@ -255,21 +249,20 @@ library InputsExtractor {
   }
 
   function getFacematchProofInputs(
-    bytes calldata committedInputs,
-    uint256[] calldata committedInputCounts
+    Commitments calldata commitments
   ) public pure returns (bytes32 rootKeyHash, Environment environment, bytes32 appId, FaceMatchMode facematchMode) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    for (uint256 i = 0; i < committedInputCounts.length; i++) {
-      if (committedInputCounts[i] == CommittedInputLen.FACEMATCH && committedInputs[offset] == bytes1(uint8(ProofType.FACEMATCH))) {
+    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
+      if (commitments.committedInputCounts[i] == CommittedInputLen.FACEMATCH && commitments.committedInputs[offset] == bytes1(uint8(ProofType.FACEMATCH))) {
         offset += 1;
-        rootKeyHash = bytes32(committedInputs[offset:offset + 32]);
-        environment = Environment(uint8(bytes1(committedInputs[offset + 32:offset + 33])));
-        appId = bytes32(committedInputs[offset + 33:offset + 65]);
-        facematchMode = FaceMatchMode(uint8(bytes1(committedInputs[offset + 65:offset + 66])));
+        rootKeyHash = bytes32(commitments.committedInputs[offset:offset + 32]);
+        environment = Environment(uint8(bytes1(commitments.committedInputs[offset + 32:offset + 33])));
+        appId = bytes32(commitments.committedInputs[offset + 33:offset + 65]);
+        facematchMode = FaceMatchMode(uint8(bytes1(commitments.committedInputs[offset + 65:offset + 66])));
         foundCount++;
       }
-      offset += committedInputCounts[i];
+      offset += commitments.committedInputCounts[i];
     }
     require(foundCount > 0, "Facematch proof inputs not found");
     require(foundCount == 1, "Found multiple facematch proofs, the proof should only have one");

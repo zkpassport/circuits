@@ -4,6 +4,7 @@ pragma solidity >=0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ZKPassportVerifier, ProofType, ProofVerificationParams} from "../src/ZKPassportVerifier.sol";
+import {ProofVerificationData, Commitments, ServiceConfig} from "../src/Types.sol";
 import {HonkVerifier as OuterVerifier13} from "../src/ultra-honk-verifiers/OuterCount13.sol";
 import {SampleContract} from "../src/SampleContract.sol";
 import {TestUtils} from "./Utils.t.sol";
@@ -63,16 +64,21 @@ contract SampleContractTest is TestUtils {
 
     vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
-      vkeyHash: VKEY_HASH,
-      proof: proof,
-      publicInputs: publicInputs,
-      committedInputs: committedInputs,
-      committedInputCounts: committedInputCounts,
-      validityPeriodInSeconds: 7 days,
-      domain: "zkpassport.id",
-      scope: "bigproof",
-      // Set to true to accept mock proofs from the ZKR
-      devMode: false
+      proofVerificationData: ProofVerificationData({
+        vkeyHash: VKEY_HASH,
+        proof: proof,
+        publicInputs: publicInputs
+      }),
+      commitments: Commitments({
+        committedInputs: committedInputs,
+        committedInputCounts: committedInputCounts
+      }),
+      serviceConfig: ServiceConfig({
+        validityPeriodInSeconds: 7 days,
+        domain: "zkpassport.id",
+        scope: "bigproof",
+        devMode: false
+      })
     });
     bytes32 uniqueIdentifier = sampleContract.register(params, false);
 
