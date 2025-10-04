@@ -68,3 +68,7 @@ echo "Compiling facematch_ios (constrained)"
 nargo compile --force --package facematch_ios
 echo "Compiling facematch_ios_evm (constrained)"
 nargo compile --force --package facematch_ios_evm
+echo "Compiling facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256 (constrained)"
+nargo compile --force --package facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256
+echo "Compiling facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256_evm (constrained)"
+nargo compile --force --package facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256_evm

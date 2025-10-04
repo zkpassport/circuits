@@ -8,7 +8,7 @@ import {HonkVerifier as OuterVerifier5} from "../src/ultra-honk-verifiers/OuterC
 import {HonkVerifier as OuterVerifier13} from "../src/ultra-honk-verifiers/OuterCount13.sol";
 import {TestUtils} from "./Utils.t.sol";
 import {CommittedInputLen} from "../src/Constants.sol";
-import {DisclosedData, BoundData, FaceMatchMode, ProofVerificationData, Commitments, ServiceConfig} from "../src/Types.sol";
+import {DisclosedData, BoundData, FaceMatchMode, ProofVerificationData, Commitments, ServiceConfig, OS} from "../src/Types.sol";
 
 contract ZKPassportVerifierTest is TestUtils {
   OuterVerifier5 public verifier5;
@@ -332,13 +332,17 @@ contract ZKPassportVerifierTest is TestUtils {
 
     {
       vm.startSnapshotGas("ZKPassportVerifier isFaceMatchVerified");
-      bool isFacematchVerified = zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, params.commitments);
+      bool isFacematchVerified = zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.IOS, params.commitments);
       uint256 gasUsedIsFaceMatchVerified = vm.stopSnapshotGas();
       console.log("Gas used in ZKPassportVerifier isFaceMatchVerified");
       console.log(gasUsedIsFaceMatchVerified);
       assertEq(isFacematchVerified, true);
       // Should be false because the facematch mode is not strict but regular
-      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.STRICT, params.commitments), false);
+      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.STRICT, OS.IOS, params.commitments), false);
+      // Should be false because the OS is not iOS
+      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANDROID, params.commitments), false);
+      // Should be true because the OS is any
+      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANY, params.commitments), true);
     }
   }
 }
