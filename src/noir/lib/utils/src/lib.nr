@@ -494,7 +494,7 @@ fn pack_le_bytes_into_fields_internal<let BYTES_PER_FIELD: u32, let NUM_BYTES: u
 
 pub fn pack_le_bytes_into_fields<let BYTES_PER_FIELD: u32, let NUM_BYTES: u32>(
     x: [u8; NUM_BYTES],
-) -> [Field; _] {
+) -> [Field; (NUM_BYTES + BYTES_PER_FIELD - 1) / BYTES_PER_FIELD] {
     pack_le_bytes_into_fields_internal::<BYTES_PER_FIELD, NUM_BYTES, (NUM_BYTES + BYTES_PER_FIELD - 1) / BYTES_PER_FIELD>(
         x,
     )
