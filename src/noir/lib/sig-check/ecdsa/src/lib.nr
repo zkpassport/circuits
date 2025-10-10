@@ -76,12 +76,12 @@ pub fn verify_nist_p224<let HASH_BYTE_SIZE: u32>(
     )
 }
 
-pub fn verify_nist_p256_blackbox<let HASH_BYTE_SIZE: u32>(
+pub fn verify_nist_p256_blackbox(
     pubkey_x: [u8; 32],
     pubkey_y: [u8; 32],
     signature_r: [u8; 32],
     signature_s: [u8; 32],
-    msg_hash: [u8; HASH_BYTE_SIZE],
+    msg_hash: [u8; 32],
 ) -> bool {
     let signature = signature_r.concat(signature_s);
     ecdsa_secp256r1::verify_signature(pubkey_x, pubkey_y, signature, msg_hash)
