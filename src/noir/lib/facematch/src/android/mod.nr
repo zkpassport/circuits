@@ -4,7 +4,7 @@ use sha256;
 use sha512::sha384;
 use sig_check_ecdsa::{verify_nist_p256, verify_nist_p384};
 use utils::{
-    check_zero_padding, find_subarray_index, get_array_slice, poseidon2_hash_packed,
+    check_zero_padding, fallible_find_subarray_index, get_array_slice, poseidon2_hash_packed,
     unsafe_get_asn1_element_length,
 };
 
@@ -16,7 +16,7 @@ pub fn get_app_id_from_credential_tbs<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: 
     tbs: [u8; TBS_MAX_LEN],
 ) -> ([u8; APP_ID_MAX_LEN], u32) {
     // Find Android Key Attestation extension OID in the TBS certificate
-    let oid_offset = find_subarray_index(OID_ANDROID_KEY_ATTESTATION, tbs);
+    let oid_offset = fallible_find_subarray_index(OID_ANDROID_KEY_ATTESTATION, tbs);
     assert(
         oid_offset < TBS_MAX_LEN,
         "Android Key Attestation OID not found in credential certificate",
@@ -91,7 +91,7 @@ pub fn get_app_id_from_credential_tbs<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: 
 
 pub fn get_key_origin_from_credential_tbs<let TBS_MAX_LEN: u32>(tbs: [u8; TBS_MAX_LEN]) -> u8 {
     // Find Android Key Attestation extension OID in the TBS certificate
-    let oid_offset = find_subarray_index(OID_ANDROID_KEY_ATTESTATION, tbs);
+    let oid_offset = fallible_find_subarray_index(OID_ANDROID_KEY_ATTESTATION, tbs);
     assert(
         oid_offset < TBS_MAX_LEN,
         "Android Key Attestation OID not found in credential certificate",
