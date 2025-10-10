@@ -135,10 +135,10 @@ library InputsExtractor {
     require(foundCount == 1, "Found multiple compare age proofs, the proof should only have one");
   }
 
-  function getCountryProofInputs(
+  function getCountryListLength(
     Commitments calldata commitments,
     ProofType proofType
-  ) public pure returns (string[] memory countryList, uint256 length) {
+  ) public pure returns (uint256 countryListLength) {
     uint256 offset = 0;
     uint256 foundCount = 0;
     for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
@@ -148,16 +148,37 @@ library InputsExtractor {
         commitments.committedInputCounts[i] == CommittedInputLen.INCL_NATIONALITY &&
         commitments.committedInputs[offset] == bytes1(uint8(proofType))
       ) {
-        countryList = new string[](COUNTRY_LIST_LENGTH);
         offset += 1;
         for (uint256 j = 0; j < COUNTRY_LIST_LENGTH; j++) {
-          if (commitments.committedInputs[offset] == 0) {
-            length = j;
-            // The circuit constrains that once we've reached the first `0`,
-            // we won't encounter any further nonzero values.
-            // We don't need to include the padding bytes
-            break;
-          }
+          // The circuit constrains that once we've reached the first `0`,
+          // we won't encounter any further nonzero values.
+          // We don't need to include the padding bytes
+          if (commitments.committedInputs[offset] == 0) return j;
+          offset += 3;
+        }
+        foundCount++;
+      }
+      offset += commitments.committedInputCounts[i];
+    }
+  }
+
+  function getCountryProofInputs(
+    Commitments calldata commitments,
+    ProofType proofType
+  ) public pure returns (string[] memory countryList, uint256 countryListLength) {
+    uint256 offset = 0;
+    uint256 foundCount = 0;
+    countryListLength = getCountryListLength(commitments, proofType);
+    countryList = new string[](countryListLength);
+    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
+      // Country (inclusion and exclusion) circuits have 601 bytes of committed inputs
+      // The first byte is the proof type
+      if (
+        commitments.committedInputCounts[i] == CommittedInputLen.INCL_NATIONALITY &&
+        commitments.committedInputs[offset] == bytes1(uint8(proofType))
+      ) {
+        offset += 1;
+        for (uint256 j = 0; j < countryListLength; j++) {
           countryList[j] = string(commitments.committedInputs[offset:offset + 3]);
           offset += 3;
         }
