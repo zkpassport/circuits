@@ -6,8 +6,8 @@ on:
     types: [opened, reopened, ready_for_review]
 
 env:
-  NOIR_VERSION: "1.0.0-beta.8"
-  BB_VERSION: "1.0.0-nightly.20250723"
+  NOIR_VERSION: "1.0.0-beta.14"
+  BB_VERSION: "2.0.3"
   NODE_VERSION: "24.3.0"
 
 jobs:
