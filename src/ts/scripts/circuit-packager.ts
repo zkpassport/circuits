@@ -136,6 +136,7 @@ const processFile = async (
         evm ? " --oracle_hash keccak" : ""
       } -b "${inputPath}" -o "${vkeyPath}"`,
     )
+    // TODO: remove this condition once bb gates works with outer circuits again
     if (!evm) {
       await execPromise(
         `bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`,
@@ -161,6 +162,7 @@ const processFile = async (
     // Read and parse the input file
     const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
     let gateCount = 0
+    // TODO: remove this condition once bb gates works with outer circuits again
     if (!evm) {
       const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
       gateCount = gateCountFileContent.functions[0].circuit_size
