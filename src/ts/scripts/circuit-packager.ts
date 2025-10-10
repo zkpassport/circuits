@@ -47,15 +47,20 @@ async function getIpfsCidv0(
   throw new Error("Failed to generate CIDv0")
 }
 
+const getPackageJsonBBVersion = () => {
+  const packageJsonPath = path.resolve(__dirname, "../../../package.json")
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
+  const expectedBBVersion = packageJson.dependencies["@aztec/bb.js"].replace(
+    /[^0-9a-zA-Z\.\-]/i,
+    "",
+  )
+  return expectedBBVersion
+}
+
 function checkBBVersion() {
   try {
     // Read package.json to get expected bb version
-    const packageJsonPath = path.resolve(__dirname, "../../../package.json")
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
-    const expectedBBVersion = packageJson.dependencies["@aztec/bb.js"].replace(
-      /[^0-9a-zA-Z\.\-]/i,
-      "",
-    )
+    const expectedBBVersion = getPackageJsonBBVersion()
     if (!expectedBBVersion) {
       throw new Error("Couldn't find bb version in package.json")
     }
@@ -64,11 +69,13 @@ function checkBBVersion() {
     if (!installedBBVersion) {
       throw new Error(`Failed to parse bb version output: ${installedBBVersion}`)
     }
-    if (installedBBVersion !== expectedBBVersion) {
+    // TODO: Uncomment this once the bb MacOS binaries are back
+    // as the version string is not correct for locally built bb binaries
+    /* if (installedBBVersion !== expectedBBVersion) {
       throw new Error(
         `bb version mismatch. Expected ${expectedBBVersion} but found ${installedBBVersion}. Change bb version using: bbup -v ${expectedBBVersion}`,
       )
-    }
+    }*/
   } catch (error: any) {
     if (error.message.includes("command not found")) {
       console.error(
@@ -119,17 +126,21 @@ const processFile = async (
     }
 
     // Run bb command to get bb version and generate circuit vkey
-    const bbVersion = (await execPromise("bb --version")).stdout.trim().replace(/^v/i, "")
+    // const bbVersion = (await execPromise("bb --version")).stdout.trim().replace(/^v/i, "")
+    // TODO: Switch back to the above once the bb MacOS binaries are back
+    const bbVersion = getPackageJsonBBVersion()
     console.log(`Generating vkey: ${file}`)
     fs.mkdirSync(vkeyPath, { recursive: true })
     await execPromise(
       `bb write_vk --scheme ultra_honk${
         evm ? " --oracle_hash keccak" : ""
-      } --honk_recursion 1 --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
+      } -b "${inputPath}" -o "${vkeyPath}"`,
     )
-    await execPromise(
-      `bb gates --scheme ultra_honk --honk_recursion 1 -b "${inputPath}" > "${gateCountPath}"`,
-    )
+    if (!evm) {
+      await execPromise(
+        `bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`,
+      )
+    }
     if (generateSolidityVerifier) {
       await execPromise(
         `bb write_solidity_verifier --scheme ultra_honk --disable_zk -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
@@ -139,22 +150,22 @@ const processFile = async (
     // Get Poseidon2 hash of vkey
     //const vkeyAsFieldsJson = JSON.parse(fs.readFileSync(`${vkeyPath}/vk_fields.json`, "utf-8"))
     //const vkeyAsFields = vkeyAsFieldsJson.map((v: any) => BigInt(v))
-    const vkeyHash = JSON.parse(fs.readFileSync(`${vkeyPath}/vk_hash_fields.json`, "utf-8"))
+    const vkeyHash = `0x${Buffer.from(fs.readFileSync(`${vkeyPath}/vk_hash`)).toString("hex")}`
     const vkey = Buffer.from(fs.readFileSync(`${vkeyPath}/vk`)).toString("base64")
 
     // Clean up vkey files
     fs.unlinkSync(`${vkeyPath}/vk`)
-    fs.unlinkSync(`${vkeyPath}/vk_fields.json`)
     fs.unlinkSync(`${vkeyPath}/vk_hash`)
-    fs.unlinkSync(`${vkeyPath}/vk_hash_fields.json`)
     fs.rmdirSync(vkeyPath)
 
     // Read and parse the input file
     const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
     let gateCount = 0
-    const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
-    gateCount = gateCountFileContent.functions[0].circuit_size
-    fs.unlinkSync(gateCountPath)
+    if (!evm) {
+      const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
+      gateCount = gateCountFileContent.functions[0].circuit_size
+      fs.unlinkSync(gateCountPath)
+    }
 
     // Create packaged circuit object
     const packagedCircuit: {

@@ -176,7 +176,7 @@ export class Circuit {
 
       // Read the verification key file
       const vkeyBytes = fs.readFileSync(vkeyFilePath)
-      const vkeyFields = fs.readFileSync(path.join(vkeyPath, "vk")).toString("utf-8").match(/.{1,64}/g)?.map((x) => `0x${x}`) ?? []
+      const vkeyFields = Buffer.from(vkeyBytes).toString("hex").match(/.{1,64}/g)?.map((x) => `0x${x}`) ?? []
 
       // Clean up temp files
       fs.rmSync(tempDir, { recursive: true, force: true })

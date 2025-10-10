@@ -1038,7 +1038,7 @@ describe("outer proof - evm optimised", () => {
         0n,
         nowTimestamp,
       )
-      const combinedInputs = { ...facematchInputs, ...FIXTURES_FACEMATCH }
+      const combinedInputs = { ...facematchInputs, ...FIXTURES_FACEMATCH.ios_regular_mode_dev }
       const facematchCircuit = Circuit.from("facematch_ios_evm")
       const facematchProof = await facematchCircuit.prove(combinedInputs, {
         useCli: true,
