@@ -1,23 +1,19 @@
-use json_parser::JSON1kb;
-use base64::{BASE64_DECODER, BASE64_URL_ENCODER};
 use crate::constants::{APP_ATTEST_ENV_DEVELOPMENT, APP_ATTEST_ENV_PRODUCTION, APP_ID_MAX_LEN};
-use utils::split_array;
+use base64::{BASE64_DECODER, BASE64_URL_ENCODER};
+use json_parser::JSON1kb;
 use sig_check_ecdsa::verify_nist_p256_blackbox as verify_nist_p256;
+use utils::split_array;
 
 // This is the public key used by Play Integrity to sign the integrity token
 // It's a P256 key as the signing algorithm is ECDSA with SHA-256 using P-256 as the curve
 // We hardcoded it here since it's not expected to change
 global PLAY_INTEGRITY_PUBLIC_KEY_X: [u8; 32] = [
-  107,  48, 114, 237, 199,  76, 241, 189,
-   65,  24,  76,  66,  69, 105, 215, 118,
-   99, 120,  95, 228, 115,  59, 132,  26,
-  127, 164, 243, 248, 131, 236, 116,  92
+    107, 48, 114, 237, 199, 76, 241, 189, 65, 24, 76, 66, 69, 105, 215, 118, 99, 120, 95, 228, 115,
+    59, 132, 26, 127, 164, 243, 248, 131, 236, 116, 92,
 ];
 global PLAY_INTEGRITY_PUBLIC_KEY_Y: [u8; 32] = [
-  128,  65, 122,  29, 121, 206, 219, 126,
-  163,  96,  28,  35,  13,  89,  99, 254,
-   38, 211,   6, 124, 148,  77,   5,  49,
-   23, 104, 193, 198, 191,  90,  73, 156
+    128, 65, 122, 29, 121, 206, 219, 126, 163, 96, 28, 35, 13, 89, 99, 254, 38, 211, 6, 124, 148,
+    77, 5, 49, 23, 104, 193, 198, 191, 90, 73, 156,
 ];
 
 global INTEGRITY_TOKEN_MAX_LENGTH: u32 = 1024;
@@ -56,11 +52,11 @@ global REAL_INTEGRITY_TOKEN: str<782> = r#"{
 // global JWS_HEADER: str<15> = "{\"alg\":\"ES256\"}";
 // Base64 encoded JWS header: eyJhbGciOiJFUzI1NiJ9
 global JWS_HEADER_LENGTH: u32 = 20;
-global JWS_HEADER_BASE64: [u8; 20] = [101,121,74,104,98,71,99,105,79,105,74,70,85,122,73,49,78,105,74,57];
+global JWS_HEADER_BASE64: [u8; 20] =
+    [101, 121, 74, 104, 98, 71, 99, 105, 79, 105, 74, 70, 85, 122, 73, 49, 78, 105, 74, 57];
 // Base64 encoded JWS payload separator: .
 global JWS_PAYLOAD_SEPARATOR: u8 = 46;
 global JWS_PAYLOAD_LENGTH: u32 = 1366;
-
 
 pub struct IntegrityTokenCheckResponse {
     timestamp: u64,
@@ -159,26 +155,40 @@ fn decode_nonce(nonce: BoundedVec<u8, 64>) -> BoundedVec<u8, 32> {
 ///     "playProtectVerdict": "NO_ISSUES"
 ///   }
 /// }
-pub fn verify_integrity_token(token: JSON1kb, app_id: [u8; APP_ID_MAX_LEN], app_id_length: u32) -> IntegrityTokenCheckResponse {
+pub fn verify_integrity_token(
+    token: JSON1kb,
+    app_id: [u8; APP_ID_MAX_LEN],
+    app_id_length: u32,
+) -> IntegrityTokenCheckResponse {
     let request_details = token.get_object("requestDetails").unwrap();
-    let request_package_name: BoundedVec<u8, APP_ID_MAX_LEN> = request_details.get_string("requestPackageName").unwrap();
-    let timestamp_millis: BoundedVec<u8, 20> = request_details.get_string("timestampMillis").unwrap();
+    let request_package_name: BoundedVec<u8, APP_ID_MAX_LEN> =
+        request_details.get_string("requestPackageName").unwrap();
+    let timestamp_millis: BoundedVec<u8, 20> =
+        request_details.get_string("timestampMillis").unwrap();
     let nonce: BoundedVec<u8, 64> = request_details.get_string("nonce").unwrap();
 
     let app_integrity = token.get_object("appIntegrity").unwrap();
 
-    let app_recognition_verdict: BoundedVec<u8, 25> = app_integrity.get_string("appRecognitionVerdict").unwrap();
-    // We only accept when the app was downloaded from the Google Play Store 
+    let app_recognition_verdict: BoundedVec<u8, 25> =
+        app_integrity.get_string("appRecognitionVerdict").unwrap();
+    // We only accept when the app was downloaded from the Google Play Store
     // and is recognized by Google as the bundle we originally signed and published
     // The possibles values are PLAY_RECOGNIZED, UNRECOGNIZED_VERSION and UNEVALUATED
-    let pass_app_recognition_verdict = app_recognition_verdict == BoundedVec::from_array("PLAY_RECOGNIZED".as_bytes());
-    
-    let package_name: BoundedVec<u8, APP_ID_MAX_LEN> = app_integrity.get_string("packageName").unwrap();
+    let pass_app_recognition_verdict =
+        app_recognition_verdict == BoundedVec::from_array("PLAY_RECOGNIZED".as_bytes());
+
+    let package_name: BoundedVec<u8, APP_ID_MAX_LEN> =
+        app_integrity.get_string("packageName").unwrap();
     assert_eq(package_name, request_package_name, "Package name mismatch");
-    assert_eq(package_name, BoundedVec::from_parts(app_id, app_id_length), "The package name in the token does not match the expected app id");
+    assert_eq(
+        package_name,
+        BoundedVec::from_parts(app_id, app_id_length),
+        "The package name in the token does not match the expected app id",
+    );
 
     let device_integrity = token.get_object("deviceIntegrity").unwrap();
-    let device_recognition_verdict = device_integrity.get_array("deviceRecognitionVerdict").unwrap();
+    let device_recognition_verdict =
+        device_integrity.get_array("deviceRecognitionVerdict").unwrap();
 
     let device_recognition_verdict_len = device_recognition_verdict.get_length();
     let mut passes_device_recognition = false;
@@ -188,9 +198,16 @@ pub fn verify_integrity_token(token: JSON1kb, app_id: [u8; APP_ID_MAX_LEN], app_
     // MEETS_BASIC_INTEGRITY does not give enough guarantee
     for i in 0..3 {
         if i < device_recognition_verdict_len {
-            let device_recognition_verdict: BoundedVec<u8, 30> = device_recognition_verdict.get_string_from_array(i as Field).unwrap();
-            if (device_recognition_verdict == BoundedVec::from_array("MEETS_DEVICE_INTEGRITY".as_bytes())) | 
-            (device_recognition_verdict == BoundedVec::from_array("MEETS_STRONG_INTEGRITY".as_bytes())) {
+            let device_recognition_verdict: BoundedVec<u8, 30> =
+                device_recognition_verdict.get_string_from_array(i as Field).unwrap();
+            if (
+                device_recognition_verdict
+                    == BoundedVec::from_array("MEETS_DEVICE_INTEGRITY".as_bytes())
+            )
+                | (
+                    device_recognition_verdict
+                        == BoundedVec::from_array("MEETS_STRONG_INTEGRITY".as_bytes())
+                ) {
                 passes_device_recognition = true;
             }
         }
@@ -209,19 +226,27 @@ pub fn verify_integrity_token(token: JSON1kb, app_id: [u8; APP_ID_MAX_LEN], app_
         // If all checks pass, we consider the environment to be production
         // Otherwise, we consider the environment to be development which is not accepted by verifiers
         // in production
-        environment: if pass_all_checks { APP_ATTEST_ENV_PRODUCTION } else { APP_ATTEST_ENV_DEVELOPMENT },
+        environment: if pass_all_checks {
+            APP_ATTEST_ENV_PRODUCTION
+        } else {
+            APP_ATTEST_ENV_DEVELOPMENT
+        },
         nonce: decode_nonce(nonce).storage(),
     }
 }
 
-fn concat_jws_header_and_token(token: [u8; INTEGRITY_TOKEN_MAX_LENGTH], token_len: u32) -> ([u8; JWS_PAYLOAD_LENGTH + JWS_HEADER_LENGTH + 1], u32) {
+fn concat_jws_header_and_token(
+    token: [u8; INTEGRITY_TOKEN_MAX_LENGTH],
+    token_len: u32,
+) -> ([u8; JWS_PAYLOAD_LENGTH + JWS_HEADER_LENGTH + 1], u32) {
     let mut signed_payload = [0; JWS_PAYLOAD_LENGTH + JWS_HEADER_LENGTH + 1];
     for i in 0..JWS_HEADER_LENGTH {
         signed_payload[i] = JWS_HEADER_BASE64[i];
     }
     // Add the dot separator
     signed_payload[JWS_HEADER_LENGTH] = JWS_PAYLOAD_SEPARATOR;
-    let token_base64: BoundedVec<u8, JWS_PAYLOAD_LENGTH> = BASE64_URL_ENCODER::encode_var(BoundedVec::from_parts(token, token_len));
+    let token_base64: BoundedVec<u8, JWS_PAYLOAD_LENGTH> =
+        BASE64_URL_ENCODER::encode_var(BoundedVec::from_parts(token, token_len));
     for i in (JWS_HEADER_LENGTH + 1)..(JWS_PAYLOAD_LENGTH + JWS_HEADER_LENGTH + 1) {
         let token_index = i - JWS_HEADER_LENGTH - 1;
         if token_index < token_base64.len() {
@@ -231,12 +256,21 @@ fn concat_jws_header_and_token(token: [u8; INTEGRITY_TOKEN_MAX_LENGTH], token_le
     (signed_payload, token_base64.len() + JWS_HEADER_LENGTH + 1)
 }
 
-pub fn verify_integrity_token_signature(token: [u8; INTEGRITY_TOKEN_MAX_LENGTH], signature: [u8; 64]) -> bool {
+pub fn verify_integrity_token_signature(
+    token: [u8; INTEGRITY_TOKEN_MAX_LENGTH],
+    signature: [u8; 64],
+) -> bool {
     let token_len = get_integrity_token_length(token);
-    let (signed_payload, signed_payload_len) = concat_jws_header_and_token(token, token_len);  
-    let msg_hash =  sha256::sha256_var(signed_payload, signed_payload_len as u64);
+    let (signed_payload, signed_payload_len) = concat_jws_header_and_token(token, token_len);
+    let msg_hash = sha256::sha256_var(signed_payload, signed_payload_len as u64);
     let (signature_r, signature_s) = split_array(signature);
-    verify_nist_p256(PLAY_INTEGRITY_PUBLIC_KEY_X, PLAY_INTEGRITY_PUBLIC_KEY_Y, signature_r, signature_s, msg_hash)
+    verify_nist_p256(
+        PLAY_INTEGRITY_PUBLIC_KEY_X,
+        PLAY_INTEGRITY_PUBLIC_KEY_Y,
+        signature_r,
+        signature_s,
+        msg_hash,
+    )
 }
 
 fn pad_token<let TOKEN_LEN: u32>(token: [u8; TOKEN_LEN]) -> [u8; INTEGRITY_TOKEN_MAX_LENGTH] {
@@ -251,7 +285,8 @@ fn pad_token<let TOKEN_LEN: u32>(token: [u8; TOKEN_LEN]) -> [u8; INTEGRITY_TOKEN
 #[test]
 fn test_verify_integrity_token() {
     let token = parse_integrity_token(pad_token(SAMPLE_INTEGRITY_TOKEN.as_bytes()));
-    let app_id: BoundedVec<u8, APP_ID_MAX_LEN> = BoundedVec::from_array("com.package.name".as_bytes());
+    let app_id: BoundedVec<u8, APP_ID_MAX_LEN> =
+        BoundedVec::from_array("com.package.name".as_bytes());
     let app_id_length = 16;
     let response = verify_integrity_token(token, app_id.storage(), app_id_length);
     assert_eq(response.environment, APP_ATTEST_ENV_PRODUCTION);
@@ -263,11 +298,12 @@ fn test_verify_integrity_token() {
 #[test]
 fn test_verify_integrity_token_signature() {
     let signature: [u8; 64] = [
-        7, 43, 57, 49, 121, 201, 148, 129, 231, 214, 235, 238, 215, 58, 126, 91, 145, 164,
-        167, 248, 241, 75, 202, 120, 86, 163, 100, 187, 171, 18, 246, 74, 81, 70, 212, 62,
-        131, 12, 221, 155, 93, 77, 127, 194, 147, 189, 164, 120, 233, 155, 55, 158, 115,
-        201, 255, 102, 250, 115, 92, 82, 121, 77, 77, 11
+        7, 43, 57, 49, 121, 201, 148, 129, 231, 214, 235, 238, 215, 58, 126, 91, 145, 164, 167, 248,
+        241, 75, 202, 120, 86, 163, 100, 187, 171, 18, 246, 74, 81, 70, 212, 62, 131, 12, 221, 155,
+        93, 77, 127, 194, 147, 189, 164, 120, 233, 155, 55, 158, 115, 201, 255, 102, 250, 115, 92,
+        82, 121, 77, 77, 11,
     ];
-    let verified = verify_integrity_token_signature(pad_token(REAL_INTEGRITY_TOKEN.as_bytes()), signature);
+    let verified =
+        verify_integrity_token_signature(pad_token(REAL_INTEGRITY_TOKEN.as_bytes()), signature);
     assert(verified, "Failed to verify integrity token signature");
 }
