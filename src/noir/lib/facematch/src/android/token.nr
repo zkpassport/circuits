@@ -1,10 +1,13 @@
 use crate::constants::{APP_ATTEST_ENV_DEVELOPMENT, APP_ATTEST_ENV_PRODUCTION, APP_ID_MAX_LEN};
+use super::constants::{
+    INTEGRITY_TOKEN_MAX_LENGTH, JWS_HEADER_BASE64, JWS_HEADER_LENGTH, JWS_PAYLOAD_LENGTH,
+    JWS_PAYLOAD_SEPARATOR, PLAY_INTEGRITY_PUBLIC_KEY_X, PLAY_INTEGRITY_PUBLIC_KEY_Y,
+};
 use base64::{BASE64_URL_DECODER, BASE64_URL_ENCODER};
 use json_parser::JSON1kb;
 use sig_check_ecdsa::verify_nist_p256_blackbox as verify_nist_p256;
-use utils::split_array;
-use super::constants::{INTEGRITY_TOKEN_MAX_LENGTH, JWS_HEADER_LENGTH, JWS_HEADER_BASE64, JWS_PAYLOAD_SEPARATOR, JWS_PAYLOAD_LENGTH, PLAY_INTEGRITY_PUBLIC_KEY_X, PLAY_INTEGRITY_PUBLIC_KEY_Y};
 use utils::find_subarray_index;
+use utils::split_array;
 
 // Fake integrity token to simulate a token meeting all criteria
 global SAMPLE_INTEGRITY_TOKEN: str<617> = "{\"requestDetails\":{\"requestPackageName\":\"com.package.name\",\"timestampMillis\":\"1760262881732\",\"nonce\":\"uU0nuZNNPgilLlLX2n2r-sSE7-N6U4DukIj3rOLvzek\"},\"appIntegrity\":{\"appRecognitionVerdict\":\"PLAY_RECOGNIZED\",\"packageName\":\"com.package.name\",\"certificateSha256Digest\":[\"6a6a1474b5cbbb2b1aa57e0bc3\"],\"versionCode\":\"42\"},\"deviceIntegrity\":{\"deviceRecognitionVerdict\":[\"MEETS_DEVICE_INTEGRITY\",\"MEETS_STRONG_INTEGRITY\"],\"recentDeviceActivity\":{\"deviceActivityLevel\":\"LEVEL_3\"},\"deviceAttributes\":{\"sdkVersion\":32}},\"accountDetails\":{\"appLicensingVerdict\":\"LICENSED\"},\"environmentDetails\":{\"playProtectVerdict\":\"NO_ISSUES\"}}";
@@ -40,7 +43,6 @@ global REAL_INTEGRITY_TOKEN: str<782> = r#"{
 }"#;
 // The padding added at the end of the nonce: = (encoded as \u003d)
 global NONCE_PADDING: [u8; 6] = [92, 117, 48, 48, 51, 100];
-
 
 pub struct IntegrityTokenCheckResponse {
     pub timestamp: u64,

@@ -284,7 +284,9 @@ pub fn get_client_data_hash<let CLIENT_DATA_LEN: u32>(
     hash_bytes
 }
 
-pub fn prepare_client_data_hash_for_signature(poseidon2_hash_bytes: [u8; CLIENT_DATA_HASH_LEN]) -> [u8; 32] {
+pub fn prepare_client_data_hash_for_signature(
+    poseidon2_hash_bytes: [u8; CLIENT_DATA_HASH_LEN],
+) -> [u8; 32] {
     sha256::sha256_var(poseidon2_hash_bytes, CLIENT_DATA_HASH_LEN as u64)
 }
 
