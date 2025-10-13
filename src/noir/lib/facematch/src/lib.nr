@@ -290,14 +290,6 @@ pub fn prepare_client_data_hash_for_signature(
     sha256::sha256_var(poseidon2_hash_bytes, CLIENT_DATA_HASH_LEN as u64)
 }
 
-pub fn get_client_data_hash_for_signature<let CLIENT_DATA_LEN: u32>(
-    client_data: [u8; CLIENT_DATA_LEN],
-    client_data_len: u32,
-) -> [u8; CLIENT_DATA_HASH_LEN] {
-    let poseidon2_hash_bytes = get_client_data_hash(client_data, client_data_len);
-    sha256::sha256_var(poseidon2_hash_bytes, CLIENT_DATA_HASH_LEN as u64)
-}
-
 pub fn verify_intermediate_certificate<let TBS_MAX_LEN: u32>(
     root_key_x: [u8; 48],
     root_key_y: [u8; 48],

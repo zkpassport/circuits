@@ -58,16 +58,16 @@ fn main(
     // so client_data_sig will always be P-256 with SHA256
     credential_key: [u8; 64],
     credential_tbs: [u8; CREDENTIAL_TBS_MAX_LEN],
-    // P-256 signature from the third intermediate certificate over the credential certificate TBS
+    // ecdsa signature from the third intermediate certificate over the credential certificate TBS
     credential_sig: [u8; 64],
     client_data: [u8; CLIENT_DATA_MAX_LEN],
     // P-256 signature from the credential (i.e. leaf) certificate over the client data TBS
     client_data_sig: [u8; 64],
     // @committed
-    // environment is commitment to (via parameter commitment) and can be verified outside the circuit
+    // environment is committed to (via parameter commitment) and can be verified outside the circuit
     environment: u8, // APP_ATTEST_ENV_DEVELOPMENT (0) or APP_ATTEST_ENV_PRODUCTION (1)
     // @committed
-    // Hash of app_id is commitment to (via parameter commitment) and can be verified outside the circuit
+    // Hash of app_id is committed to (via parameter commitment) and can be verified outside the circuit
     app_id: [u8; APP_ID_MAX_LEN],
     // @committed
     // facematch_mode is commitment to (via parameter commitment) and can be verified outside the circuit
@@ -76,6 +76,10 @@ fn main(
     integrity_token: [u8; INTEGRITY_TOKEN_MAX_LENGTH],
     // The signature over the integrity token (ECDSA P-256 with SHA-256)
     integrity_token_signature: [u8; 64],
+    // @committed
+    // Hash of play_integrity_public_key is committed to (via parameter commitment) and can be verified outside the circuit
+    // Play Integrity's public key behind the signature over the integrity token
+    play_integrity_public_key: [u8; 64],
     nullifier_secret: Field,
     service_scope: pub Field,
     service_subscope: pub Field,
@@ -210,8 +214,15 @@ fn main(
     );
 
     // Verify the signature over the integrity token
+    let (play_integrity_public_key_x, play_integrity_public_key_y) =
+        split_array(play_integrity_public_key);
     assert(
-        verify_integrity_token_signature(integrity_token, integrity_token_signature),
+        verify_integrity_token_signature(
+            integrity_token,
+            play_integrity_public_key_x,
+            play_integrity_public_key_y,
+            integrity_token_signature,
+        ),
         "Failed to verify integrity token signature",
     );
 
@@ -238,8 +249,15 @@ fn main(
     );
 
     let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
-    let param_commitment =
-        calculate_param_commitment_sha2(root_key_leaf, environment, app_id_hash, facematch_mode);
+    let play_integrity_public_key_hash =
+        poseidon2_hash_packed(play_integrity_public_key, play_integrity_public_key.len());
+    let param_commitment = calculate_param_commitment_sha2(
+        root_key_leaf,
+        environment,
+        app_id_hash,
+        play_integrity_public_key_hash,
+        facematch_mode,
+    );
 
     (param_commitment, nullifier_type, nullifier)
 }

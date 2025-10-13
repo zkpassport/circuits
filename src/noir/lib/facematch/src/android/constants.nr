@@ -20,7 +20,6 @@ pub global JWS_PAYLOAD_LENGTH: u32 = 1366;
 
 // This is the public key used by Play Integrity to sign the integrity token
 // It's a P256 key as the signing algorithm is ECDSA with SHA-256 using P-256 as the curve
-// We hardcoded it here since it's not expected to change
 pub global PLAY_INTEGRITY_PUBLIC_KEY_X: [u8; 32] = [
     107, 48, 114, 237, 199, 76, 241, 189, 65, 24, 76, 66, 69, 105, 215, 118, 99, 120, 95, 228, 115,
     59, 132, 26, 127, 164, 243, 248, 131, 236, 116, 92,

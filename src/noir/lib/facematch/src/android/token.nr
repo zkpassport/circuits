@@ -250,6 +250,8 @@ fn concat_jws_header_and_token(
 
 pub fn verify_integrity_token_signature(
     token: [u8; INTEGRITY_TOKEN_MAX_LENGTH],
+    public_key_x: [u8; 32],
+    public_key_y: [u8; 32],
     signature: [u8; 64],
 ) -> bool {
     let token_len = get_integrity_token_length(token);
@@ -259,8 +261,8 @@ pub fn verify_integrity_token_signature(
     let msg_hash = sha256::sha256_var(signed_payload, signed_payload_len as u64);
     let (signature_r, signature_s) = split_array(signature);
     verify_nist_p256(
-        PLAY_INTEGRITY_PUBLIC_KEY_X,
-        PLAY_INTEGRITY_PUBLIC_KEY_Y,
+        public_key_x,
+        public_key_y,
         signature_r,
         signature_s,
         msg_hash,
@@ -305,7 +307,11 @@ fn test_verify_integrity_token_signature() {
         93, 77, 127, 194, 147, 189, 164, 120, 233, 155, 55, 158, 115, 201, 255, 102, 250, 115, 92,
         82, 121, 77, 77, 11,
     ];
-    let verified =
-        verify_integrity_token_signature(pad_token(REAL_INTEGRITY_TOKEN.as_bytes()), signature);
+    let verified = verify_integrity_token_signature(
+        pad_token(REAL_INTEGRITY_TOKEN.as_bytes()),
+        PLAY_INTEGRITY_PUBLIC_KEY_X,
+        PLAY_INTEGRITY_PUBLIC_KEY_Y,
+        signature,
+    );
     assert(verified, "Failed to verify integrity token signature");
 }
