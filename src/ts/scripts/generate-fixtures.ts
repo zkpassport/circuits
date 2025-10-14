@@ -285,6 +285,8 @@ class FixtureGenerator {
       ...new TextEncoder().encode("YL5MS3Z639.app.zkpassport.zkpassport"),
     ])
     const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
+    // On iOS, the integrity public key hash is 0 since it's logic specific to Android
+    const integrityPubKeyHash = 0n
     const facematch_mode = 1n
     const paramCommitment = getParameterCommitmentFromDisclosureProof(facematchProof)
     const vkey = (await facematchCircuit.getVerificationKey({ evm: false })).vkeyFields
@@ -293,7 +295,7 @@ class FixtureGenerator {
     const committedInputs =
       ProofType.FACEMATCH.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(root_key_leaf, 32))
       .map((x) => x.toString(16).padStart(2, "0"))
-      .join("") + environment.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(app_id_hash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + facematch_mode.toString(16).padStart(2, "0")
+      .join("") + environment.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(app_id_hash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + Array.from(numberToBytesBE(integrityPubKeyHash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + facematch_mode.toString(16).padStart(2, "0")
 
     await facematchCircuit.destroy()
 

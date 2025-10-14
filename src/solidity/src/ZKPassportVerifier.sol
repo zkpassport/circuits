@@ -562,19 +562,25 @@ contract ZKPassportVerifier {
    * @param faceMatchMode The FaceMatch mode expected to be used in the verification
    * @param os The operating system on which the proof should have been generated (Any (0), iOS (1), Android (2))
    * @param commitments The commitments
+   * @param serviceConfig The service config
    * @return True if the proof is tied to a valid FaceMatch verification, false otherwise
    */
   function isFaceMatchVerified(
     FaceMatchMode faceMatchMode,
     OS os,
-    Commitments calldata commitments
+    Commitments calldata commitments,
+    // Not used for now, but will be used in the future for the validity period
+    // so we place it here to plan ahead
+    ServiceConfig calldata serviceConfig
   ) public pure returns (bool) {
-    (bytes32 rootKeyHash, Environment environment, bytes32 appId, FaceMatchMode retrievedFaceMatchMode) = InputsExtractor.getFacematchProofInputs(commitments);
+    (bytes32 rootKeyHash, Environment environment, bytes32 appIdHash, bytes32 integrityPublicKeyHash, FaceMatchMode retrievedFaceMatchMode) = InputsExtractor.getFacematchProofInputs(commitments);
     bool isProduction = environment == Environment.PRODUCTION;
     bool isCorrectMode = retrievedFaceMatchMode == faceMatchMode;
     bool isCorrectRootKeyHash = (rootKeyHash == AppAttest.APPLE_ROOT_KEY_HASH && (os == OS.IOS || os == OS.ANY)) || (rootKeyHash == AppAttest.GOOGLE_RSA_ROOT_KEY_HASH && (os == OS.ANDROID || os == OS.ANY));
-    bool isCorrectAppIdHash = (appId == AppAttest.IOS_APP_ID_HASH && (os == OS.IOS || os == OS.ANY)) || (appId == AppAttest.ANDROID_APP_ID_HASH && (os == OS.ANDROID || os == OS.ANY));
-    return isProduction && isCorrectMode && isCorrectRootKeyHash && isCorrectAppIdHash;
+    bool isCorrectAppIdHash = (appIdHash == AppAttest.IOS_APP_ID_HASH && (os == OS.IOS || os == OS.ANY)) || (appIdHash == AppAttest.ANDROID_APP_ID_HASH && (os == OS.ANDROID || os == OS.ANY));
+    // The integrity public key hash is 0 for iOS as it's logic specific to Android
+    bool isCorrectIntegrityPublicKeyHash = (integrityPublicKeyHash == bytes32(0) && (os == OS.IOS || os == OS.ANY)) || (integrityPublicKeyHash == AppAttest.ANDROID_INTEGRITY_PUBLIC_KEY_HASH && (os == OS.ANDROID || os == OS.ANY));
+    return isProduction && isCorrectMode && isCorrectRootKeyHash && isCorrectAppIdHash && isCorrectIntegrityPublicKeyHash;
   }
 
   /**

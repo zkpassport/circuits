@@ -54,6 +54,7 @@ jobs:
           nargo test --package exclusion_check_country_lib
           nargo test --package inclusion_check_country_lib
           nargo test --package exclusion_check_sanctions_lib
+          nargo test --package facematch_lib
 
       - name: Calculate cache key for compiled circuits
         id: circuits-cache-key

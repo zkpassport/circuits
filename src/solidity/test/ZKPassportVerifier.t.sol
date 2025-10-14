@@ -29,8 +29,8 @@ contract ZKPassportVerifierTest is TestUtils {
     bytes32(uint256(0x04b98c6f867d6a7f86d514b72c3be8f41b7aa6f49fdc17514c9f9f0a2ac3ef9a));
   bytes32 constant OUTER_PROOF_13_VKEY_HASH =
     bytes32(uint256(0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4));
-  uint256 constant CURRENT_DATE = 1760114877;
-  uint256 constant PROOF_GENERATION_DATE = 1760114477;
+  uint256 constant CURRENT_DATE = 1760471901;
+  uint256 constant PROOF_GENERATION_DATE = 1760471801;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
@@ -332,17 +332,17 @@ contract ZKPassportVerifierTest is TestUtils {
 
     {
       vm.startSnapshotGas("ZKPassportVerifier isFaceMatchVerified");
-      bool isFacematchVerified = zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.IOS, params.commitments);
+      bool isFacematchVerified = zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.IOS, params.commitments, params.serviceConfig);
       uint256 gasUsedIsFaceMatchVerified = vm.stopSnapshotGas();
       console.log("Gas used in ZKPassportVerifier isFaceMatchVerified");
       console.log(gasUsedIsFaceMatchVerified);
       assertEq(isFacematchVerified, true);
       // Should be false because the facematch mode is not strict but regular
-      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.STRICT, OS.IOS, params.commitments), false);
+      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.STRICT, OS.IOS, params.commitments, params.serviceConfig), false);
       // Should be false because the OS is not iOS
-      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANDROID, params.commitments), false);
+      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANDROID, params.commitments, params.serviceConfig), false);
       // Should be true because the OS is any
-      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANY, params.commitments), true);
+      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANY, params.commitments, params.serviceConfig), true);
     }
   }
 }
