@@ -1,5 +1,5 @@
 use crate::constants::{APP_ATTEST_ENV_DEVELOPMENT, APP_ATTEST_ENV_PRODUCTION, CLIENT_DATA_HASH_LEN};
-use utils::{find_subarray_index, get_array_slice, unsafe_get_asn1_element_length};
+use utils::{fallible_find_subarray_index, get_array_slice, unsafe_get_asn1_element_length};
 pub mod constants;
 use crate::get_client_data_hash;
 use constants::{AAGUID_DEVELOPMENT, AAGUID_PRODUCTION, OID_APPLE_APP_ID, OID_APPLE_NONCE_ID};
@@ -10,7 +10,7 @@ pub mod tests;
 /// The nonce is stored in an ASN.1 OCTET STRING within the extension
 pub fn get_nonce_from_credential_tbs<let TBS_MAX_LEN: u32>(tbs: [u8; TBS_MAX_LEN]) -> [u8; 32] {
     // Find Apple App Attest nonce extension OID in the TBS certificate
-    let oid_offset = find_subarray_index(OID_APPLE_NONCE_ID, tbs);
+    let oid_offset = fallible_find_subarray_index(OID_APPLE_NONCE_ID, tbs);
     assert(oid_offset < TBS_MAX_LEN, "Nonce OID not found in credential certificate");
     // Look for OCTET STRING tag (04 20) within the next 10 bytes
     let NONCE_SEARCH_DISTANCE = 10;
@@ -44,7 +44,7 @@ pub fn get_app_id_from_credential_tbs<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: 
     tbs: [u8; TBS_MAX_LEN],
 ) -> ([u8; APP_ID_MAX_LEN], u32) {
     // Find Apple App Attest app ID extension OID in the TBS certificate
-    let oid_offset = find_subarray_index(OID_APPLE_APP_ID, tbs);
+    let oid_offset = fallible_find_subarray_index(OID_APPLE_APP_ID, tbs);
     assert(oid_offset < TBS_MAX_LEN, "App ID OID not found in credential certificate");
 
     // Look for the 6th item in the sequence (tagged with BF 89 34)

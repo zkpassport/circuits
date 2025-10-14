@@ -405,50 +405,48 @@ pub unconstrained fn unsafe_get_asn1_element_length<let N: u32>(asn1: [u8; N]) -
     }
 }
 
-/// Find the index of the first occurrence of the needle in the haystack
-/// Returns the index of the first occurrence of the needle in the haystack
-/// Returns HAYSTACK_SIZE if the needle is not found
-pub fn find_subarray_index<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+/// Finds the offset of an occurance of `needle` in `haystack` or HAYSTACK_SIZE
+// Note: This can return HAYSTACK_SIZE even if `needle` *does* exist in `haystack` due to using an unconstrained function
+/// Returns the offset of a `needle` in `haystack` if it exists or HAYSTACK_SIZE
+pub fn fallible_find_subarray_index<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
     needle: [u8; NEEDLE_SIZE],
     haystack: [u8; HAYSTACK_SIZE],
 ) -> u32 {
-    // Safety: This is safe because the offset is only used as a starting point
-    // to verify the substring exists
-    let offset_unchecked = unsafe { find_subarray_index_unsafe(needle, haystack) };
-    let mut offset = offset_unchecked;
-    // Check if offset is valid before attempting verification
-    if (offset_unchecked < HAYSTACK_SIZE) & (offset_unchecked + NEEDLE_SIZE <= HAYSTACK_SIZE) {
+    std::static_assert(
+        NEEDLE_SIZE <= HAYSTACK_SIZE,
+        "Needle must not be larger than haystack",
+    );
+    std::static_assert(NEEDLE_SIZE != 0, "Needle must not be empty");
+    // Safety: The offset is only used as a starting point to verify the subarray exists
+    let offset_unchecked = unsafe { fallible_find_subarray_index_unsafe(needle, haystack) };
+    if (offset_unchecked + NEEDLE_SIZE <= HAYSTACK_SIZE) {
+        // Ensures the subarray exists
         for i in 0..NEEDLE_SIZE {
-            if haystack[i + offset_unchecked] != needle[i] {
-                offset = HAYSTACK_SIZE;
-            }
+            assert_eq(haystack[offset_unchecked + i], needle[i]);
         }
     } else {
-        // If offset is out of bounds, needle was not found
-        offset = HAYSTACK_SIZE;
+        assert(offset_unchecked == HAYSTACK_SIZE);
     }
-    offset
+    offset_unchecked
 }
 
-pub fn is_subarray_in_array<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+/// Require the needle to exist in the haystack
+pub fn require_subarray_in_array<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
     needle: [u8; NEEDLE_SIZE],
     haystack: [u8; HAYSTACK_SIZE],
 ) -> bool {
-    find_subarray_index(needle, haystack) < HAYSTACK_SIZE
+    fallible_find_subarray_index(needle, haystack) != HAYSTACK_SIZE
 }
 
 /// Safety: This is safe because the offset is only used as a starting point
 /// to verify the substring exists
-pub unconstrained fn find_subarray_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+pub unconstrained fn fallible_find_subarray_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
     needle: [u8; NEEDLE_SIZE],
     haystack: [u8; HAYSTACK_SIZE],
 ) -> u32 {
     let mut result = HAYSTACK_SIZE; // Default to "not found" value
-    // Handle edge cases
-    if NEEDLE_SIZE == 0 {
-        result = 0;
-    } else if NEEDLE_SIZE <= HAYSTACK_SIZE {
-        // Search for the needle in the haystack
+    // Search for the needle in the haystack
+    if NEEDLE_SIZE <= HAYSTACK_SIZE {
         for i in 0..(HAYSTACK_SIZE - NEEDLE_SIZE + 1) {
             let mut found = true;
             for j in 0..NEEDLE_SIZE {

@@ -4,10 +4,10 @@ use sha512::{sha384, sha512};
 use utils::{
     check_zero_padding,
     constants::{ID_CARD_DG1_LENGTH, PASSPORT_DG1_LENGTH},
-    find_subarray_index,
+    fallible_find_subarray_index,
     get_array_slice,
     is_id_card,
-    is_subarray_in_array,
+    require_subarray_in_array,
     types::{DG1Data, EContentData},
 };
 
@@ -24,7 +24,8 @@ pub fn get_dg2_hash_from_econtent<let HASH_SIZE: u32>(
     e_content: EContentData,
     e_content_size: u32,
 ) -> [u8; HASH_SIZE] {
-    let dg2_hash_der_identifier_offset = find_subarray_index(DG2_HASH_DER_IDENTIFIER, e_content);
+    let dg2_hash_der_identifier_offset =
+        fallible_find_subarray_index(DG2_HASH_DER_IDENTIFIER, e_content);
     assert(dg2_hash_der_identifier_offset != e_content.len(), "DG2 hash not found in eContent");
 
     assert_eq(
@@ -80,7 +81,7 @@ pub fn check_dg1_sha1(dg1: DG1Data, e_content: EContentData, e_content_size: u32
     let dg1_hash = sha1::sha1_var(dg1_bounded_vec);
 
     // Find the offset of the hash of dg1 in e_content
-    let dg1_offset_in_e_content = find_subarray_index(dg1_hash, e_content);
+    let dg1_offset_in_e_content = fallible_find_subarray_index(dg1_hash, e_content);
     // Check that the hash of dg1 is in the e_content, we use the actual size rather than generic size
     // of econtent to ignore the padding bytes at the end
     assert(
@@ -104,7 +105,7 @@ pub fn check_signed_attributes_sha1<let SA_SIZE: u32>(
 
     // Check that the computed final hash is in the signed attributes
     assert(
-        is_subarray_in_array(computed_final_hash, signed_attributes),
+        require_subarray_in_array(computed_final_hash, signed_attributes),
         "Computed final hash not found in signed attributes",
     );
 }
@@ -124,7 +125,7 @@ pub fn check_dg1_sha224(dg1: DG1Data, e_content: EContentData, e_content_size: u
     let dg1_hash = sha224_var(dg1, dg1_size);
 
     // Find the offset of the hash of dg1 in e_content
-    let dg1_offset_in_e_content = find_subarray_index(dg1_hash, e_content);
+    let dg1_offset_in_e_content = fallible_find_subarray_index(dg1_hash, e_content);
     // Check that the hash of dg1 is in the e_content, we use the actual size rather than generic size
     // of econtent to ignore the padding bytes at the end
     assert(
@@ -146,7 +147,7 @@ pub fn check_signed_attributes_sha224<let SA_SIZE: u32>(
 
     // Check that the computed final hash is in the signed attributes
     assert(
-        is_subarray_in_array(computed_final_hash, signed_attributes),
+        require_subarray_in_array(computed_final_hash, signed_attributes),
         "Computed final hash not found in signed attributes",
     );
 }
@@ -166,7 +167,7 @@ pub fn check_dg1_sha256(dg1: DG1Data, e_content: EContentData, e_content_size: u
     let dg1_hash = sha256_var(dg1, dg1_size);
 
     // Find the offset of the hash of dg1 in e_content
-    let dg1_offset_in_e_content = find_subarray_index(dg1_hash, e_content);
+    let dg1_offset_in_e_content = fallible_find_subarray_index(dg1_hash, e_content);
     // Check that the hash of dg1 is in the e_content, we use the actual size rather than generic size
     // of econtent to ignore the padding bytes at the end
     assert(
@@ -188,7 +189,7 @@ pub fn check_signed_attributes_sha256<let SA_SIZE: u32>(
 
     // Check that the computed final hash is in the signed attributes
     assert(
-        is_subarray_in_array(computed_final_hash, signed_attributes),
+        require_subarray_in_array(computed_final_hash, signed_attributes),
         "Computed final hash not found in signed attributes",
     );
 }
@@ -209,7 +210,7 @@ pub fn check_dg1_sha384(dg1: DG1Data, e_content: EContentData, e_content_size: u
     let dg1_hash = sha384::sha384_var(dg1_bounded_vec);
 
     // Find the offset of the hash of dg1 in e_content
-    let dg1_offset_in_e_content = find_subarray_index(dg1_hash, e_content);
+    let dg1_offset_in_e_content = fallible_find_subarray_index(dg1_hash, e_content);
     // Check that the hash of dg1 is in the e_content, we use the actual size rather than generic size
     // of econtent to ignore the padding bytes at the end
     assert(
@@ -233,7 +234,7 @@ pub fn check_signed_attributes_sha384<let SA_SIZE: u32>(
 
     // Check that the computed final hash is in the signed attributes
     assert(
-        is_subarray_in_array(computed_final_hash, signed_attributes),
+        require_subarray_in_array(computed_final_hash, signed_attributes),
         "Computed final hash not found in signed attributes",
     );
 }
@@ -254,7 +255,7 @@ pub fn check_dg1_sha512(dg1: DG1Data, e_content: EContentData, e_content_size: u
     let dg1_hash = sha512::sha512_var(dg1_bounded_vec);
 
     // Find the offset of the hash of dg1 in e_content
-    let dg1_offset_in_e_content = find_subarray_index(dg1_hash, e_content);
+    let dg1_offset_in_e_content = fallible_find_subarray_index(dg1_hash, e_content);
     // Check that the hash of dg1 is in the e_content, we use the actual size rather than generic size
     // of econtent to ignore the padding bytes at the end
     assert(
@@ -278,7 +279,7 @@ pub fn check_signed_attributes_sha512<let SA_SIZE: u32>(
 
     // Check that the computed final hash is in the signed attributes
     assert(
-        is_subarray_in_array(computed_final_hash, signed_attributes),
+        require_subarray_in_array(computed_final_hash, signed_attributes),
         "Computed final hash not found in signed attributes",
     );
 }
