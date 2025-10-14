@@ -61,7 +61,7 @@ contract ZKPassportVerifierTest is TestUtils {
     committedInputCounts[1] = CommittedInputLen.BIND;
 
     // Verify the proof
-    vm.startSnapshotGas("ZKPassportVerifier verifyProof");
+    vm.startSnapshotGas("ZKPassportVerifier test_VerifyValidProof");
     vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
       proofVerificationData: ProofVerificationData({
@@ -91,7 +91,10 @@ contract ZKPassportVerifierTest is TestUtils {
     );
 
     vm.startSnapshotGas("ZKPassportVerifier getDisclosedData");
-    DisclosedData memory disclosedData = zkPassportVerifier.getDisclosedData(params.commitments, false);
+    DisclosedData memory disclosedData = zkPassportVerifier.getDisclosedData(
+      params.commitments,
+      false
+    );
     uint256 gasUsedGetDisclosedData = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier getDisclosedData");
     console.log(gasUsedGetDisclosedData);
@@ -117,7 +120,7 @@ contract ZKPassportVerifierTest is TestUtils {
     vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
       proofVerificationData: ProofVerificationData({
-        vkeyHash: VKEY_HASH,  
+        vkeyHash: VKEY_HASH,
         proof: proof,
         publicInputs: publicInputs
       }),
@@ -140,8 +143,7 @@ contract ZKPassportVerifierTest is TestUtils {
     );
 
     vm.startSnapshotGas("ZKPassportVerifier getBoundData");
-    BoundData memory boundData = zkPassportVerifier
-      .getBoundData(params.commitments);
+    BoundData memory boundData = zkPassportVerifier.getBoundData(params.commitments);
     uint256 gasUsedGetBoundData = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier getBoundData");
     console.log(gasUsedGetBoundData);
@@ -150,7 +152,7 @@ contract ZKPassportVerifierTest is TestUtils {
     assertEq(boundData.customData, "email:test@test.com,customer_id:1234567890");
   }
 
-  function test_VerifyAllSubproofsProof() public {
+  function test_VerifyAllSubproofsProof1() public {
     // Load proof and public inputs from files
     bytes memory proof = loadBytesFromFile(ALL_SUBPROOFS_PROOF_PATH);
     bytes32[] memory publicInputs = loadBytes32FromFile(ALL_SUBPROOFS_PUBLIC_INPUTS_PATH);
@@ -171,7 +173,7 @@ contract ZKPassportVerifierTest is TestUtils {
     committedInputCounts[9] = CommittedInputLen.FACEMATCH;
 
     // Verify the proof
-    vm.startSnapshotGas("ZKPassportVerifier verifyProof");
+    vm.startSnapshotGas("ZKPassportVerifier test_VerifyAllSubproofsProof1");
     vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
       proofVerificationData: ProofVerificationData({
@@ -201,11 +203,10 @@ contract ZKPassportVerifierTest is TestUtils {
     );
 
     vm.startSnapshotGas("ZKPassportVerifier isAgeAboveOrEqual");
-    assertEq(zkPassportVerifier.isAgeAboveOrEqual(
-      18,
-      params.commitments,
-      params.serviceConfig
-    ), true);
+    assertEq(
+      zkPassportVerifier.isAgeAboveOrEqual(18, params.commitments, params.serviceConfig),
+      true
+    );
     uint256 gasUsedGetAgeProofInputs = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier isAgeAboveOrEqual");
     console.log(gasUsedGetAgeProofInputs);
@@ -216,15 +217,11 @@ contract ZKPassportVerifierTest is TestUtils {
     countryList[1] = "FRA";
     countryList[2] = "USA";
     countryList[3] = "GBR";
-    bool isNationalityIn = zkPassportVerifier.isNationalityIn(
-      countryList,
-      params.commitments
-    );
+    bool isNationalityIn = zkPassportVerifier.isNationalityIn(countryList, params.commitments);
     uint256 gasUsedGetCountryProofInputs = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier isNationalityIn");
     console.log(gasUsedGetCountryProofInputs);
     assertEq(isNationalityIn, true);
-
 
     vm.startSnapshotGas("ZKPassportVerifier isIssuingCountryOut");
     string[] memory exclusionCountryList = new string[](3);
@@ -282,10 +279,10 @@ contract ZKPassportVerifierTest is TestUtils {
 
     vm.startSnapshotGas("ZKPassportVerifier isBirthdateBeforeOrEqual");
     bool isBirthdateBeforeOrEqual = zkPassportVerifier.isBirthdateBeforeOrEqual(
-        PROOF_GENERATION_DATE,
-        params.commitments,
-        params.serviceConfig
-      );
+      PROOF_GENERATION_DATE,
+      params.commitments,
+      params.serviceConfig
+    );
     uint256 gasUsedIsBirthdateBeforeOrEqual = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier isBirthdateBeforeOrEqual");
     console.log(gasUsedIsBirthdateBeforeOrEqual);
@@ -294,10 +291,10 @@ contract ZKPassportVerifierTest is TestUtils {
     {
       vm.startSnapshotGas("ZKPassportVerifier isExpiryDateAfterOrEqual");
       bool isExpiryDateAfterOrEqual = zkPassportVerifier.isExpiryDateAfterOrEqual(
-          PROOF_GENERATION_DATE,
-          params.commitments,
-          params.serviceConfig
-        );
+        PROOF_GENERATION_DATE,
+        params.commitments,
+        params.serviceConfig
+      );
       uint256 gasUsedIsExpiryDateAfterOrEqual = vm.stopSnapshotGas();
       console.log("Gas used in ZKPassportVerifier isExpiryDateAfterOrEqual");
       console.log(gasUsedIsExpiryDateAfterOrEqual);
@@ -315,9 +312,7 @@ contract ZKPassportVerifierTest is TestUtils {
         params.commitments
       );
       uint256 gasUsedIsIssuingCountryIn = vm.stopSnapshotGas();
-      console.log(
-        "Gas used in ZKPassportVerifier isIssuingCountryIn"
-      );
+      console.log("Gas used in ZKPassportVerifier isIssuingCountryIn");
       console.log(gasUsedIsIssuingCountryIn);
       assertEq(isIssuingCountryIn, true);
     }
@@ -332,17 +327,34 @@ contract ZKPassportVerifierTest is TestUtils {
 
     {
       vm.startSnapshotGas("ZKPassportVerifier isFaceMatchVerified");
-      bool isFacematchVerified = zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.IOS, params.commitments);
+      bool isFacematchVerified = zkPassportVerifier.isFaceMatchVerified(
+        FaceMatchMode.REGULAR,
+        OS.IOS,
+        params.commitments
+      );
       uint256 gasUsedIsFaceMatchVerified = vm.stopSnapshotGas();
       console.log("Gas used in ZKPassportVerifier isFaceMatchVerified");
       console.log(gasUsedIsFaceMatchVerified);
       assertEq(isFacematchVerified, true);
       // Should be false because the facematch mode is not strict but regular
-      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.STRICT, OS.IOS, params.commitments), false);
+      assertEq(
+        zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.STRICT, OS.IOS, params.commitments),
+        false
+      );
       // Should be false because the OS is not iOS
-      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANDROID, params.commitments), false);
+      assertEq(
+        zkPassportVerifier.isFaceMatchVerified(
+          FaceMatchMode.REGULAR,
+          OS.ANDROID,
+          params.commitments
+        ),
+        false
+      );
       // Should be true because the OS is any
-      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANY, params.commitments), true);
+      assertEq(
+        zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANY, params.commitments),
+        true
+      );
     }
   }
 }

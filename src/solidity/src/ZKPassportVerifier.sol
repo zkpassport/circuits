@@ -89,7 +89,7 @@ contract ZKPassportVerifier {
   }
 
   function checkDate(
-    bytes32[] memory publicInputs,
+    bytes32[] calldata publicInputs,
     uint256 validityPeriodInSeconds
   ) internal view returns (bool) {
     uint256 currentDateTimeStamp = uint256(publicInputs[PublicInput.CURRENT_DATE_INDEX]);
@@ -464,7 +464,7 @@ contract ZKPassportVerifier {
   }
 
   function isCountryInOrOut(
-    string[] memory countryList,
+    string[] calldata countryList,
     ProofType proofType,
     Commitments calldata commitments
   ) private pure returns (bool) {
@@ -487,7 +487,7 @@ contract ZKPassportVerifier {
    * @return True if the nationality is in the list of countries, false otherwise
    */
   function isNationalityIn(
-    string[] memory countryList,
+    string[] calldata countryList,
     Commitments calldata commitments
   ) public pure returns (bool) {
     return isCountryInOrOut(countryList, ProofType.NATIONALITY_INCLUSION, commitments);
@@ -500,7 +500,7 @@ contract ZKPassportVerifier {
    * @return True if the issuing country is in the list of countries, false otherwise
    */
   function isIssuingCountryIn(
-    string[] memory countryList,
+    string[] calldata countryList,
     Commitments calldata commitments
   ) public pure returns (bool) {
     return isCountryInOrOut(countryList, ProofType.ISSUING_COUNTRY_INCLUSION, commitments);
@@ -514,7 +514,7 @@ contract ZKPassportVerifier {
    * @return True if the nationality is not in the list of countries, false otherwise
    */
   function isNationalityOut(
-    string[] memory countryList,
+    string[] calldata countryList,
     Commitments calldata commitments
   ) public pure returns (bool) {
     return isCountryInOrOut(countryList, ProofType.NATIONALITY_EXCLUSION, commitments);
@@ -528,7 +528,7 @@ contract ZKPassportVerifier {
    * @return True if the issuing country is not in the list of countries, false otherwise
    */
   function isIssuingCountryOut(
-    string[] memory countryList,
+    string[] calldata countryList,
     Commitments calldata commitments
   ) public pure returns (bool) {
     return isCountryInOrOut(countryList, ProofType.ISSUING_COUNTRY_EXCLUSION, commitments);
@@ -593,30 +593,39 @@ contract ZKPassportVerifier {
     // What we call scope internally is derived from the domain
     bytes32 scopeHash = StringUtils.isEmpty(domain)
       ? bytes32(0)
-      : sha256(abi.encodePacked(domain)) >> 8;
+      : sha256(bytes(domain)) >> 8;
     // What we call the subscope internally is the scope specified
     // manually in the SDK
     bytes32 subscopeHash = StringUtils.isEmpty(scope)
       ? bytes32(0)
-      : sha256(abi.encodePacked(scope)) >> 8;
+      : sha256(bytes(scope)) >> 8;
     return publicInputs[PublicInput.SCOPE_INDEX] == scopeHash && publicInputs[PublicInput.SUBSCOPE_INDEX] == subscopeHash;
   }
 
   function verifyCommittedInputs(
-    bytes32[] memory paramCommitments,
+    bytes32[] calldata paramCommitments,
     Commitments calldata commitments
-  ) internal pure {
+  ) internal view {
     uint256 offset = 0;
-    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
-      // One byte is dropped inside the circuit as BN254 is limited to 254 bits
-      bytes32 calculatedCommitment = sha256(
-        abi.encodePacked(commitments.committedInputs[offset:offset + commitments.committedInputCounts[i]])
-      ) >> 8;
+    uint[] calldata counts = commitments.committedInputCounts;
+    bytes calldata inputs = commitments.committedInputs;
+    for (uint256 i = 0; i < counts.length; i++) {
+      uint count;
+      bytes32 calculatedCommitment;
+      assembly ("memory-safe") {
+          count := calldataload(add(counts.offset, shl(5, i)))
+        calldatacopy(mload(0x40), add(inputs.offset, offset), count)
+        if iszero(staticcall(gas(), 0x02, mload(0x40), count, 0x00, 0x20)) {
+          revert(0, 0)
+        }
+        // One byte is dropped inside the circuit as BN254 is limited to 254 bits
+        calculatedCommitment := shr(8, mload(0x00))
+      }
       require(calculatedCommitment == paramCommitments[i], "Invalid commitment");
-      offset += commitments.committedInputCounts[i];
+      offset += count;
     }
     // Check that all the committed inputs have been covered, otherwise something is wrong
-    require(offset == commitments.committedInputs.length, "Invalid committed inputs length");
+    require(offset == inputs.length, "Invalid committed inputs length");
   }
 
   function _getVerifier(bytes32 vkeyHash) internal view returns (address) {

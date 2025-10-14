@@ -1,0 +1,14 @@
+{
+  "ZKPassportVerifier enforceSanctionsRoot": "47917",
+  "ZKPassportVerifier getBoundData": "75146",
+  "ZKPassportVerifier getDisclosedData": "40969",
+  "ZKPassportVerifier isAgeAboveOrEqual": "35853",
+  "ZKPassportVerifier isBirthdateBeforeOrEqual": "21943",
+  "ZKPassportVerifier isExpiryDateAfterOrEqual": "33812",
+  "ZKPassportVerifier isFaceMatchVerified": "32925",
+  "ZKPassportVerifier isIssuingCountryIn": "206685",
+  "ZKPassportVerifier isIssuingCountryOut": "204662",
+  "ZKPassportVerifier isNationalityIn": "203829",
+  "ZKPassportVerifier test_VerifyAllSubproofsProof1": "1882907",
+  "ZKPassportVerifier test_VerifyValidProof": "1879814"
+}

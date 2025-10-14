@@ -57,7 +57,7 @@ script/bash/update-roots.sh
 cd $SCRIPT_DIR
 
 # Run the tests
-forge test --rpc-url http://localhost:${PORT} -vv
+forge test --rpc-url http://localhost:${PORT} -vv "${@:2}"
 
 # Kill the anvil process
 lsof -ti:${PORT} | xargs kill -9
