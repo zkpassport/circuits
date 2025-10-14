@@ -19,7 +19,7 @@ contract SampleContractTest is TestUtils {
   string constant PUBLIC_INPUTS_PATH = "./test/fixtures/all_subproofs_public_inputs.json";
   string constant COMMITTED_INPUTS_PATH = "./test/fixtures/all_subproofs_committed_inputs.hex";
   bytes32 constant VKEY_HASH = 0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4;
-  uint256 constant CURRENT_DATE = 1758893249;
+  uint256 constant CURRENT_DATE = 1760471901;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier

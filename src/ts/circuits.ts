@@ -160,8 +160,6 @@ export class Circuit {
       // Run bb write_vk command
       const writeVkCommand = `bb write_vk --scheme ultra_honk \
         ${evm ? " --oracle_hash keccak" : ""} \
-        --output_format bytes_and_fields \
-        --honk_recursion 1 \
         -b "${circuitPath}" \
         -o "${vkeyPath}"
       `
@@ -178,9 +176,7 @@ export class Circuit {
 
       // Read the verification key file
       const vkeyBytes = fs.readFileSync(vkeyFilePath)
-      const vkeyFields = JSON.parse(
-        fs.readFileSync(path.join(vkeyPath, "vk_fields.json")).toString("utf-8"),
-      ) as string[]
+      const vkeyFields = Buffer.from(vkeyBytes).toString("hex").match(/.{1,64}/g)?.map((x) => `0x${x}`) ?? []
 
       // Clean up temp files
       fs.rmSync(tempDir, { recursive: true, force: true })

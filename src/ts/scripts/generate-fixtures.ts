@@ -261,7 +261,7 @@ class FixtureGenerator {
   async generateFacematchProof(): Promise<{ subproof: SubproofData; committedInputs: string }> {
     console.log("Generating facematch proof...")
 
-    const facematchCircuit = Circuit.from("facematch_evm")
+    const facematchCircuit = Circuit.from("facematch_ios_evm")
     const inputs = await getFacematchCircuitInputs(
       this.helper.passport as any,
       { facematch: { mode: "regular" } },
@@ -277,7 +277,7 @@ class FixtureGenerator {
     const facematchProof = await facematchCircuit.prove(combinedInputs, {
       useCli: true,
       recursive: true,
-      circuitName: "facematch_evm",
+      circuitName: "facematch_ios_evm",
     })
     const root_key_leaf = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340bn
     const environment = 1n
@@ -285,6 +285,8 @@ class FixtureGenerator {
       ...new TextEncoder().encode("YL5MS3Z639.app.zkpassport.zkpassport"),
     ])
     const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
+    // On iOS, the integrity public key hash is 0 since it's logic specific to Android
+    const integrityPubKeyHash = 0n
     const facematch_mode = 1n
     const paramCommitment = getParameterCommitmentFromDisclosureProof(facematchProof)
     const vkey = (await facematchCircuit.getVerificationKey({ evm: false })).vkeyFields
@@ -293,7 +295,7 @@ class FixtureGenerator {
     const committedInputs =
       ProofType.FACEMATCH.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(root_key_leaf, 32))
       .map((x) => x.toString(16).padStart(2, "0"))
-      .join("") + environment.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(app_id_hash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + facematch_mode.toString(16).padStart(2, "0")
+      .join("") + environment.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(app_id_hash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + Array.from(numberToBytesBE(integrityPubKeyHash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + facematch_mode.toString(16).padStart(2, "0")
 
     await facematchCircuit.destroy()
 

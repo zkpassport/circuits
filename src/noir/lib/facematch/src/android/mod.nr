@@ -9,6 +9,7 @@ use utils::{
 };
 
 pub mod constants;
+pub mod token;
 use constants::{ANDROID_KEY_ORIGIN_GENERATED, OID_ANDROID_KEY_ATTESTATION};
 //pub mod tests;
 
