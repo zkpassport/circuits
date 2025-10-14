@@ -711,60 +711,62 @@ library TranscriptLib {
 
         // Pairing point object
         for (uint256 i = 0; i < PAIRING_POINTS_SIZE; i++) {
-            p.pairingPointObject[i] = bytesToFr(proof[boundary:boundary + FIELD_ELEMENT_SIZE]);
+            p.pairingPointObject[i] = bytesToFr(proof, boundary);
             boundary += FIELD_ELEMENT_SIZE;
         }
         // Commitments
-        p.w1 = bytesToG1Point(proof[boundary:boundary + GROUP_ELEMENT_SIZE]);
+        p.w1 = bytesToG1Point(proof, boundary);
         boundary += GROUP_ELEMENT_SIZE;
-        p.w2 = bytesToG1Point(proof[boundary:boundary + GROUP_ELEMENT_SIZE]);
+        p.w2 = bytesToG1Point(proof, boundary);
         boundary += GROUP_ELEMENT_SIZE;
-        p.w3 = bytesToG1Point(proof[boundary:boundary + GROUP_ELEMENT_SIZE]);
+        p.w3 = bytesToG1Point(proof, boundary);
         boundary += GROUP_ELEMENT_SIZE;
 
         // Lookup / Permutation Helper Commitments
-        p.lookupReadCounts = bytesToG1Point(proof[boundary:boundary + GROUP_ELEMENT_SIZE]);
+        p.lookupReadCounts = bytesToG1Point(proof, boundary);
         boundary += GROUP_ELEMENT_SIZE;
-        p.lookupReadTags = bytesToG1Point(proof[boundary:boundary + GROUP_ELEMENT_SIZE]);
+        p.lookupReadTags = bytesToG1Point(proof, boundary);
         boundary += GROUP_ELEMENT_SIZE;
-        p.w4 = bytesToG1Point(proof[boundary:boundary + GROUP_ELEMENT_SIZE]);
+        p.w4 = bytesToG1Point(proof, boundary);
         boundary += GROUP_ELEMENT_SIZE;
-        p.lookupInverses = bytesToG1Point(proof[boundary:boundary + GROUP_ELEMENT_SIZE]);
+        p.lookupInverses = bytesToG1Point(proof, boundary);
         boundary += GROUP_ELEMENT_SIZE;
-        p.zPerm = bytesToG1Point(proof[boundary:boundary + GROUP_ELEMENT_SIZE]);
+        p.zPerm = bytesToG1Point(proof, boundary);
         boundary += GROUP_ELEMENT_SIZE;
 
         // Sumcheck univariates
         for (uint256 i = 0; i < logN; i++) {
             for (uint256 j = 0; j < BATCHED_RELATION_PARTIAL_LENGTH; j++) {
-                p.sumcheckUnivariates[i][j] = bytesToFr(proof[boundary:boundary + FIELD_ELEMENT_SIZE]);
+                p.sumcheckUnivariates[i][j] = bytesToFr(proof, boundary);
                 boundary += FIELD_ELEMENT_SIZE;
             }
         }
         // Sumcheck evaluations
         for (uint256 i = 0; i < NUMBER_OF_ENTITIES; i++) {
-            p.sumcheckEvaluations[i] = bytesToFr(proof[boundary:boundary + FIELD_ELEMENT_SIZE]);
+            p.sumcheckEvaluations[i] = bytesToFr(proof, boundary);
             boundary += FIELD_ELEMENT_SIZE;
         }
 
         // Gemini
         // Read gemini fold univariates
         for (uint256 i = 0; i < logN - 1; i++) {
-            p.geminiFoldComms[i] = bytesToG1Point(proof[boundary:boundary + GROUP_ELEMENT_SIZE]);
+            p.geminiFoldComms[i] = bytesToG1Point(proof, boundary);
             boundary += GROUP_ELEMENT_SIZE;
         }
 
         // Read gemini a evaluations
         for (uint256 i = 0; i < logN; i++) {
-            p.geminiAEvaluations[i] = bytesToFr(proof[boundary:boundary + FIELD_ELEMENT_SIZE]);
+            p.geminiAEvaluations[i] = bytesToFr(proof, boundary);
             boundary += FIELD_ELEMENT_SIZE;
         }
 
         // Shplonk
-        p.shplonkQ = bytesToG1Point(proof[boundary:boundary + GROUP_ELEMENT_SIZE]);
+        p.shplonkQ = bytesToG1Point(proof, boundary);
         boundary += GROUP_ELEMENT_SIZE;
         // KZG
-        p.kzgQuotient = bytesToG1Point(proof[boundary:boundary + GROUP_ELEMENT_SIZE]);
+        p.kzgQuotient = bytesToG1Point(proof, boundary);
+
+        require(boundary + GROUP_ELEMENT_SIZE <= proof.length);
     }
 }
 
@@ -1568,12 +1570,25 @@ function bytesToFr(bytes calldata proofSection) pure returns (Fr scalar) {
     scalar = FrLib.fromBytes32(bytes32(proofSection));
 }
 
+function bytesToFr(bytes calldata proof, uint offset) pure returns (Fr scalar) {
+    assembly {
+        scalar := mod(calldataload(add(proof.offset, offset)), MODULUS)
+    }
+}
+
 // EC Point utilities
 function bytesToG1Point(bytes calldata proofSection) pure returns (Honk.G1Point memory point) {
     point = Honk.G1Point({
         x: uint256(bytes32(proofSection[0x00:0x20])) % Q,
         y: uint256(bytes32(proofSection[0x20:0x40])) % Q
     });
+}
+
+function bytesToG1Point(bytes calldata proofSection, uint offset) pure returns (Honk.G1Point memory point) {
+    assembly ("memory-safe") {
+        mstore(point, mod(calldataload(add(proofSection.offset, offset)), Q))
+        mstore(add(point, 0x20), mod(calldataload(add(proofSection.offset, add(offset, 0x20))), Q))
+    }
 }
 
 function negateInplace(Honk.G1Point memory point) pure returns (Honk.G1Point memory) {
