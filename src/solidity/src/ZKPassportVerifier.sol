@@ -89,7 +89,7 @@ contract ZKPassportVerifier {
   }
 
   function checkDate(
-    bytes32[] memory publicInputs,
+    bytes32[] calldata publicInputs,
     uint256 validityPeriodInSeconds
   ) internal view returns (bool) {
     uint256 currentDateTimeStamp = uint256(publicInputs[PublicInput.CURRENT_DATE_INDEX]);
@@ -464,7 +464,7 @@ contract ZKPassportVerifier {
   }
 
   function isCountryInOrOut(
-    string[] memory countryList,
+    string[] calldata countryList,
     ProofType proofType,
     Commitments calldata commitments
   ) private pure returns (bool) {
@@ -487,7 +487,7 @@ contract ZKPassportVerifier {
    * @return True if the nationality is in the list of countries, false otherwise
    */
   function isNationalityIn(
-    string[] memory countryList,
+    string[] calldata countryList,
     Commitments calldata commitments
   ) public pure returns (bool) {
     return isCountryInOrOut(countryList, ProofType.NATIONALITY_INCLUSION, commitments);
@@ -500,7 +500,7 @@ contract ZKPassportVerifier {
    * @return True if the issuing country is in the list of countries, false otherwise
    */
   function isIssuingCountryIn(
-    string[] memory countryList,
+    string[] calldata countryList,
     Commitments calldata commitments
   ) public pure returns (bool) {
     return isCountryInOrOut(countryList, ProofType.ISSUING_COUNTRY_INCLUSION, commitments);
@@ -514,7 +514,7 @@ contract ZKPassportVerifier {
    * @return True if the nationality is not in the list of countries, false otherwise
    */
   function isNationalityOut(
-    string[] memory countryList,
+    string[] calldata countryList,
     Commitments calldata commitments
   ) public pure returns (bool) {
     return isCountryInOrOut(countryList, ProofType.NATIONALITY_EXCLUSION, commitments);
@@ -528,7 +528,7 @@ contract ZKPassportVerifier {
    * @return True if the issuing country is not in the list of countries, false otherwise
    */
   function isIssuingCountryOut(
-    string[] memory countryList,
+    string[] calldata countryList,
     Commitments calldata commitments
   ) public pure returns (bool) {
     return isCountryInOrOut(countryList, ProofType.ISSUING_COUNTRY_EXCLUSION, commitments);
@@ -603,7 +603,7 @@ contract ZKPassportVerifier {
   }
 
   function verifyCommittedInputs(
-    bytes32[] memory paramCommitments,
+    bytes32[] calldata paramCommitments,
     Commitments calldata commitments
   ) internal pure {
     uint256 offset = 0;
