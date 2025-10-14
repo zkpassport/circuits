@@ -14,6 +14,7 @@ res
 src/solidity/cache
 src/solidity/out
 src/solidity/broadcast
+src/solidity/zkpassport-packages/
 # Ignore the anvil deployment file
 src/solidity/deployments/deployment-31337.json
 src/ts/tests/fixtures/zkr/keypairs
