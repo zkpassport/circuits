@@ -593,12 +593,12 @@ contract ZKPassportVerifier {
     // What we call scope internally is derived from the domain
     bytes32 scopeHash = StringUtils.isEmpty(domain)
       ? bytes32(0)
-      : sha256(abi.encodePacked(domain)) >> 8;
+      : sha256(bytes(domain)) >> 8;
     // What we call the subscope internally is the scope specified
     // manually in the SDK
     bytes32 subscopeHash = StringUtils.isEmpty(scope)
       ? bytes32(0)
-      : sha256(abi.encodePacked(scope)) >> 8;
+      : sha256(bytes(scope)) >> 8;
     return publicInputs[PublicInput.SCOPE_INDEX] == scopeHash && publicInputs[PublicInput.SUBSCOPE_INDEX] == subscopeHash;
   }
 
@@ -610,7 +610,7 @@ contract ZKPassportVerifier {
     for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
       // One byte is dropped inside the circuit as BN254 is limited to 254 bits
       bytes32 calculatedCommitment = sha256(
-        abi.encodePacked(commitments.committedInputs[offset:offset + commitments.committedInputCounts[i]])
+        bytes(commitments.committedInputs[offset:offset + commitments.committedInputCounts[i]])
       ) >> 8;
       require(calculatedCommitment == paramCommitments[i], "Invalid commitment");
       offset += commitments.committedInputCounts[i];

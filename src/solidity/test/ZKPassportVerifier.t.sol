@@ -152,7 +152,7 @@ contract ZKPassportVerifierTest is TestUtils {
     assertEq(boundData.customData, "email:test@test.com,customer_id:1234567890");
   }
 
-  function test_VerifyAllSubproofsProof() public {
+  function test_VerifyAllSubproofsProof1() public {
     // Load proof and public inputs from files
     bytes memory proof = loadBytesFromFile(ALL_SUBPROOFS_PROOF_PATH);
     bytes32[] memory publicInputs = loadBytes32FromFile(ALL_SUBPROOFS_PUBLIC_INPUTS_PATH);
@@ -173,7 +173,7 @@ contract ZKPassportVerifierTest is TestUtils {
     committedInputCounts[9] = CommittedInputLen.FACEMATCH;
 
     // Verify the proof
-    vm.startSnapshotGas("ZKPassportVerifier test_VerifyAllSubproofsProof");
+    vm.startSnapshotGas("ZKPassportVerifier test_VerifyAllSubproofsProof1");
     vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
       proofVerificationData: ProofVerificationData({
