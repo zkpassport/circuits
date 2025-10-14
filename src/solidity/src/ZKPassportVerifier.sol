@@ -9,10 +9,8 @@ import {IRootRegistry} from "../src/IRootRegistry.sol";
 import {InputsExtractor} from "../src/InputsExtractor.sol";
 import {CommittedInputLen, MRZIndex, MRZLength, SECONDS_BETWEEN_1900_AND_1970, PublicInput, AppAttest} from "../src/Constants.sol";
 import {ProofType, ProofVerificationParams, BoundDataIdentifier, DisclosedData, BoundData, FaceMatchMode, Environment, NullifierType, Commitments, ServiceConfig, OS} from "../src/Types.sol";
-import {Test} from "forge-std/Test.sol";
-import {console} from "forge-std/console.sol";
 
-contract ZKPassportVerifier is Test {
+contract ZKPassportVerifier {
   bytes32 public constant CERTIFICATE_REGISTRY_ID = bytes32(uint256(1));
   bytes32 public constant CIRCUIT_REGISTRY_ID = bytes32(uint256(2));
   bytes32 public constant SANCTIONS_REGISTRY_ID = bytes32(uint256(3));
@@ -718,7 +716,6 @@ contract ZKPassportVerifier is Test {
     // to ensure all the param commitments are covered
     require(params.commitments.committedInputCounts.length == params.proofVerificationData.publicInputs.length - PublicInput.PUBLIC_INPUTS_EXCLUDING_PARAM_COMMITMENTS_LENGTH, "Invalid committed input counts length");
 
-    vm.breakpoint("v");
     // Call the UltraHonk verifier for the given Outer Circuit to verify if the actual proof is valid
     isValid = IVerifier(verifier).verify(params.proofVerificationData.proof, params.proofVerificationData.publicInputs);
 
