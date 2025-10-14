@@ -9,5 +9,6 @@
   "ZKPassportVerifier isIssuingCountryIn": "210077",
   "ZKPassportVerifier isIssuingCountryOut": "207907",
   "ZKPassportVerifier isNationalityIn": "207221",
-  "ZKPassportVerifier verifyProof": "1883422"
+  "ZKPassportVerifier test_VerifyAllSubproofsProof": "2022043",
+  "ZKPassportVerifier test_VerifyValidProof": "1883411"
 }
