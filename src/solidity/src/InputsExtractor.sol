@@ -250,7 +250,7 @@ library InputsExtractor {
 
   function getFacematchProofInputs(
     Commitments calldata commitments
-  ) public pure returns (bytes32 rootKeyHash, Environment environment, bytes32 appId, FaceMatchMode facematchMode) {
+  ) public pure returns (bytes32 rootKeyHash, Environment environment, bytes32 appIdHash, bytes32 integrityPublicKeyHash, FaceMatchMode facematchMode) {
     uint256 offset = 0;
     uint256 foundCount = 0;
     for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
@@ -258,8 +258,9 @@ library InputsExtractor {
         offset += 1;
         rootKeyHash = bytes32(commitments.committedInputs[offset:offset + 32]);
         environment = Environment(uint8(bytes1(commitments.committedInputs[offset + 32:offset + 33])));
-        appId = bytes32(commitments.committedInputs[offset + 33:offset + 65]);
-        facematchMode = FaceMatchMode(uint8(bytes1(commitments.committedInputs[offset + 65:offset + 66])));
+        appIdHash = bytes32(commitments.committedInputs[offset + 33:offset + 65]);
+        integrityPublicKeyHash = bytes32(commitments.committedInputs[offset + 65:offset + 97]);
+        facematchMode = FaceMatchMode(uint8(bytes1(commitments.committedInputs[offset + 97:offset + 98])));
         foundCount++;
       }
       offset += commitments.committedInputCounts[i];
