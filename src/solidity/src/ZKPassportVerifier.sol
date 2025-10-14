@@ -607,18 +607,27 @@ contract ZKPassportVerifier is Test {
   function verifyCommittedInputs(
     bytes32[] calldata paramCommitments,
     Commitments calldata commitments
-  ) internal pure {
+  ) internal view {
     uint256 offset = 0;
-    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
-      // One byte is dropped inside the circuit as BN254 is limited to 254 bits
-      bytes32 calculatedCommitment = sha256(
-        bytes(commitments.committedInputs[offset:offset + commitments.committedInputCounts[i]])
-      ) >> 8;
+    uint[] calldata counts = commitments.committedInputCounts;
+    bytes calldata inputs = commitments.committedInputs;
+    for (uint256 i = 0; i < counts.length; i++) {
+      uint count;
+      bytes32 calculatedCommitment;
+      assembly ("memory-safe") {
+          count := calldataload(add(counts.offset, shl(5, i)))
+        calldatacopy(mload(0x40), add(inputs.offset, offset), count)
+        if iszero(staticcall(gas(), 0x02, mload(0x40), count, 0x00, 0x20)) {
+          revert(0, 0)
+        }
+        // One byte is dropped inside the circuit as BN254 is limited to 254 bits
+        calculatedCommitment := shr(8, mload(0x00))
+      }
       require(calculatedCommitment == paramCommitments[i], "Invalid commitment");
-      offset += commitments.committedInputCounts[i];
+      offset += count;
     }
     // Check that all the committed inputs have been covered, otherwise something is wrong
-    require(offset == commitments.committedInputs.length, "Invalid committed inputs length");
+    require(offset == inputs.length, "Invalid committed inputs length");
   }
 
   function _getVerifier(bytes32 vkeyHash) internal view returns (address) {
