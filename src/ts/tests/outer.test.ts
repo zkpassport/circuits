@@ -750,7 +750,7 @@ describe("outer proof - evm optimised", () => {
       )
       const proof = await circuit.prove(inputs, {
         useCli: true,
-        circuitName: "outer_count_5",
+        circuitName: "outer_evm_count_5",
         recursive: false,
         evm: true,
         // Disable the fully ZK property for outer proofs meant to be verified onchain

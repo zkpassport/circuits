@@ -137,7 +137,7 @@ const processFile = async (
       } -b "${inputPath}" -o "${vkeyPath}"`,
     )
     // TODO: remove this condition once bb gates works with outer circuits again
-    if (!evm) {
+    if (!file.startsWith("outer")) {
       await execPromise(
         `bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`,
       )
@@ -163,7 +163,7 @@ const processFile = async (
     const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
     let gateCount = 0
     // TODO: remove this condition once bb gates works with outer circuits again
-    if (!evm) {
+    if (!file.startsWith("outer")) {
       const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
       gateCount = gateCountFileContent.functions[0].circuit_size
       fs.unlinkSync(gateCountPath)
@@ -213,8 +213,8 @@ const getOuterkeyHashes = (): { count: number; hash: string }[] => {
 
     // Filter for outer_evm_count files and extract their vkey hashes
     for (const file of packagedFiles) {
-      if (file.startsWith("outer_count_")) {
-        const countMatch = file.match(/outer_count_(\d+)\.json/)
+      if (file.startsWith("outer_evm_count_")) {
+        const countMatch = file.match(/outer_evm_count_(\d+)\.json/)
         if (countMatch && countMatch[1]) {
           const count = parseInt(countMatch[1])
           const filePath = path.join(PACKAGED_CIRCUITS_DIR, file)
@@ -238,7 +238,7 @@ const getOuterkeyHashes = (): { count: number; hash: string }[] => {
               count,
               hash: normalizedHash,
             })
-            console.log(`Collected vkey hash for outer_count_${count}: ${normalizedHash}`)
+            console.log(`Collected vkey hash for outer_evm_count_${count}: ${normalizedHash}`)
           }
         }
       }
@@ -325,24 +325,20 @@ const processFiles = async () => {
         `Memory intensive processing of outer proof circuit: ${file} (no concurrent processing)`,
       )
       console.log(`Generating the standard outer proof packaged circuit...`)
-      const success = await processFile(file, true, file.replace(".json", ""), true)
+      const success = await processFile(file, false, file.replace(".json", ""), false)
       if (!success) {
         hasErrors = true
       }
-      /*console.log(`Generating the EVM-optimised outer proof packaged circuit...`)
+      console.log(`Generating the EVM-optimised outer proof packaged circuit...`)
       const successEvm = await processFile(
         file,
         true,
         file.replace("outer_count", "outer_evm_count").replace(".json", ""),
         true,
-        // Disable the fully ZK property for outer proof circuits meant
-        // to be verified onchain as the subproofs are already ZK and it's cheaper
-        // to verify a non ZK proof onchain
-        true,
       )
       if (!successEvm) {
         hasErrors = true
-      }*/
+      }
     }
   }
 
