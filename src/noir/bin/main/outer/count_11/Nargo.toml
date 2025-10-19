@@ -7,3 +7,4 @@ compiler_version = ">=1.0.0"
 [dependencies]
 common = { path = "../../../../lib/commitment/common" }
 outer_lib = { path = "../../../../lib/outer" }
+utils = { path = "../../../../lib/utils" }

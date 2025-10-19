@@ -15,6 +15,7 @@ current_date -> The current date as a string, e.g. 20241103 (used by the integri
 service_scope -> The service scope
 service_subscope -> The service subscope
 param_commitments -> The commitments over the parameters of the disclosure circuits
+nullifier_type -> The type of the nullifier
 scoped_nullifier -> The scoped nullifier
 csc_to_dsc_proof -> The proof of the CSC to DSC circuit
 dsc_to_id_data_proof -> The proof of the DSC to ID Data circuit
@@ -28,6 +29,9 @@ use outer_lib::{
     prepare_disclosure_inputs, prepare_integrity_check_inputs,
 };
 use std::verify_proof_with_type;
+use utils::constants::{
+    NON_SALTED_MOCK_NULLIFIER, NON_SALTED_NULLIFIER, SALTED_MOCK_NULLIFIER, SALTED_NULLIFIER,
+};
 global PROOF_TYPE_HONK_ZK: u32 = 7;
 
 fn verify_subproofs(
@@ -43,6 +47,8 @@ fn verify_subproofs(
     service_scope: Field,
     // The service sub-scope
     service_subscope: Field,
+    // The type of the nullifier
+    nullifier_type: Field,
     // The scoped nullifier: H(private_nullifier,service_scope,service_subscope)
     scoped_nullifier: Field,
     csc_to_dsc_proof: CSCtoDSCProof,
@@ -115,6 +121,11 @@ fn verify_subproofs(
         );
     }
 
+    // Assert that the nullifier type is not the salted nullifier
+    // as the salted nullifier is not allowed for now
+    // Mock proof salted nullifiers are allowed though
+    assert(nullifier_type != SALTED_NULLIFIER, "Salted nullifiers are not allowed for now");
+
     verify_proof_with_type(
         csc_to_dsc_proof.vkey,
         csc_to_dsc_proof.proof,
@@ -179,6 +190,7 @@ fn verify_subproofs(
                 param_commitments[i],
                 service_scope,
                 service_subscope,
+                nullifier_type,
                 scoped_nullifier,
             ),
             disclosure_proofs[i].key_hash,
@@ -196,6 +208,7 @@ fn main(
     service_scope: pub Field,
     service_subscope: pub Field,
     param_commitments: pub [Field; 1],
+    nullifier_type: pub Field,
     scoped_nullifier: pub Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
@@ -209,6 +222,7 @@ fn main(
         param_commitments,
         service_scope,
         service_subscope,
+        nullifier_type,
         scoped_nullifier,
         csc_to_dsc_proof,
         dsc_to_id_data_proof,

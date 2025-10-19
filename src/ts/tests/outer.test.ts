@@ -38,6 +38,9 @@ import {
   getServiceScopeHash,
   getServiceSubscopeHash,
   ProofType,
+  getFacematchCircuitInputs,
+  packLeBytesAndHashPoseidon2,
+  getFacematchEvmParameterCommitment,
 } from "@zkpassport/utils"
 import * as path from "path"
 import * as fs from "fs"
@@ -47,6 +50,7 @@ import { generateSod, wrapSodInContentInfo } from "../sod-generator"
 import { TestHelper } from "../test-helper"
 import { createUTCDate, serializeAsn } from "../utils"
 import circuitManifest from "./fixtures/circuit-manifest.json"
+import FIXTURES_FACEMATCH from "./fixtures/facematch"
 
 const nowTimestamp = getNowTimestamp()
 
@@ -216,7 +220,7 @@ describe("outer proof", () => {
     expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2030, 0, 1))
     expect(disclosedData.gender).toBe("M")
     expect(nullifier).toEqual(
-    779855614087059216963642638396438072807460693353731593953501664068287689340n,
+    2650684516642119190462868389024749567829027632273482260700375874186000116367n,
     )
     const discloseCommitmentIn = getCommitmentInFromDisclosureProof(proof)
     expect(discloseCommitmentIn).toEqual(integrityCheckToDisclosureCommitment)
@@ -297,7 +301,7 @@ describe("outer proof", () => {
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        779855614087059216963642638396438072807460693353731593953501664068287689340n,
+        2650684516642119190462868389024749567829027632273482260700375874186000116367n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
@@ -345,6 +349,7 @@ describe("outer proof", () => {
         helper.passport as any,
         query,
         3n,
+        0n,
         0n,
         0n,
         nowTimestamp,
@@ -447,7 +452,7 @@ describe("outer proof", () => {
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        779855614087059216963642638396438072807460693353731593953501664068287689340n,
+        2650684516642119190462868389024749567829027632273482260700375874186000116367n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
@@ -597,6 +602,7 @@ describe("outer proof - evm optimised", () => {
       helper.passport as any,
       query,
       3n,
+      0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
     )
@@ -629,7 +635,7 @@ describe("outer proof - evm optimised", () => {
     expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1988, 10, 12))
     expect(disclosedData.gender).toBe("M")
     expect(nullifier).toEqual(
-      4721170378885156317428488923010239726308591232293531695919010613758228710886n,
+      10455987025658600788647347178354495781954726142214514817383254467530589488225n,
     )
     const discloseCommitmentIn = getCommitmentInFromDisclosureProof(proof)
     expect(discloseCommitmentIn).toEqual(integrityCheckToDisclosureCommitment)
@@ -661,6 +667,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         bindQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -743,7 +750,7 @@ describe("outer proof - evm optimised", () => {
       )
       const proof = await circuit.prove(inputs, {
         useCli: true,
-        circuitName: "outer_count_5",
+        circuitName: "outer_evm_count_5",
         recursive: false,
         evm: true,
         // Disable the fully ZK property for outer proofs meant to be verified onchain
@@ -755,7 +762,7 @@ describe("outer proof - evm optimised", () => {
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        4721170378885156317428488923010239726308591232293531695919010613758228710886n,
+        10455987025658600788647347178354495781954726142214514817383254467530589488225n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
@@ -768,7 +775,7 @@ describe("outer proof - evm optimised", () => {
   )
 
   test(
-    "12 subproofs",
+    "13 subproofs",
     async () => {
       // 2nd disclosure proof
       const nationalityInclusionCircuit = Circuit.from("inclusion_check_nationality_evm")
@@ -779,6 +786,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         nationalityInclusionQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -812,6 +820,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         nationalityExclusionQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -845,6 +854,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         issuingCountryInclusionQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -879,6 +889,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         issuingCountryExclusionQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -915,6 +926,7 @@ describe("outer proof - evm optimised", () => {
         3n,
         0n,
         0n,
+        0n,
         nowTimestamp,
       )
       if (!ageInputs) throw new Error("Unable to generate compare-age greater than circuit inputs")
@@ -940,6 +952,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         expiryDateQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
         nowTimestamp,
@@ -968,6 +981,7 @@ describe("outer proof - evm optimised", () => {
         helper.passport as any,
         birthDateQuery,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
         nowTimestamp,
@@ -992,6 +1006,7 @@ describe("outer proof - evm optimised", () => {
       const sanctionsExclusionInputs = await getSanctionsExclusionCheckCircuitInputs(
         helper.passport as any,
         3n,
+        0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
       )
@@ -1012,11 +1027,48 @@ describe("outer proof - evm optimised", () => {
       ).toString(16)}`
       await sanctionsExclusionCircuit.destroy()
 
+      // 10th disclosure proof
+      const query: Query = { facematch: { mode: "regular" } }
+      const facematchInputs = await getFacematchCircuitInputs(
+        helper.passport as any,
+        query,
+        3n,
+        0n,
+        0n,
+        0n,
+        nowTimestamp,
+      )
+      const combinedInputs = { ...facematchInputs, ...FIXTURES_FACEMATCH.ios_regular_mode_dev }
+      const facematchCircuit = Circuit.from("facematch_ios_evm")
+      const facematchProof = await facematchCircuit.prove(combinedInputs, {
+        useCli: true,
+        recursive: true,
+        circuitName: "facematch_ios_evm",
+      })
+      const root_key_leaf = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340bn
+      const environment = 0n
+      const app_id = new Uint8Array([
+        ...new TextEncoder().encode("YL5MS3Z639.app.zkpassport.appattest-prototype"),
+      ])
+      const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
+      const facematch_mode = 1n
+      const facematchParamCommitment = await getFacematchEvmParameterCommitment(
+        root_key_leaf,
+        environment,
+        app_id_hash,
+        facematch_mode,
+      )
+
+      const facematchVkey = (await facematchCircuit.getVerificationKey({ evm: false })).vkeyFields
+      const facematchVkeyHash = `0x${(
+        await poseidon2HashAsync(facematchVkey.map((x) => BigInt(x)))
+      ).toString(16)}`
+      await facematchCircuit.destroy()
 
       // Outer proof
-      // We can use the regular outer_count_12 rather than outer_evm_count_12
+      // We can use the regular outer_count_13 rather than outer_evm_count_13
       // since only the vkey changes and we don't use it here
-      const outerProofCircuit = Circuit.from("outer_count_12")
+      const outerProofCircuit = Circuit.from("outer_count_13")
       const { path: cscToDscTreeHashPath, index: cscToDscTreeIndex } = await getCircuitMerkleProof(
         subproofs.get(0)?.vkeyHash as string,
         circuitManifest,
@@ -1047,6 +1099,8 @@ describe("outer proof - evm optimised", () => {
         await getCircuitMerkleProof(birthDateVkeyHash as string, circuitManifest)
       const { path: sanctionsExclusionTreeHashPath, index: sanctionsExclusionTreeIndex } =
         await getCircuitMerkleProof(sanctionsExclusionVkeyHash as string, circuitManifest)
+      const { path: facematchTreeHashPath, index: facematchTreeIndex } =
+        await getCircuitMerkleProof(facematchVkeyHash as string, circuitManifest)
 
       const inputs = await getOuterCircuitInputs(
         {
@@ -1146,13 +1200,21 @@ describe("outer proof - evm optimised", () => {
             treeHashPath: sanctionsExclusionTreeHashPath,
             treeIndex: sanctionsExclusionTreeIndex.toString(),
           },
+          {
+            proof: facematchProof.proof as string[],
+            publicInputs: facematchProof.publicInputs as string[],
+            vkey: facematchVkey,
+            keyHash: facematchVkeyHash,
+            treeHashPath: facematchTreeHashPath,
+            treeIndex: facematchTreeIndex.toString(),
+          },
         ],
         circuitManifest.root,
       )
 
       const proof = await outerProofCircuit.prove(inputs, {
         useCli: true,
-        circuitName: "outer_evm_count_12",
+        circuitName: "outer_evm_count_13",
         recursive: false,
         evm: true,
         // Disable the fully ZK property for outer proofs meant to be verified onchain
@@ -1164,7 +1226,7 @@ describe("outer proof - evm optimised", () => {
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       const nullifier = getNullifierFromOuterProof(proof)
       expect(nullifier).toEqual(
-        4721170378885156317428488923010239726308591232293531695919010613758228710886n,
+        10455987025658600788647347178354495781954726142214514817383254467530589488225n,
       )
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
@@ -1178,6 +1240,7 @@ describe("outer proof - evm optimised", () => {
       expect(expiryDateParamCommitment).toEqual(paramCommitmentsFromProof[6])
       expect(birthDateParamCommitment).toEqual(paramCommitmentsFromProof[7])
       expect(sanctionsExclusionParamCommitment).toEqual(paramCommitmentsFromProof[8])
+      expect(facematchParamCommitment).toEqual(paramCommitmentsFromProof[9])
       await outerProofCircuit.destroy()
     },
     60000 * 4,

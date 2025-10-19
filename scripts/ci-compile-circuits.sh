@@ -61,3 +61,14 @@ for circuit in "${CIRCUITS[@]}"; do
     nargo compile --force --force-brillig --package "$circuit"
     echo "Compiled $circuit"
 done
+
+# Compile facematch (force brillig fails for this circuit at present)
+# TODO: Fix this once the force brillig issue is resolved
+echo "Compiling facematch_ios (constrained)"
+nargo compile --force --package facematch_ios
+echo "Compiling facematch_ios_evm (constrained)"
+nargo compile --force --package facematch_ios_evm
+echo "Compiling facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256 (constrained)"
+nargo compile --force --package facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256
+echo "Compiling facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256_evm (constrained)"
+nargo compile --force --package facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256_evm

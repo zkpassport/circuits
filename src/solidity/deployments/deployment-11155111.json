@@ -1,16 +1,17 @@
 {
   "chain_id": 11155111,
-  "deployment_timestamp": "1752691116",
+  "deployment_timestamp": "1760614356",
   "verifiers": {
-    "outer_count_10": "0x3D89d33cA7d98Ac0D5c2FFD44442367F4585D09A",
-    "outer_count_11": "0xCc4D93cdAb3cF71A64Ef5397F734089ccBeEb31E",
-    "outer_count_12": "0x9517b4319D96D8046e8973fc001D5584CbC029f9",
-    "outer_count_4": "0x7A55cAD27289Bc800e8112ecaf6012bC062Ed589",
-    "outer_count_5": "0xeC04EA391597de417462EF9581976E45981e86a0",
-    "outer_count_6": "0xAFca05797fd4Bbc3B1238bD1D3CCdBFcDdAD81Df",
-    "outer_count_7": "0xe66fa0BAF377429f16cf82FC75956015BF7A4Eb7",
-    "outer_count_8": "0x9C476a03eA54256C61edE6cB7a481BE333658665",
-    "outer_count_9": "0x6026FEad67851338339266bA934F826605497cfd"
+    "outer_count_10": "0x77fc39C00E0C4df7A9993962F619535DCe5AB656",
+    "outer_count_11": "0x91964BECE4dF2a5A3E878b5B6Fa13466e2d192Cf",
+    "outer_count_12": "0x259CC6e2eC9ea9493b307f032b75a35373f4FE3F",
+    "outer_count_13": "0xb68dE6E9ef2E2BBD5cC387a3cf2b5FeD714535d7",
+    "outer_count_4": "0xFaE3636d86e4604E8e862C4a12289D7591317ECc",
+    "outer_count_5": "0x2BB71DFA7A7f4Ee050a01F18b76f50b3B496be1b",
+    "outer_count_6": "0xBE721A6984C6179D187268dc2108d69ad93fd1bd",
+    "outer_count_7": "0x2d4e00D66a827A08A456Ab4f7A4eE9dDfF34DF5a",
+    "outer_count_8": "0xF18BF207EC357Fa211b1e60d1CDf29921198f0Ad",
+    "outer_count_9": "0x5Fe57Ea506aeb69Be166e15FEDcc94cB60D804C0"
   },
-  "zk_passport_verifier": "0x62e33cC35e29130e135341586e8Cf9C2BAbFB3eE"
+  "zk_passport_verifier": "0x3101Bad9eA5fACadA5554844a1a88F7Fe48D4DE0"
 }

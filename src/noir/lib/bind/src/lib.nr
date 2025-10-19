@@ -1,5 +1,5 @@
-use std::hash::poseidon2::Poseidon2;
-use utils::PROOF_TYPE_BIND;
+use poseidon::poseidon2::Poseidon2;
+use utils::constants::PROOF_TYPE_BIND;
 
 /// Calculate the commitment of the data using Poseidon2
 ///
@@ -39,5 +39,5 @@ pub fn calculate_param_commitment_sha2(data: [u8; 500]) -> Field {
         params[i] = data[i - 1];
     }
     let hash = sha256::sha256_var(params, 501);
-    utils::pack_be_bytes_into_field::<32, 31>(hash)
+    utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

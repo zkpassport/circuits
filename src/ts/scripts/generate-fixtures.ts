@@ -26,6 +26,9 @@ import {
   rightPadArrayWithZeros,
   getAgeParameterCommitment,
   getAgeEVMParameterCommitment,
+  getFacematchCircuitInputs,
+  getFacematchEvmParameterCommitment,
+  packLeBytesAndHashPoseidon2,
 } from "@zkpassport/utils"
 import * as path from "path"
 import * as fs from "fs"
@@ -36,6 +39,7 @@ import { TestHelper } from "../test-helper"
 import { serializeAsn } from "../utils"
 import circuitManifest from "../tests/fixtures/circuit-manifest.json"
 import { numberToBytesBE } from "@noble/curves/utils"
+import FIXTURES_FACEMATCH from "./fixtures/facematch"
 
 interface SubproofData {
   proof: string[]
@@ -165,6 +169,7 @@ class FixtureGenerator {
       this.helper.passport as any,
       query,
       3n,
+      0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
     )
@@ -218,6 +223,7 @@ class FixtureGenerator {
       this.helper.passport as any,
       bindQuery,
       3n,
+      0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
     )
@@ -370,6 +376,7 @@ class FixtureGenerator {
       getServiceSubscopeHash("bigproof"),
       this.nowTimestamp,
     )
+
     if (!inputs) throw new Error("Unable to generate age circuit inputs")
 
     const ageCircuit = Circuit.from("compare_age_evm")
@@ -409,12 +416,60 @@ class FixtureGenerator {
       committedInputs,
     }
   }
+  async generateFacematchProof(): Promise<{ subproof: SubproofData; committedInputs: string }> {
+    console.log("Generating facematch proof...")
+
+    const facematchCircuit = Circuit.from("facematch_ios_evm")
+    const inputs = await getFacematchCircuitInputs(
+      this.helper.passport as any,
+      { facematch: { mode: "regular" } },
+      3n,
+      0n,
+    if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
+
+    const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH }
+    const facematchProof = await facematchCircuit.prove(combinedInputs, {
+      useCli: true,
+      recursive: true,
+      circuitName: "facematch_ios_evm",
+    })
+    const root_key_leaf = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340bn
+    const environment = 1n
+    const app_id = new Uint8Array([
+      ...new TextEncoder().encode("YL5MS3Z639.app.zkpassport.zkpassport"),
+    ])
+    const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
+    // On iOS, the integrity public key hash is 0 since it's logic specific to Android
+    const integrityPubKeyHash = 0n
+    const facematch_mode = 1n
+    const paramCommitment = getParameterCommitmentFromDisclosureProof(facematchProof)
+    const vkey = (await facematchCircuit.getVerificationKey({ evm: false })).vkeyFields
+    const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
+
+    const committedInputs =
+      ProofType.FACEMATCH.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(root_key_leaf, 32))
+      .map((x) => x.toString(16).padStart(2, "0"))
+      .join("") + environment.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(app_id_hash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + Array.from(numberToBytesBE(integrityPubKeyHash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + facematch_mode.toString(16).padStart(2, "0")
+
+    await facematchCircuit.destroy()
+
+    return {
+      subproof: {
+        proof: facematchProof.proof,
+        publicInputs: facematchProof.publicInputs,
+        vkey,
+        vkeyHash,
+        paramCommitment,
+      },
+      committedInputs,
+    }
+  }
 
   async generateAdditionalProofs(): Promise<{
     subproofs: SubproofData[]
     committedInputs: string
   }> {
-    console.log("Generating additional proofs for 12 subproofs test...")
+    console.log("Generating additional proofs for 13 subproofs test...")
 
     const additionalSubproofs: SubproofData[] = []
     let allCommittedInputs = ""
@@ -462,6 +517,7 @@ class FixtureGenerator {
             this.helper.passport as any,
             { nationality: { in: ["AUS", "FRA", "USA", "GBR"] } },
             3n,
+            0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
           ),
@@ -486,6 +542,7 @@ class FixtureGenerator {
             this.helper.passport as any,
             { nationality: { out: ["ESP", "PRT", "ITA"] } },
             3n,
+            0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
           ),
@@ -514,6 +571,7 @@ class FixtureGenerator {
             this.helper.passport as any,
             { issuing_country: { in: ["AUS", "FRA", "USA", "GBR"] } },
             3n,
+            0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
           ),
@@ -538,6 +596,7 @@ class FixtureGenerator {
             this.helper.passport as any,
             { issuing_country: { out: ["ESP", "PRT", "ITA"] } },
             3n,
+            0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
           ),
@@ -566,6 +625,7 @@ class FixtureGenerator {
             this.helper.passport as any,
             { age: { gte: 18 } },
             3n,
+            0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
             this.nowTimestamp,
@@ -590,6 +650,7 @@ class FixtureGenerator {
             this.helper.passport as any,
             { expiry_date: { gte: new Date(this.nowTimestamp * 1000) } },
             3n,
+            0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
             this.nowTimestamp,
@@ -618,6 +679,7 @@ class FixtureGenerator {
             this.helper.passport as any,
             { birthdate: { lte: new Date(this.nowTimestamp * 1000) } },
             3n,
+            0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
             this.nowTimestamp,
@@ -643,7 +705,8 @@ class FixtureGenerator {
         "exclusion_check_sanctions_evm",
         () => getSanctionsExclusionCheckCircuitInputs(
           this.helper.passport as any,
-          3n,
+          3n, 
+          0n,
           getServiceScopeHash("zkpassport.id"),
           getServiceSubscopeHash("bigproof"),
         ),
@@ -792,20 +855,40 @@ class FixtureGenerator {
     // const { subproofs: additionalSubproofs, committedInputs: additionalCommittedInputs } =
     //   await this.generateAdditionalProofs()
 
-    const sevenSubproofsData = [
+    // const sevenSubproofsData = [
+    //   this.subproofs.get(0)!,
+    //   this.subproofs.get(1)!,
+    //   this.subproofs.get(2)!,
+    //   bindSubproof,
+    //   sanctionsSubproof,
+    //   countryExclusionSubproof,
+    //   ageSubproof,
+    // ]
+
+    // const outerProof6 = await this.generateOuterProof(
+    //   sevenSubproofsData,
+    //   "outer_count_7",
+    //   "outer_count_7",
+    // Generate 13 subproofs fixtures
+    const { subproofs: additionalSubproofs, committedInputs: additionalCommittedInputs } =
+      await this.generateAdditionalProofs()
+
+    const { subproof: facematchSubproof, committedInputs: facematchCommittedInputs } =
+      await this.generateFacematchProof()
+
+    const elevenSubproofsData = [
       this.subproofs.get(0)!,
       this.subproofs.get(1)!,
       this.subproofs.get(2)!,
-      bindSubproof,
-      sanctionsSubproof,
-      countryExclusionSubproof,
-      ageSubproof,
+      discloseSubproof,
+      ...additionalSubproofs,
+      facematchSubproof,
     ]
 
-    const outerProof6 = await this.generateOuterProof(
-      sevenSubproofsData,
-      "outer_count_7",
-      "outer_count_7",
+    const outerProof13 = await this.generateOuterProof(
+      elevenSubproofsData,
+      "outer_count_13",
+      "outer_count_13",
     )
 
     // const twelveSubproofsData = [
@@ -823,12 +906,18 @@ class FixtureGenerator {
     // )
 
     const fixtures = {
-      validProof: outerProof6.proof.map((x) => x.replace("0x", "")).join(""),
-      validPublicInputs: outerProof6.publicInputs,
-      validCommittedInputs: bindCommittedInputs + sanctionsCommittedInputs + countryExclusionCommittedInputs + ageCommittedInputs,
+      // validProof: outerProof6.proof.map((x) => x.replace("0x", "")).join(""),
+      // validPublicInputs: outerProof6.publicInputs,
+      // validCommittedInputs: bindCommittedInputs + sanctionsCommittedInputs + countryExclusionCommittedInputs + ageCommittedInputs,
       // allSubproofsProof: outerProof12.proof.map((x) => x.replace("0x", "")).join(""),
       // allSubproofsPublicInputs: outerProof12.publicInputs,
       // allSubproofsCommittedInputs: discloseCommittedInputs + additionalCommittedInputs,
+      // validProof: outerProof5.proof.map((x) => x.replace("0x", "")).join(""),
+      // validPublicInputs: outerProof5.publicInputs,
+      // validCommittedInputs: discloseCommittedInputs + bindCommittedInputs,
+      allSubproofsProof: outerProof13.proof.map((x) => x.replace("0x", "")).join(""),
+      allSubproofsPublicInputs: outerProof13.publicInputs,
+      allSubproofsCommittedInputs: discloseCommittedInputs + additionalCommittedInputs + facematchCommittedInputs,
     }
 
     await this.writeFixturesToFiles(fixtures)

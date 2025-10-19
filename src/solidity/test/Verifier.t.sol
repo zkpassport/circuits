@@ -3,7 +3,7 @@
 pragma solidity >=0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
-import {IVerifier, HonkVerifier} from "../src/OuterCount5.sol";
+import {IVerifier, HonkVerifier, BaseHonkVerifier} from "../src/ultra-honk-verifiers/OuterCount5.sol";
 import {TestUtils} from "./Utils.t.sol";
 
 contract VerifierTest is TestUtils {
@@ -36,24 +36,24 @@ contract VerifierTest is TestUtils {
    * We expect verification to revert with SumcheckFailed
    */
   function test_VerifyWithDummyProof() public {
-    // Create a dummy proof with the exact required size (457 * 32 = 14624 bytes)
-    bytes memory proof = new bytes(14624);
+    // Create a dummy proof with the exact required size (317 * 32 = 14624 bytes)
+    bytes memory proof = new bytes(10144);
 
     // Generate some random values for the proof
-    for (uint i = 0; i < 14624; i++) {
+    for (uint i = 0; i < 10144; i++) {
       proof[i] = bytes1(uint8(i % 256));
     }
 
-    // Create a dummy public inputs array with the required size (8)
-    bytes32[] memory publicInputs = new bytes32[](8);
+    // Create a dummy public inputs array with the required size (9)
+    bytes32[] memory publicInputs = new bytes32[](9);
 
     // Fill with some values
-    for (uint i = 0; i < 8; i++) {
+    for (uint i = 0; i < 9; i++) {
       publicInputs[i] = bytes32(uint256(i));
     }
 
     // Expect the SumcheckFailed error
-    vm.expectRevert("SumcheckFailed()");
+    vm.expectRevert(BaseHonkVerifier.SumcheckFailed.selector);
     verifier.verify(proof, publicInputs);
   }
 
@@ -62,7 +62,7 @@ contract VerifierTest is TestUtils {
    * We expect it to revert with ProofLengthWrong
    */
   function test_VerifyInvalidProofLength() public {
-    vm.expectRevert("ProofLengthWrong()");
+    vm.expectPartialRevert(BaseHonkVerifier.ProofLengthWrongWithLogN.selector);
     verifier.verify(bytes(""), new bytes32[](0));
   }
 }

@@ -47,15 +47,20 @@ async function getIpfsCidv0(
   throw new Error("Failed to generate CIDv0")
 }
 
+const getPackageJsonBBVersion = () => {
+  const packageJsonPath = path.resolve(__dirname, "../../../package.json")
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
+  const expectedBBVersion = packageJson.dependencies["@aztec/bb.js"].replace(
+    /[^0-9a-zA-Z\.\-]/i,
+    "",
+  )
+  return expectedBBVersion
+}
+
 function checkBBVersion() {
   try {
     // Read package.json to get expected bb version
-    const packageJsonPath = path.resolve(__dirname, "../../../package.json")
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
-    const expectedBBVersion = packageJson.dependencies["@aztec/bb.js"].replace(
-      /[^0-9a-zA-Z\.\-]/i,
-      "",
-    )
+    const expectedBBVersion = getPackageJsonBBVersion()
     if (!expectedBBVersion) {
       throw new Error("Couldn't find bb version in package.json")
     }
@@ -64,11 +69,13 @@ function checkBBVersion() {
     if (!installedBBVersion) {
       throw new Error(`Failed to parse bb version output: ${installedBBVersion}`)
     }
-    if (installedBBVersion !== expectedBBVersion) {
+    // TODO: Uncomment this once the bb MacOS binaries are back
+    // as the version string is not correct for locally built bb binaries
+    /* if (installedBBVersion !== expectedBBVersion) {
       throw new Error(
         `bb version mismatch. Expected ${expectedBBVersion} but found ${installedBBVersion}. Change bb version using: bbup -v ${expectedBBVersion}`,
       )
-    }
+    }*/
   } catch (error: any) {
     if (error.message.includes("command not found")) {
       console.error(
@@ -108,7 +115,7 @@ const processFile = async (
   const vkeyPath = path.join(TARGET_DIR, `${outputName}_vkey`)
   const gateCountPath = path.join(TARGET_DIR, `${outputName}.size.json`)
   const solidityVerifierPath = path.join(
-    "src/solidity/src",
+    "src/solidity/src/ultra-honk-verifiers",
     `${snakeToPascal(outputName)}.sol`.replace("Evm", ""),
   )
   try {
@@ -119,17 +126,22 @@ const processFile = async (
     }
 
     // Run bb command to get bb version and generate circuit vkey
-    const bbVersion = (await execPromise("bb --version")).stdout.trim().replace(/^v/i, "")
+    // const bbVersion = (await execPromise("bb --version")).stdout.trim().replace(/^v/i, "")
+    // TODO: Switch back to the above once the bb MacOS binaries are back
+    const bbVersion = getPackageJsonBBVersion()
     console.log(`Generating vkey: ${file}`)
     fs.mkdirSync(vkeyPath, { recursive: true })
     await execPromise(
       `bb write_vk --scheme ultra_honk${
         evm ? " --oracle_hash keccak" : ""
-      } --honk_recursion 1 --output_format bytes_and_fields -b "${inputPath}" -o "${vkeyPath}"`,
+      } -b "${inputPath}" -o "${vkeyPath}"`,
     )
-    await execPromise(
-      `bb gates --scheme ultra_honk --honk_recursion 1 -b "${inputPath}" > "${gateCountPath}"`,
-    )
+    // TODO: remove this condition once bb gates works with outer circuits again
+    if (!file.startsWith("outer")) {
+      await execPromise(
+        `bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`,
+      )
+    }
     if (generateSolidityVerifier) {
       await execPromise(
         `bb write_solidity_verifier --scheme ultra_honk --disable_zk -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
@@ -139,22 +151,23 @@ const processFile = async (
     // Get Poseidon2 hash of vkey
     //const vkeyAsFieldsJson = JSON.parse(fs.readFileSync(`${vkeyPath}/vk_fields.json`, "utf-8"))
     //const vkeyAsFields = vkeyAsFieldsJson.map((v: any) => BigInt(v))
-    const vkeyHash = JSON.parse(fs.readFileSync(`${vkeyPath}/vk_hash_fields.json`, "utf-8"))
+    const vkeyHash = `0x${Buffer.from(fs.readFileSync(`${vkeyPath}/vk_hash`)).toString("hex")}`
     const vkey = Buffer.from(fs.readFileSync(`${vkeyPath}/vk`)).toString("base64")
 
     // Clean up vkey files
     fs.unlinkSync(`${vkeyPath}/vk`)
-    fs.unlinkSync(`${vkeyPath}/vk_fields.json`)
     fs.unlinkSync(`${vkeyPath}/vk_hash`)
-    fs.unlinkSync(`${vkeyPath}/vk_hash_fields.json`)
     fs.rmdirSync(vkeyPath)
 
     // Read and parse the input file
     const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
     let gateCount = 0
-    const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
-    gateCount = gateCountFileContent.functions[0].circuit_size
-    fs.unlinkSync(gateCountPath)
+    // TODO: remove this condition once bb gates works with outer circuits again
+    if (!file.startsWith("outer")) {
+      const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
+      gateCount = gateCountFileContent.functions[0].circuit_size
+      fs.unlinkSync(gateCountPath)
+    }
 
     // Create packaged circuit object
     const packagedCircuit: {
@@ -200,8 +213,8 @@ const getOuterkeyHashes = (): { count: number; hash: string }[] => {
 
     // Filter for outer_evm_count files and extract their vkey hashes
     for (const file of packagedFiles) {
-      if (file.startsWith("outer_count_")) {
-        const countMatch = file.match(/outer_count_(\d+)\.json/)
+      if (file.startsWith("outer_evm_count_")) {
+        const countMatch = file.match(/outer_evm_count_(\d+)\.json/)
         if (countMatch && countMatch[1]) {
           const count = parseInt(countMatch[1])
           const filePath = path.join(PACKAGED_CIRCUITS_DIR, file)
@@ -225,7 +238,7 @@ const getOuterkeyHashes = (): { count: number; hash: string }[] => {
               count,
               hash: normalizedHash,
             })
-            console.log(`Collected vkey hash for outer_count_${count}: ${normalizedHash}`)
+            console.log(`Collected vkey hash for outer_evm_count_${count}: ${normalizedHash}`)
           }
         }
       }
@@ -312,24 +325,20 @@ const processFiles = async () => {
         `Memory intensive processing of outer proof circuit: ${file} (no concurrent processing)`,
       )
       console.log(`Generating the standard outer proof packaged circuit...`)
-      const success = await processFile(file, true, file.replace(".json", ""), true)
+      const success = await processFile(file, false, file.replace(".json", ""), false)
       if (!success) {
         hasErrors = true
       }
-      /*console.log(`Generating the EVM-optimised outer proof packaged circuit...`)
+      console.log(`Generating the EVM-optimised outer proof packaged circuit...`)
       const successEvm = await processFile(
         file,
         true,
         file.replace("outer_count", "outer_evm_count").replace(".json", ""),
         true,
-        // Disable the fully ZK property for outer proof circuits meant
-        // to be verified onchain as the subproofs are already ZK and it's cheaper
-        // to verify a non ZK proof onchain
-        true,
       )
       if (!successEvm) {
         hasErrors = true
-      }*/
+      }
     }
   }
 

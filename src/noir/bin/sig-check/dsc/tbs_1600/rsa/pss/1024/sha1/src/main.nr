@@ -1,6 +1,7 @@
 // This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_dsc;
 use sig_check_rsa::verify_signature;
+use utils::types::Alpha3CountryCode;
 
 fn main(
     certificate_registry_root: pub Field,
@@ -8,7 +9,7 @@ fn main(
     certificate_registry_hash_path: [Field; 16],
     certificate_tags: [Field; 3],
     salt: Field,
-    country: str<3>,
+    country: Alpha3CountryCode,
     tbs_certificate: [u8; 1600],
     csc_pubkey: [u8; 128],
     csc_pubkey_redc_param: [u8; 129],
