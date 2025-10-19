@@ -1264,7 +1264,7 @@ const generateWorkspaceToml = () => {
 
 // Maximum number of concurrent circuit compilations via `nargo compile`
 // Default value that can be overridden via CLI using --concurrency=x
-const DEFAULT_CONCURRENCY = 10
+const DEFAULT_CONCURRENCY = 20
 
 // Promise pool for controlled concurrency
 class PromisePool {

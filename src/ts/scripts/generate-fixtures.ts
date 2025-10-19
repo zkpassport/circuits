@@ -215,7 +215,7 @@ class FixtureGenerator {
       bind: {
         user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8",
         chain: "local_anvil",
-        // custom_data: "email:test@test.com,customer_id:1234567890",
+        custom_data: "email:test@test.com,customer_id:1234567890",
       },
     }
 
@@ -273,6 +273,7 @@ class FixtureGenerator {
     const inputs = await getSanctionsExclusionCheckCircuitInputs(
       this.helper.passport as any,
       3n,
+      0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
     )
@@ -318,6 +319,7 @@ class FixtureGenerator {
       this.helper.passport as any,
       countryExclusionQuery,
       3n,
+      0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
     )
@@ -372,6 +374,7 @@ class FixtureGenerator {
       this.helper.passport as any,
       ageQuery,
       3n,
+      0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
       this.nowTimestamp,
@@ -416,15 +419,20 @@ class FixtureGenerator {
       committedInputs,
     }
   }
+
   async generateFacematchProof(): Promise<{ subproof: SubproofData; committedInputs: string }> {
     console.log("Generating facematch proof...")
 
     const facematchCircuit = Circuit.from("facematch_ios_evm")
     const inputs = await getFacematchCircuitInputs(
       this.helper.passport as any,
-      { facematch: { mode: "regular" } },
+      { facematch: { mode: "strict" } },
       3n,
       0n,
+      getServiceScopeHash("zkpassport.id"),
+      getServiceSubscopeHash("bigproof"),
+      this.nowTimestamp,
+    )
     if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
 
     const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH }
@@ -441,7 +449,7 @@ class FixtureGenerator {
     const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
     // On iOS, the integrity public key hash is 0 since it's logic specific to Android
     const integrityPubKeyHash = 0n
-    const facematch_mode = 1n
+    const facematch_mode = 2n
     const paramCommitment = getParameterCommitmentFromDisclosureProof(facematchProof)
     const vkey = (await facematchCircuit.getVerificationKey({ evm: false })).vkeyFields
     const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
@@ -848,76 +856,40 @@ class FixtureGenerator {
     
     const { subproof: ageSubproof, committedInputs: ageCommittedInputs } =
       await this.generateAgeProof()
+    
+    const { subproof: facematchSubproof, committedInputs: facematchCommittedInputs } = 
+      await this.generateFacematchProof();
 
-    // console.log("committed inputs",countryExclusionCommittedInputs)
+    const outerEightCommittedInputs = 
+      bindCommittedInputs + 
+      sanctionsCommittedInputs + 
+      countryExclusionCommittedInputs + 
+      ageCommittedInputs + 
+      facematchCommittedInputs;
 
-    // Generate 12 subproofs fixtures
-    // const { subproofs: additionalSubproofs, committedInputs: additionalCommittedInputs } =
-    //   await this.generateAdditionalProofs()
+    console.log(bindCommittedInputs, sanctionsCommittedInputs, countryExclusionCommittedInputs, ageCommittedInputs, facematchCommittedInputs);
 
-    // const sevenSubproofsData = [
-    //   this.subproofs.get(0)!,
-    //   this.subproofs.get(1)!,
-    //   this.subproofs.get(2)!,
-    //   bindSubproof,
-    //   sanctionsSubproof,
-    //   countryExclusionSubproof,
-    //   ageSubproof,
-    // ]
-
-    // const outerProof6 = await this.generateOuterProof(
-    //   sevenSubproofsData,
-    //   "outer_count_7",
-    //   "outer_count_7",
-    // Generate 13 subproofs fixtures
-    const { subproofs: additionalSubproofs, committedInputs: additionalCommittedInputs } =
-      await this.generateAdditionalProofs()
-
-    const { subproof: facematchSubproof, committedInputs: facematchCommittedInputs } =
-      await this.generateFacematchProof()
-
-    const elevenSubproofsData = [
+    const eightSubproofsData = [
       this.subproofs.get(0)!,
       this.subproofs.get(1)!,
       this.subproofs.get(2)!,
-      discloseSubproof,
-      ...additionalSubproofs,
-      facematchSubproof,
-    ]
+      bindSubproof,
+      sanctionsSubproof,
+      countryExclusionSubproof,
+      ageSubproof,
+      facematchSubproof
+    ];
 
-    const outerProof13 = await this.generateOuterProof(
-      elevenSubproofsData,
-      "outer_count_13",
-      "outer_count_13",
-    )
-
-    // const twelveSubproofsData = [
-    //   this.subproofs.get(0)!,
-    //   this.subproofs.get(1)!,
-    //   this.subproofs.get(2)!,
-    //   discloseSubproof,
-    //   ...additionalSubproofs,
-    // ]
-
-    // const outerProof12 = await this.generateOuterProof(
-    //   twelveSubproofsData,
-    //   "outer_count_12",
-    //   "outer_count_12",
-    // )
+    const outerProof8 = await this.generateOuterProof(
+      eightSubproofsData,
+      "outer_count_8",
+      "outer_count_8",
+    );
 
     const fixtures = {
-      // validProof: outerProof6.proof.map((x) => x.replace("0x", "")).join(""),
-      // validPublicInputs: outerProof6.publicInputs,
-      // validCommittedInputs: bindCommittedInputs + sanctionsCommittedInputs + countryExclusionCommittedInputs + ageCommittedInputs,
-      // allSubproofsProof: outerProof12.proof.map((x) => x.replace("0x", "")).join(""),
-      // allSubproofsPublicInputs: outerProof12.publicInputs,
-      // allSubproofsCommittedInputs: discloseCommittedInputs + additionalCommittedInputs,
-      // validProof: outerProof5.proof.map((x) => x.replace("0x", "")).join(""),
-      // validPublicInputs: outerProof5.publicInputs,
-      // validCommittedInputs: discloseCommittedInputs + bindCommittedInputs,
-      allSubproofsProof: outerProof13.proof.map((x) => x.replace("0x", "")).join(""),
-      allSubproofsPublicInputs: outerProof13.publicInputs,
-      allSubproofsCommittedInputs: discloseCommittedInputs + additionalCommittedInputs + facematchCommittedInputs,
+      validProof: outerProof8.proof.map((x) => x.replace("0x", "")).join(""),
+      validPublicInputs: outerProof8.publicInputs,
+      validCommittedInputs: outerEightCommittedInputs
     }
 
     await this.writeFixturesToFiles(fixtures)
