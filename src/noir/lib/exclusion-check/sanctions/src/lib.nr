@@ -40,15 +40,23 @@ global TREE_ROOT: Field = 0x099699583ea7729a4a05821667645e927b74feb4e6e5382c6e43
 ///
 /// A tuple of the 3 possibles last name + first name combinations
 pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName, MRZName) {
+    // Gets the whole name from the MRZ
     let full_name = get_name_from_mrz(dg1);
+    // << is the separator between the last name and the first name
+    // Everything before is the last name, everything after is the first name, middle names, and other given names
     let full_name_separator = [ASCII_CODE_FOR_LESS_THAN, ASCII_CODE_FOR_LESS_THAN];
+    // < is the separator between any given name or as a replacement for spaces, hyphens, apostrophes, etc.
+    // making first name parts indistinguishable from multiple separate given names
+    // (e.g. Jean-Pierre Dupont -> DUPONT<<JEAN<PIERRE<<<<..., vs John Miller Doe -> DOE<<JOHN<MILLER<<<....) 
     let single_name_separator = [ASCII_CODE_FOR_LESS_THAN];
+    // Gets the index of where the last name ends (i.e. where we can find the first <<)
     let last_name_end_index = find_subarray_index(full_name_separator, full_name);
     // Make sure the last name end index is valid
     assert_eq(full_name[last_name_end_index], ASCII_CODE_FOR_LESS_THAN, "Invalid index for last name end");
     assert_eq(full_name[last_name_end_index + 1], ASCII_CODE_FOR_LESS_THAN, "Invalid index for last name end");
+    // Gets the index of where the first given name starts (i.e. after the <<)
     let first_name_start_index = last_name_end_index + full_name_separator.len();
-    // The first given name must be present
+    // The first given name must be present, an ID will have at least one given name
     assert(full_name[first_name_start_index] != ASCII_CODE_FOR_LESS_THAN, "Invalid index for first name start");
 
     // Gets the index of where the second given name (or the second part of the first name) starts
@@ -100,46 +108,40 @@ pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName,
     // Last name + whatever comes before the first < (could be a whole first name or a partial first name, 
     // e.g. Jean-Pierre Dupont -> DUPONT<<JEAN<PIERRE<<<<..., only DUPONT<<JEAN<<<... would be considered here)
     let name_1 =  if second_name_start_index < PASSPORT_MRZ_NAME_LENGTH { 
-        let mut name_2_vec: BoundedVec<u8, PASSPORT_MRZ_NAME_LENGTH> = BoundedVec::new();
+        // Implicitly fills the rest with <
+        let mut result = [ASCII_CODE_FOR_LESS_THAN; PASSPORT_MRZ_NAME_LENGTH];
         for i in 0..PASSPORT_MRZ_NAME_LENGTH {
-            // Push letters from the original MRZ name up until the second <
-            if i < third_name_start_index {
-                name_2_vec.push(full_name[i]);
-            } else {
-                // Then fill the rest with <
-                name_2_vec.push(ASCII_CODE_FOR_LESS_THAN);
+            // Push characters from the original MRZ name up until the second <
+            if i < second_name_start_index {
+                result[i] = full_name[i];
             }
         }
-        name_2_vec.storage()
+        result
     } else { std::mem::zeroed() };
     // Last name + whatever comes before the second < (could be a whole first name or a partial first name, less likely to be partial here, 
     // e.g. Jean-Pierre-Martin Dupont -> DUPONT<<JEAN<PIERRE<MARTIN<<<<..., only DUPONT<<JEAN<PIERRE<<<... would be considered here)
     let name_2 = if third_name_start_index < PASSPORT_MRZ_NAME_LENGTH { 
-        let mut name_2_vec: BoundedVec<u8, PASSPORT_MRZ_NAME_LENGTH> = BoundedVec::new();
+        // Implicitly fills the rest with <
+        let mut result = [ASCII_CODE_FOR_LESS_THAN; PASSPORT_MRZ_NAME_LENGTH];
         for i in 0..PASSPORT_MRZ_NAME_LENGTH {
-            // Push letters from the original MRZ name up until the second <
+            // Push characters from the original MRZ name up until the second <
             if i < third_name_start_index {
-                name_2_vec.push(full_name[i]);
-            } else {
-                // Then fill the rest with <
-                name_2_vec.push(ASCII_CODE_FOR_LESS_THAN);
+                result[i] = full_name[i];
             }
         }
-        name_2_vec.storage()
+        result
     } else { std::mem::zeroed() };
     // Last name + whatever comes before the third < (this should cover most possible first names with apostrophes, hyphens or other characters replaced by <)
     let name_3 = if fourth_name_start_index < PASSPORT_MRZ_NAME_LENGTH { 
-        let mut name_3_vec: BoundedVec<u8, PASSPORT_MRZ_NAME_LENGTH> = BoundedVec::new();
+        // Implicitly fills the rest with <
+        let mut result = [ASCII_CODE_FOR_LESS_THAN; PASSPORT_MRZ_NAME_LENGTH];
         for i in 0..PASSPORT_MRZ_NAME_LENGTH {
-            // Push letters from the original MRZ name up until the third <
+            // Push characters from the original MRZ name up until the third <
             if i < fourth_name_start_index {
-                name_3_vec.push(full_name[i]);
-            } else {
-                // Then fill the rest with <
-                name_3_vec.push(ASCII_CODE_FOR_LESS_THAN);
+                result[i] = full_name[i];
             }
         }
-        name_3_vec.storage()
+        result
     } else { std::mem::zeroed() };
     (name_1, name_2, name_3)
 }
