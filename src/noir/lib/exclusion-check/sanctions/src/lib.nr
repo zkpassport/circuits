@@ -47,31 +47,78 @@ pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName,
     // Make sure the last name end index is valid
     assert_eq(full_name[last_name_end_index], ASCII_CODE_FOR_LESS_THAN, "Invalid index for last name end");
     assert_eq(full_name[last_name_end_index + 1], ASCII_CODE_FOR_LESS_THAN, "Invalid index for last name end");
-    let first_name_index = last_name_end_index + full_name_separator.len();
+    let first_name_start_index = last_name_end_index + full_name_separator.len();
     // The first given name must be present
-    assert(full_name[first_name_index] != ASCII_CODE_FOR_LESS_THAN, "Invalid index for first name start");
-    let second_name_index = find_subarray_index_after_index(single_name_separator, full_name, first_name_index) + 1;
-    // The second given name index must be after the first given name index
+    assert(full_name[first_name_start_index] != ASCII_CODE_FOR_LESS_THAN, "Invalid index for first name start");
+
+    // Gets the index of where the second given name (or the second part of the first name) starts
+    let second_name_start_index = find_subarray_index_after_index(single_name_separator, full_name, first_name_start_index) + 1;
     // Note: we don't check if the character after is not < as there might not be a second given name (e.g. John Doe -> DOE<<JOHN<<<<....)
-    assert(second_name_index > first_name_index, "Second name index must be after first name index");
+    assert(second_name_start_index > first_name_start_index, "Second name start index must be after first name start index");
     // Checking the separator is there at the expected index
-    assert_eq(full_name[second_name_index], ASCII_CODE_FOR_LESS_THAN, "Invalid index for second name start");
-    let third_name_index = find_subarray_index_after_index(single_name_separator, full_name, second_name_index) + 1;
-    // The third given name index must be after the second given name index
+    assert_eq(full_name[second_name_start_index - 1], ASCII_CODE_FOR_LESS_THAN, "Invalid index for second name start");
+    // If we get a < here, then all the following characters must be <
+    if (full_name[second_name_start_index] == ASCII_CODE_FOR_LESS_THAN) {
+        for i in 0..PASSPORT_MRZ_NAME_LENGTH {
+            if i > second_name_start_index {
+                assert_eq(full_name[i], ASCII_CODE_FOR_LESS_THAN, "Invalid index for second name start");
+            }
+        }
+    }
+
+    // Gets the index of where the third given name (or the third part of the first name) starts
+    let third_name_start_index = find_subarray_index_after_index(single_name_separator, full_name, second_name_start_index) + 1;
     // Note: we don't check if the character after is not < as there might not be a third given name (e.g. John Miller Doe -> DOE<<JOHN<MILLER<<<....)
-    assert(third_name_index > second_name_index, "Third name index must be after second name index");
+    assert(third_name_start_index > second_name_start_index, "Third name start index must be after second name start index");
     // Checking the separator is there at the expected index
-    assert_eq(full_name[third_name_index], ASCII_CODE_FOR_LESS_THAN, "Invalid index for third name start");
+    assert_eq(full_name[third_name_start_index - 1], ASCII_CODE_FOR_LESS_THAN, "Invalid index for third name start");
+    // If we get a < here, then all the following characters must be <
+    if (full_name[third_name_start_index] == ASCII_CODE_FOR_LESS_THAN) {
+        for i in 0..PASSPORT_MRZ_NAME_LENGTH {
+            if i > third_name_start_index {
+                assert_eq(full_name[i], ASCII_CODE_FOR_LESS_THAN, "Invalid index for second name start");
+            }
+        }
+    }
+
+    // Gets the index of where the fourth given name (or the fourth part of the first name) starts
+    let fourth_name_start_index = find_subarray_index_after_index(single_name_separator, full_name, third_name_start_index) + 1;
+    // Note: we don't check if the character after is not < as there might not be a fourth given name (e.g. John Miller Doe -> DOE<<JOHN<MILLER<<<....)
+    assert(fourth_name_start_index > third_name_start_index, "Fourth name start index must be after third name start index");
+    // Checking the separator is there at the expected index
+    assert_eq(full_name[fourth_name_start_index - 1], ASCII_CODE_FOR_LESS_THAN, "Invalid index for fourth name start");
+    // If we get a < here, then all the following characters must be <
+    if (full_name[fourth_name_start_index] == ASCII_CODE_FOR_LESS_THAN) {
+        for i in 0..PASSPORT_MRZ_NAME_LENGTH {
+            if i > fourth_name_start_index {
+                assert_eq(full_name[i], ASCII_CODE_FOR_LESS_THAN, "Invalid index for second name start");
+            }
+        }
+    }
+
+
     // Last name + whatever comes before the first < (could be a whole first name or a partial first name, 
     // e.g. Jean-Pierre Dupont -> DUPONT<<JEAN<PIERRE<<<<..., only DUPONT<<JEAN<<<... would be considered here)
-    let name_1 = get_array_slice::<_, PASSPORT_MRZ_NAME_LENGTH>(full_name, 0);
-    // Last name + whatever comes before the second < (could be a whole first name or a partial first name, less likely to be partial here, 
-    // e.g. Jean-Pierre-Martin Dupont -> DUPONT<<JEAN<PIERRE<MARTIN<<<<..., only DUPONT<<JEAN<PIERRE<<<... would be considered here)
-    let name_2 = if second_name_index < PASSPORT_MRZ_NAME_LENGTH { 
+    let name_1 =  if second_name_start_index < PASSPORT_MRZ_NAME_LENGTH { 
         let mut name_2_vec: BoundedVec<u8, PASSPORT_MRZ_NAME_LENGTH> = BoundedVec::new();
         for i in 0..PASSPORT_MRZ_NAME_LENGTH {
             // Push letters from the original MRZ name up until the second <
-            if i < second_name_index {
+            if i < third_name_start_index {
+                name_2_vec.push(full_name[i]);
+            } else {
+                // Then fill the rest with <
+                name_2_vec.push(ASCII_CODE_FOR_LESS_THAN);
+            }
+        }
+        name_2_vec.storage()
+    } else { std::mem::zeroed() };
+    // Last name + whatever comes before the second < (could be a whole first name or a partial first name, less likely to be partial here, 
+    // e.g. Jean-Pierre-Martin Dupont -> DUPONT<<JEAN<PIERRE<MARTIN<<<<..., only DUPONT<<JEAN<PIERRE<<<... would be considered here)
+    let name_2 = if third_name_start_index < PASSPORT_MRZ_NAME_LENGTH { 
+        let mut name_2_vec: BoundedVec<u8, PASSPORT_MRZ_NAME_LENGTH> = BoundedVec::new();
+        for i in 0..PASSPORT_MRZ_NAME_LENGTH {
+            // Push letters from the original MRZ name up until the second <
+            if i < third_name_start_index {
                 name_2_vec.push(full_name[i]);
             } else {
                 // Then fill the rest with <
@@ -81,11 +128,11 @@ pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName,
         name_2_vec.storage()
     } else { std::mem::zeroed() };
     // Last name + whatever comes before the third < (this should cover most possible first names with apostrophes, hyphens or other characters replaced by <)
-    let name_3 = if third_name_index < PASSPORT_MRZ_NAME_LENGTH { 
+    let name_3 = if fourth_name_start_index < PASSPORT_MRZ_NAME_LENGTH { 
         let mut name_3_vec: BoundedVec<u8, PASSPORT_MRZ_NAME_LENGTH> = BoundedVec::new();
         for i in 0..PASSPORT_MRZ_NAME_LENGTH {
             // Push letters from the original MRZ name up until the third <
-            if i < third_name_index {
+            if i < fourth_name_start_index {
                 name_3_vec.push(full_name[i]);
             } else {
                 // Then fill the rest with <
@@ -102,9 +149,10 @@ pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName,
 /// for passports and ID cards
 ///
 /// The trees are:
-/// 1. Passport No and Nationality
-/// 2. Name and DOB
-/// 3. Name and YOB
+/// 1. Last name + first name
+/// 2. Passport No and Nationality
+/// 3. Last name + first name and DOB
+/// 4. Last name + first name and YOB
 pub struct SanctionsSparseMerkleTrees {
     pub tree: Field,
 }
