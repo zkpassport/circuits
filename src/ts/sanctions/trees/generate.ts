@@ -9,8 +9,8 @@ const OPEN_SANCTIONS_DATASETS_URL = `https://data.opensanctions.org/datasets`
 
 const sanctionsListNames = ["ch_seco_sanctions", "eu_fsf", "gb_fcdo_sanctions", "us_ofac_sdn"];
 
-const TREE_DEPTH = 17;
-const SINGLE_TREE_DEPTH = 18;
+// Currently, the max is really close to 17, so we use 18 as it may soon rise above 17
+const TREE_DEPTH = 18;
 
 async function getSanctionsListEntities(datasetName: string) {
     const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
@@ -113,6 +113,8 @@ async function generateSanctionsTrees() {
 
     const sanctionsLists = openSanctionsResults.map(({datasetName}) => JSON.parse(fs.readFileSync(path.join(__dirname, `../input/${datasetName}/persons_with_passports.json`), 'utf8')));
 
+    // Generate the tree for each sanctions list
+    console.log("Generating Trees for each sanctions list");
     for (const sanctionsList of sanctionsLists) {
         const datasetName = sanctionsList[0].datasets[0];
         console.log("Generating Trees for dataset: ", datasetName);
@@ -123,6 +125,16 @@ async function generateSanctionsTrees() {
         } catch (error) {
             console.error("Error generating trees for dataset: ", datasetName, error);
         }
+    }
+
+    // Generate the tree for all sanctions lists
+    console.log("Generating Tree for all sanctions lists combined");
+    try {
+        const singleTreeSerialized = await generateSanctionsTreesForList(sanctionsLists.flat());
+        fs.writeFileSync(path.join(__dirname, `../output/all_sanctions_tree.json`), JSON.stringify(singleTreeSerialized, null, 2));
+        console.log("Tree generated for all sanctions lists");
+    } catch (error) {
+        console.error("Error generating tree for all sanctions lists", error);
     }
 }
 
