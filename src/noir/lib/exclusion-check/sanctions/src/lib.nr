@@ -20,7 +20,6 @@ use utils::{
     get_yob_from_mrz,
     types::{DG1Data, MRZDOB, MRZDocumentNumber, MRZName, MRZNationality, MRZYOB},
     find_subarray_index,
-    get_array_slice,
     u8_array_to_fields,
     find_subarray_index_after_index,
     constants::{ASCII_CODE_FOR_LESS_THAN, PASSPORT_MRZ_NAME_LENGTH}
@@ -28,9 +27,10 @@ use utils::{
 
 global TREE_ROOT: Field = 0x099699583ea7729a4a05821667645e927b74feb4e6e5382c6e4370e35ed2b23c;
 
-/// Get the 3 possibles last name + first name combinations from the MRZ
+/// Get the 3 possible last name + first name combinations from the MRZ.
+///
 /// This is necessary as the actual first name could be splitted into multiple parts
-/// by the < characters, e.g. Jean-Pierre -> Jean<Pierre
+/// by the < characters, e.g. Jean-Pierre -> JEAN<PIERRE<<<<...
 ///
 /// # Arguments
 ///
@@ -183,6 +183,7 @@ impl SanctionsSparseMerkleTrees {
         self: Self,
         dg1: DG1Data,
         proofs: SanctionsOrderedMerkleTreeProofs,
+        is_strict: bool,
     ) {
         // Calculate the hashes
         let (name_1, name_2, name_3) = get_last_name_and_first_name_from_mrz(dg1);
@@ -209,10 +210,15 @@ impl SanctionsSparseMerkleTrees {
         let name_and_yob_hash_2: Field = Poseidon2::hash(name_and_yob_2, name_and_yob_2.len());
         let name_and_yob_hash_3: Field = Poseidon2::hash(name_and_yob_3, name_and_yob_3.len());
 
-        // Check against the names
-        ordered_mt_non_membership(self.tree, name_hash_1, proofs.name_proof);
-        ordered_mt_non_membership(self.tree, name_hash_2, proofs.name_proof);
-        ordered_mt_non_membership(self.tree, name_hash_3, proofs.name_proof);
+        // If the strict mode is enabled, we need to check against just the names
+        // which has a higher likelihood of matching against an entry of the sanctions
+        // hence why it should be explicitly enabled by the prover
+        if (is_strict) {
+            // Check against the names
+            ordered_mt_non_membership(self.tree, name_hash_1, proofs.name_proof);
+            ordered_mt_non_membership(self.tree, name_hash_2, proofs.name_proof);
+            ordered_mt_non_membership(self.tree, name_hash_3, proofs.name_proof);
+        }
 
         // Check against the passport no and nationality
         ordered_mt_non_membership(
@@ -401,5 +407,5 @@ fn non_inclusion_of_dg1() {
         name_and_yob_proof: name_and_yob_proof,
     };
 
-    trees.check_sanctions_exclusion(dg1, smt_proofs);
+    trees.check_sanctions_exclusion(dg1, smt_proofs, true);
 }
