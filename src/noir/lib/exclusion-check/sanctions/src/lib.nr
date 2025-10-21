@@ -19,9 +19,83 @@ use utils::{
     get_nationality_from_mrz,
     get_yob_from_mrz,
     types::{DG1Data, MRZDOB, MRZDocumentNumber, MRZName, MRZNationality, MRZYOB},
+    find_subarray_index,
+    get_array_slice,
+    u8_array_to_fields,
+    find_subarray_index_after_index,
+    constants::{ASCII_CODE_FOR_LESS_THAN, PASSPORT_MRZ_NAME_LENGTH}
 };
 
 global TREE_ROOT: Field = 0x099699583ea7729a4a05821667645e927b74feb4e6e5382c6e4370e35ed2b23c;
+
+/// Get the 3 possibles last name + first name combinations from the MRZ
+/// This is necessary as the actual first name could be splitted into multiple parts
+/// by the < characters, e.g. Jean-Pierre -> Jean<Pierre
+///
+/// # Arguments
+///
+/// * `dg1` - The DG1 of the passport or ID card
+///
+/// # Returns
+///
+/// A tuple of the 3 possibles last name + first name combinations
+pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName, MRZName) {
+    let full_name = get_name_from_mrz(dg1);
+    let full_name_separator = [ASCII_CODE_FOR_LESS_THAN, ASCII_CODE_FOR_LESS_THAN];
+    let single_name_separator = [ASCII_CODE_FOR_LESS_THAN];
+    let last_name_end_index = find_subarray_index(full_name_separator, full_name);
+    // Make sure the last name end index is valid
+    assert_eq(full_name[last_name_end_index], ASCII_CODE_FOR_LESS_THAN, "Invalid index for last name end");
+    assert_eq(full_name[last_name_end_index + 1], ASCII_CODE_FOR_LESS_THAN, "Invalid index for last name end");
+    let first_name_index = last_name_end_index + full_name_separator.len();
+    // The first given name must be present
+    assert(full_name[first_name_index] != ASCII_CODE_FOR_LESS_THAN, "Invalid index for first name start");
+    let second_name_index = find_subarray_index_after_index(single_name_separator, full_name, first_name_index) + 1;
+    // The second given name index must be after the first given name index
+    // Note: we don't check if the character after is not < as there might not be a second given name (e.g. John Doe -> DOE<<JOHN<<<<....)
+    assert(second_name_index > first_name_index, "Second name index must be after first name index");
+    // Checking the separator is there at the expected index
+    assert_eq(full_name[second_name_index], ASCII_CODE_FOR_LESS_THAN, "Invalid index for second name start");
+    let third_name_index = find_subarray_index_after_index(single_name_separator, full_name, second_name_index) + 1;
+    // The third given name index must be after the second given name index
+    // Note: we don't check if the character after is not < as there might not be a third given name (e.g. John Miller Doe -> DOE<<JOHN<MILLER<<<....)
+    assert(third_name_index > second_name_index, "Third name index must be after second name index");
+    // Checking the separator is there at the expected index
+    assert_eq(full_name[third_name_index], ASCII_CODE_FOR_LESS_THAN, "Invalid index for third name start");
+    // Last name + whatever comes before the first < (could be a whole first name or a partial first name, 
+    // e.g. Jean-Pierre Dupont -> DUPONT<<JEAN<PIERRE<<<<..., only DUPONT<<JEAN<<<... would be considered here)
+    let name_1 = get_array_slice::<_, PASSPORT_MRZ_NAME_LENGTH>(full_name, 0);
+    // Last name + whatever comes before the second < (could be a whole first name or a partial first name, less likely to be partial here, 
+    // e.g. Jean-Pierre-Martin Dupont -> DUPONT<<JEAN<PIERRE<MARTIN<<<<..., only DUPONT<<JEAN<PIERRE<<<... would be considered here)
+    let name_2 = if second_name_index < PASSPORT_MRZ_NAME_LENGTH { 
+        let mut name_2_vec: BoundedVec<u8, PASSPORT_MRZ_NAME_LENGTH> = BoundedVec::new();
+        for i in 0..PASSPORT_MRZ_NAME_LENGTH {
+            // Push letters from the original MRZ name up until the second <
+            if i < second_name_index {
+                name_2_vec.push(full_name[i]);
+            } else {
+                // Then fill the rest with <
+                name_2_vec.push(ASCII_CODE_FOR_LESS_THAN);
+            }
+        }
+        name_2_vec.storage()
+    } else { std::mem::zeroed() };
+    // Last name + whatever comes before the third < (this should cover most possible first names with apostrophes, hyphens or other characters replaced by <)
+    let name_3 = if third_name_index < PASSPORT_MRZ_NAME_LENGTH { 
+        let mut name_3_vec: BoundedVec<u8, PASSPORT_MRZ_NAME_LENGTH> = BoundedVec::new();
+        for i in 0..PASSPORT_MRZ_NAME_LENGTH {
+            // Push letters from the original MRZ name up until the third <
+            if i < third_name_index {
+                name_3_vec.push(full_name[i]);
+            } else {
+                // Then fill the rest with <
+                name_3_vec.push(ASCII_CODE_FOR_LESS_THAN);
+            }
+        }
+        name_3_vec.storage()
+    } else { std::mem::zeroed() };
+    (name_1, name_2, name_3)
+}
 
 /// The Sanctions sparse merkle trees
 /// This is a collection of the three trees that are used to check the Sanctions exclusion
@@ -61,29 +135,49 @@ impl SanctionsSparseMerkleTrees {
         proofs: SanctionsOrderedMerkleTreeProofs,
     ) {
         // Calculate the hashes
-        let name: MRZName = get_name_from_mrz(dg1);
+        let (name_1, name_2, name_3) = get_last_name_and_first_name_from_mrz(dg1);
         let dob: MRZDOB = get_dob_from_mrz(dg1);
         let yob: MRZYOB = get_yob_from_mrz(dg1);
         let document_number: MRZDocumentNumber = get_document_number_from_mrz(dg1);
         let nationality: MRZNationality = get_nationality_from_mrz(dg1);
 
-        let passportNoAndNationality = array_concat_as_field(document_number, nationality);
-        let passportNoAndNationalityHash: Field =
-            Poseidon2::hash(passportNoAndNationality, passportNoAndNationality.len());
+        let name_hash_1: Field = Poseidon2::hash(u8_array_to_fields(name_1), PASSPORT_MRZ_NAME_LENGTH);
+        let name_hash_2: Field = Poseidon2::hash(u8_array_to_fields(name_2), PASSPORT_MRZ_NAME_LENGTH);
+        let name_hash_3: Field = Poseidon2::hash(u8_array_to_fields(name_3), PASSPORT_MRZ_NAME_LENGTH);
 
-        let nameAndDob = array_concat_as_field(name, dob);
-        let nameAndDobHash: Field = Poseidon2::hash(nameAndDob, nameAndDob.len());
+        let passport_no_and_nationality = array_concat_as_field(document_number, nationality);
+        let passport_no_and_nationality_hash_1: Field =
+            Poseidon2::hash(passport_no_and_nationality, passport_no_and_nationality.len());
 
-        let nameAndYob = array_concat_as_field(name, yob);
-        let nameAndYobHash: Field = Poseidon2::hash(nameAndYob, nameAndYob.len());
+        let (name_and_dob_1, name_and_dob_2, name_and_dob_3) = (array_concat_as_field(name_1, dob), array_concat_as_field(name_2, dob), array_concat_as_field(name_3, dob));
+        let name_and_dob_hash_1: Field = Poseidon2::hash(name_and_dob_1, name_and_dob_1.len());
+        let name_and_dob_hash_2: Field = Poseidon2::hash(name_and_dob_2, name_and_dob_2.len());
+        let name_and_dob_hash_3: Field = Poseidon2::hash(name_and_dob_3, name_and_dob_3.len());
 
+        let (name_and_yob_1, name_and_yob_2, name_and_yob_3) = (array_concat_as_field(name_1, yob), array_concat_as_field(name_2, yob), array_concat_as_field(name_3, yob));
+        let name_and_yob_hash_1: Field = Poseidon2::hash(name_and_yob_1, name_and_yob_1.len());
+        let name_and_yob_hash_2: Field = Poseidon2::hash(name_and_yob_2, name_and_yob_2.len());
+        let name_and_yob_hash_3: Field = Poseidon2::hash(name_and_yob_3, name_and_yob_3.len());
+
+        // Check against the names
+        ordered_mt_non_membership(self.tree, name_hash_1, proofs.name_proof);
+        ordered_mt_non_membership(self.tree, name_hash_2, proofs.name_proof);
+        ordered_mt_non_membership(self.tree, name_hash_3, proofs.name_proof);
+
+        // Check against the passport no and nationality
         ordered_mt_non_membership(
             self.tree,
-            passportNoAndNationalityHash,
+            passport_no_and_nationality_hash_1,
             proofs.passport_no_and_nationality_proof,
         );
-        ordered_mt_non_membership(self.tree, nameAndDobHash, proofs.name_and_dob_proof);
-        ordered_mt_non_membership(self.tree, nameAndYobHash, proofs.name_and_yob_proof);
+        // Check against the names and DOB
+        ordered_mt_non_membership(self.tree, name_and_dob_hash_1, proofs.name_and_dob_proof);
+        ordered_mt_non_membership(self.tree, name_and_dob_hash_2, proofs.name_and_dob_proof);
+        ordered_mt_non_membership(self.tree, name_and_dob_hash_3, proofs.name_and_dob_proof);
+        // Check against the names and YOB
+        ordered_mt_non_membership(self.tree, name_and_yob_hash_1, proofs.name_and_yob_proof);
+        ordered_mt_non_membership(self.tree, name_and_yob_hash_2, proofs.name_and_yob_proof);
+        ordered_mt_non_membership(self.tree, name_and_yob_hash_3, proofs.name_and_yob_proof);
     }
 }
 
