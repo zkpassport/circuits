@@ -1,4 +1,5 @@
 import { ExtendedAlpha2Code, SanctionsAlpha2Code, SanctionsCountries } from "@zkpassport/utils"
+import { Alpha2Code } from "i18n-iso-countries"
 
 export type SanctionsStatus = "sanctioned" | "debarred" | "wanted" | "crime-related" | "pep" | "person-of-interest" | "interpol-notice" | "disqualified"
 export type SanctionsDataset = "gb_fcdo_sanctions" | "us_ofac_sdn" | "ch_seco_sanctions" | "eu_sanctions_map" | "eu_fsf" | "eu_esma_sanctions"
@@ -15,10 +16,10 @@ export type SanctionsEntry = {
   aliases: string[]
   birth_date: string // YYYY-MM-DD or YYYY
   passports: string[]
-  nationality: SanctionsAlpha2Code[]
+  nationality: Alpha2Code[]
   has_passport: boolean
   status: SanctionsStatus[]
-  countries: SanctionsAlpha2Code[]
+  countries: Alpha2Code[]
   datasets: SanctionsDataset[]
 }
 

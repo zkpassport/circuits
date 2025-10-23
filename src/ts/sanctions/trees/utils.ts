@@ -199,7 +199,7 @@ export async function hashNameAndYob(mrz: MRZData[]): Promise<bigint[]> {
     const itemEncountered: Set<string> = new Set();
     for (const item of mrz) {
         const name = item.nameMRZ;
-        const year = item.yearMRZ;
+        const year = item.yearMRZ?.slice(-2);
 
         if (name && year && !itemEncountered.has(name.toString() + year.toString())) {
             itemEncountered.add(name.toString() + year.toString());
