@@ -14,6 +14,7 @@ fn main(
     dg2_hash_type: u32,
     root: Field,
     proofs: SanctionsOrderedMerkleTreeProofs,
+    is_strict: bool,
     nullifier_secret: Field,
     service_scope: pub Field,
     service_subscope: pub Field,
@@ -21,7 +22,7 @@ fn main(
     let trees = SanctionsSparseMerkleTrees::default();
     assert(trees.root() == root);
     // Check that nationality of the passport holder is not in the list of countries
-    trees.check_sanctions_exclusion(dg1, proofs);
+    trees.check_sanctions_exclusion(dg1, proofs, is_strict);
     let (nullifier, nullifier_type) = nullify(
         comm_in,
         salt,
