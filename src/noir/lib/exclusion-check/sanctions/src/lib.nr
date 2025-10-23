@@ -30,7 +30,7 @@ global TREE_ROOT: Field = 0x099699583ea7729a4a05821667645e927b74feb4e6e5382c6e43
 /// Get the 3 possible last name + first name combinations from the MRZ.
 ///
 /// This is necessary as the actual first name could be splitted into multiple parts
-/// by the < characters, e.g. Jean-Pierre -> JEAN<PIERRE<<<<...
+/// by the < character, e.g. Jean-Pierre -> JEAN<PIERRE<<<<...
 ///
 /// # Arguments
 ///
@@ -38,7 +38,7 @@ global TREE_ROOT: Field = 0x099699583ea7729a4a05821667645e927b74feb4e6e5382c6e43
 ///
 /// # Returns
 ///
-/// A tuple of the 3 possibles last name + first name combinations
+/// A tuple of the 3 most likely last name + first name combinations
 pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName, MRZName) {
     // Gets the whole name from the MRZ
     let full_name = get_name_from_mrz(dg1);
@@ -56,50 +56,92 @@ pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName,
     assert_eq(full_name[last_name_end_index + 1], ASCII_CODE_FOR_LESS_THAN, "Invalid index for last name end");
     // Gets the index of where the first given name starts (i.e. after the <<)
     let first_name_start_index = last_name_end_index + full_name_separator.len();
-    // The first given name must be present, an ID will have at least one given name
-    assert(full_name[first_name_start_index] != ASCII_CODE_FOR_LESS_THAN, "Invalid index for first name start");
 
     // Gets the index of where the second given name (or the second part of the first name) starts
     let second_name_start_index = find_subarray_index_after_index(single_name_separator, full_name, first_name_start_index) + 1;
     // Note: we don't check if the character after is not < as there might not be a second given name (e.g. John Doe -> DOE<<JOHN<<<<....)
     assert(second_name_start_index > first_name_start_index, "Second name start index must be after first name start index");
-    // Checking the separator is there at the expected index
-    assert_eq(full_name[second_name_start_index - 1], ASCII_CODE_FOR_LESS_THAN, "Invalid index for second name start");
-    // If we get a < here, then all the following characters must be <
-    if (full_name[second_name_start_index] == ASCII_CODE_FOR_LESS_THAN) {
-        for i in 0..PASSPORT_MRZ_NAME_LENGTH {
-            if i > second_name_start_index {
-                assert_eq(full_name[i], ASCII_CODE_FOR_LESS_THAN, "Invalid index for second name start");
+    // We check that the first given name is only latin letters, so no <
+    for i in 0..PASSPORT_MRZ_NAME_LENGTH {
+        if (i >= first_name_start_index) & (i < second_name_start_index - 1) {
+            assert(full_name[i] != ASCII_CODE_FOR_LESS_THAN, "First given name contains unexpected characters");
+        }
+    }
+    // If the second_name_start_index is equal to PASSPORT_MRZ_NAME_LENGTH then it means
+    // the first give name is taking all the available length and might be truncated
+    if (second_name_start_index < PASSPORT_MRZ_NAME_LENGTH) {
+        // Checking the separator is there at the expected index
+        assert_eq(full_name[second_name_start_index - 1], ASCII_CODE_FOR_LESS_THAN, "Separator not found between first and second name");
+        // If we get a < here, then all the following characters must be <
+        if (full_name[second_name_start_index] == ASCII_CODE_FOR_LESS_THAN) {
+            for i in 0..PASSPORT_MRZ_NAME_LENGTH {
+                if i > second_name_start_index {
+                    assert_eq(full_name[i], ASCII_CODE_FOR_LESS_THAN, "Invalid index for second name start");
+                }
             }
         }
     }
 
     // Gets the index of where the third given name (or the third part of the first name) starts
     let third_name_start_index = find_subarray_index_after_index(single_name_separator, full_name, second_name_start_index) + 1;
-    // Note: we don't check if the character after is not < as there might not be a third given name (e.g. John Miller Doe -> DOE<<JOHN<MILLER<<<....)
-    assert(third_name_start_index > second_name_start_index, "Third name start index must be after second name start index");
-    // Checking the separator is there at the expected index
-    assert_eq(full_name[third_name_start_index - 1], ASCII_CODE_FOR_LESS_THAN, "Invalid index for third name start");
-    // If we get a < here, then all the following characters must be <
-    if (full_name[third_name_start_index] == ASCII_CODE_FOR_LESS_THAN) {
-        for i in 0..PASSPORT_MRZ_NAME_LENGTH {
-            if i > third_name_start_index {
-                assert_eq(full_name[i], ASCII_CODE_FOR_LESS_THAN, "Invalid index for second name start");
+    // Check if not already beyond the MRZ limits
+    if (second_name_start_index < PASSPORT_MRZ_NAME_LENGTH) {
+        // Note: we don't check if the character after is not < as there might not be a third given name (e.g. John Miller Doe -> DOE<<JOHN<MILLER<<<....)
+        assert(third_name_start_index > second_name_start_index, "Third name start index must be after second name start index");
+        // Now that we know third_name_start_index, we can go back to check the second name validity
+        // if it is there
+        if (full_name[second_name_start_index] != ASCII_CODE_FOR_LESS_THAN) {
+            // We check that the second given name is only latin letters, so no <
+            for i in 0..PASSPORT_MRZ_NAME_LENGTH {
+                if (i >= second_name_start_index) & (i < third_name_start_index - 1) {
+                    assert(full_name[i] != ASCII_CODE_FOR_LESS_THAN, "Second given name contains unexpected characters");
+                }
+            }
+        }
+    }
+    // If the third_name_start_index is equal to PASSPORT_MRZ_NAME_LENGTH then it means
+    // the second give name is taking all the remaining length and might be truncated
+    if (third_name_start_index < PASSPORT_MRZ_NAME_LENGTH) {
+        // Checking the separator is there at the expected index
+        assert_eq(full_name[third_name_start_index - 1], ASCII_CODE_FOR_LESS_THAN, "Separator not found between second and third name");
+        // If we get a < here, then all the following characters must be <
+        if (full_name[third_name_start_index] == ASCII_CODE_FOR_LESS_THAN) {
+            for i in 0..PASSPORT_MRZ_NAME_LENGTH {
+                if i > third_name_start_index {
+                    assert_eq(full_name[i], ASCII_CODE_FOR_LESS_THAN, "Invalid index for third name start");
+                }
             }
         }
     }
 
     // Gets the index of where the fourth given name (or the fourth part of the first name) starts
     let fourth_name_start_index = find_subarray_index_after_index(single_name_separator, full_name, third_name_start_index) + 1;
-    // Note: we don't check if the character after is not < as there might not be a fourth given name (e.g. John Miller Doe -> DOE<<JOHN<MILLER<<<....)
-    assert(fourth_name_start_index > third_name_start_index, "Fourth name start index must be after third name start index");
-    // Checking the separator is there at the expected index
-    assert_eq(full_name[fourth_name_start_index - 1], ASCII_CODE_FOR_LESS_THAN, "Invalid index for fourth name start");
-    // If we get a < here, then all the following characters must be <
-    if (full_name[fourth_name_start_index] == ASCII_CODE_FOR_LESS_THAN) {
-        for i in 0..PASSPORT_MRZ_NAME_LENGTH {
-            if i > fourth_name_start_index {
-                assert_eq(full_name[i], ASCII_CODE_FOR_LESS_THAN, "Invalid index for second name start");
+    // Check if not already beyond the MRZ limits
+    if (third_name_start_index < PASSPORT_MRZ_NAME_LENGTH) {
+        // Note: we don't check if the character after is not < as there might not be a fourth given name (e.g. John Miller Doe -> DOE<<JOHN<MILLER<<<....)
+        assert(fourth_name_start_index > third_name_start_index, "Fourth name start index must be after third name start index");
+        // Now that we know fourth_name_start_index, we can go back to check the third name validity
+        // if it is there
+        if (full_name[third_name_start_index] != ASCII_CODE_FOR_LESS_THAN) {
+            // We check that the third given name is only latin letters, so no <
+            for i in 0..PASSPORT_MRZ_NAME_LENGTH {
+                if (i >= third_name_start_index) & (i < fourth_name_start_index - 1) {
+                    assert(full_name[i] != ASCII_CODE_FOR_LESS_THAN, "Third given name contains unexpected characters");
+                }
+            }
+        }
+    }
+    // If the fourth_name_start_index is equal to PASSPORT_MRZ_NAME_LENGTH then it means
+    // the third give name is taking all the remaining length and might be truncated
+    if (fourth_name_start_index < PASSPORT_MRZ_NAME_LENGTH) {
+        // Checking the separator is there at the expected index
+        assert_eq(full_name[fourth_name_start_index - 1], ASCII_CODE_FOR_LESS_THAN, "Invalid index for fourth name start");
+        // If we get a < here, then all the following characters must be <
+        if (full_name[fourth_name_start_index] == ASCII_CODE_FOR_LESS_THAN) {
+            for i in 0..PASSPORT_MRZ_NAME_LENGTH {
+                if i > fourth_name_start_index {
+                    assert_eq(full_name[i], ASCII_CODE_FOR_LESS_THAN, "Invalid index for fourth name start");
+                }
             }
         }
     }
@@ -117,7 +159,7 @@ pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName,
             }
         }
         result
-    } else { std::mem::zeroed() };
+    } else { full_name };
     // Last name + whatever comes before the second < (could be a whole first name or a partial first name, less likely to be partial here, 
     // e.g. Jean-Pierre-Martin Dupont -> DUPONT<<JEAN<PIERRE<MARTIN<<<<..., only DUPONT<<JEAN<PIERRE<<<... would be considered here)
     let name_2 = if third_name_start_index < PASSPORT_MRZ_NAME_LENGTH { 
@@ -130,7 +172,7 @@ pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName,
             }
         }
         result
-    } else { std::mem::zeroed() };
+    } else { full_name };
     // Last name + whatever comes before the third < (this should cover most possible first names with apostrophes, hyphens or other characters replaced by <)
     let name_3 = if fourth_name_start_index < PASSPORT_MRZ_NAME_LENGTH { 
         // Implicitly fills the rest with <
@@ -142,7 +184,7 @@ pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName,
             }
         }
         result
-    } else { std::mem::zeroed() };
+    } else { full_name };
     (name_1, name_2, name_3)
 }
 
@@ -214,7 +256,7 @@ impl SanctionsSparseMerkleTrees {
         // which has a higher likelihood of matching against an entry of the sanctions
         // hence why it should be explicitly enabled by the prover
         if (is_strict) {
-            // Check against the names
+            // Check against the names (last name + first name)
             ordered_mt_non_membership(self.tree, name_hash_1, proofs.name_proof);
             ordered_mt_non_membership(self.tree, name_hash_2, proofs.name_proof);
             ordered_mt_non_membership(self.tree, name_hash_3, proofs.name_proof);
@@ -235,6 +277,166 @@ impl SanctionsSparseMerkleTrees {
         ordered_mt_non_membership(self.tree, name_and_yob_hash_2, proofs.name_and_yob_proof);
         ordered_mt_non_membership(self.tree, name_and_yob_hash_3, proofs.name_and_yob_proof);
     }
+}
+
+#[test]
+fn test_name_retrieval_from_dg1() {
+    let passport_no= "123456789".as_bytes();
+    let dob = "900112".as_bytes();
+    let country = "GBR".as_bytes();
+    let name = "DOE<<JOHN<MILLER<<<<<<<<<<<<<<<<<<<<<<<".as_bytes();
+
+    let dg1 = DG1Builder::new([0; 95])
+        .with_document_number(passport_no)
+        .with_nationality(country)
+        .with_name(name)
+        .with_dob(dob)
+        .build();
+
+    let full_name = get_name_from_mrz(dg1);
+    // Should be the same full name as initialized above
+    assert_eq(full_name, "DOE<<JOHN<MILLER<<<<<<<<<<<<<<<<<<<<<<<".as_bytes());
+
+    let (name_1, name_2, name_3) = get_last_name_and_first_name_from_mrz(dg1);
+    // Should retrieve the last name and first given name
+    assert_eq(name_1, "DOE<<JOHN<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<".as_bytes());
+    // Should retrieve the last name, the first and second given (or middle) names
+    assert_eq(name_2, "DOE<<JOHN<MILLER<<<<<<<<<<<<<<<<<<<<<<<".as_bytes());
+    // Should be the same as above since there's nothing beyond the middle name
+    assert_eq(name_3, "DOE<<JOHN<MILLER<<<<<<<<<<<<<<<<<<<<<<<".as_bytes());
+}
+
+#[test]
+fn test_long_name_retrieval_from_dg1() {
+    let passport_no= "123456789".as_bytes();
+    let dob = "900112".as_bytes();
+    let country = "GBR".as_bytes();
+    let name = "DOE<<JOHN<MILLER<JUNIOR<THE<SECOND<<<<<".as_bytes();
+
+    let dg1 = DG1Builder::new([0; 95])
+        .with_document_number(passport_no)
+        .with_nationality(country)
+        .with_name(name)
+        .with_dob(dob)
+        .build();
+
+    let full_name = get_name_from_mrz(dg1);
+    // Should be the same full name as initialized above
+    assert_eq(full_name, "DOE<<JOHN<MILLER<JUNIOR<THE<SECOND<<<<<".as_bytes());
+
+    let (name_1, name_2, name_3) = get_last_name_and_first_name_from_mrz(dg1);
+    // Should retrieve the last name and first given name
+    assert_eq(name_1, "DOE<<JOHN<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<".as_bytes());
+    // Should retrieve the last name, the first and second given (or middle) names
+    assert_eq(name_2, "DOE<<JOHN<MILLER<<<<<<<<<<<<<<<<<<<<<<<".as_bytes());
+    // Should retrieve the last name, the first, second and third given names
+    assert_eq(name_3, "DOE<<JOHN<MILLER<JUNIOR<<<<<<<<<<<<<<<<".as_bytes());
+}
+
+#[test]
+fn test_short_name_retrieval_from_dg1() {
+    let passport_no= "123456789".as_bytes();
+    let dob = "900112".as_bytes();
+    let country = "GBR".as_bytes();
+    let name = "DOE<<JOHN<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<".as_bytes();
+
+    let dg1 = DG1Builder::new([0; 95])
+        .with_document_number(passport_no)
+        .with_nationality(country)
+        .with_name(name)
+        .with_dob(dob)
+        .build();
+
+    let full_name = get_name_from_mrz(dg1);
+    // Should be the same full name as initialized above
+    assert_eq(full_name, "DOE<<JOHN<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<".as_bytes());
+
+    let (name_1, name_2, name_3) = get_last_name_and_first_name_from_mrz(dg1);
+    // They should all return the same as there is only one give name
+    assert_eq(name_1, "DOE<<JOHN<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<".as_bytes());
+    assert_eq(name_2, "DOE<<JOHN<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<".as_bytes());
+    assert_eq(name_3, "DOE<<JOHN<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<".as_bytes());
+}
+
+#[test]
+fn test_full_mrz_name_retrieval_from_dg1() {
+    let passport_no= "123456789".as_bytes();
+    let dob = "900112".as_bytes();
+    let country = "GBR".as_bytes();
+    let name = "DOE<<JOHN<MILLER<JUNIOR<THE<SECOND<EMPE".as_bytes();
+
+    let dg1 = DG1Builder::new([0; 95])
+        .with_document_number(passport_no)
+        .with_nationality(country)
+        .with_name(name)
+        .with_dob(dob)
+        .build();
+
+    let full_name = get_name_from_mrz(dg1);
+    // Should be the same full name as initialized above
+    assert_eq(full_name, "DOE<<JOHN<MILLER<JUNIOR<THE<SECOND<EMPE".as_bytes());
+
+    let (name_1, name_2, name_3) = get_last_name_and_first_name_from_mrz(dg1);
+    // Should retrieve the last name and first given name
+    assert_eq(name_1, "DOE<<JOHN<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<".as_bytes());
+    // Should retrieve the last name, the first and second given (or middle) names
+    assert_eq(name_2, "DOE<<JOHN<MILLER<<<<<<<<<<<<<<<<<<<<<<<".as_bytes());
+    // Should retrieve the last name, the first, second and third given names
+    assert_eq(name_3, "DOE<<JOHN<MILLER<JUNIOR<<<<<<<<<<<<<<<<".as_bytes());
+}
+
+#[test]
+fn test_long_first_given_name_retrieval_from_dg1() {
+    let passport_no= "123456789".as_bytes();
+    let dob = "900112".as_bytes();
+    let country = "GBR".as_bytes();
+    let name = "DOE<<SUPERCALIFRAGILISTICEXPIALIDOCIOUS".as_bytes();
+
+    let dg1 = DG1Builder::new([0; 95])
+        .with_document_number(passport_no)
+        .with_nationality(country)
+        .with_name(name)
+        .with_dob(dob)
+        .build();
+
+    let full_name = get_name_from_mrz(dg1);
+    // Should be the same full name as initialized above
+    assert_eq(full_name, "DOE<<SUPERCALIFRAGILISTICEXPIALIDOCIOUS".as_bytes());
+
+    let (name_1, name_2, name_3) = get_last_name_and_first_name_from_mrz(dg1);
+    // This first given name is super long, so no space for other names
+    // All of three name combinations return the full name from the MRZ
+    assert_eq(name_1, "DOE<<SUPERCALIFRAGILISTICEXPIALIDOCIOUS".as_bytes());
+    assert_eq(name_2, "DOE<<SUPERCALIFRAGILISTICEXPIALIDOCIOUS".as_bytes());
+    assert_eq(name_3, "DOE<<SUPERCALIFRAGILISTICEXPIALIDOCIOUS".as_bytes());
+}
+
+#[test]
+fn test_long_second_given_name_retrieval_from_dg1() {
+    let passport_no= "123456789".as_bytes();
+    let dob = "900112".as_bytes();
+    let country = "GBR".as_bytes();
+    let name = "DOE<<SUPERCALIFRAGILISTIC<EXPIALIDOCIOU".as_bytes();
+
+    let dg1 = DG1Builder::new([0; 95])
+        .with_document_number(passport_no)
+        .with_nationality(country)
+        .with_name(name)
+        .with_dob(dob)
+        .build();
+
+    let full_name = get_name_from_mrz(dg1);
+    // Should be the same full name as initialized above
+    assert_eq(full_name, "DOE<<SUPERCALIFRAGILISTIC<EXPIALIDOCIOU".as_bytes());
+
+    let (name_1, name_2, name_3) = get_last_name_and_first_name_from_mrz(dg1);
+    // The first name and second name take all the space, so no room for a third
+    // The first name combination returns just the last name and first given name
+    assert_eq(name_1, "DOE<<SUPERCALIFRAGILISTIC<<<<<<<<<<<<<<".as_bytes());
+    // while the second combination returns the full MRZ name
+    assert_eq(name_2, "DOE<<SUPERCALIFRAGILISTIC<EXPIALIDOCIOU".as_bytes());
+    // and so does the third since there's no room for a third given name
+    assert_eq(name_3, "DOE<<SUPERCALIFRAGILISTIC<EXPIALIDOCIOU".as_bytes());
 }
 
 #[test]
@@ -263,6 +465,53 @@ fn non_inclusion_of_dg1() {
         .build();
 
     let trees: SanctionsSparseMerkleTrees = SanctionsSparseMerkleTrees::default();
+
+    // TODO: generate the true Merkle proof for this, this is just a copy of passport proof
+    // from below for now
+    let name_proof =  SanctionsOrderedMerkleTreeProof {
+        left: SanctionsOrderedMerkleTreeInclusionProof {
+            leaf: 18674386456615172342841733396108603959611017967778897078549388798634214809915,
+            leaf_index: 12932,
+            sibling_path: [
+                18685769843055597499770478244511153080171577100184040638075341991887898947043,
+                18062426656162546701301295540229307599823193544964404269704722798035772794829,
+                17080956354011133277740417906793460016601348975426035946703986039569454778795,
+                8372446026571647841991115383146414615145781805068008227048407759105489506457,
+                19943474646442620277864338385265689608746162382874961317974928870759831551741,
+                19117508257520153817844273951587666648213989273839307574304384352723927920386,
+                16722852517660319940011305887926857456729951473445856705316309622229743250484,
+                2084980793718652547410683490633300704775368873840176663196341996702695911923,
+                2048903433457172877133384876663102095462716928723337386481310504236642232099,
+                644981785317420079670219972303905959614466993555536695148740116431534958284,
+                7256028571690491881642631178782579640988781456421869946053525734637979534286,
+                2611349503535189477813706760100792035080150380127488673817844562830098205773,
+                15236479295721617014743664357334345673933025126262198527474928621116479703894,
+                12805425192976271374398140166310628666364347092844927278695128369445091963047,
+                720777601321551456724742356376872832235514487302799006897322578639686749258,
+            ],
+        },
+        right: SanctionsOrderedMerkleTreeInclusionProof {
+            leaf: 18685769843055597499770478244511153080171577100184040638075341991887898947043,
+            leaf_index: 12933,
+            sibling_path: [
+                18674386456615172342841733396108603959611017967778897078549388798634214809915,
+                18062426656162546701301295540229307599823193544964404269704722798035772794829,
+                17080956354011133277740417906793460016601348975426035946703986039569454778795,
+                8372446026571647841991115383146414615145781805068008227048407759105489506457,
+                19943474646442620277864338385265689608746162382874961317974928870759831551741,
+                19117508257520153817844273951587666648213989273839307574304384352723927920386,
+                16722852517660319940011305887926857456729951473445856705316309622229743250484,
+                2084980793718652547410683490633300704775368873840176663196341996702695911923,
+                2048903433457172877133384876663102095462716928723337386481310504236642232099,
+                644981785317420079670219972303905959614466993555536695148740116431534958284,
+                7256028571690491881642631178782579640988781456421869946053525734637979534286,
+                2611349503535189477813706760100792035080150380127488673817844562830098205773,
+                15236479295721617014743664357334345673933025126262198527474928621116479703894,
+                12805425192976271374398140166310628666364347092844927278695128369445091963047,
+                720777601321551456724742356376872832235514487302799006897322578639686749258,
+            ],
+        },
+    };
 
     // All 3 proofs
     // Passport
@@ -402,10 +651,11 @@ fn non_inclusion_of_dg1() {
     };
 
     let smt_proofs = SanctionsOrderedMerkleTreeProofs {
+        name_proof: name_proof,
         passport_no_and_nationality_proof: passport_proof,
         name_and_dob_proof: name_and_dob_proof,
         name_and_yob_proof: name_and_yob_proof,
     };
 
-    trees.check_sanctions_exclusion(dg1, smt_proofs, true);
+    trees.check_sanctions_exclusion(dg1, smt_proofs, false);
 }
