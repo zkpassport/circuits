@@ -39,6 +39,11 @@ impl SanctionsOrderedMerkleTreeProofs {
         name_and_dob_proof: SanctionsOrderedMerkleTreeProof,
         name_and_yob_proof: SanctionsOrderedMerkleTreeProof,
     ) -> Self {
-        Self { name_proof, passport_no_and_nationality_proof, name_and_dob_proof, name_and_yob_proof }
+        Self {
+            name_proof,
+            passport_no_and_nationality_proof,
+            name_and_dob_proof,
+            name_and_yob_proof,
+        }
     }
 }

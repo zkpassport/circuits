@@ -190,9 +190,7 @@ pub fn array_concat_as_field<let N: u32, let M: u32>(
     result
 }
 
-pub fn u8_array_to_fields<let N: u32>(
-    array: [u8; N],
-) -> [Field; N] {
+pub fn u8_array_to_fields<let N: u32>(array: [u8; N]) -> [Field; N] {
     let mut result = [0 as Field; N];
     for i in 0..N {
         result[i] = array[i] as Field;
@@ -425,7 +423,8 @@ pub fn find_subarray_index_after_index<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: 
 ) -> u32 {
     // Safety: This is safe because the offset is only used as a starting point
     // to verify the substring exists
-    let offset_unchecked = unsafe { find_subarray_index_after_index_unsafe(needle, haystack, start_index) };
+    let offset_unchecked =
+        unsafe { find_subarray_index_after_index_unsafe(needle, haystack, start_index) };
     let mut offset = offset_unchecked;
     // Check if offset is valid before attempting verification
     if (offset_unchecked < HAYSTACK_SIZE) & (offset_unchecked + NEEDLE_SIZE <= HAYSTACK_SIZE) {

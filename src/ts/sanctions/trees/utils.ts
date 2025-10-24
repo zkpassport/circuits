@@ -74,8 +74,8 @@ export function processDob(birth_date: string): {
                     parsedName += '<';
                 }
             }
-            names.push(parsedName);
-            namesMRZ.push(stringToAsciiBigIntArray(parsedName));
+            names.push(parsedName.toUpperCase());
+            namesMRZ.push(stringToAsciiBigIntArray(parsedName.toUpperCase()));
         }
     }
   

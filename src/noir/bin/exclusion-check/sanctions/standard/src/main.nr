@@ -34,6 +34,7 @@ fn main(
         service_subscope,
         nullifier_secret,
     );
-    let param_commitment = calculate_param_commitment(PROOF_TYPE_SANCTIONS_EXCLUSION, root, is_strict);
+    let param_commitment =
+        calculate_param_commitment(PROOF_TYPE_SANCTIONS_EXCLUSION, root, is_strict);
     (param_commitment, nullifier_type, nullifier)
 }
