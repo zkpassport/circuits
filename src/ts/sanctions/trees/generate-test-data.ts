@@ -119,9 +119,9 @@ async function generateGermanNonMembershipTest(singleTree: AsyncOrderedMT) {
 async function main() {
     const singleTree = await initalizeTree();
     // await generateSimpleTest(singleTree)
-    await generateNonMembershipTest(singleTree)
+    // await generateNonMembershipTest(singleTree)
     // await generateGermanNonMembershipTest(singleTree)
-    // await generateMembershipTest(singleTree)
+    await generateMembershipTest(singleTree)
 }
 
 main()

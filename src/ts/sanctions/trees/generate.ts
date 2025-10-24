@@ -68,8 +68,6 @@ async function generateSanctionsTrees() {
     fs.rmSync(path.join(__dirname, `../input`), { recursive: true, force: true });
     // Clear the temp directory
     fs.rmSync(path.join(__dirname, `../temp`), { recursive: true, force: true });
-    // Clear the output directory
-    fs.rmSync(path.join(__dirname, `../output`), { recursive: true, force: true });
 
     // Check if the input directory exists
     if (!fs.existsSync(path.join(__dirname, `../input`))) {
