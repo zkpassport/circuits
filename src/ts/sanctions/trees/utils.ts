@@ -57,10 +57,6 @@ export function processDob(birth_date: string): {
     lastNames = lastNames.map(name => name.replace(/'/g, ''));
     lastNames = lastNames.map(name => name.replace(/[- ]/g, '<'));
     lastNames = lastNames.map(name => name.replace(/\./g, ''));
-    // Removed apostrophes from the first name, eg O'Neil -> ONeil
-    // Replace spaces and hyphens with '<' in the first name, eg John Doe -> John<Doe
-    // TODO : Handle special cases like malaysia : no two filler characters like << for surname and givenname
-    // TODO : Verify rules for . in names. eg : J. Doe (Done same as apostrophe for now)
 
     let names: string[] = [];
     let namesMRZ: bigint[][] = [];

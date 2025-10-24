@@ -62,6 +62,44 @@ async function generateMerkleProof(singleTree: AsyncOrderedMT, sanctionEntry: Sa
     console.log("right sibling path", nonNameAndYobProof.right?.proof.siblings);
 }
 
+async function generateMultipleMerkleProofs(singleTree: AsyncOrderedMT, sanctionEntry: SanctionsEntry) {
+    const passportToMRZ = passportNoAndCountry(sanctionEntry as SanctionsEntry);
+
+    const mrz = nameToMRZ([sanctionEntry as SanctionsEntry])
+
+    const nameHashes = await hashName(mrz);
+    console.log(mrz)
+
+    const nonNameProofs = nameHashes.map(nameHash => singleTree.createNonMembershipProof(nameHash));
+    console.log("target hex", nameHashes.map(nameHash => `0x${nameHash.toString(16).padStart(64, "0")}`));
+    nonNameProofs.forEach(proof => {
+        console.log("non name proof", proof);
+    });
+
+    const passportNoHash = await hashPassportNoAndCountry([passportToMRZ as PassportMRZData]);
+
+    const nonPassportProof = singleTree.createNonMembershipProof(passportNoHash[0]);
+    console.log("target hex", `0x${passportNoHash[0].toString(16).padStart(64, "0")}`);
+    console.log("non passport proof", nonPassportProof);
+    console.log("left sibling path", nonPassportProof.left?.proof.siblings);
+    console.log("right sibling path", nonPassportProof.right?.proof.siblings);
+
+    const nameAndDobHashes = await hashNameAndDob(mrz);
+    const nameAndYobHashes = await hashNameAndYob(mrz);
+
+    const nonNameAndDobProofs = nameAndDobHashes.map(nameAndDobHash => singleTree.createNonMembershipProof(nameAndDobHash));
+    console.log("target hex", nameAndDobHashes.map(nameAndDobHash => `0x${nameAndDobHash.toString(16).padStart(64, "0")}`));
+    nonNameAndDobProofs.forEach(proof => {
+        console.log("non name and dob proof", proof);
+    });
+
+    const nonNameAndYobProofs = nameAndYobHashes.map(nameAndYobHash => singleTree.createNonMembershipProof(nameAndYobHash));
+    console.log("target hex", nameAndYobHashes.map(nameAndYobHash => `0x${nameAndYobHash.toString(16).padStart(64, "0")}`));
+    nonNameAndYobProofs.forEach(proof => {
+        console.log("non name and yob proof", proof);
+    });
+}
+
 async function generateNonMembershipTest(singleTree: AsyncOrderedMT) {
     const sanctionEntry: Partial<SanctionsEntry> = {
         name: "John Doe",
@@ -116,12 +154,28 @@ async function generateGermanNonMembershipTest(singleTree: AsyncOrderedMT) {
     await generateMerkleProof(singleTree, sanctionEntry as SanctionsEntry)
 }
 
+async function generateMultipleMerkleProofsTest(singleTree: AsyncOrderedMT) {
+    const sanctionEntry: Partial<SanctionsEntry> = {
+        name: "Jean-Pierre Dupont",
+        first_name: ["Jean-Pierre-Martin", "Jean-Pierre", "Jean"],
+        last_name: ["Dupont"],
+        countries: ["FR"],
+        nationality: ["FR"],
+        passports: ["123456789"],
+        has_passport: true,
+        birth_date: "1995-05-03"
+    }
+
+    await generateMultipleMerkleProofs(singleTree, sanctionEntry as SanctionsEntry)
+}
+
 async function main() {
     const singleTree = await initalizeTree();
     // await generateSimpleTest(singleTree)
     // await generateNonMembershipTest(singleTree)
     // await generateGermanNonMembershipTest(singleTree)
-    await generateMembershipTest(singleTree)
+    // await generateMembershipTest(singleTree)
+    await generateMultipleMerkleProofsTest(singleTree)
 }
 
 main()

@@ -3,7 +3,7 @@ use exclusion_check_sanctions::param_commit::calculate_param_commitment;
 use exclusion_check_sanctions::{
     SanctionsSparseMerkleTrees, types::SanctionsOrderedMerkleTreeProofs,
 };
-use utils::{constants::PROOF_TYPE_SANCTIONS_EXCLUSION, types::DG1Data};
+use utils::types::DG1Data;
 
 fn main(
     comm_in: pub Field,
@@ -34,7 +34,6 @@ fn main(
         service_subscope,
         nullifier_secret,
     );
-    let param_commitment =
-        calculate_param_commitment(PROOF_TYPE_SANCTIONS_EXCLUSION, root, is_strict);
+    let param_commitment = calculate_param_commitment(root, is_strict);
     (param_commitment, nullifier_type, nullifier)
 }

@@ -789,6 +789,7 @@ describe("subcircuits - RSA PKCS", () => {
       const sanctions = await SanctionsBuilder.create()
       const inputs = await getSanctionsExclusionCheckCircuitInputs(
         helper.passport as any,
+        true,
         SALT,
         0n,
         undefined,
@@ -802,7 +803,7 @@ describe("subcircuits - RSA PKCS", () => {
       })
       expect(proof).toBeDefined()
 
-      const calculatedParamCommitment = await sanctions.getSanctionsParameterCommitment()
+      const calculatedParamCommitment = await sanctions.getSanctionsParameterCommitment(true)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
@@ -912,6 +913,7 @@ describe("subcircuits - RSA PKCS", () => {
 
       const inputs = await getSanctionsExclusionCheckCircuitInputs(
         helper.passport as any,
+        true,
         SALT,
         0n,
         undefined,
@@ -925,7 +927,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(proof).toBeDefined()
 
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const calculatedParamCommitment = await sanctions.getSanctionsEvmParameterCommitment()
+      const calculatedParamCommitment = await sanctions.getSanctionsEvmParameterCommitment(true)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       const nullifierType = getNullifierTypeFromDisclosureProof(proof)

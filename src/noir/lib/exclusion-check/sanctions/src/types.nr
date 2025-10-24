@@ -26,24 +26,24 @@ impl SanctionsOrderedMerkleTreeProof {
 
 /// A collection of proofs for the three Sanctions sparse merkle trees
 pub struct SanctionsOrderedMerkleTreeProofs {
-    pub name_proof: SanctionsOrderedMerkleTreeProof,
+    pub name_proofs: [SanctionsOrderedMerkleTreeProof; 3],
     pub passport_no_and_nationality_proof: SanctionsOrderedMerkleTreeProof,
-    pub name_and_dob_proof: SanctionsOrderedMerkleTreeProof,
-    pub name_and_yob_proof: SanctionsOrderedMerkleTreeProof,
+    pub name_and_dob_proofs: [SanctionsOrderedMerkleTreeProof; 3],
+    pub name_and_yob_proofs: [SanctionsOrderedMerkleTreeProof; 3],
 }
 
 impl SanctionsOrderedMerkleTreeProofs {
     pub fn new(
-        name_proof: SanctionsOrderedMerkleTreeProof,
+        name_proofs: [SanctionsOrderedMerkleTreeProof; 3],
         passport_no_and_nationality_proof: SanctionsOrderedMerkleTreeProof,
-        name_and_dob_proof: SanctionsOrderedMerkleTreeProof,
-        name_and_yob_proof: SanctionsOrderedMerkleTreeProof,
+        name_and_dob_proofs: [SanctionsOrderedMerkleTreeProof; 3],
+        name_and_yob_proofs: [SanctionsOrderedMerkleTreeProof; 3],
     ) -> Self {
         Self {
-            name_proof,
+            name_proofs,
             passport_no_and_nationality_proof,
-            name_and_dob_proof,
-            name_and_yob_proof,
+            name_and_dob_proofs,
+            name_and_yob_proofs,
         }
     }
 }
