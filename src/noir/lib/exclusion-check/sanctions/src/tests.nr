@@ -1,8 +1,13 @@
-use utils::{tests::DG1Builder, get_name_from_mrz, u8_array_to_fields, constants::PASSPORT_MRZ_NAME_LENGTH};
-use super::{get_last_name_and_first_name_from_mrz, SanctionsSparseMerkleTrees, process_name};
-use super::types::{SanctionsOrderedMerkleTreeProof, SanctionsOrderedMerkleTreeInclusionProof, SanctionsOrderedMerkleTreeProofs};
-use poseidon::poseidon2::Poseidon2;
+use super::{get_last_name_and_first_name_from_mrz, process_name, SanctionsSparseMerkleTrees};
 use super::ordered_mt::ordered_mt_verify_inclusion;
+use super::types::{
+    SanctionsOrderedMerkleTreeInclusionProof, SanctionsOrderedMerkleTreeProof,
+    SanctionsOrderedMerkleTreeProofs,
+};
+use poseidon::poseidon2::Poseidon2;
+use utils::{
+    constants::PASSPORT_MRZ_NAME_LENGTH, get_name_from_mrz, tests::DG1Builder, u8_array_to_fields,
+};
 
 #[test]
 fn test_process_name() {
@@ -13,7 +18,7 @@ fn test_process_name() {
     assert_eq(processed_name, "DOE<<JOHN<MILLER<<<<<<<<<<<<<<<<<<<<<<<".as_bytes());
 
     let correct_mrz_name = "DOE<<JOHN<MILLER<<<<<<<<<<<<<<<<<<<<<<<".as_bytes();
-    // The processed name should be the same as the original one 
+    // The processed name should be the same as the original one
     // since it is already in the correct format
     assert_eq(processed_name, correct_mrz_name);
 }
