@@ -25,6 +25,42 @@ use utils::{
     u8_array_to_fields,
 };
 
+/// This function is always used within get_last_name_and_first_name_from_mrz
+/// so the rest of the necessary constraints are already done in get_last_name_and_first_name_from_mrz
+pub fn process_name(name: MRZName) -> MRZName {
+    let mut result = name;
+    let full_name_separator = [ASCII_CODE_FOR_LESS_THAN, ASCII_CODE_FOR_LESS_THAN];
+    let full_name_separator_index = find_subarray_index(full_name_separator, name);
+    // This means the full name separator was not found, this can be the case in some rare cases
+    // like with Malaysian passports
+    let has_full_name_separator = full_name_separator_index < PASSPORT_MRZ_NAME_LENGTH
+        & (name[full_name_separator_index] == ASCII_CODE_FOR_LESS_THAN)
+        & (name[full_name_separator_index + 1] == ASCII_CODE_FOR_LESS_THAN)
+        // This is to make sure this is not just the right padding of MRZ name
+        & (name[full_name_separator_index + 2] != ASCII_CODE_FOR_LESS_THAN);
+    if !has_full_name_separator {
+        let first_angular_bracket_index = find_subarray_index([ASCII_CODE_FOR_LESS_THAN], name);
+        // If the first angular bracket index was found, we process the name to add an angular bracket right after the first one
+        // so it meets the standard MRZ name formatting (i.e. LASTNAME<<FIRSTNAME)
+        if first_angular_bracket_index < PASSPORT_MRZ_NAME_LENGTH {
+            for i in 0..PASSPORT_MRZ_NAME_LENGTH {
+                if i < first_angular_bracket_index {
+                    result[i] = name[i];
+                } else if (i == first_angular_bracket_index)
+                    | (i == first_angular_bracket_index + 1) {
+                    result[i] = ASCII_CODE_FOR_LESS_THAN;
+                } else {
+                    // We shift the characters to account for the new angular bracket
+                    // even it means potentially dropping the last character of the name
+                    // but this is rather unlikely to happen
+                    result[i] = name[i - 1];
+                }
+            }
+        }
+    }
+    result
+}
+
 /// Get the 3 possible last name + first name combinations from the MRZ.
 ///
 /// This is necessary as the actual first name could be splitted into multiple parts
@@ -39,7 +75,7 @@ use utils::{
 /// A tuple of the 3 most likely last name + first name combinations
 pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName, MRZName) {
     // Gets the whole name from the MRZ
-    let full_name = get_name_from_mrz(dg1);
+    let full_name = process_name(get_name_from_mrz(dg1));
     // << is the separator between the last name and the first name
     // Everything before is the last name, everything after is the first name, middle names, and other given names
     let full_name_separator = [ASCII_CODE_FOR_LESS_THAN, ASCII_CODE_FOR_LESS_THAN];
