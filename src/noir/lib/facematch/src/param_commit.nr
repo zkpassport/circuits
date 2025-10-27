@@ -12,6 +12,7 @@ pub fn calculate_param_commitment(
 ) -> Field {
     let params = [
         PROOF_TYPE_FACEMATCH as Field,
+        5,
         root_key_leaf,
         environment as Field,
         app_id_hash,
@@ -30,7 +31,7 @@ pub fn calculate_param_commitment_sha2(
 ) -> Field {
     let mut params = [0 as u8; FACEMATCH_PARAM_COMMITMENT_EVM_BYTES];
     params[0] = PROOF_TYPE_FACEMATCH;
-    let len_bytes: [u8; 2] = utils::encode_integer_over_bytes(params.len() - 1);
+    let len_bytes: [u8; 2] = utils::encode_integer_over_bytes(params.len() - 3);
     params[1] = len_bytes[0];
     params[2] = len_bytes[1];
     let mut base_offset = 3;

@@ -12,8 +12,7 @@ fn main(
     // @committed
     // The data is public (via the parameter commitment) so verifiers can check the data
     // provided to the proof is correct
-    // TODO: change to [Field; 512] in the next breaking change update
-    data: [Field; 500],
+    data: [Field; 509],
     nullifier_secret: Field,
     service_scope: pub Field,
     service_subscope: pub Field,

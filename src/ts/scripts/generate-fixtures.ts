@@ -27,6 +27,7 @@ import {
   getFacematchCircuitInputs,
   getFacematchEvmParameterCommitment,
   packLeBytesAndHashPoseidon2,
+  ProofTypeLength,
 } from "@zkpassport/utils"
 import * as path from "path"
 import * as fs from "fs"
@@ -188,7 +189,7 @@ class FixtureGenerator {
     const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
 
     const committedInputs =
-      ProofType.DISCLOSE.toString(16).padStart(2, "0") +
+      ProofType.DISCLOSE.toString(16).padStart(2, "0") + ProofTypeLength[ProofType.DISCLOSE].evm.toString(16).padStart(2, "0") +
       inputs.disclose_mask.map((x: number) => x.toString(16).padStart(2, "0")).join("") +
       disclosedBytes.map((x: number) => x.toString(16).padStart(2, "0")).join("")
 
@@ -239,8 +240,8 @@ class FixtureGenerator {
     const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
 
     const committedInputs =
-      ProofType.BIND.toString(16).padStart(2, "0") +
-      rightPadArrayWithZeros(formatBoundData(bindQuery.bind!), 500)
+      ProofType.BIND.toString(16).padStart(2, "0") + ProofTypeLength[ProofType.BIND].evm.toString(16).padStart(2, "0") +
+      rightPadArrayWithZeros(formatBoundData(bindQuery.bind!), 509)
         .map((x) => x.toString(16).padStart(2, "0"))
         .join("")
 
@@ -293,7 +294,7 @@ class FixtureGenerator {
     const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
 
     const committedInputs =
-      ProofType.FACEMATCH.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(root_key_leaf, 32))
+      ProofType.FACEMATCH.toString(16).padStart(2, "0") + ProofTypeLength[ProofType.FACEMATCH].evm.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(root_key_leaf, 32))
       .map((x) => x.toString(16).padStart(2, "0"))
       .join("") + environment.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(app_id_hash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + Array.from(numberToBytesBE(integrityPubKeyHash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + facematch_mode.toString(16).padStart(2, "0")
 
@@ -341,7 +342,7 @@ class FixtureGenerator {
       const vkey = (await circuit.getVerificationKey({ evm: false })).vkeyFields
       const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
 
-      allCommittedInputs += proofType.toString(16).padStart(2, "0") + formatCommittedInputs(inputs)
+      allCommittedInputs += proofType.toString(16).padStart(2, "0") + ProofTypeLength[proofType].evm.toString(16).padStart(2, "0") + formatCommittedInputs(inputs)
 
       await circuit.destroy()
 

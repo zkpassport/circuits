@@ -34,10 +34,10 @@ pub fn calculate_param_commitment(disclose_mask: DiscloseMask, disclosed_bytes: 
     params[1] = (params.len() - 2) as Field;
     // TODO: pack these bytes into fields
     for i in 2..MAX_MRZ_LENGTH + 2 {
-        params[i] = disclose_mask[i - 1] as Field;
+        params[i] = disclose_mask[i - 2] as Field;
     }
     for i in MAX_MRZ_LENGTH + 2..MAX_MRZ_LENGTH * 2 + 2 {
-        params[i] = disclosed_bytes[i - MAX_MRZ_LENGTH - 1] as Field;
+        params[i] = disclosed_bytes[i - MAX_MRZ_LENGTH - 2] as Field;
     }
     Poseidon2::hash(params, params.len())
 }
