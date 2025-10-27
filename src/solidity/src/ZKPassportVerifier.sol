@@ -613,13 +613,18 @@ contract ZKPassportVerifier {
     Commitments calldata commitments
   ) internal pure {
     uint256 offset = 0;
-    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
+    while (offset < commitments.committedInputs.length) {
+      // The committed inputs are formatted as follows:
+      // - 1 byte: proof type
+      // - 2 bytes: length of the committed inputs
+      // - N bytes: committed inputs for a given proof
+      uint256 length = uint256(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
       // One byte is dropped inside the circuit as BN254 is limited to 254 bits
       bytes32 calculatedCommitment = sha256(
-        abi.encodePacked(commitments.committedInputs[offset:offset + commitments.committedInputCounts[i]])
+        abi.encodePacked(commitments.committedInputs[offset:offset + length])
       ) >> 8;
       require(calculatedCommitment == paramCommitments[i], "Invalid commitment");
-      offset += commitments.committedInputCounts[i];
+      offset += length + 3;
     }
     // Check that all the committed inputs have been covered, otherwise something is wrong
     require(offset == commitments.committedInputs.length, "Invalid committed inputs length");
@@ -708,10 +713,6 @@ contract ZKPassportVerifier {
       nullifierType == NullifierType.NON_SALTED_NULLIFIER || params.serviceConfig.devMode,
       "Salted nullifiers are not supported for now"
     );
-
-    // Make sure the committedInputCounts length matches the number of param commitments in the public inputs
-    // to ensure all the param commitments are covered
-    require(params.commitments.committedInputCounts.length == params.proofVerificationData.publicInputs.length - PublicInput.PUBLIC_INPUTS_EXCLUDING_PARAM_COMMITMENTS_LENGTH, "Invalid committed input counts length");
 
     // Call the UltraHonk verifier for the given Outer Circuit to verify if the actual proof is valid
     isValid = IVerifier(verifier).verify(params.proofVerificationData.proof, params.proofVerificationData.publicInputs);
