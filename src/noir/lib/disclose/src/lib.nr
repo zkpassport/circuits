@@ -29,16 +29,17 @@ pub fn get_disclosed_bytes(dg1: DG1Data, mask: DiscloseMask) -> MRZData {
 ///
 /// * `commitment`: The commitment of the disclose mask and disclosed bytes
 pub fn calculate_param_commitment(disclose_mask: DiscloseMask, disclosed_bytes: MRZData) -> Field {
-    let mut params = [0 as Field; MAX_MRZ_LENGTH * 2 + 1];
+    let mut params = [0 as Field; MAX_MRZ_LENGTH * 2 + 2];
     params[0] = PROOF_TYPE_DISCLOSE as Field;
+    params[1] = (params.len() - 2) as Field;
     // TODO: pack these bytes into fields
-    for i in 1..MAX_MRZ_LENGTH + 1 {
+    for i in 2..MAX_MRZ_LENGTH + 2 {
         params[i] = disclose_mask[i - 1] as Field;
     }
-    for i in MAX_MRZ_LENGTH + 1..MAX_MRZ_LENGTH * 2 + 1 {
+    for i in MAX_MRZ_LENGTH + 2..MAX_MRZ_LENGTH * 2 + 2 {
         params[i] = disclosed_bytes[i - MAX_MRZ_LENGTH - 1] as Field;
     }
-    Poseidon2::hash(params, MAX_MRZ_LENGTH * 2 + 1)
+    Poseidon2::hash(params, params.len())
 }
 
 /// Calculate the commitment of the disclose mask and disclosed bytes using SHA2-256
@@ -57,14 +58,17 @@ pub fn calculate_param_commitment_sha2(
     disclose_mask: DiscloseMask,
     disclosed_bytes: MRZData,
 ) -> Field {
-    let mut params = [0 as u8; MAX_MRZ_LENGTH * 2 + 1];
+    let mut params = [0 as u8; MAX_MRZ_LENGTH * 2 + 3];
     params[0] = PROOF_TYPE_DISCLOSE;
-    for i in 1..MAX_MRZ_LENGTH + 1 {
-        params[i] = disclose_mask[i - 1] as u8;
+    let len_bytes: [u8; 2] = utils::encode_integer_over_bytes(params.len() - 3);
+    params[1] = len_bytes[0];
+    params[2] = len_bytes[1];
+    for i in 3..MAX_MRZ_LENGTH + 3 {
+        params[i] = disclose_mask[i - 3] as u8;
     }
-    for i in MAX_MRZ_LENGTH + 1..MAX_MRZ_LENGTH * 2 + 1 {
-        params[i] = disclosed_bytes[i - MAX_MRZ_LENGTH - 1];
+    for i in MAX_MRZ_LENGTH + 3..MAX_MRZ_LENGTH * 2 + 3 {
+        params[i] = disclosed_bytes[i - MAX_MRZ_LENGTH - 3];
     }
-    let hash = sha256::sha256_var(params, (MAX_MRZ_LENGTH * 2 + 1) as u64);
+    let hash = sha256::sha256_var(params, params.len() as u64);
     utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

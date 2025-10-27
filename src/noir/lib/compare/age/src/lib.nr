@@ -75,12 +75,13 @@ pub fn calculate_param_commitment(
     min_age_required: u8,
     max_age_required: u8,
 ) -> Field {
-    let mut params = [0 as Field; 4];
+    let mut params = [0 as Field; 5];
     params[0] = PROOF_TYPE_AGE as Field;
-    params[1] = current_date_timestamp as Field;
-    params[2] = min_age_required as Field;
-    params[3] = max_age_required as Field;
-    Poseidon2::hash(params, 4)
+    params[1] = (params.len() - 2) as Field;
+    params[2] = current_date_timestamp as Field;
+    params[3] = min_age_required as Field;
+    params[4] = max_age_required as Field;
+    Poseidon2::hash(params, params.len())
 }
 
 /// Calculate the commitment of the current date, min age and max age using SHA2-256
@@ -101,14 +102,17 @@ pub fn calculate_param_commitment_sha2(
     min_age_required: u8,
     max_age_required: u8,
 ) -> Field {
-    let mut params = [0 as u8; 11];
+    let mut params = [0 as u8; 13];
     params[0] = PROOF_TYPE_AGE;
+    let len_bytes: [u8; 2] = utils::encode_integer_over_bytes(params.len() - 3);
+    params[1] = len_bytes[0];
+    params[2] = len_bytes[1];
     let timestamp_bytes: [u8; 8] = (current_date_timestamp as Field).to_be_bytes();
-    for i in 1..9 {
-        params[i] = timestamp_bytes[i - 1];
+    for i in 3..11 {
+        params[i] = timestamp_bytes[i - 3];
     }
-    params[9] = min_age_required;
-    params[10] = max_age_required;
-    let hash = sha256::sha256_var(params, 11);
+    params[11] = min_age_required;
+    params[12] = max_age_required;
+    let hash = sha256::sha256_var(params, params.len() as u64);
     utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

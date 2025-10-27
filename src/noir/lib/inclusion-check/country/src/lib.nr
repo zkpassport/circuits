@@ -92,16 +92,17 @@ pub fn calculate_param_commitment<let N: u32>(
     proof_type: u8,
     country_list: [Alpha3CountryCode; N],
 ) -> Field {
-    let mut params = [0 as Field; N + 1];
+    let mut params = [0 as Field; N + 2];
     params[0] = proof_type as Field;
-    for i in 1..N + 1 {
-        let country_code = country_list[i - 1].as_bytes();
+    params[1] = (params.len() - 2) as Field;
+    for i in 2..N + 2 {
+        let country_code = country_list[i - 2].as_bytes();
         let country_sum: u32 = country_code[0] as u32 * 0x10000
             + country_code[1] as u32 * 0x100
             + country_code[2] as u32;
         params[i] = country_sum as Field;
     }
-    Poseidon2::hash(params, N + 1)
+    Poseidon2::hash(params, params.len())
 }
 
 /// Calculate the commitment of the country list using SHA2-256
@@ -120,14 +121,18 @@ pub fn calculate_param_commitment_sha2<let N: u32>(
     proof_type: u8,
     country_list: [Alpha3CountryCode; N],
 ) -> Field {
-    let mut params = [0 as u8; N * 3 + 1];
+    let mut params = [0 as u8; N * 3 + 3];
     params[0] = proof_type;
+    let len_bytes: [u8; 2] = utils::encode_integer_over_bytes(params.len() - 3);
+    params[1] = len_bytes[0];
+    params[2] = len_bytes[1];
+    let mut base_offset = 3;
     for i in 0..N {
         let country_code = country_list[i].as_bytes();
-        params[i * 3 + 1] = country_code[0];
-        params[i * 3 + 2] = country_code[1];
-        params[i * 3 + 3] = country_code[2];
+        params[base_offset + i * 3] = country_code[0];
+        params[base_offset + i * 3 + 1] = country_code[1];
+        params[base_offset + i * 3 + 2] = country_code[2];
     }
-    let hash = sha256::sha256_var(params, (N * 3 + 1) as u64);
+    let hash = sha256::sha256_var(params, params.len() as u64);
     utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

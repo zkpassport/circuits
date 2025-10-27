@@ -12,13 +12,14 @@ use utils::constants::PROOF_TYPE_BIND;
 /// # Returns
 ///
 /// * `commitment`: The commitment of the data
-pub fn calculate_param_commitment(data: [Field; 500]) -> Field {
-    let mut params = [0 as Field; 501];
+pub fn calculate_param_commitment(data: [Field; 509]) -> Field {
+    let mut params = [0 as Field; 511];
     params[0] = PROOF_TYPE_BIND as Field;
-    for i in 1..501 {
-        params[i] = data[i - 1] as Field;
+    params[1] = data.len() as Field;
+    for i in 2..params.len() {
+        params[i] = data[i - 2] as Field;
     }
-    Poseidon2::hash(params, 501)
+    Poseidon2::hash(params, params.len())
 }
 
 /// Calculate the commitment of the data using SHA2-256
@@ -32,12 +33,15 @@ pub fn calculate_param_commitment(data: [Field; 500]) -> Field {
 /// # Returns
 ///
 /// * `commitment`: The commitment of the data
-pub fn calculate_param_commitment_sha2(data: [u8; 500]) -> Field {
-    let mut params = [0 as u8; 501];
+pub fn calculate_param_commitment_sha2(data: [u8; 509]) -> Field {
+    let mut params = [0 as u8; 512];
     params[0] = PROOF_TYPE_BIND as u8;
-    for i in 1..501 {
-        params[i] = data[i - 1];
+    let len_bytes: [u8; 2] = utils::encode_integer_over_bytes(data.len());
+    params[1] = len_bytes[0];
+    params[2] = len_bytes[1];
+    for i in 3..params.len() {
+        params[i] = data[i - 3];
     }
-    let hash = sha256::sha256_var(params, 501);
+    let hash = sha256::sha256_var(params, params.len() as u64);
     utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

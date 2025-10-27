@@ -550,3 +550,9 @@ pub fn poseidon2_hash_packed<let NUM_BYTES: u32>(padded_input: [u8; NUM_BYTES], 
     let num_of_fields: u32 = (len + 31 - 1) / 31;
     Poseidon2::hash_fixed(packed, num_of_fields)
 }
+
+pub fn encode_integer_over_bytes<let NUM_BYTES: u32>(x: u32) -> [u8; NUM_BYTES] {
+    let field_number = x as Field;
+    let bytes: [u8; NUM_BYTES] = field_number.to_be_bytes();
+    bytes
+}
