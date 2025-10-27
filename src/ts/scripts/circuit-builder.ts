@@ -1191,6 +1191,7 @@ const generateFaceMatchAndroidCircuits = ({ unconstrained = false }: { unconstra
   const intermediate_signature_algorithms: { signature_algorithm: "ecdsa" | "rsa"; hash_algorithm: "sha256" | "sha384"; bit_size: number }[] = [
     { signature_algorithm: "ecdsa", hash_algorithm: "sha256", bit_size: 256 },
     { signature_algorithm: "ecdsa", hash_algorithm: "sha384", bit_size: 384 },
+    { signature_algorithm: "ecdsa", hash_algorithm: "sha256", bit_size: 384 },
     { signature_algorithm: "rsa", hash_algorithm: "sha256", bit_size: 2048 },
     { signature_algorithm: "rsa", hash_algorithm: "sha256", bit_size: 4096 },
   ]
