@@ -2,6 +2,8 @@ use poseidon::poseidon2::Poseidon2;
 use utils::{
     constants::{MAX_MRZ_LENGTH, PROOF_TYPE_DISCLOSE},
     get_mrz_from_dg1,
+    pack_be_bit_into_field,
+    pack_be_bytes_into_fields,
     types::{DG1Data, DiscloseMask, MRZData},
 };
 
@@ -29,15 +31,14 @@ pub fn get_disclosed_bytes(dg1: DG1Data, mask: DiscloseMask) -> MRZData {
 ///
 /// * `commitment`: The commitment of the disclose mask and disclosed bytes
 pub fn calculate_param_commitment(disclose_mask: DiscloseMask, disclosed_bytes: MRZData) -> Field {
-    let mut params = [0 as Field; MAX_MRZ_LENGTH * 2 + 2];
+    let mut params = [0 as Field; 3 + (MAX_MRZ_LENGTH + 30) / 31];
     params[0] = PROOF_TYPE_DISCLOSE as Field;
     params[1] = (params.len() - 2) as Field;
-    // TODO: pack these bytes into fields
-    for i in 2..MAX_MRZ_LENGTH + 2 {
-        params[i] = disclose_mask[i - 2] as Field;
-    }
-    for i in MAX_MRZ_LENGTH + 2..MAX_MRZ_LENGTH * 2 + 2 {
-        params[i] = disclosed_bytes[i - MAX_MRZ_LENGTH - 2] as Field;
+    params[2] = pack_be_bit_into_field::<MAX_MRZ_LENGTH>(disclose_mask);
+    let packed_disclosed_bytes: [Field; (MAX_MRZ_LENGTH + 30) / 31] =
+        pack_be_bytes_into_fields::<MAX_MRZ_LENGTH, _, 31>(disclosed_bytes);
+    for i in 3..params.len() {
+        params[i] = packed_disclosed_bytes[i - 3];
     }
     Poseidon2::hash(params, params.len())
 }

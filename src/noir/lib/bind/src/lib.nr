@@ -12,12 +12,14 @@ use utils::constants::PROOF_TYPE_BIND;
 /// # Returns
 ///
 /// * `commitment`: The commitment of the data
-pub fn calculate_param_commitment(data: [Field; 509]) -> Field {
-    let mut params = [0 as Field; 511];
+pub fn calculate_param_commitment(data: [u8; 509]) -> Field {
+    let mut params = [0 as Field; 2 + (509 + 30) / 31];
     params[0] = PROOF_TYPE_BIND as Field;
-    params[1] = data.len() as Field;
+    let packed_data: [Field; (509 + 30) / 31] =
+        utils::pack_be_bytes_into_fields::<509, _, 31>(data);
+    params[1] = packed_data.len() as Field;
     for i in 2..params.len() {
-        params[i] = data[i - 2] as Field;
+        params[i] = packed_data[i - 2];
     }
     Poseidon2::hash(params, params.len())
 }

@@ -12,7 +12,7 @@ fn main(
     // @committed
     // The data is public (via the parameter commitment) so verifiers can check the data
     // provided to the proof is correct
-    data: [Field; 509],
+    data: [u8; 509],
     nullifier_secret: Field,
     service_scope: pub Field,
     service_subscope: pub Field,

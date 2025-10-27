@@ -125,6 +125,51 @@ pub fn pack_be_bytes_into_u128s<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE_
     result
 }
 
+pub fn pack_be_bits_into_fields<let NBits: u32, let N: u32, let MAX_FIELD_SIZE_IN_BITS: u32>(
+    x: [u1; NBits],
+) -> [Field; N] {
+    let mut result = [0 as Field; N];
+
+    let mut limb: Field = 0;
+    let mut k = 0;
+    for _j in 0..(MAX_FIELD_SIZE_IN_BITS - (N * MAX_FIELD_SIZE_IN_BITS - NBits)) {
+        limb *= 2;
+        limb += x[k] as Field;
+        k += 1;
+    }
+    std::as_witness(limb);
+
+    result[N - 1] = limb;
+
+    for i in 1..N {
+        let mut limb: Field = 0;
+        for _j in 0..MAX_FIELD_SIZE_IN_BITS {
+            limb *= 2;
+            limb += x[k] as Field;
+            k += 1;
+        }
+        std::as_witness(limb);
+        result[N - i - 1] = limb;
+    }
+
+    result
+}
+
+pub fn pack_be_bit_into_field<let NBits: u32>(x: [u1; NBits]) -> Field {
+    std::static_assert(
+        NBits < std::field::modulus_num_bits() as u32,
+        "NBits must be less than the bits field size",
+    );
+
+    let mut result: Field = 0;
+    for i in 0..NBits {
+        result *= 2;
+        result += x[i] as Field;
+    }
+    std::as_witness(result);
+    result
+}
+
 pub fn pack_be_bytes_into_fields<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE_IN_BYTES: u32>(
     x: [u8; NBytes],
 ) -> [Field; N] {
