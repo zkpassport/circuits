@@ -551,6 +551,7 @@ class FixtureGenerator {
         "exclusion_check_sanctions_evm",
         () => getSanctionsExclusionCheckCircuitInputs(
           this.helper.passport as any,
+          true,
           3n, 
           0n,
           getServiceScopeHash("zkpassport.id"),
@@ -558,7 +559,7 @@ class FixtureGenerator {
         ),
         { sanctions: { countries: "all", lists: "all" } },
         ProofType.SANCTIONS_EXCLUSION,
-        (inputs) => inputs.root.slice(2).padStart(64, "0"),
+        (inputs) => inputs.root.slice(2).padStart(64, "0") + inputs.is_strict.toString(16).padStart(2, "0"),
       ),
     )
 

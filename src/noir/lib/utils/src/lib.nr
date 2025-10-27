@@ -190,6 +190,14 @@ pub fn array_concat_as_field<let N: u32, let M: u32>(
     result
 }
 
+pub fn u8_array_to_fields<let N: u32>(array: [u8; N]) -> [Field; N] {
+    let mut result = [0 as Field; N];
+    for i in 0..N {
+        result[i] = array[i] as Field;
+    }
+    result
+}
+
 pub fn check_zero_padding<let N: u32, T>(padded_array: [T; N], len: u32)
 where
     T: Eq,
@@ -408,6 +416,33 @@ pub unconstrained fn unsafe_get_asn1_element_length<let N: u32>(asn1: [u8; N]) -
 /// Find the index of the first occurrence of the needle in the haystack
 /// Returns the index of the first occurrence of the needle in the haystack
 /// Returns HAYSTACK_SIZE if the needle is not found
+pub fn find_subarray_index_after_index<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+    needle: [u8; NEEDLE_SIZE],
+    haystack: [u8; HAYSTACK_SIZE],
+    start_index: u32,
+) -> u32 {
+    // Safety: This is safe because the offset is only used as a starting point
+    // to verify the substring exists
+    let offset_unchecked =
+        unsafe { find_subarray_index_after_index_unsafe(needle, haystack, start_index) };
+    let mut offset = offset_unchecked;
+    // Check if offset is valid before attempting verification
+    if (offset_unchecked < HAYSTACK_SIZE) & (offset_unchecked + NEEDLE_SIZE <= HAYSTACK_SIZE) {
+        for i in 0..NEEDLE_SIZE {
+            if haystack[i + offset_unchecked] != needle[i] {
+                offset = HAYSTACK_SIZE;
+            }
+        }
+    } else {
+        // If offset is out of bounds, needle was not found
+        offset = HAYSTACK_SIZE;
+    }
+    offset
+}
+
+/// Find the index of the first occurrence of the needle in the haystack
+/// Returns the index of the first occurrence of the needle in the haystack
+/// Returns HAYSTACK_SIZE if the needle is not found
 pub fn find_subarray_index<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
     needle: [u8; NEEDLE_SIZE],
     haystack: [u8; HAYSTACK_SIZE],
@@ -439,9 +474,10 @@ pub fn is_subarray_in_array<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
 
 /// Safety: This is safe because the offset is only used as a starting point
 /// to verify the substring exists
-pub unconstrained fn find_subarray_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+pub unconstrained fn find_subarray_index_after_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
     needle: [u8; NEEDLE_SIZE],
     haystack: [u8; HAYSTACK_SIZE],
+    start_index: u32,
 ) -> u32 {
     let mut result = HAYSTACK_SIZE; // Default to "not found" value
     // Handle edge cases
@@ -450,7 +486,7 @@ pub unconstrained fn find_subarray_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTA
     } else if NEEDLE_SIZE <= HAYSTACK_SIZE {
         // Search for the needle in the haystack
         for i in 0..(HAYSTACK_SIZE - NEEDLE_SIZE + 1) {
-            let mut found = true;
+            let mut found = i >= start_index;
             for j in 0..NEEDLE_SIZE {
                 if haystack[i + j] != needle[j] {
                     found = false;
@@ -464,6 +500,15 @@ pub unconstrained fn find_subarray_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTA
         }
     }
     result
+}
+
+/// Safety: This is safe because the offset is only used as a starting point
+/// to verify the substring exists
+pub unconstrained fn find_subarray_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+    needle: [u8; NEEDLE_SIZE],
+    haystack: [u8; HAYSTACK_SIZE],
+) -> u32 {
+    find_subarray_index_after_index_unsafe(needle, haystack, 0)
 }
 
 fn pack_le_bytes_into_fields_internal<let BYTES_PER_FIELD: u32, let NUM_BYTES: u32, let NUM_FIELDS: u32>(

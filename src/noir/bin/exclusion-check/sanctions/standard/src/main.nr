@@ -3,7 +3,7 @@ use exclusion_check_sanctions::param_commit::calculate_param_commitment;
 use exclusion_check_sanctions::{
     SanctionsSparseMerkleTrees, types::SanctionsOrderedMerkleTreeProofs,
 };
-use utils::{constants::PROOF_TYPE_SANCTIONS_EXCLUSION, types::DG1Data};
+use utils::types::DG1Data;
 
 fn main(
     comm_in: pub Field,
@@ -15,13 +15,14 @@ fn main(
     proofs: SanctionsOrderedMerkleTreeProofs,
     root: Field,
     nullifier_secret: Field,
+    is_strict: bool,
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field, Field) {
     let trees = SanctionsSparseMerkleTrees::default();
     assert(trees.root() == root);
     // Check that nationality of the passport holder is not in the list of countries
-    trees.check_sanctions_exclusion(dg1, proofs);
+    trees.check_sanctions_exclusion(dg1, proofs, is_strict);
     let (nullifier, nullifier_type) = nullify(
         comm_in,
         salt,
@@ -33,6 +34,6 @@ fn main(
         service_subscope,
         nullifier_secret,
     );
-    let param_commitment = calculate_param_commitment(PROOF_TYPE_SANCTIONS_EXCLUSION, root);
+    let param_commitment = calculate_param_commitment(root, is_strict);
     (param_commitment, nullifier_type, nullifier)
 }

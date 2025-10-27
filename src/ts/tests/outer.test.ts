@@ -1005,6 +1005,7 @@ describe("outer proof - evm optimised", () => {
       const sanctionsExclusionCircuit = Circuit.from("exclusion_check_sanctions_evm")
       const sanctionsExclusionInputs = await getSanctionsExclusionCheckCircuitInputs(
         helper.passport as any,
+        true,
         3n,
         0n,
         getServiceScopeHash("zkpassport.id"),
