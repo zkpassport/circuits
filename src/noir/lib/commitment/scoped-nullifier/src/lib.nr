@@ -4,7 +4,7 @@ use utils::{
         NON_SALTED_MOCK_NULLIFIER, NON_SALTED_NULLIFIER, SALTED_MOCK_NULLIFIER, SALTED_NULLIFIER,
     },
     get_issuing_country_from_mrz,
-    types::DG1Data,
+    types::{DG1Data, MRZExpiryDate},
 };
 
 pub mod tests;
@@ -39,6 +39,7 @@ pub fn nullify(
     comm_in: Field,
     salt: Field,
     dg1: DG1Data,
+    expiry_date: MRZExpiryDate,
     dg2_hash_normalized: Field,
     dg2_hash_type: u32,
     private_nullifier: Field,
@@ -51,6 +52,7 @@ pub fn nullify(
             == hash_salt_dg1_dg2_hash_private_nullifier(
                 salt,
                 dg1,
+                expiry_date,
                 dg2_hash_normalized,
                 dg2_hash_type,
                 private_nullifier,

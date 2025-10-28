@@ -1,9 +1,9 @@
 use super::nullify;
 use common::hash_salt_dg1_dg2_hash_private_nullifier;
-use utils::constants::{
+use utils::{constants::{
     ID_CARD_SAMPLE_DG1, NON_SALTED_MOCK_NULLIFIER, NON_SALTED_NULLIFIER, SALTED_MOCK_NULLIFIER,
     SALTED_NULLIFIER, SAMPLE_DG1, SHA256_IDENTIFIER,
-};
+}, get_expiry_date_from_mrz};
 
 #[test]
 fn test_nullify() {
@@ -18,6 +18,7 @@ fn test_nullify() {
     let comm_in = hash_salt_dg1_dg2_hash_private_nullifier(
         salt,
         SAMPLE_DG1,
+        get_expiry_date_from_mrz(SAMPLE_DG1),
         dg2_hash_normalized,
         dg2_hash_type,
         private_nullifier,
@@ -25,6 +26,7 @@ fn test_nullify() {
     let mock_comm_in = hash_salt_dg1_dg2_hash_private_nullifier(
         salt,
         ID_CARD_SAMPLE_DG1,
+        get_expiry_date_from_mrz(ID_CARD_SAMPLE_DG1),
         dg2_hash_normalized,
         dg2_hash_type,
         private_nullifier,
@@ -35,6 +37,7 @@ fn test_nullify() {
         comm_in,
         salt,
         SAMPLE_DG1,
+        get_expiry_date_from_mrz(SAMPLE_DG1),
         dg2_hash_normalized,
         dg2_hash_type,
         private_nullifier,
@@ -53,6 +56,7 @@ fn test_nullify() {
         comm_in,
         salt,
         SAMPLE_DG1,
+        get_expiry_date_from_mrz(SAMPLE_DG1),
         dg2_hash_normalized,
         dg2_hash_type,
         private_nullifier,
@@ -75,6 +79,7 @@ fn test_nullify() {
         mock_comm_in,
         salt,
         ID_CARD_SAMPLE_DG1,
+        get_expiry_date_from_mrz(ID_CARD_SAMPLE_DG1),
         dg2_hash_normalized,
         dg2_hash_type,
         private_nullifier,
@@ -93,6 +98,7 @@ fn test_nullify() {
         mock_comm_in,
         salt,
         ID_CARD_SAMPLE_DG1,
+        get_expiry_date_from_mrz(ID_CARD_SAMPLE_DG1),
         dg2_hash_normalized,
         dg2_hash_type,
         private_nullifier,

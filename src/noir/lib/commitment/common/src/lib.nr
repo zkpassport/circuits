@@ -1,11 +1,12 @@
 use poseidon::poseidon2::Poseidon2;
 use utils::{
-    constants::{DG1_LENGTH, ECONTENT_LENGTH, SIGNED_ATTRS_LENGTH},
+    constants::{DG1_LENGTH, ECONTENT_LENGTH, SIGNED_ATTRS_LENGTH, YYMMDD_DATE_LENGTH},
     get_issuing_country_from_mrz,
     pack_be_bytes_into_fields,
     pack_le_bytes_into_fields,
     poseidon2_hash_packed,
-    types::{Alpha2CountryCode, Alpha3CountryCode, DG1Data, EContentData, SignedAttrsData},
+    pack_be_bytes_into_field,
+    types::{Alpha2CountryCode, Alpha3CountryCode, DG1Data, EContentData, MRZExpiryDate, SignedAttrsData},
 };
 
 pub mod tests;
@@ -116,11 +117,12 @@ pub fn hash_salt_country_tbs<let TBS_MAX_SIZE: u32>(
 pub fn hash_salt_dg1_dg2_hash_private_nullifier(
     salt: Field,
     dg1: DG1Data,
+    expiry_date: MRZExpiryDate,
     dg2_hash_normalized: Field,
     dg2_hash_type: u32,
     private_nullifier: Field,
 ) -> Field {
-    let mut hash_inputs: [Field; 4 + ((DG1_LENGTH + 30) / 31)] = std::mem::zeroed();
+    let mut hash_inputs: [Field; 5 + ((DG1_LENGTH + 30) / 31)] = std::mem::zeroed();
     hash_inputs[0] = salt;
 
     let packed_dg1: [Field; (DG1_LENGTH + 30) / 31] =
@@ -129,14 +131,18 @@ pub fn hash_salt_dg1_dg2_hash_private_nullifier(
         hash_inputs[1 + i] = packed_dg1[i];
     }
 
+    let packed_expiry_date: Field =
+        pack_be_bytes_into_field::<YYMMDD_DATE_LENGTH, 31>(expiry_date);
+    hash_inputs[1 + ((DG1_LENGTH + 30) / 31)] = packed_expiry_date;
+
     // Commits over the "normalised" dg2 hash
     // i.e. the hash of dg2 hashed into a single field with Poseidon2
-    hash_inputs[1 + ((DG1_LENGTH + 30) / 31)] = dg2_hash_normalized;
+    hash_inputs[2 + ((DG1_LENGTH + 30) / 31)] = dg2_hash_normalized;
     // Commit over the dg2 hash type (SHA1, SHA224, SHA256, SHA384 or SHA512)
-    hash_inputs[2 + ((DG1_LENGTH + 30) / 31)] = dg2_hash_type as Field;
+    hash_inputs[3 + ((DG1_LENGTH + 30) / 31)] = dg2_hash_type as Field;
 
-    hash_inputs[3 + ((DG1_LENGTH + 30) / 31)] = private_nullifier;
-    Poseidon2::hash(hash_inputs, 4 + ((DG1_LENGTH + 30) / 31))
+    hash_inputs[4 + ((DG1_LENGTH + 30) / 31)] = private_nullifier;
+    Poseidon2::hash(hash_inputs, 5 + ((DG1_LENGTH + 30) / 31))
 }
 
 pub fn calculate_private_nullifier<let SIG: u32>(
