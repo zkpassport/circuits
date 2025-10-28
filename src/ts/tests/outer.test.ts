@@ -16,7 +16,6 @@ import {
   getCommitmentInFromIntegrityProof,
   getCommitmentOutFromIDDataProof,
   getCommitmentOutFromIntegrityProof,
-  getCurrentDateFromIntegrityProof,
   getCurrentDateFromOuterProof,
   getDiscloseCircuitInputs,
   getDiscloseEVMParameterCommitment,
@@ -162,9 +161,7 @@ describe("outer proof", () => {
     expect(integrityProof).toBeDefined()
     const integrityCheckCommitmentIn = getCommitmentInFromIntegrityProof(integrityProof)
     const integrityCheckToDisclosureCommitment = getCommitmentOutFromIntegrityProof(integrityProof)
-    const currentDate = getCurrentDateFromIntegrityProof(integrityProof)
     expect(integrityCheckCommitmentIn).toEqual(dscToIdDataCommitment)
-    expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     const integrityVkey = (await integrityCircuit.getVerificationKey({ evm: false })).vkeyFields
     const integrityVkeyHash = `0x${(
       await poseidon2HashAsync(integrityVkey.map((x) => BigInt(x)))
@@ -188,7 +185,7 @@ describe("outer proof", () => {
       expiry_date: { disclose: true },
       gender: { disclose: true },
     }
-    let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
+    let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
     if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
     const proof = await discloseCircuit.prove(inputs, {
       recursive: true,
@@ -324,6 +321,10 @@ describe("outer proof", () => {
         helper.passport as any,
         nationalityQuery,
         3n,
+        0n,
+        0n,
+        0n,
+        nowTimestamp,
       )
       if (!nationalityInputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const nationalityProof = await nationalityCircuit.prove(nationalityInputs, {
@@ -574,9 +575,7 @@ describe("outer proof - evm optimised", () => {
     expect(integrityProof).toBeDefined()
     const integrityCheckCommitmentIn = getCommitmentInFromIntegrityProof(integrityProof)
     const integrityCheckToDisclosureCommitment = getCommitmentOutFromIntegrityProof(integrityProof)
-    const currentDate = getCurrentDateFromIntegrityProof(integrityProof)
     expect(integrityCheckCommitmentIn).toEqual(dscToIdDataCommitment)
-    expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     const integrityVkey = (await integrityCircuit.getVerificationKey({ evm: false })).vkeyFields
     const integrityVkeyHash = `0x${(
       await poseidon2HashAsync(integrityVkey.map((x) => BigInt(x)))
@@ -605,6 +604,7 @@ describe("outer proof - evm optimised", () => {
       0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
+      nowTimestamp,
     )
     if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
     const proof = await discloseCircuit.prove(inputs, {
@@ -670,6 +670,7 @@ describe("outer proof - evm optimised", () => {
         0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
+        nowTimestamp,
       )
       if (!bindCircuitInputs) throw new Error("Unable to generate bind circuit inputs")
       const bindCircuit = Circuit.from("bind_evm")
@@ -789,6 +790,7 @@ describe("outer proof - evm optimised", () => {
         0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
+        nowTimestamp,
       )
       if (!nationalityInclusionInputs)
         throw new Error("Unable to generate inclusion check circuit inputs")
@@ -823,6 +825,7 @@ describe("outer proof - evm optimised", () => {
         0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
+        nowTimestamp,
       )
       if (!nationalityExclusionInputs)
         throw new Error("Unable to generate inclusion check circuit inputs")
@@ -857,6 +860,7 @@ describe("outer proof - evm optimised", () => {
         0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
+        nowTimestamp,
       )
       if (!issuingCountryInclusionInputs)
         throw new Error("Unable to generate inclusion check circuit inputs")
@@ -892,6 +896,7 @@ describe("outer proof - evm optimised", () => {
         0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
+        nowTimestamp,
       )
       if (!issuingCountryExclusionInputs)
         throw new Error("Unable to generate inclusion check circuit inputs")
@@ -1010,6 +1015,7 @@ describe("outer proof - evm optimised", () => {
         0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
+        nowTimestamp,
       )
       if (!sanctionsExclusionInputs) throw new Error("Unable to generate sanctions exclusion check circuit inputs")
       const sanctionsExclusionProof = await sanctionsExclusionCircuit.prove(sanctionsExclusionInputs, {

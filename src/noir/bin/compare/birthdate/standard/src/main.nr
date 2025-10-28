@@ -44,7 +44,6 @@ fn main(
         nullifier_secret,
     );
     // Use Poseidon2 to calculate the parameter commitment so the prover has less work to do
-    let param_commitment =
-        calculate_param_commitment(PROOF_TYPE_BIRTHDATE, min_date, max_date);
+    let param_commitment = calculate_param_commitment(PROOF_TYPE_BIRTHDATE, min_date, max_date);
     (param_commitment, nullifier_type, nullifier)
 }

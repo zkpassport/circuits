@@ -11,25 +11,25 @@ contract Deploy is Script {
 
   bytes32[] public vkeyHashes = [
     // Outer (4 subproofs)
-    bytes32(hex"1859ae7ba8693dec52124a4b875fee85c4151d15d024517b45646e2e1d5d3feb"),
+    bytes32(hex"0770a0542e389605af3e92d1c4838f9d33a430a68e7deecfbf0a523070a4145d"),
     // Outer (5 subproofs)
-    bytes32(hex"29c49bef320259ea2c624e4766fc81beaeeb8e937512abe9f07d5062fefbf858"),
+    bytes32(hex"1d33714b15cd8265d05f157883a92d9b420b965173299bac9a4cba51190b1322"),
     // Outer (6 subproofs)
-    bytes32(hex"1cecf7f825a5dbca407661450184be3d29f2add71ddfa5eae0e32158b008ec89"),
+    bytes32(hex"1bb78391bacf4c9daf784e55431caa31ea87bcd5ba92da57abcbcc40c4367967"),
     // Outer (7 subproofs)
-    bytes32(hex"203dc27bc362397d3f0493315ab6aa4ed1a08d9c06da34a8fa4ca4a9435d3504"),
+    bytes32(hex"296d18dcc28e0ca6da82ffdb06c8844bbe27647e9eee8e802bc2004830a85716"),
     // Outer (8 subproofs)
-    bytes32(hex"254314c80a8cc3efc785643a0a6aeeba6ae268a45e69a98affd4a4155f01e186"),
+    bytes32(hex"174c0f083d56e7adc34e7092ec1b91b058b164488069a67423af125740cd3970"),
     // Outer (9 subproofs)
-    bytes32(hex"28b5def79e1214d43cc4e80a58ae74abe3ab90ad7413b5a6ed1d92bf54b2425c"),
+    bytes32(hex"0316b62b169a4d4ef245d119251485fd507cce2834b5bd2d0bb32b25c5dd5572"),
     // Outer (10 subproofs)
-    bytes32(hex"262367c2824e80a95f391e73c7535fc8f9f3f1d8cdd8b3c1a53657caa2606e1e"),
+    bytes32(hex"0167c195c083ed30cd5fe7873f5ba8f9ebb3f06e08260410e0af47b61a5dd1a5"),
     // Outer (11 subproofs)
-    bytes32(hex"1decfdc09512e3d9b67b9cc4a9d33c5b3ab3fb4509a16490020535bcff24d1de"),
+    bytes32(hex"28a3e66a6907a03985e4b24f3abcfa358867404d12b058f0b27d880a51f10859"),
     // Outer (12 subproofs)
-    bytes32(hex"263b0f11d4296d15b55ec5a0b1a5456d92a894d66ed427d6e5c33223fac6fd50"),
+    bytes32(hex"1c81f163dd55398fd48bca2d6497ff50b3246ef29ac0009ab431e0ad8242a105"),
     // Outer (13 subproofs)
-    bytes32(hex"0c7ec713f16662ff7c088aca5f138b6d05c8990d3f0e6685f883c8246af4ca3b")
+    bytes32(hex"0af493a9673656b75721ac93f242ebad0efde03aab2ae16b25be929c00e21b50")
   ];
 
   address[] public verifierAddresses = [

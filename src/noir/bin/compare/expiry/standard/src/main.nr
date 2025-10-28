@@ -34,8 +34,7 @@ fn main(
     // and for expired documents, the expiry date is still way after 1970
     compare_date(expiry_date, min_date, max_date, 1970);
     // Use Poseidon2 to calculate the parameter commitment so the prover has less work to do
-    let param_commitment =
-        calculate_param_commitment(PROOF_TYPE_EXPIRY_DATE, min_date, max_date);
+    let param_commitment = calculate_param_commitment(PROOF_TYPE_EXPIRY_DATE, min_date, max_date);
     let (nullifier, nullifier_type) = nullify(
         comm_in,
         salt,

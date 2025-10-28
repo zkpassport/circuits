@@ -69,10 +69,7 @@ pub fn compare_age(dg1: DG1Data, min_age: u8, max_age: u8, timestamp: u64) {
 /// # Returns
 ///
 /// * `commitment`: The commitment of the current date, min age and max age
-pub fn calculate_param_commitment(
-    min_age_required: u8,
-    max_age_required: u8,
-) -> Field {
+pub fn calculate_param_commitment(min_age_required: u8, max_age_required: u8) -> Field {
     let mut params = [0 as Field; 4];
     params[0] = PROOF_TYPE_AGE as Field;
     params[1] = (params.len() - 2) as Field;
@@ -93,10 +90,7 @@ pub fn calculate_param_commitment(
 /// # Returns
 ///
 /// * `commitment`: The commitment of the current date, min age and max age
-pub fn calculate_param_commitment_sha2(
-    min_age_required: u8,
-    max_age_required: u8,
-) -> Field {
+pub fn calculate_param_commitment_sha2(min_age_required: u8, max_age_required: u8) -> Field {
     let mut params = [0 as u8; 5];
     params[0] = PROOF_TYPE_AGE;
     let len_bytes: [u8; 2] = utils::encode_integer_over_bytes(params.len() - 3);

@@ -38,7 +38,7 @@ import {
   getSanctionsExclusionCheckCircuitInputs,
   getUnixTimestamp,
   getNowTimestamp,
-  getCurrentDateFromIntegrityProof,
+  getCurrentDateFromDisclosureProof,
   getCountryWeightedSum,
   rightPadArrayWithZeros,
   getNullifierTypeFromDisclosureProof,
@@ -158,8 +158,6 @@ describe("subcircuits - RSA PKCS", () => {
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
       expect(commitmentIn).toEqual(idDataCommitment)
       integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
-      const currentDate = getCurrentDateFromIntegrityProof(proof)
-      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 30000)
   })
@@ -208,6 +206,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(calculatedParamCommitment).toEqual(paramCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     }, 90000)
 
     test("verify facematch - strict mode", async () => {
@@ -253,6 +253,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(calculatedParamCommitment).toEqual(paramCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     }, 90000)
 
     test("verify facematch evm", async () => {
@@ -298,6 +300,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(calculatedParamCommitment).toEqual(paramCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     }, 90000)
   })
 
@@ -346,6 +350,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(calculatedParamCommitment).toEqual(paramCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     }, 90000)
 
     test("verify facematch evm", async () => {
@@ -392,6 +398,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(calculatedParamCommitment).toEqual(paramCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     }, 90000)
   })
 
@@ -415,7 +423,7 @@ describe("subcircuits - RSA PKCS", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -451,13 +459,15 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifierType).toEqual(NullifierType.NON_SALTED)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("disclose some bytes", async () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -493,6 +503,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifierType).toEqual(NullifierType.NON_SALTED)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 
@@ -516,7 +528,7 @@ describe("subcircuits - RSA PKCS", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -552,13 +564,15 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifierType).toEqual(NullifierType.NON_SALTED)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("disclose some bytes", async () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -594,6 +608,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifierType).toEqual(NullifierType.NON_SALTED)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 
@@ -603,7 +619,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         nationality: { in: ["AUS", "FRA", "USA", "GBR"] },
       }
-      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, SALT)
+      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `inclusion_check_nationality`,
@@ -622,6 +638,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     })
 
@@ -630,11 +648,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         issuing_country: { in: ["AUS", "FRA", "USA", "GBR"] },
       }
-      const inputs = await getIssuingCountryInclusionCircuitInputs(
-        helper.passport as any,
-        query,
-        SALT,
-      )
+      const inputs = await getIssuingCountryInclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `inclusion_check_issuing_country`,
@@ -653,6 +667,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     })
   })
@@ -663,7 +679,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         nationality: { in: ["AUS", "FRA", "USA", "GBR"] },
       }
-      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, SALT)
+      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `inclusion_check_nationality_evm`,
@@ -682,6 +698,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 30000)
 
@@ -694,6 +712,10 @@ describe("subcircuits - RSA PKCS", () => {
         helper.passport as any,
         query,
         SALT,
+        0n,
+        0n,
+        0n,
+        nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
@@ -713,6 +735,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 30000)
   })
@@ -723,7 +747,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         nationality: { out: ["FRA", "USA", "GBR"] },
       }
-      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, SALT)
+      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `exclusion_check_nationality`,
@@ -746,6 +770,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     })
 
@@ -754,11 +780,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         issuing_country: { out: ["FRA", "USA", "GBR"] },
       }
-      const inputs = await getIssuingCountryExclusionCircuitInputs(
-        helper.passport as any,
-        query,
-        SALT,
-      )
+      const inputs = await getIssuingCountryExclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `exclusion_check_issuing_country`,
@@ -781,6 +803,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     })
 
@@ -794,6 +818,7 @@ describe("subcircuits - RSA PKCS", () => {
         0n,
         undefined,
         undefined,
+        nowTimestamp,
         sanctions,
       )
 
@@ -812,6 +837,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 10000)
   })
@@ -822,7 +849,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         nationality: { out: ["FRA", "USA", "GBR"] },
       }
-      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, SALT)
+      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `exclusion_check_nationality_evm`,
@@ -845,6 +872,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 30000)
 
@@ -853,7 +882,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         nationality: { out: ["FRA", "USA", "GBR"] },
       }
-      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, 3n)
+      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
       // Override the country list to be unsorted
       const unsortedCountryList: number[] = []
       for (let i = 0; i < (query.nationality?.out ?? []).length; i++) {
@@ -881,6 +910,10 @@ describe("subcircuits - RSA PKCS", () => {
         helper.passport as any,
         query,
         SALT,
+        0n,
+        0n,
+        0n,
+        nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
@@ -904,6 +937,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 30000)
 
@@ -918,6 +953,7 @@ describe("subcircuits - RSA PKCS", () => {
         0n,
         undefined,
         undefined,
+        nowTimestamp,
         sanctions,
       )
       if (!inputs) throw new Error("Unable to generate sanctions circuit inputs")
@@ -935,6 +971,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 10000)
 
@@ -943,11 +981,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         issuing_country: { out: ["FRA", "USA", "GBR"] },
       }
-      const inputs = await getIssuingCountryExclusionCircuitInputs(
-        helper.passport as any,
-        query,
-        3n,
-      )
+      const inputs = await getIssuingCountryExclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       // Override the country list to be unsorted
       const unsortedCountryList: number[] = []
       for (let i = 0; i < (query.issuing_country?.out ?? []).length; i++) {
@@ -997,7 +1031,7 @@ describe("subcircuits - RSA PKCS", () => {
       })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const calculatedParamCommitment = await getAgeParameterCommitment(nowTimestamp, 18, 0)
+      const calculatedParamCommitment = await getAgeParameterCommitment(18, 0)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       const nullifierType = getNullifierTypeFromDisclosureProof(proof)
@@ -1005,6 +1039,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("less than", async () => {
@@ -1029,7 +1065,7 @@ describe("subcircuits - RSA PKCS", () => {
       })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const calculatedParamCommitment = await getAgeParameterCommitment(nowTimestamp, 0, age)
+      const calculatedParamCommitment = await getAgeParameterCommitment(0, age)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       const nullifierType = getNullifierTypeFromDisclosureProof(proof)
@@ -1037,6 +1073,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("between", async () => {
@@ -1061,7 +1099,7 @@ describe("subcircuits - RSA PKCS", () => {
       })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const calculatedParamCommitment = await getAgeParameterCommitment(nowTimestamp, age, age + 1)
+      const calculatedParamCommitment = await getAgeParameterCommitment(age, age + 1)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       const nullifierType = getNullifierTypeFromDisclosureProof(proof)
@@ -1069,6 +1107,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("equal", async () => {
@@ -1093,7 +1133,7 @@ describe("subcircuits - RSA PKCS", () => {
       })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const calculatedParamCommitment = await getAgeParameterCommitment(nowTimestamp, age, age)
+      const calculatedParamCommitment = await getAgeParameterCommitment(age, age)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       const nullifierType = getNullifierTypeFromDisclosureProof(proof)
@@ -1101,6 +1141,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("disclose", async () => {
@@ -1128,7 +1170,7 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifierType).toEqual(NullifierType.NON_SALTED)
       const age = calculateAge(helper.passport)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const calculatedParamCommitment = await getAgeParameterCommitment(nowTimestamp, age, age)
+      const calculatedParamCommitment = await getAgeParameterCommitment(age, age)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
@@ -1160,15 +1202,13 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifierType = getNullifierTypeFromDisclosureProof(proof)
       expect(nullifierType).toEqual(NullifierType.NON_SALTED)
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const calculatedParamCommitment = await getAgeParameterCommitment(
-        nowTimestamp,
-        age - 5,
-        age + 5,
-      )
+      const calculatedParamCommitment = await getAgeParameterCommitment(age - 5, age + 5)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 
@@ -1202,7 +1242,7 @@ describe("subcircuits - RSA PKCS", () => {
       })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const calculatedParamCommitment = await getAgeEVMParameterCommitment(nowTimestamp, 18, 0)
+      const calculatedParamCommitment = await getAgeEVMParameterCommitment(18, 0)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
       const nullifierType = getNullifierTypeFromDisclosureProof(proof)
@@ -1210,6 +1250,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 
@@ -1249,7 +1291,6 @@ describe("subcircuits - RSA PKCS", () => {
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
         ProofType.BIRTHDATE,
-        nowTimestamp,
         getUnixTimestamp(new Date(1988, 10, 12)),
         getUnixTimestamp(new Date(1988, 10, 12)),
       )
@@ -1257,6 +1298,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("range", async () => {
@@ -1285,7 +1328,6 @@ describe("subcircuits - RSA PKCS", () => {
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
         ProofType.BIRTHDATE,
-        nowTimestamp,
         getUnixTimestamp(new Date(1988, 10, 11)),
         getUnixTimestamp(new Date(1988, 10, 13)),
       )
@@ -1293,6 +1335,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("disclose", async () => {
@@ -1321,7 +1365,6 @@ describe("subcircuits - RSA PKCS", () => {
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
         ProofType.BIRTHDATE,
-        nowTimestamp,
         getUnixTimestamp(new Date(1988, 10, 12)),
         getUnixTimestamp(new Date(1988, 10, 12)),
       )
@@ -1329,6 +1372,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("greater than", async () => {
@@ -1358,7 +1403,6 @@ describe("subcircuits - RSA PKCS", () => {
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
         ProofType.BIRTHDATE,
-        nowTimestamp,
         getUnixTimestamp(new Date(1928, 10, 11)),
         0,
       )
@@ -1366,6 +1410,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("less than", async () => {
@@ -1394,7 +1440,6 @@ describe("subcircuits - RSA PKCS", () => {
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
         ProofType.BIRTHDATE,
-        nowTimestamp,
         0,
         getUnixTimestamp(new Date(1988, 10, 15)),
       )
@@ -1402,6 +1447,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("between", async () => {
@@ -1428,7 +1475,6 @@ describe("subcircuits - RSA PKCS", () => {
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
         ProofType.BIRTHDATE,
-        nowTimestamp,
         getUnixTimestamp(new Date(1988, 10, 11)),
         getUnixTimestamp(new Date(1988, 10, 15)),
       )
@@ -1436,6 +1482,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 
@@ -1473,7 +1521,6 @@ describe("subcircuits - RSA PKCS", () => {
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateEVMParameterCommitment(
         ProofType.BIRTHDATE,
-        nowTimestamp,
         getUnixTimestamp(new Date(1988, 10, 12)),
         getUnixTimestamp(new Date(1988, 10, 12)),
       )
@@ -1481,6 +1528,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 
@@ -1517,7 +1566,6 @@ describe("subcircuits - RSA PKCS", () => {
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
         ProofType.EXPIRY_DATE,
-        nowTimestamp,
         getUnixTimestamp(new Date(2030, 0, 1)),
         getUnixTimestamp(new Date(2030, 0, 1)),
       )
@@ -1525,6 +1573,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("range", async () => {
@@ -1551,7 +1601,6 @@ describe("subcircuits - RSA PKCS", () => {
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
         ProofType.EXPIRY_DATE,
-        nowTimestamp,
         getUnixTimestamp(new Date(2025, 0, 1)),
         getUnixTimestamp(new Date(2035, 0, 1)),
       )
@@ -1559,6 +1608,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("disclose", async () => {
@@ -1585,7 +1636,6 @@ describe("subcircuits - RSA PKCS", () => {
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
         ProofType.EXPIRY_DATE,
-        nowTimestamp,
         getUnixTimestamp(new Date(2030, 0, 1)),
         getUnixTimestamp(new Date(2030, 0, 1)),
       )
@@ -1593,6 +1643,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("greater than", async () => {
@@ -1620,7 +1672,6 @@ describe("subcircuits - RSA PKCS", () => {
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
         ProofType.EXPIRY_DATE,
-        nowTimestamp,
         getUnixTimestamp(new Date(2025, 0, 1)),
         0,
       )
@@ -1628,6 +1679,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("less than", async () => {
@@ -1654,7 +1707,6 @@ describe("subcircuits - RSA PKCS", () => {
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
         ProofType.EXPIRY_DATE,
-        nowTimestamp,
         0,
         getUnixTimestamp(new Date(2035, 0, 1)),
       )
@@ -1662,6 +1714,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("between", async () => {
@@ -1688,7 +1742,6 @@ describe("subcircuits - RSA PKCS", () => {
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateParameterCommitment(
         ProofType.EXPIRY_DATE,
-        nowTimestamp,
         getUnixTimestamp(new Date(2025, 0, 1)),
         getUnixTimestamp(new Date(2035, 0, 1)),
       )
@@ -1696,6 +1749,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 
@@ -1732,7 +1787,6 @@ describe("subcircuits - RSA PKCS", () => {
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getDateEVMParameterCommitment(
         ProofType.EXPIRY_DATE,
-        nowTimestamp,
         getUnixTimestamp(new Date(2030, 0, 1)),
         getUnixTimestamp(new Date(2030, 0, 1)),
       )
@@ -1740,6 +1794,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 
@@ -1756,7 +1812,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         bind: { user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8" },
       }
-      const inputs = await getBindCircuitInputs(helper.passport as any, query, SALT)
+      const inputs = await getBindCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate compare-expirydate equal circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `bind`,
@@ -1771,6 +1827,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 
@@ -1787,7 +1845,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         bind: { user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8" },
       }
-      const inputs = await getBindCircuitInputs(helper.passport as any, query, SALT)
+      const inputs = await getBindCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate compare-expirydate equal circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `bind_evm`,
@@ -1802,6 +1860,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 })
@@ -1905,8 +1965,6 @@ describe("subcircuits - RSA PKCS - SHA-1", () => {
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
       expect(commitmentIn).toEqual(idDataCommitment)
       integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
-      const currentDate = getCurrentDateFromIntegrityProof(proof)
-      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 30000)
   })
@@ -1931,7 +1989,7 @@ describe("subcircuits - RSA PKCS - SHA-1", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -1966,13 +2024,15 @@ describe("subcircuits - RSA PKCS - SHA-1", () => {
       expect(globalNullifier).toBeDefined()
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("disclose some bytes", async () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -2007,6 +2067,8 @@ describe("subcircuits - RSA PKCS - SHA-1", () => {
       expect(nullifier).toEqual(globalNullifier)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 })
@@ -2110,8 +2172,6 @@ describe("subcircuits - RSA PKCS - SHA-224 integrity check", () => {
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
       expect(commitmentIn).toEqual(idDataCommitment)
       integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
-      const currentDate = getCurrentDateFromIntegrityProof(proof)
-      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 30000)
   })
@@ -2136,7 +2196,7 @@ describe("subcircuits - RSA PKCS - SHA-224 integrity check", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -2171,13 +2231,15 @@ describe("subcircuits - RSA PKCS - SHA-224 integrity check", () => {
       expect(globalNullifier).toBeDefined()
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("disclose some bytes", async () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -2212,6 +2274,8 @@ describe("subcircuits - RSA PKCS - SHA-224 integrity check", () => {
       expect(nullifier).toEqual(globalNullifier)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 })
@@ -2313,8 +2377,6 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
       expect(commitmentIn).toEqual(idDataCommitment)
       integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
-      const currentDate = getCurrentDateFromIntegrityProof(proof)
-      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 30000)
   })
@@ -2339,7 +2401,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `disclose_bytes`,
@@ -2372,6 +2434,8 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
       expect(globalNullifier).toBeDefined()
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("disclose some bytes", async () => {
@@ -2380,7 +2444,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
         firstname: { disclose: true },
         lastname: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -2415,6 +2479,8 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
       expect(nullifier).toEqual(globalNullifier)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 })
@@ -2504,8 +2570,6 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
       expect(commitmentIn).toEqual(idDataCommitment)
       integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
-      const currentDate = getCurrentDateFromIntegrityProof(proof)
-      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 30000)
   })
@@ -2530,7 +2594,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -2565,13 +2629,15 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
       expect(globalNullifier).toBeDefined()
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("disclose some bytes", async () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -2606,6 +2672,8 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
       expect(nullifier).toEqual(globalNullifier)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 })
@@ -2704,8 +2772,6 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-192", () => {
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
       integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
       expect(commitmentIn).toEqual(idDataCommitment)
-      const currentDate = getCurrentDateFromIntegrityProof(proof)
-      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 30000)
   })
@@ -2730,7 +2796,7 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-192", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `disclose_bytes`,
@@ -2763,6 +2829,8 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-192", () => {
       expect(globalNullifier).toBeDefined()
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("disclose some bytes", async () => {
@@ -2771,7 +2839,7 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-192", () => {
         firstname: { disclose: true },
         lastname: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -2806,6 +2874,8 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-192", () => {
       expect(nullifier).toEqual(globalNullifier)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 })
@@ -2904,8 +2974,6 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-224", () => {
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
       integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
       expect(commitmentIn).toEqual(idDataCommitment)
-      const currentDate = getCurrentDateFromIntegrityProof(proof)
-      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 30000)
   })
@@ -2930,7 +2998,7 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-224", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `disclose_bytes`,
@@ -2963,6 +3031,8 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-224", () => {
       expect(globalNullifier).toBeDefined()
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("disclose some bytes", async () => {
@@ -2971,7 +3041,7 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-224", () => {
         firstname: { disclose: true },
         lastname: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -3006,6 +3076,8 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-224", () => {
       expect(nullifier).toEqual(globalNullifier)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 })
@@ -3102,8 +3174,6 @@ describe("subcircuits - ECDSA NIST P-384 and P-256 - SHA-1", () => {
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
       integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
       expect(commitmentIn).toEqual(idDataCommitment)
-      const currentDate = getCurrentDateFromIntegrityProof(proof)
-      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 30000)
   })
@@ -3128,7 +3198,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256 - SHA-1", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `disclose_bytes`,
@@ -3161,6 +3231,8 @@ describe("subcircuits - ECDSA NIST P-384 and P-256 - SHA-1", () => {
       expect(globalNullifier).toBeDefined()
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("disclose some bytes", async () => {
@@ -3169,7 +3241,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256 - SHA-1", () => {
         firstname: { disclose: true },
         lastname: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -3204,6 +3276,8 @@ describe("subcircuits - ECDSA NIST P-384 and P-256 - SHA-1", () => {
       expect(nullifier).toEqual(globalNullifier)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 })
@@ -3300,8 +3374,6 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
       integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
       expect(commitmentIn).toEqual(idDataCommitment)
-      const currentDate = getCurrentDateFromIntegrityProof(proof)
-      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 30000)
   })
@@ -3326,7 +3398,7 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -3360,13 +3432,15 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
       expect(globalNullifier).toBeDefined()
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("disclose some bytes", async () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -3400,6 +3474,8 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
       expect(nullifier).toEqual(globalNullifier)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 
@@ -3409,7 +3485,7 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
       const query: Query = {
         nationality: { in: ["DEU", "FRA", "USA", "GBR"] },
       }
-      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, SALT)
+      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `inclusion_check_nationality`,
@@ -3425,6 +3501,8 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
       expect(nullifier).toEqual(globalNullifier)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     })
 
@@ -3437,6 +3515,10 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
         helper.passport as any,
         query,
         SALT,
+        0n,
+        0n,
+        0n,
+        nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
@@ -3453,6 +3535,8 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
       expect(nullifier).toEqual(globalNullifier)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     })
   })
@@ -3463,7 +3547,7 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
       const query: Query = {
         nationality: { out: ["FRA", "USA", "GBR"] },
       }
-      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, SALT)
+      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `exclusion_check_nationality`,
@@ -3483,6 +3567,8 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
       expect(nullifier).toEqual(globalNullifier)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     })
 
@@ -3495,6 +3581,10 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
         helper.passport as any,
         query,
         SALT,
+        0n,
+        0n,
+        0n,
+        nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
@@ -3515,6 +3605,8 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
       expect(nullifier).toEqual(globalNullifier)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     })
   })
@@ -3609,8 +3701,6 @@ describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
       integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
       expect(commitmentIn).toEqual(idDataCommitment)
-      const currentDate = getCurrentDateFromIntegrityProof(proof)
-      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 30000)
   })
@@ -3629,7 +3719,7 @@ describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
         issuing_country: { disclose: true },
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -3667,6 +3757,8 @@ describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
       expect(nullifier).not.toEqual(1n)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)  
     })
   })
 })
@@ -3770,8 +3862,6 @@ describe("subcircuits - RSA PKCS - 6144 bits", () => {
       const commitmentIn = getCommitmentInFromIntegrityProof(proof)
       expect(commitmentIn).toEqual(idDataCommitment)
       integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
-      const currentDate = getCurrentDateFromIntegrityProof(proof)
-      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 30000)
   })
@@ -3796,7 +3886,7 @@ describe("subcircuits - RSA PKCS - 6144 bits", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -3831,13 +3921,15 @@ describe("subcircuits - RSA PKCS - 6144 bits", () => {
       expect(globalNullifier).toBeDefined()
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
 
     test("disclose some bytes", async () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -3875,6 +3967,8 @@ describe("subcircuits - RSA PKCS - 6144 bits", () => {
       expect(nullifierType).toEqual(NullifierType.NON_SALTED)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(integrityCheckCommitment)
+      const currentDate = getCurrentDateFromDisclosureProof(proof)
+      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
 })

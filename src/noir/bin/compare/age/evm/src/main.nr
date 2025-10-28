@@ -42,7 +42,6 @@ fn main(
     );
     // Use SHA2-256 to calculate the parameter commitment so the parameter commitment can be
     // reconstructed by verifiers on EVM chains
-    let param_commitment =
-        calculate_param_commitment_sha2(min_age_required, max_age_required);
+    let param_commitment = calculate_param_commitment_sha2(min_age_required, max_age_required);
     (param_commitment, nullifier_type, nullifier)
 }

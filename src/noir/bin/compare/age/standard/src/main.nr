@@ -41,7 +41,6 @@ fn main(
         nullifier_secret,
     );
     // Use Poseidon2 to calculate the parameter commitment so the prover has less work to do
-    let param_commitment =
-        calculate_param_commitment(min_age_required, max_age_required);
+    let param_commitment = calculate_param_commitment(min_age_required, max_age_required);
     (param_commitment, nullifier_type, nullifier)
 }
