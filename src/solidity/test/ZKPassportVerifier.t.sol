@@ -29,8 +29,8 @@ contract ZKPassportVerifierTest is TestUtils {
     bytes32(uint256(0x04b98c6f867d6a7f86d514b72c3be8f41b7aa6f49fdc17514c9f9f0a2ac3ef9a));
   bytes32 constant OUTER_PROOF_13_VKEY_HASH =
     bytes32(uint256(0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4));
-  uint256 constant CURRENT_DATE = 1760471901;
-  uint256 constant PROOF_GENERATION_DATE = 1760471801;
+  uint256 constant CURRENT_DATE = 1761644953;
+  uint256 constant PROOF_GENERATION_DATE = 1761644553;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
@@ -54,11 +54,6 @@ contract ZKPassportVerifierTest is TestUtils {
     bytes memory proof = loadBytesFromFile(PROOF_PATH);
     bytes32[] memory publicInputs = loadBytes32FromFile(PUBLIC_INPUTS_PATH);
     bytes memory committedInputs = loadBytesFromFile(COMMITTED_INPUTS_PATH);
-    // Contains in order the number of bytes of committed inputs for each disclosure proofs
-    // that was verified by the final recursive proof
-    uint256[] memory committedInputCounts = new uint256[](2);
-    committedInputCounts[0] = CommittedInputLen.DISCLOSE_BYTES;
-    committedInputCounts[1] = CommittedInputLen.BIND;
 
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
@@ -70,8 +65,7 @@ contract ZKPassportVerifierTest is TestUtils {
         publicInputs: publicInputs
       }),
       commitments: Commitments({
-        committedInputs: committedInputs,
-        committedInputCounts: committedInputCounts
+        committedInputs: committedInputs
       }),
       serviceConfig: ServiceConfig({
         validityPeriodInSeconds: 7 days,
@@ -108,11 +102,6 @@ contract ZKPassportVerifierTest is TestUtils {
     bytes memory proof = loadBytesFromFile(PROOF_PATH);
     bytes32[] memory publicInputs = loadBytes32FromFile(PUBLIC_INPUTS_PATH);
     bytes memory committedInputs = loadBytesFromFile(COMMITTED_INPUTS_PATH);
-    // Contains in order the number of bytes of committed inputs for each disclosure proofs
-    // that was verified by the final recursive proof
-    uint256[] memory committedInputCounts = new uint256[](2);
-    committedInputCounts[0] = 181;
-    committedInputCounts[1] = 501;
 
     vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
@@ -122,8 +111,7 @@ contract ZKPassportVerifierTest is TestUtils {
         publicInputs: publicInputs
       }),
       commitments: Commitments({
-        committedInputs: committedInputs,
-        committedInputCounts: committedInputCounts
+        committedInputs: committedInputs
       }),
       serviceConfig: ServiceConfig({
         validityPeriodInSeconds: 7 days,
@@ -156,20 +144,6 @@ contract ZKPassportVerifierTest is TestUtils {
     bytes32[] memory publicInputs = loadBytes32FromFile(ALL_SUBPROOFS_PUBLIC_INPUTS_PATH);
     bytes memory committedInputs = loadBytesFromFile(ALL_SUBPROOFS_COMMITTED_INPUTS_PATH);
 
-    // Contains in order the number of bytes of committed inputs for each disclosure proofs
-    // that was verified by the final recursive proof
-    uint256[] memory committedInputCounts = new uint256[](10);
-    committedInputCounts[0] = CommittedInputLen.DISCLOSE_BYTES;
-    committedInputCounts[1] = CommittedInputLen.INCL_NATIONALITY;
-    committedInputCounts[2] = CommittedInputLen.EXCL_NATIONALITY;
-    committedInputCounts[3] = CommittedInputLen.INCL_ISSUING_COUNTRY;
-    committedInputCounts[4] = CommittedInputLen.EXCL_ISSUING_COUNTRY;
-    committedInputCounts[5] = CommittedInputLen.COMPARE_AGE;
-    committedInputCounts[6] = CommittedInputLen.COMPARE_EXPIRY;
-    committedInputCounts[7] = CommittedInputLen.COMPARE_BIRTHDATE;
-    committedInputCounts[8] = CommittedInputLen.SANCTIONS;
-    committedInputCounts[9] = CommittedInputLen.FACEMATCH;
-
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
     vm.warp(CURRENT_DATE);
@@ -180,8 +154,7 @@ contract ZKPassportVerifierTest is TestUtils {
         publicInputs: publicInputs
       }),
       commitments: Commitments({
-        committedInputs: committedInputs,
-        committedInputCounts: committedInputCounts
+        committedInputs: committedInputs
       }),
       serviceConfig: ServiceConfig({
         validityPeriodInSeconds: 7 days,
@@ -245,20 +218,6 @@ contract ZKPassportVerifierTest is TestUtils {
     // Load proof and public inputs from files
     bytes memory committedInputs = loadBytesFromFile(ALL_SUBPROOFS_COMMITTED_INPUTS_PATH);
 
-    // Contains in order the number of bytes of committed inputs for each disclosure proofs
-    // that was verified by the final recursive proof
-    uint256[] memory committedInputCounts = new uint256[](10);
-    committedInputCounts[0] = CommittedInputLen.DISCLOSE_BYTES;
-    committedInputCounts[1] = CommittedInputLen.INCL_NATIONALITY;
-    committedInputCounts[2] = CommittedInputLen.EXCL_NATIONALITY;
-    committedInputCounts[3] = CommittedInputLen.INCL_ISSUING_COUNTRY;
-    committedInputCounts[4] = CommittedInputLen.EXCL_ISSUING_COUNTRY;
-    committedInputCounts[5] = CommittedInputLen.COMPARE_AGE;
-    committedInputCounts[6] = CommittedInputLen.COMPARE_EXPIRY;
-    committedInputCounts[7] = CommittedInputLen.COMPARE_BIRTHDATE;
-    committedInputCounts[8] = CommittedInputLen.SANCTIONS;
-    committedInputCounts[9] = CommittedInputLen.FACEMATCH;
-
     vm.warp(CURRENT_DATE);
     ProofVerificationParams memory params = ProofVerificationParams({
       proofVerificationData: ProofVerificationData({
@@ -267,8 +226,7 @@ contract ZKPassportVerifierTest is TestUtils {
         publicInputs: loadBytes32FromFile(ALL_SUBPROOFS_PUBLIC_INPUTS_PATH)
       }),
       commitments: Commitments({
-        committedInputs: committedInputs,
-        committedInputCounts: committedInputCounts
+        committedInputs: committedInputs
       }),
       serviceConfig: ServiceConfig({
         validityPeriodInSeconds: 7 days,
@@ -324,7 +282,7 @@ contract ZKPassportVerifierTest is TestUtils {
 
     {
       vm.startSnapshotGas("ZKPassportVerifier enforceSanctionsRoot");
-      zkPassportVerifier.enforceSanctionsRoot(params.commitments);
+      zkPassportVerifier.enforceSanctionsRoot(true, params.commitments);
       uint256 gasUsedEnforceSanctionsRoot = vm.stopSnapshotGas();
       console.log("Gas used in ZKPassportVerifier enforceSanctionsRoot");
       console.log(gasUsedEnforceSanctionsRoot);

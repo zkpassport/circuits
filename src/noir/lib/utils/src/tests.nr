@@ -18,7 +18,10 @@ use super::constants::ID_CARD_SAMPLE_DG1;
 use super::constants::SAMPLE_DG1;
 use super::get_dob_from_mrz;
 use super::get_document_number_from_mrz;
-use super::{get_expiry_date_from_mrz, get_issuing_country_from_mrz, get_nationality_from_mrz};
+use super::{
+    get_expiry_date_from_mrz, get_issuing_country_from_mrz, get_nationality_from_mrz,
+    pack_be_bit_into_field,
+};
 use super::get_yob_from_mrz;
 use super::types::{
     DG1Data, MRZData, MRZDOB, MRZDocumentNumber, MRZIssuingCountry, MRZName, MRZNameIdCard,
@@ -442,6 +445,16 @@ fn test_check_zero_padding() {
 fn test_check_zero_padding_fail() {
     let array = [0x01, 0x02, 0x03, 0, 0, 0x06];
     check_zero_padding(array, 3);
+}
+
+#[test]
+fn test_pack_be_bit_into_field() {
+    let mut x = [0 as u1; 90];
+    x[0] = 1;
+    x[1] = 1;
+    x[2] = 1;
+    let result = pack_be_bit_into_field::<90>(x);
+    assert_eq(result, 0x038000000000000000000000);
 }
 
 /// MRZ getters

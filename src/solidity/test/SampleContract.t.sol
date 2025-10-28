@@ -19,7 +19,7 @@ contract SampleContractTest is TestUtils {
   string constant PUBLIC_INPUTS_PATH = "./test/fixtures/all_subproofs_public_inputs.json";
   string constant COMMITTED_INPUTS_PATH = "./test/fixtures/all_subproofs_committed_inputs.hex";
   bytes32 constant VKEY_HASH = 0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4;
-  uint256 constant CURRENT_DATE = 1760471901;
+  uint256 constant CURRENT_DATE = 1761644953;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
@@ -44,20 +44,6 @@ contract SampleContractTest is TestUtils {
     bytes32[] memory publicInputs = loadBytes32FromFile(PUBLIC_INPUTS_PATH);
     bytes memory committedInputs = loadBytesFromFile(COMMITTED_INPUTS_PATH);
 
-    // Contains in order the number of bytes of committed inputs for each disclosure proofs
-    // that was verified by the final recursive proof
-    uint256[] memory committedInputCounts = new uint256[](10);
-    committedInputCounts[0] = CommittedInputLen.DISCLOSE_BYTES;
-    committedInputCounts[1] = CommittedInputLen.INCL_NATIONALITY;
-    committedInputCounts[2] = CommittedInputLen.EXCL_NATIONALITY;
-    committedInputCounts[3] = CommittedInputLen.INCL_ISSUING_COUNTRY;
-    committedInputCounts[4] = CommittedInputLen.EXCL_ISSUING_COUNTRY;
-    committedInputCounts[5] = CommittedInputLen.COMPARE_AGE;
-    committedInputCounts[6] = CommittedInputLen.COMPARE_EXPIRY;
-    committedInputCounts[7] = CommittedInputLen.COMPARE_BIRTHDATE;
-    committedInputCounts[8] = CommittedInputLen.SANCTIONS;
-    committedInputCounts[9] = CommittedInputLen.FACEMATCH;
-
     // The sender cannot call this function cause they are not verified
     vm.expectRevert("User is not verified");
     sampleContract.doStuff();
@@ -70,8 +56,7 @@ contract SampleContractTest is TestUtils {
         publicInputs: publicInputs
       }),
       commitments: Commitments({
-        committedInputs: committedInputs,
-        committedInputCounts: committedInputCounts
+        committedInputs: committedInputs
       }),
       serviceConfig: ServiceConfig({
         validityPeriodInSeconds: 7 days,

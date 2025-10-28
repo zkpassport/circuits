@@ -4,22 +4,23 @@ pragma solidity >=0.8.21;
 
 uint256 constant SECONDS_BETWEEN_1900_AND_1970 = 2208988800;
 uint256 constant COUNTRY_LIST_LENGTH = 200;
-uint256 constant BOUND_DATA_LENGTH = 500;
+uint256 constant BOUND_DATA_LENGTH = 509;
 uint256 constant TIMESTAMP_LENGTH = 8;
 
 // The lengths of the preimages of the `param_commitments` of the various disclosure circuits.
+// Note: this is excluding the 3 bytes for the proof type and length
 library CommittedInputLen {
-  uint256 constant COMPARE_AGE = 11;
-  uint256 constant COMPARE_BIRTHDATE = 25;
-  uint256 constant COMPARE_EXPIRY = 25;
-  uint256 constant DISCLOSE_BYTES = 181;
-  uint256 constant INCL_ISSUING_COUNTRY = 601;
-  uint256 constant EXCL_ISSUING_COUNTRY = 601;
-  uint256 constant INCL_NATIONALITY = 601;
-  uint256 constant EXCL_NATIONALITY = 601;
-  uint256 constant BIND = 501;
+  uint256 constant COMPARE_AGE = 10;
+  uint256 constant COMPARE_BIRTHDATE = 24;
+  uint256 constant COMPARE_EXPIRY = 24;
+  uint256 constant DISCLOSE_BYTES = 180;
+  uint256 constant INCL_ISSUING_COUNTRY = 600;
+  uint256 constant EXCL_ISSUING_COUNTRY = 600;
+  uint256 constant INCL_NATIONALITY = 600;
+  uint256 constant EXCL_NATIONALITY = 600;
+  uint256 constant BIND = 509;
   uint256 constant SANCTIONS = 33;
-  uint256 constant FACEMATCH = 99;
+  uint256 constant FACEMATCH = 98;
 }
 
 // Gather all the public input indices in one place

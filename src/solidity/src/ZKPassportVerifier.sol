@@ -548,12 +548,15 @@ contract ZKPassportVerifier {
 
   /**
    * @notice Enforces that the proof checks against the expected sanction list(s)
+   * @param isStrict Whether the sanctions check was strict or not
    * @param commitments The commitments
    */
   function enforceSanctionsRoot(
+    bool isStrict,
     Commitments calldata commitments
   ) public view {
-    bytes32 proofSanctionsRoot = InputsExtractor.getSanctionsProofInputs(commitments);
+    (bytes32 proofSanctionsRoot, bool retrievedIsStrict) = InputsExtractor.getSanctionsProofInputs(commitments);
+    require(isStrict == retrievedIsStrict, "Invalid sanctions check mode");
     _validateSanctionsRoot(proofSanctionsRoot);
   }
 
@@ -613,16 +616,25 @@ contract ZKPassportVerifier {
     Commitments calldata commitments
   ) internal pure {
     uint256 offset = 0;
-    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
+    uint256 index = 0;
+    while (offset < commitments.committedInputs.length && index < paramCommitments.length) {
+      // The committed inputs are formatted as follows:
+      // - 1 byte: proof type
+      // - 2 bytes: length of the committed inputs
+      // - N bytes: committed inputs for a given proof
+      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
       // One byte is dropped inside the circuit as BN254 is limited to 254 bits
+      // We also add 3 bytes to take into account the proof type and length
       bytes32 calculatedCommitment = sha256(
-        abi.encodePacked(commitments.committedInputs[offset:offset + commitments.committedInputCounts[i]])
+        abi.encodePacked(commitments.committedInputs[offset:offset + length + 3])
       ) >> 8;
-      require(calculatedCommitment == paramCommitments[i], "Invalid commitment");
-      offset += commitments.committedInputCounts[i];
+      require(calculatedCommitment == paramCommitments[index], "Invalid commitment");
+      offset += length + 3;
+      index++;
     }
     // Check that all the committed inputs have been covered, otherwise something is wrong
     require(offset == commitments.committedInputs.length, "Invalid committed inputs length");
+    require(index + 1 == paramCommitments.length, "Invalid parameter commitments");
   }
 
   function _getVerifier(bytes32 vkeyHash) internal view returns (address) {
@@ -708,10 +720,6 @@ contract ZKPassportVerifier {
       nullifierType == NullifierType.NON_SALTED_NULLIFIER || params.serviceConfig.devMode,
       "Salted nullifiers are not supported for now"
     );
-
-    // Make sure the committedInputCounts length matches the number of param commitments in the public inputs
-    // to ensure all the param commitments are covered
-    require(params.commitments.committedInputCounts.length == params.proofVerificationData.publicInputs.length - PublicInput.PUBLIC_INPUTS_EXCLUDING_PARAM_COMMITMENTS_LENGTH, "Invalid committed input counts length");
 
     // Call the UltraHonk verifier for the given Outer Circuit to verify if the actual proof is valid
     isValid = IVerifier(verifier).verify(params.proofVerificationData.proof, params.proofVerificationData.publicInputs);

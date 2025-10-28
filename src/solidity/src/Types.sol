@@ -55,7 +55,6 @@ struct ProofVerificationData {
 
 struct Commitments {
   bytes committedInputs;
-  uint256[] committedInputCounts;
 }
 
 struct ServiceConfig {
