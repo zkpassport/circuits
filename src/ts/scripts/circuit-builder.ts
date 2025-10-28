@@ -374,14 +374,12 @@ const DATA_INTEGRITY_CHECK_TEMPLATE = (
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_disclosure;
-use data_check_expiry::check_expiry;
 use data_check_integrity::{check_dg1_${dg_hash_algorithm}, check_signed_attributes_${signed_attributes_hash_algorithm}, get_dg2_hash_from_econtent};
 use utils::{types::{DG1Data, EContentData, SignedAttrsData}, constants::{${getHashAlgorithmIdentifier(
   dg_hash_algorithm,
 )}, ${getHashAlgorithmDigestLength(dg_hash_algorithm)}}};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
-    current_date: pub u64,
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,
@@ -390,8 +388,6 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     e_content: EContentData,
     private_nullifier: Field,
 ) -> pub Field {
-    // Check the ID is not expired first
-    check_expiry(dg1, current_date);
     // Get the length of e_content by parsing the ASN.1
     // Safety: This is safe because the length must be correct for econtent to hash to
     // the expected digest in signed attributes as checked below in check_signed_attributes_${dg_hash_algorithm}
@@ -441,6 +437,7 @@ const FACEMATCH_ANDROID_TEMPLATE = (
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::nullify;
 use data_check_tbs_pubkey::{verify_ecdsa_pubkey_in_tbs, verify_rsa_pubkey_in_tbs};
+use data_check_expiry::check_expiry;
 use facematch::{
     android::{get_app_id_from_credential_tbs, constants::INTEGRITY_TOKEN_MAX_LENGTH, token::{verify_integrity_token, verify_nonce, verify_integrity_token_signature, parse_integrity_token}}, calculate_attestation_registry_leaf,
     get_client_data_hash, prepare_client_data_hash_for_signature, get_facematch_mode_from_client_data, get_tbs_hash_sha256,
@@ -456,6 +453,7 @@ use utils::{poseidon2_hash_packed, split_array, types::DG1Data, unsafe_get_asn1_
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     comm_in: pub Field,
+    current_date: pub u64,
     salt: Field,
     private_nullifier: Field,
     dg1: DG1Data,
@@ -516,6 +514,9 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field, Field) {
+    // Check the ID is not expired
+    check_expiry(dg1, current_date);
+
     ${intermediate_signature_algorithms.map(({ signature_algorithm, hash_algorithm, bit_size }, index) => signature_algorithm === "ecdsa" ? `
     let (intermediate_${index + 1}_key_x, intermediate_${index + 1}_key_y) = split_array(intermediate_${index + 1}_key);
     ` : ``).join("")}
@@ -796,7 +797,6 @@ fn verify_subproofs(
         integrity_check_proof.vkey,
         integrity_check_proof.proof,
         prepare_integrity_check_inputs(
-            current_date,
             integrity_check_proof.public_inputs[0], // comm_in
             integrity_check_proof.public_inputs[1], // comm_out
         ),
@@ -813,6 +813,7 @@ fn verify_subproofs(
             disclosure_proofs[i].proof,
             prepare_disclosure_inputs(
                 disclosure_proofs[i].public_inputs[0], // comm_in
+                current_date,
                 param_commitments[i],
                 service_scope,
                 service_subscope,
@@ -990,7 +991,6 @@ function generateDataIntegrityCheckCircuit(
   const name = `data_check_integrity_sa_${signed_attributes_hash_algorithm}_dg_${dg_hash_algorithm}`
   const nargoFile = NARGO_TEMPLATE(name, [
     { name: "data_check_integrity", path: "../../../../../lib/data-check/integrity" },
-    { name: "data_check_expiry", path: "../../../../../lib/data-check/expiry" },
     { name: "commitment", path: "../../../../../lib/commitment/integrity-to-disclosure" },
     { name: "utils", path: "../../../../../lib/utils" },
   ])
@@ -1029,6 +1029,7 @@ function generateFaceMatchAndroidCircuit(
     { name: "sig_check_rsa", path: `${relativePath}lib/sig-check/rsa` },
     { name: "sig_check_ecdsa", path: `${relativePath}lib/sig-check/ecdsa` },
     { name: "data_check_tbs_pubkey", path: `${relativePath}lib/data-check/tbs-pubkey` },
+    { name: "data_check_expiry", path: `${relativePath}lib/data-check/expiry` },
     { name: "commitment", path: `${relativePath}lib/commitment/scoped-nullifier` },
     { name: "utils", path: `${relativePath}lib/utils` },
   ])

@@ -166,7 +166,6 @@ fn verify_subproofs(
         integrity_check_proof.vkey,
         integrity_check_proof.proof,
         prepare_integrity_check_inputs(
-            current_date,
             integrity_check_proof.public_inputs[0], // comm_in
             integrity_check_proof.public_inputs[1], // comm_out
         ),
@@ -187,6 +186,7 @@ fn verify_subproofs(
             disclosure_proofs[i].proof,
             prepare_disclosure_inputs(
                 disclosure_proofs[i].public_inputs[0], // comm_in
+                current_date,
                 param_commitments[i],
                 service_scope,
                 service_subscope,

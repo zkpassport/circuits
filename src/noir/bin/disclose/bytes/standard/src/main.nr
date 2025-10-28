@@ -1,9 +1,11 @@
 use commitment::nullify;
+use data_check_expiry::check_expiry;
 use disclose::{calculate_param_commitment, get_disclosed_bytes};
 use utils::types::{DG1Data, DiscloseMask};
 
 fn main(
     comm_in: pub Field,
+    current_date: pub u64,
     salt: Field,
     private_nullifier: Field,
     dg1: DG1Data,
@@ -16,6 +18,9 @@ fn main(
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field, Field) {
+    // Check the ID is not expired
+    check_expiry(dg1, current_date);
+
     // @committed
     // The disclose bytes are public (via the parameter commitment) so verifiers can check the bytes
     let disclosed_bytes = get_disclosed_bytes(dg1, disclose_mask);

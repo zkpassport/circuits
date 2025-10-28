@@ -1,4 +1,5 @@
 use commitment::nullify;
+use data_check_expiry::check_expiry;
 use facematch::{
     calculate_attestation_registry_leaf,
     get_facematch_mode_from_client_data,
@@ -17,6 +18,7 @@ mod tests;
 
 fn main(
     comm_in: pub Field,
+    current_date: pub u64,
     salt: Field,
     private_nullifier: Field,
     dg1: DG1Data,
@@ -45,6 +47,9 @@ fn main(
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field, Field) {
+    // Check the ID is not expired
+    check_expiry(dg1, current_date);
+
     // Split the root and intermediate key into x and y coordinates
     let (root_key_x, root_key_y) = split_array(root_key);
     let (intermediate_key_x, intermediate_key_y) = split_array(intermediate_key);

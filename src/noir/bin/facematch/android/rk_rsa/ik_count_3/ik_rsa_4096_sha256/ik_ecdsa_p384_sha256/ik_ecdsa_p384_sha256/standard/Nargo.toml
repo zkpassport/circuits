@@ -9,5 +9,6 @@ facematch = { path = "../../../../../../../../../lib/facematch" }
 sig_check_rsa = { path = "../../../../../../../../../lib/sig-check/rsa" }
 sig_check_ecdsa = { path = "../../../../../../../../../lib/sig-check/ecdsa" }
 data_check_tbs_pubkey = { path = "../../../../../../../../../lib/data-check/tbs-pubkey" }
+data_check_expiry = { path = "../../../../../../../../../lib/data-check/expiry" }
 commitment = { path = "../../../../../../../../../lib/commitment/scoped-nullifier" }
 utils = { path = "../../../../../../../../../lib/utils" }

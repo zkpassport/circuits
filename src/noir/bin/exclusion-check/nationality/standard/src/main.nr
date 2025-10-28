@@ -1,9 +1,10 @@
 use commitment::nullify;
+use data_check_expiry::check_expiry;
 use exclusion_check_country::{calculate_param_commitment, check_nationality_exclusion};
 use utils::{constants::PROOF_TYPE_NATIONALITY_EXCLUSION, types::DG1Data};
-
 fn main(
     comm_in: pub Field,
+    current_date: pub u64,
     salt: Field,
     private_nullifier: Field,
     dg1: DG1Data,
@@ -22,6 +23,9 @@ fn main(
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field, Field) {
+    // Check the ID is not expired
+    check_expiry(dg1, current_date);
+
     // Check that nationality of the passport holder is not in the list of countries
     check_nationality_exclusion(dg1, country_list);
     let (nullifier, nullifier_type) = nullify(
