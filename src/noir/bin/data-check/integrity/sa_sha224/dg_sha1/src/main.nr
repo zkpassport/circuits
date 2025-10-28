@@ -1,6 +1,5 @@
 // This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_disclosure;
-use data_check_expiry::check_expiry;
 use data_check_integrity::{
     check_dg1_sha1, check_signed_attributes_sha224, get_dg2_hash_from_econtent,
 };
@@ -10,7 +9,6 @@ use utils::{
 };
 
 fn main(
-    current_date: pub u64,
     comm_in: pub Field,
     salt_in: Field,
     salt_out: Field,
@@ -19,8 +17,6 @@ fn main(
     e_content: EContentData,
     private_nullifier: Field,
 ) -> pub Field {
-    // Check the ID is not expired first
-    check_expiry(dg1, current_date);
     // Get the length of e_content by parsing the ASN.1
     // Safety: This is safe because the length must be correct for econtent to hash to
     // the expected digest in signed attributes as checked below in check_signed_attributes_sha1

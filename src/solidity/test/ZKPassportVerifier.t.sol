@@ -29,8 +29,7 @@ contract ZKPassportVerifierTest is TestUtils {
     bytes32(uint256(0x04b98c6f867d6a7f86d514b72c3be8f41b7aa6f49fdc17514c9f9f0a2ac3ef9a));
   bytes32 constant OUTER_PROOF_13_VKEY_HASH =
     bytes32(uint256(0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4));
-  uint256 constant CURRENT_DATE = 1761644953;
-  uint256 constant PROOF_GENERATION_DATE = 1761644553;
+  uint256 constant CURRENT_DATE = 1761679148;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
@@ -176,8 +175,7 @@ contract ZKPassportVerifierTest is TestUtils {
     vm.startSnapshotGas("ZKPassportVerifier isAgeAboveOrEqual");
     assertEq(zkPassportVerifier.isAgeAboveOrEqual(
       18,
-      params.commitments,
-      params.serviceConfig
+      params.commitments
     ), true);
     uint256 gasUsedGetAgeProofInputs = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier isAgeAboveOrEqual");
@@ -240,9 +238,8 @@ contract ZKPassportVerifierTest is TestUtils {
 
     vm.startSnapshotGas("ZKPassportVerifier isBirthdateBeforeOrEqual");
     bool isBirthdateBeforeOrEqual = zkPassportVerifier.isBirthdateBeforeOrEqual(
-        PROOF_GENERATION_DATE,
-        params.commitments,
-        params.serviceConfig
+        CURRENT_DATE,
+        params.commitments
       );
     uint256 gasUsedIsBirthdateBeforeOrEqual = vm.stopSnapshotGas();
     console.log("Gas used in ZKPassportVerifier isBirthdateBeforeOrEqual");
@@ -252,9 +249,8 @@ contract ZKPassportVerifierTest is TestUtils {
     {
       vm.startSnapshotGas("ZKPassportVerifier isExpiryDateAfterOrEqual");
       bool isExpiryDateAfterOrEqual = zkPassportVerifier.isExpiryDateAfterOrEqual(
-          PROOF_GENERATION_DATE,
-          params.commitments,
-          params.serviceConfig
+          CURRENT_DATE,
+          params.commitments
         );
       uint256 gasUsedIsExpiryDateAfterOrEqual = vm.stopSnapshotGas();
       console.log("Gas used in ZKPassportVerifier isExpiryDateAfterOrEqual");
@@ -290,17 +286,17 @@ contract ZKPassportVerifierTest is TestUtils {
 
     {
       vm.startSnapshotGas("ZKPassportVerifier isFaceMatchVerified");
-      bool isFacematchVerified = zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.IOS, params.commitments, params.serviceConfig);
+      bool isFacematchVerified = zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.IOS, params.commitments);
       uint256 gasUsedIsFaceMatchVerified = vm.stopSnapshotGas();
       console.log("Gas used in ZKPassportVerifier isFaceMatchVerified");
       console.log(gasUsedIsFaceMatchVerified);
       assertEq(isFacematchVerified, true);
       // Should be false because the facematch mode is not strict but regular
-      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.STRICT, OS.IOS, params.commitments, params.serviceConfig), false);
+      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.STRICT, OS.IOS, params.commitments), false);
       // Should be false because the OS is not iOS
-      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANDROID, params.commitments, params.serviceConfig), false);
+      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANDROID, params.commitments), false);
       // Should be true because the OS is any
-      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANY, params.commitments, params.serviceConfig), true);
+      assertEq(zkPassportVerifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANY, params.commitments), true);
     }
   }
 }

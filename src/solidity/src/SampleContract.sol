@@ -68,7 +68,7 @@ contract SampleContract {
       zkPassportVerifier.verifyScopes(params.proofVerificationData.publicInputs, validDomain, validScope),
       "Invalid domain or scope"
     );
-    require(zkPassportVerifier.isAgeAboveOrEqual(18, params.commitments, params.serviceConfig), "Age is not 18+");
+    require(zkPassportVerifier.isAgeAboveOrEqual(18, params.commitments), "Age is not 18+");
     DisclosedData memory disclosedData = zkPassportVerifier.getDisclosedData(
       params.commitments,
       isIDCard  

@@ -8,3 +8,4 @@ compiler_version = ">=1.0.0"
 inclusion_check_country = { path = "../../../../lib/inclusion-check/country" }
 commitment = { path = "../../../../lib/commitment/scoped-nullifier" }
 utils = { path = "../../../../lib/utils" }
+data_check_expiry = { path = "../../../../lib/data-check/expiry" }

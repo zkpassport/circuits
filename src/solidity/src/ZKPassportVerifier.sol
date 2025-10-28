@@ -114,16 +114,13 @@ contract ZKPassportVerifier {
    * @notice Checks if the age is above or equal to the given age
    * @param minAge The age must be above or equal to this age
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the age is above or equal to the given age, false otherwise
    */
   function isAgeAboveOrEqual(
     uint8 minAge,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    (uint256 currentDate, uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(commitments);
-    require(DateUtils.isDateValid(currentDate, serviceConfig.validityPeriodInSeconds), "The current date used in the proof does not fall within the validity period");
+    (uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(commitments);
     require(max == 0, "The proof upper bound must be 0, please use isAgeBetween instead");
     return minAge == min;
   }
@@ -132,15 +129,13 @@ contract ZKPassportVerifier {
    * @notice Checks if the age is above the given age
    * @param minAge The age must be above this age
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the age is above the given age, false otherwise
    */
   function isAgeAbove(
     uint8 minAge,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    return isAgeAboveOrEqual(minAge + 1, commitments, serviceConfig);
+    return isAgeAboveOrEqual(minAge + 1, commitments);
   }
 
   /**
@@ -148,17 +143,14 @@ contract ZKPassportVerifier {
    * @param minAge The age must be greater than or equal to this age
    * @param maxAge The age must be less than or equal to this age
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the age is in the given range, false otherwise
    */
   function isAgeBetween(
     uint8 minAge,
     uint8 maxAge,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    (uint256 currentDate, uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(commitments);
-    require(DateUtils.isDateValid(currentDate, serviceConfig.validityPeriodInSeconds), "The current date used in the proof does not fall within the validity period");
+    (uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(commitments);
     require(minAge <= maxAge, "Min age must be less than or equal to max age");
     require(min != 0, "The proof lower bound must be non-zero, please use isAgeBelowOrEqual instead");
     require(max != 0, "The proof upper bound must be non-zero, please use isAgeAboveOrEqual instead");
@@ -169,16 +161,13 @@ contract ZKPassportVerifier {
    * @notice Checks if the age is below or equal to the given age
    * @param maxAge The age must be below or equal to this age
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the age is below or equal to the given age, false otherwise
    */
   function isAgeBelowOrEqual(
     uint8 maxAge,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    (uint256 currentDate, uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(commitments);
-    require(DateUtils.isDateValid(currentDate, serviceConfig.validityPeriodInSeconds), "The current date used in the proof does not fall within the validity period");
+    (uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(commitments);
     require(min == 0, "The proof lower bound must be 0, please use isAgeBetween instead");
     return maxAge == max;
   }
@@ -187,41 +176,35 @@ contract ZKPassportVerifier {
    * @notice Checks if the age is below the given age
    * @param maxAge The age must be below this age
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the age is below the given age, false otherwise
    */
   function isAgeBelow(
     uint8 maxAge,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
     require(maxAge > 0, "Max age must be greater than 0");
-    return isAgeBelowOrEqual(maxAge - 1, commitments, serviceConfig);
+    return isAgeBelowOrEqual(maxAge - 1, commitments);
   }
 
   /**
    * @notice Checks if the age is equal to the given age
    * @param age The age must be equal to this age
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the age is equal to the given age, false otherwise
    */
   function isAgeEqual(
     uint8 age,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    return isAgeBetween(age, age, commitments, serviceConfig);
+    return isAgeBetween(age, age, commitments);
   }
 
   function isDateAfterOrEqual(
     uint256 minDate,
     ProofType proofType,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) private view returns (bool) {
-    (uint256 currentDate, uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(commitments, proofType);
-    require(DateUtils.isDateValid(currentDate, serviceConfig.validityPeriodInSeconds), "The current date used in the proof does not fall within the validity period");
+    (uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(commitments, proofType);
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
       require(max == 0, "The proof upper bound must be 0, please use isBirthdateBetween instead");
@@ -238,11 +221,9 @@ contract ZKPassportVerifier {
     uint256 minDate,
     uint256 maxDate,
     ProofType proofType,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) private view returns (bool) {
-    (uint256 currentDate, uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(commitments, proofType);
-    require(DateUtils.isDateValid(currentDate, serviceConfig.validityPeriodInSeconds), "The current date used in the proof does not fall within the validity period");
+    (uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(commitments, proofType);
     require(minDate <= maxDate, "Min date must be less than or equal to max date");
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
@@ -261,11 +242,9 @@ contract ZKPassportVerifier {
   function isDateBeforeOrEqual(
     uint256 maxDate,
     ProofType proofType,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) private view returns (bool) {
-    (uint256 currentDate, uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(commitments, proofType);
-    require(DateUtils.isDateValid(currentDate, serviceConfig.validityPeriodInSeconds), "The current date used in the proof does not fall within the validity period");
+    (uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(commitments, proofType);
     require(min == 0, "The proof lower bound must be 0, please use isDateBetween instead");
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
@@ -283,30 +262,26 @@ contract ZKPassportVerifier {
    * @notice Checks if the birthdate is after or equal to the given date
    * @param minDate The birthdate must be after or equal to this date
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the birthdate is after or equal to the given date, false otherwise
    */
   function isBirthdateAfterOrEqual(
     uint256 minDate,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    return isDateAfterOrEqual(minDate, ProofType.BIRTHDATE, commitments, serviceConfig);
+    return isDateAfterOrEqual(minDate, ProofType.BIRTHDATE, commitments);
   }
 
   /**
    * @notice Checks if the birthdate is after the given date
    * @param minDate The birthdate must be after this date
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the birthdate is after the given date, false otherwise
    */
   function isBirthdateAfter(
     uint256 minDate,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    return isDateAfterOrEqual(minDate + 1 days, ProofType.BIRTHDATE, commitments, serviceConfig);
+    return isDateAfterOrEqual(minDate + 1 days, ProofType.BIRTHDATE, commitments);
   }
 
   /**
@@ -314,91 +289,79 @@ contract ZKPassportVerifier {
    * @param minDate The birthdate must be after or equal to this date
    * @param maxDate The birthdate must be before or equal to this date
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the birthdate is between the given dates, false otherwise
    */
   function isBirthdateBetween(
     uint256 minDate,
     uint256 maxDate,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    return isDateBetween(minDate, maxDate, ProofType.BIRTHDATE, commitments, serviceConfig);
+    return isDateBetween(minDate, maxDate, ProofType.BIRTHDATE, commitments);
   }
 
   /**
    * @notice Checks if the birthdate is before or equal to the given date
    * @param maxDate The birthdate must be before or equal to this date
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the birthdate is before or equal to the given date, false otherwise
    */
   function isBirthdateBeforeOrEqual(
     uint256 maxDate,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    return isDateBeforeOrEqual(maxDate, ProofType.BIRTHDATE, commitments, serviceConfig);
+    return isDateBeforeOrEqual(maxDate, ProofType.BIRTHDATE, commitments);
   }
 
   /**
    * @notice Checks if the birthdate is before the given date
    * @param maxDate The birthdate must be before this date
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the birthdate is before the given date, false otherwise
    */
   function isBirthdateBefore(
     uint256 maxDate,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    return isDateBeforeOrEqual(maxDate - 1 days, ProofType.BIRTHDATE, commitments, serviceConfig);
+    return isDateBeforeOrEqual(maxDate - 1 days, ProofType.BIRTHDATE, commitments);
   }
 
   /**
    * @notice Checks if the birthdate is equal to the given date
    * @param date The birthdate must be equal to this date
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the birthdate is equal to the given date, false otherwise
    */
   function isBirthdateEqual(
     uint256 date,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    return isDateBetween(date, date, ProofType.BIRTHDATE, commitments, serviceConfig);
+    return isDateBetween(date, date, ProofType.BIRTHDATE, commitments);
   }
 
   /**
    * @notice Checks if the expiry date is after or equal to the given date
    * @param minDate The expiry date must be after or equal to this date
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the expiry date is after or equal to the given date, false otherwise
    */
   function isExpiryDateAfterOrEqual(
     uint256 minDate,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    return isDateAfterOrEqual(minDate, ProofType.EXPIRY_DATE, commitments, serviceConfig);
+    return isDateAfterOrEqual(minDate, ProofType.EXPIRY_DATE, commitments);
   }
 
   /**
    * @notice Checks if the expiry date is after the given date
    * @param minDate The expiry date must be after this date
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the expiry date is after the given date, false otherwise
    */
   function isExpiryDateAfter(
     uint256 minDate,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    return isDateAfterOrEqual(minDate + 1 days, ProofType.EXPIRY_DATE, commitments, serviceConfig);
+    return isDateAfterOrEqual(minDate + 1 days, ProofType.EXPIRY_DATE, commitments);
   }
 
   /**
@@ -406,61 +369,53 @@ contract ZKPassportVerifier {
    * @param minDate The expiry date must be after or equal to this date
    * @param maxDate The expiry date must be before or equal to this date
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the expiry date is between the given dates, false otherwise
    */
   function isExpiryDateBetween(
     uint256 minDate,
     uint256 maxDate,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    return isDateBetween(minDate, maxDate, ProofType.EXPIRY_DATE, commitments, serviceConfig);
+    return isDateBetween(minDate, maxDate, ProofType.EXPIRY_DATE, commitments);
   }
 
   /**
    * @notice Checks if the expiry date is before or equal to the given date
    * @param maxDate The expiry date must be before or equal to this date
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the expiry date is before or equal to the given date, false otherwise
    */
   function isExpiryDateBeforeOrEqual(
     uint256 maxDate,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    return isDateBeforeOrEqual(maxDate, ProofType.EXPIRY_DATE, commitments, serviceConfig);
+    return isDateBeforeOrEqual(maxDate, ProofType.EXPIRY_DATE, commitments);
   }
 
   /**
    * @notice Checks if the expiry date is before the given date
    * @param maxDate The expiry date must be before this date
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the expiry date is before the given date, false otherwise
    */
   function isExpiryDateBefore(
     uint256 maxDate,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    return isDateBeforeOrEqual(maxDate - 1 days, ProofType.EXPIRY_DATE, commitments, serviceConfig);
+    return isDateBeforeOrEqual(maxDate - 1 days, ProofType.EXPIRY_DATE, commitments);
   }
 
   /**
    * @notice Checks if the expiry date is equal to the given date
    * @param date The expiry date must be equal to this date
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the expiry date is equal to the given date, false otherwise
    */
   function isExpiryDateEqual(
     uint256 date,
-    Commitments calldata commitments,
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public view returns (bool) {
-    return isDateBetween(date, date, ProofType.EXPIRY_DATE, commitments, serviceConfig);
+    return isDateBetween(date, date, ProofType.EXPIRY_DATE, commitments);
   }
 
   function isCountryInOrOut(
@@ -565,16 +520,12 @@ contract ZKPassportVerifier {
    * @param faceMatchMode The FaceMatch mode expected to be used in the verification
    * @param os The operating system on which the proof should have been generated (Any (0), iOS (1), Android (2))
    * @param commitments The commitments
-   * @param serviceConfig The service config
    * @return True if the proof is tied to a valid FaceMatch verification, false otherwise
    */
   function isFaceMatchVerified(
     FaceMatchMode faceMatchMode,
     OS os,
-    Commitments calldata commitments,
-    // Not used for now, but will be used in the future for the validity period
-    // so we place it here to plan ahead
-    ServiceConfig calldata serviceConfig
+    Commitments calldata commitments
   ) public pure returns (bool) {
     (bytes32 rootKeyHash, Environment environment, bytes32 appIdHash, bytes32 integrityPublicKeyHash, FaceMatchMode retrievedFaceMatchMode) = InputsExtractor.getFacematchProofInputs(commitments);
     bool isProduction = environment == Environment.PRODUCTION;
@@ -683,6 +634,8 @@ contract ZKPassportVerifier {
     _validateCircuitRoot(params.proofVerificationData.publicInputs[PublicInput.CIRCUIT_REGISTRY_ROOT_INDEX]);
 
     // Checks the date of the proof
+    // This is the current date used as public input in the disclosure proofs
+    // so verifying it here guarantees that the disclosure proofs were generated with this date
     require(
       checkDate(params.proofVerificationData.publicInputs, params.serviceConfig.validityPeriodInSeconds),
       "The proof was generated outside the validity period"

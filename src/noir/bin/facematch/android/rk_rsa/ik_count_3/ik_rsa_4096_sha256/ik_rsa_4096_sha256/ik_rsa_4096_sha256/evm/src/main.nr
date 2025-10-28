@@ -1,5 +1,6 @@
 // This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::nullify;
+use data_check_expiry::check_expiry;
 use data_check_tbs_pubkey::{verify_ecdsa_pubkey_in_tbs, verify_rsa_pubkey_in_tbs};
 use facematch::{
     android::{
@@ -28,6 +29,7 @@ use utils::{poseidon2_hash_packed, split_array, types::DG1Data, unsafe_get_asn1_
 
 fn main(
     comm_in: pub Field,
+    current_date: pub u64,
     salt: Field,
     private_nullifier: Field,
     dg1: DG1Data,
@@ -87,6 +89,9 @@ fn main(
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field, Field) {
+    // Check the ID is not expired
+    check_expiry(dg1, current_date);
+
     let root_key_leaf = calculate_attestation_registry_leaf(ATTESTATION_KEY_TYPE_GOOGLE, root_key);
 
     // Verify the intermediate certificate was signed by the root key

@@ -105,7 +105,7 @@ library InputsExtractor {
   function getDateProofInputs(
     Commitments calldata commitments,
     ProofType proofType
-  ) public pure returns (uint256 currentDate, uint256 minDate, uint256 maxDate) {
+  ) public pure returns (uint256 minDate, uint256 maxDate) {
     uint256 offset = 0;
     uint256 foundCount = 0;
     while (offset < commitments.committedInputs.length) {
@@ -115,22 +115,18 @@ library InputsExtractor {
       if (proofType == retrievedProofType && length == CommittedInputLen.COMPARE_EXPIRY) {
         // Get rid of the padding 0s bytes as the timestamp is contained within the first 64 bits
         // i.e. 256 - 64 = 192
-        currentDate =
-          uint256(bytes32(commitments.committedInputs[offset:offset + TIMESTAMP_LENGTH])) >>
-          192;
         minDate =
           uint256(
             bytes32(
-              commitments.committedInputs[offset + TIMESTAMP_LENGTH:offset + TIMESTAMP_LENGTH * 2]
+              commitments.committedInputs[offset:offset + TIMESTAMP_LENGTH]
             )
           ) >>
           192;
         maxDate =
           uint256(
             bytes32(
-              commitments.committedInputs[offset + TIMESTAMP_LENGTH * 2:offset +
-                TIMESTAMP_LENGTH *
-                3]
+              commitments.committedInputs[offset + TIMESTAMP_LENGTH:offset +
+                TIMESTAMP_LENGTH * 2]
             )
           ) >>
           192;
@@ -155,7 +151,7 @@ library InputsExtractor {
 
   function getAgeProofInputs(
     Commitments calldata commitments
-  ) public pure returns (uint256 currentDate, uint8 minAge, uint8 maxAge) {
+  ) public pure returns (uint8 minAge, uint8 maxAge) {
     uint256 offset = 0;
     uint256 foundCount = 0;
     while (offset < commitments.committedInputs.length) {
@@ -165,9 +161,8 @@ library InputsExtractor {
       if (retrievedProofType == ProofType.AGE && length == CommittedInputLen.COMPARE_AGE) {
         // Get rid of the padding 0s bytes as the timestamp is contained within the first 64 bits
         // i.e. 256 - 64 = 192
-        currentDate = uint256(bytes32(commitments.committedInputs[offset:offset + 8])) >> 192;
-        minAge = uint8(commitments.committedInputs[offset + 8]);
-        maxAge = uint8(commitments.committedInputs[offset + 9]);
+        minAge = uint8(commitments.committedInputs[offset]);
+        maxAge = uint8(commitments.committedInputs[offset + 1]);
         foundCount++;
       }
       offset += length;

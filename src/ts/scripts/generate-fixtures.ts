@@ -171,6 +171,7 @@ class FixtureGenerator {
       0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
+      this.nowTimestamp,
     )
     if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
 
@@ -225,6 +226,7 @@ class FixtureGenerator {
       0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
+      this.nowTimestamp,
     )
     if (!inputs) throw new Error("Unable to generate bind circuit inputs")
 
@@ -367,6 +369,7 @@ class FixtureGenerator {
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
+            this.nowTimestamp,
           ),
         { nationality: { in: ["AUS", "FRA", "USA", "GBR"] } },
         ProofType.NATIONALITY_INCLUSION,
@@ -392,6 +395,7 @@ class FixtureGenerator {
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
+            this.nowTimestamp,
           ),
         { nationality: { out: ["ESP", "PRT", "ITA"] } },
         ProofType.NATIONALITY_EXCLUSION,
@@ -421,6 +425,7 @@ class FixtureGenerator {
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
+            this.nowTimestamp,
           ),
         { issuing_country: { in: ["AUS", "FRA", "USA", "GBR"] } },
         ProofType.ISSUING_COUNTRY_INCLUSION,
@@ -446,6 +451,7 @@ class FixtureGenerator {
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
+            this.nowTimestamp,
           ),
         { issuing_country: { out: ["ESP", "PRT", "ITA"] } },
         ProofType.ISSUING_COUNTRY_EXCLUSION,
@@ -480,9 +486,6 @@ class FixtureGenerator {
         { age: { gte: 18 } },
         ProofType.AGE,
         (inputs) =>
-          Array.from(numberToBytesBE(inputs.current_date, 8))
-            .map((x) => x.toString(16).padStart(2, "0"))
-            .join("") +
           inputs.min_age_required.toString(16).padStart(2, "0") +
           inputs.max_age_required.toString(16).padStart(2, "0"),
       ),
@@ -505,9 +508,6 @@ class FixtureGenerator {
         { expiry_date: { gte: new Date(this.nowTimestamp * 1000) } },
         ProofType.EXPIRY_DATE,
         (inputs) =>
-          Array.from(numberToBytesBE(inputs.current_date, 8))
-            .map((x: number) => x.toString(16).padStart(2, "0"))
-            .join("") +
           Array.from(numberToBytesBE(inputs.min_date, 8))
             .map((x: number) => x.toString(16).padStart(2, "0"))
             .join("") +
@@ -534,9 +534,6 @@ class FixtureGenerator {
         { birthdate: { lte: new Date(this.nowTimestamp * 1000) } },
         ProofType.BIRTHDATE,
         (inputs) =>
-          Array.from(numberToBytesBE(inputs.current_date, 8))
-            .map((x) => x.toString(16).padStart(2, "0"))
-            .join("") +
           Array.from(numberToBytesBE(inputs.min_date, 8))
             .map((x: number) => x.toString(16).padStart(2, "0"))
             .join("") +
@@ -557,6 +554,7 @@ class FixtureGenerator {
           0n,
           getServiceScopeHash("zkpassport.id"),
           getServiceSubscopeHash("bigproof"),
+          this.nowTimestamp,
         ),
         { sanctions: { countries: "all", lists: "all" } },
         ProofType.SANCTIONS_EXCLUSION,

@@ -208,9 +208,11 @@ fn test_main() {
     let service_scope: Field = 0;
     let service_subscope: Field = 0;
     let nullifier_secret: Field = 0;
+    let current_date: u64 = 1719859200;
 
     let (param_commitment, nullifier_type, nullifier) = crate::main(
         comm_in,
+        current_date,
         salt,
         private_nullifier,
         dg1,
