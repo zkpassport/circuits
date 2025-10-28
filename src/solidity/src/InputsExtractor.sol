@@ -7,56 +7,75 @@ import {DisclosedData, ProofType, FaceMatchMode, Environment} from "../src/Types
 import {BoundDataIdentifier, Commitments} from "../src/Types.sol";
 
 library InputsExtractor {
-
   function getDisclosedData(
     bytes calldata discloseBytes,
     bool isIDCard
-  )
-    public
-    pure
-    returns (DisclosedData memory disclosedData)
-  {
+  ) public pure returns (DisclosedData memory disclosedData) {
     if (!isIDCard) {
-      disclosedData.name = string(discloseBytes[MRZIndex.PASSPORT_MRZ_NAME_INDEX:MRZIndex.PASSPORT_MRZ_NAME_INDEX + MRZLength.PASSPORT_MRZ_NAME_LENGTH]);
+      disclosedData.name = string(
+        discloseBytes[MRZIndex.PASSPORT_MRZ_NAME_INDEX:MRZIndex.PASSPORT_MRZ_NAME_INDEX +
+          MRZLength.PASSPORT_MRZ_NAME_LENGTH]
+      );
       disclosedData.issuingCountry = string(
-        discloseBytes[MRZIndex.PASSPORT_MRZ_ISSUING_COUNTRY_INDEX:MRZIndex.PASSPORT_MRZ_ISSUING_COUNTRY_INDEX + MRZLength.PASSPORT_MRZ_ISSUING_COUNTRY_LENGTH]
+        discloseBytes[MRZIndex.PASSPORT_MRZ_ISSUING_COUNTRY_INDEX:MRZIndex
+          .PASSPORT_MRZ_ISSUING_COUNTRY_INDEX + MRZLength.PASSPORT_MRZ_ISSUING_COUNTRY_LENGTH]
       );
       disclosedData.nationality = string(
-        discloseBytes[MRZIndex.PASSPORT_MRZ_NATIONALITY_INDEX:MRZIndex.PASSPORT_MRZ_NATIONALITY_INDEX + MRZLength.PASSPORT_MRZ_NATIONALITY_LENGTH]
+        discloseBytes[MRZIndex.PASSPORT_MRZ_NATIONALITY_INDEX:MRZIndex
+          .PASSPORT_MRZ_NATIONALITY_INDEX + MRZLength.PASSPORT_MRZ_NATIONALITY_LENGTH]
       );
-      disclosedData.gender = string(discloseBytes[MRZIndex.PASSPORT_MRZ_GENDER_INDEX:MRZIndex.PASSPORT_MRZ_GENDER_INDEX + MRZLength.PASSPORT_MRZ_GENDER_LENGTH]);
+      disclosedData.gender = string(
+        discloseBytes[MRZIndex.PASSPORT_MRZ_GENDER_INDEX:MRZIndex.PASSPORT_MRZ_GENDER_INDEX +
+          MRZLength.PASSPORT_MRZ_GENDER_LENGTH]
+      );
       disclosedData.birthDate = string(
-        discloseBytes[MRZIndex.PASSPORT_MRZ_BIRTHDATE_INDEX:MRZIndex.PASSPORT_MRZ_BIRTHDATE_INDEX + MRZLength.PASSPORT_MRZ_BIRTHDATE_LENGTH]
+        discloseBytes[MRZIndex.PASSPORT_MRZ_BIRTHDATE_INDEX:MRZIndex.PASSPORT_MRZ_BIRTHDATE_INDEX +
+          MRZLength.PASSPORT_MRZ_BIRTHDATE_LENGTH]
       );
       disclosedData.expiryDate = string(
-        discloseBytes[MRZIndex.PASSPORT_MRZ_EXPIRY_DATE_INDEX:MRZIndex.PASSPORT_MRZ_EXPIRY_DATE_INDEX + MRZLength.PASSPORT_MRZ_EXPIRY_DATE_LENGTH]
+        discloseBytes[MRZIndex.PASSPORT_MRZ_EXPIRY_DATE_INDEX:MRZIndex
+          .PASSPORT_MRZ_EXPIRY_DATE_INDEX + MRZLength.PASSPORT_MRZ_EXPIRY_DATE_LENGTH]
       );
       disclosedData.documentNumber = string(
-        discloseBytes[MRZIndex.PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX:MRZIndex.PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX + MRZLength.PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH]
+        discloseBytes[MRZIndex.PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX:MRZIndex
+          .PASSPORT_MRZ_DOCUMENT_NUMBER_INDEX + MRZLength.PASSPORT_MRZ_DOCUMENT_NUMBER_LENGTH]
       );
       disclosedData.documentType = string(
-        discloseBytes[MRZIndex.PASSPORT_MRZ_DOCUMENT_TYPE_INDEX:MRZIndex.PASSPORT_MRZ_DOCUMENT_TYPE_INDEX + MRZLength.PASSPORT_MRZ_DOCUMENT_TYPE_LENGTH]
+        discloseBytes[MRZIndex.PASSPORT_MRZ_DOCUMENT_TYPE_INDEX:MRZIndex
+          .PASSPORT_MRZ_DOCUMENT_TYPE_INDEX + MRZLength.PASSPORT_MRZ_DOCUMENT_TYPE_LENGTH]
       );
     } else {
-      disclosedData.name = string(discloseBytes[MRZIndex.ID_CARD_MRZ_NAME_INDEX:MRZIndex.ID_CARD_MRZ_NAME_INDEX + MRZLength.ID_CARD_MRZ_NAME_LENGTH]);
+      disclosedData.name = string(
+        discloseBytes[MRZIndex.ID_CARD_MRZ_NAME_INDEX:MRZIndex.ID_CARD_MRZ_NAME_INDEX +
+          MRZLength.ID_CARD_MRZ_NAME_LENGTH]
+      );
       disclosedData.issuingCountry = string(
-        discloseBytes[MRZIndex.ID_CARD_MRZ_ISSUING_COUNTRY_INDEX:MRZIndex.ID_CARD_MRZ_ISSUING_COUNTRY_INDEX + MRZLength.ID_CARD_MRZ_ISSUING_COUNTRY_LENGTH]
+        discloseBytes[MRZIndex.ID_CARD_MRZ_ISSUING_COUNTRY_INDEX:MRZIndex
+          .ID_CARD_MRZ_ISSUING_COUNTRY_INDEX + MRZLength.ID_CARD_MRZ_ISSUING_COUNTRY_LENGTH]
       );
       disclosedData.nationality = string(
-        discloseBytes[MRZIndex.ID_CARD_MRZ_NATIONALITY_INDEX:MRZIndex.ID_CARD_MRZ_NATIONALITY_INDEX + MRZLength.ID_CARD_MRZ_NATIONALITY_LENGTH]
+        discloseBytes[MRZIndex.ID_CARD_MRZ_NATIONALITY_INDEX:MRZIndex
+          .ID_CARD_MRZ_NATIONALITY_INDEX + MRZLength.ID_CARD_MRZ_NATIONALITY_LENGTH]
       );
-      disclosedData.gender = string(discloseBytes[MRZIndex.ID_CARD_MRZ_GENDER_INDEX:MRZIndex.ID_CARD_MRZ_GENDER_INDEX + MRZLength.ID_CARD_MRZ_GENDER_LENGTH]);
+      disclosedData.gender = string(
+        discloseBytes[MRZIndex.ID_CARD_MRZ_GENDER_INDEX:MRZIndex.ID_CARD_MRZ_GENDER_INDEX +
+          MRZLength.ID_CARD_MRZ_GENDER_LENGTH]
+      );
       disclosedData.birthDate = string(
-        discloseBytes[MRZIndex.ID_CARD_MRZ_BIRTHDATE_INDEX:MRZIndex.ID_CARD_MRZ_BIRTHDATE_INDEX + MRZLength.ID_CARD_MRZ_BIRTHDATE_LENGTH]
+        discloseBytes[MRZIndex.ID_CARD_MRZ_BIRTHDATE_INDEX:MRZIndex.ID_CARD_MRZ_BIRTHDATE_INDEX +
+          MRZLength.ID_CARD_MRZ_BIRTHDATE_LENGTH]
       );
       disclosedData.expiryDate = string(
-        discloseBytes[MRZIndex.ID_CARD_MRZ_EXPIRY_DATE_INDEX:MRZIndex.ID_CARD_MRZ_EXPIRY_DATE_INDEX + MRZLength.ID_CARD_MRZ_EXPIRY_DATE_LENGTH]
+        discloseBytes[MRZIndex.ID_CARD_MRZ_EXPIRY_DATE_INDEX:MRZIndex
+          .ID_CARD_MRZ_EXPIRY_DATE_INDEX + MRZLength.ID_CARD_MRZ_EXPIRY_DATE_LENGTH]
       );
       disclosedData.documentNumber = string(
-        discloseBytes[MRZIndex.ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX:MRZIndex.ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX + MRZLength.ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH]
+        discloseBytes[MRZIndex.ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX:MRZIndex
+          .ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX + MRZLength.ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH]
       );
       disclosedData.documentType = string(
-        discloseBytes[MRZIndex.ID_CARD_MRZ_DOCUMENT_TYPE_INDEX:MRZIndex.ID_CARD_MRZ_DOCUMENT_TYPE_INDEX + MRZLength.ID_CARD_MRZ_DOCUMENT_TYPE_LENGTH]
+        discloseBytes[MRZIndex.ID_CARD_MRZ_DOCUMENT_TYPE_INDEX:MRZIndex
+          .ID_CARD_MRZ_DOCUMENT_TYPE_INDEX + MRZLength.ID_CARD_MRZ_DOCUMENT_TYPE_LENGTH]
       );
     }
   }
@@ -66,13 +85,15 @@ library InputsExtractor {
   ) public pure returns (bytes memory discloseMask, bytes memory discloseBytes) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
+    while (offset < commitments.committedInputs.length) {
       ProofType proofType = ProofType(uint8(commitments.committedInputs[offset]));
-      uint256 length = uint256(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
       offset += 3;
       if (proofType == ProofType.DISCLOSE && length == CommittedInputLen.DISCLOSE_BYTES) {
         discloseMask = commitments.committedInputs[offset:offset + MRZLength.MRZ_MAX_LENGTH];
-        discloseBytes = commitments.committedInputs[offset + MRZLength.MRZ_MAX_LENGTH:offset + MRZLength.MRZ_MAX_LENGTH * 2];
+        discloseBytes = commitments.committedInputs[offset + MRZLength.MRZ_MAX_LENGTH:offset +
+          MRZLength.MRZ_MAX_LENGTH *
+          2];
         foundCount++;
       }
       offset += length;
@@ -87,26 +108,48 @@ library InputsExtractor {
   ) public pure returns (uint256 currentDate, uint256 minDate, uint256 maxDate) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
-      ProofType proofType = ProofType(uint8(commitments.committedInputs[offset]));
-      uint256 length = uint256(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+    while (offset < commitments.committedInputs.length) {
+      ProofType retrievedProofType = ProofType(uint8(commitments.committedInputs[offset]));
+      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
       offset += 3;
-      if (proofType == ProofType.EXPIRY_DATE && length == CommittedInputLen.COMPARE_EXPIRY) {
+      if (proofType == retrievedProofType && length == CommittedInputLen.COMPARE_EXPIRY) {
         // Get rid of the padding 0s bytes as the timestamp is contained within the first 64 bits
         // i.e. 256 - 64 = 192
-        currentDate = uint256(bytes32(commitments.committedInputs[offset:offset + TIMESTAMP_LENGTH])) >> 192;
-        minDate = uint256(bytes32(commitments.committedInputs[offset + TIMESTAMP_LENGTH:offset + TIMESTAMP_LENGTH * 2])) >> 192;
-        maxDate = uint256(bytes32(commitments.committedInputs[offset + TIMESTAMP_LENGTH * 2:offset + TIMESTAMP_LENGTH * 3])) >> 192;
+        currentDate =
+          uint256(bytes32(commitments.committedInputs[offset:offset + TIMESTAMP_LENGTH])) >>
+          192;
+        minDate =
+          uint256(
+            bytes32(
+              commitments.committedInputs[offset + TIMESTAMP_LENGTH:offset + TIMESTAMP_LENGTH * 2]
+            )
+          ) >>
+          192;
+        maxDate =
+          uint256(
+            bytes32(
+              commitments.committedInputs[offset + TIMESTAMP_LENGTH * 2:offset +
+                TIMESTAMP_LENGTH *
+                3]
+            )
+          ) >>
+          192;
         foundCount++;
       }
       offset += length;
     }
     if (proofType == ProofType.BIRTHDATE) {
       require(foundCount > 0, "Compare birthdate proof inputs not found");
-      require(foundCount == 1, "Found multiple compare birthdate proofs, the proof should only have one");
+      require(
+        foundCount == 1,
+        "Found multiple compare birthdate proofs, the proof should only have one"
+      );
     } else {
       require(foundCount > 0, "Compare expiry date proof inputs not found");
-      require(foundCount == 1, "Found multiple compare expiry date proofs, the proof should only have one");
+      require(
+        foundCount == 1,
+        "Found multiple compare expiry date proofs, the proof should only have one"
+      );
     }
   }
 
@@ -115,16 +158,16 @@ library InputsExtractor {
   ) public pure returns (uint256 currentDate, uint8 minAge, uint8 maxAge) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
-      ProofType proofType = ProofType(uint8(commitments.committedInputs[offset]));
-      uint256 length = uint256(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+    while (offset < commitments.committedInputs.length) {
+      ProofType retrievedProofType = ProofType(uint8(commitments.committedInputs[offset]));
+      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
       offset += 3;
-      if (proofType == ProofType.AGE && length == CommittedInputLen.COMPARE_AGE) {
+      if (retrievedProofType == ProofType.AGE && length == CommittedInputLen.COMPARE_AGE) {
         // Get rid of the padding 0s bytes as the timestamp is contained within the first 64 bits
         // i.e. 256 - 64 = 192
-        currentDate = uint256(bytes32(commitments.committedInputs[offset + 1:offset + 9])) >> 192;
-        minAge = uint8(commitments.committedInputs[offset + 9]);
-        maxAge = uint8(commitments.committedInputs[offset + 10]);
+        currentDate = uint256(bytes32(commitments.committedInputs[offset:offset + 8])) >> 192;
+        minAge = uint8(commitments.committedInputs[offset + 8]);
+        maxAge = uint8(commitments.committedInputs[offset + 9]);
         foundCount++;
       }
       offset += length;
@@ -138,12 +181,11 @@ library InputsExtractor {
     ProofType proofType
   ) public pure returns (uint256 countryListLength) {
     uint256 offset = 0;
-    uint256 foundCount = 0;
-    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
-      ProofType proofType = ProofType(uint8(commitments.committedInputs[offset]));
-      uint256 length = uint256(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+    while (offset < commitments.committedInputs.length) {
+      ProofType retrievedProofType = ProofType(uint8(commitments.committedInputs[offset]));
+      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
       offset += 3;
-      if (proofType == ProofType.NATIONALITY_INCLUSION && length == CommittedInputLen.INCL_NATIONALITY) {
+      if (proofType == retrievedProofType && length == CommittedInputLen.INCL_NATIONALITY) {
         for (uint256 j = 0; j < COUNTRY_LIST_LENGTH; j++) {
           // The circuit constrains that once we've reached the first `0`,
           // we won't encounter any further nonzero values.
@@ -151,9 +193,10 @@ library InputsExtractor {
           if (commitments.committedInputs[offset] == 0) return j;
           offset += 3;
         }
-        foundCount++;
+        offset += length - COUNTRY_LIST_LENGTH * 3;
+      } else {
+        offset += length;
       }
-      offset = length + 3;
     }
   }
 
@@ -161,35 +204,53 @@ library InputsExtractor {
     Commitments calldata commitments,
     ProofType proofType
   ) public pure returns (string[] memory countryList, uint256 countryListLength) {
+    require(proofType == ProofType.NATIONALITY_INCLUSION || proofType == ProofType.ISSUING_COUNTRY_INCLUSION || proofType == ProofType.NATIONALITY_EXCLUSION || proofType == ProofType.ISSUING_COUNTRY_EXCLUSION, "Invalid proof type");
     uint256 offset = 0;
     uint256 foundCount = 0;
     countryListLength = getCountryListLength(commitments, proofType);
     countryList = new string[](countryListLength);
-    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
-      ProofType proofType = ProofType(uint8(commitments.committedInputs[offset]));
-      uint256 length = uint256(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+    while (offset < commitments.committedInputs.length) {
+      ProofType retrievedProofType = ProofType(uint8(commitments.committedInputs[offset]));
+      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
       offset += 3;
-      if (proofType == ProofType.NATIONALITY_INCLUSION && length == CommittedInputLen.INCL_NATIONALITY) {
+      if (
+        proofType == retrievedProofType &&
+        length == CommittedInputLen.INCL_NATIONALITY
+      ) {
         for (uint256 j = 0; j < countryListLength; j++) {
           countryList[j] = string(commitments.committedInputs[offset:offset + 3]);
           offset += 3;
         }
+        offset += length - countryListLength * 3;
         foundCount++;
+      } else {
+        offset += length;
       }
-      offset = length + 3;
     }
     if (proofType == ProofType.ISSUING_COUNTRY_INCLUSION) {
       require(foundCount > 0, "Inclusion country proof inputs not found");
-      require(foundCount == 1, "Found multiple inclusion country proofs, the proof should only have one");
+      require(
+        foundCount == 1,
+        "Found multiple inclusion country proofs, the proof should only have one"
+      );
     } else if (proofType == ProofType.ISSUING_COUNTRY_EXCLUSION) {
       require(foundCount > 0, "Exclusion country proof inputs not found");
-      require(foundCount == 1, "Found multiple exclusion country proofs, the proof should only have one");
+      require(
+        foundCount == 1,
+        "Found multiple exclusion country proofs, the proof should only have one"
+      );
     } else if (proofType == ProofType.NATIONALITY_INCLUSION) {
       require(foundCount > 0, "Inclusion nationality proof inputs not found");
-      require(foundCount == 1, "Found multiple inclusion nationality proofs, the proof should only have one");
+      require(
+        foundCount == 1,
+        "Found multiple inclusion nationality proofs, the proof should only have one"
+      );
     } else if (proofType == ProofType.NATIONALITY_EXCLUSION) {
       require(foundCount > 0, "Exclusion nationality proof inputs not found");
-      require(foundCount == 1, "Found multiple exclusion nationality proofs, the proof should only have one");
+      require(
+        foundCount == 1,
+        "Found multiple exclusion nationality proofs, the proof should only have one"
+      );
     }
   }
 
@@ -198,12 +259,12 @@ library InputsExtractor {
   ) public pure returns (bytes memory data) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
-      ProofType proofType = ProofType(uint8(commitments.committedInputs[offset]));
-      uint256 length = uint256(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+    while (offset < commitments.committedInputs.length) {
+      ProofType retrievedProofType = ProofType(uint8(commitments.committedInputs[offset]));
+      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
       offset += 3;
-      if (proofType == ProofType.BIND && length == CommittedInputLen.BIND) {
-        data = commitments.committedInputs[offset + 1:offset + BOUND_DATA_LENGTH + 1];
+      if (retrievedProofType == ProofType.BIND && length == CommittedInputLen.BIND) {
+        data = commitments.committedInputs[offset:offset + BOUND_DATA_LENGTH];
         foundCount++;
       }
       offset += length;
@@ -214,15 +275,16 @@ library InputsExtractor {
 
   function getSanctionsProofInputs(
     Commitments calldata commitments
-  ) public pure returns (bytes32 sanctionsTreesCommitment) {
+  ) public pure returns (bytes32 sanctionsTreesCommitment, bool isStrict) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    for (uint256 i = 0; i < commitments.committedInputCounts.length; ++i) {
-      ProofType proofType = ProofType(uint8(commitments.committedInputs[offset]));
-      uint256 length = uint256(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+    while (offset < commitments.committedInputs.length) {
+      ProofType retrievedProofType = ProofType(uint8(commitments.committedInputs[offset]));
+      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
       offset += 3;
-      if (proofType == ProofType.SANCTIONS && length == CommittedInputLen.SANCTIONS) {
-        sanctionsTreesCommitment = bytes32(commitments.committedInputs[offset + 1:offset + 33]);
+      if (retrievedProofType == ProofType.SANCTIONS && length == CommittedInputLen.SANCTIONS) {
+        sanctionsTreesCommitment = bytes32(commitments.committedInputs[offset:offset + 32]);
+        isStrict = uint8(commitments.committedInputs[offset + 32]) == 1;
         foundCount++;
       }
       offset += length;
@@ -267,19 +329,33 @@ library InputsExtractor {
 
   function getFacematchProofInputs(
     Commitments calldata commitments
-  ) public pure returns (bytes32 rootKeyHash, Environment environment, bytes32 appIdHash, bytes32 integrityPublicKeyHash, FaceMatchMode facematchMode) {
+  )
+    public
+    pure
+    returns (
+      bytes32 rootKeyHash,
+      Environment environment,
+      bytes32 appIdHash,
+      bytes32 integrityPublicKeyHash,
+      FaceMatchMode facematchMode
+    )
+  {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    for (uint256 i = 0; i < commitments.committedInputCounts.length; i++) {
-      ProofType proofType = ProofType(uint8(commitments.committedInputs[offset]));
-      uint256 length = uint256(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+    while (offset < commitments.committedInputs.length) {
+      ProofType retrievedProofType = ProofType(uint8(commitments.committedInputs[offset]));
+      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
       offset += 3;
-      if (proofType == ProofType.FACEMATCH && length == CommittedInputLen.FACEMATCH) {
+      if (retrievedProofType == ProofType.FACEMATCH && length == CommittedInputLen.FACEMATCH) {
         rootKeyHash = bytes32(commitments.committedInputs[offset:offset + 32]);
-        environment = Environment(uint8(bytes1(commitments.committedInputs[offset + 32:offset + 33])));
+        environment = Environment(
+          uint8(commitments.committedInputs[offset + 32])
+        );
         appIdHash = bytes32(commitments.committedInputs[offset + 33:offset + 65]);
         integrityPublicKeyHash = bytes32(commitments.committedInputs[offset + 65:offset + 97]);
-        facematchMode = FaceMatchMode(uint8(bytes1(commitments.committedInputs[offset + 97:offset + 98])));
+        facematchMode = FaceMatchMode(
+          uint8(commitments.committedInputs[offset + 97])
+        );
         foundCount++;
       }
       offset += length;

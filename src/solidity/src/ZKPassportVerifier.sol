@@ -548,12 +548,15 @@ contract ZKPassportVerifier {
 
   /**
    * @notice Enforces that the proof checks against the expected sanction list(s)
+   * @param isStrict Whether the sanctions check was strict or not
    * @param commitments The commitments
    */
   function enforceSanctionsRoot(
+    bool isStrict,
     Commitments calldata commitments
   ) public view {
-    bytes32 proofSanctionsRoot = InputsExtractor.getSanctionsProofInputs(commitments);
+    (bytes32 proofSanctionsRoot, bool retrievedIsStrict) = InputsExtractor.getSanctionsProofInputs(commitments);
+    require(isStrict == retrievedIsStrict, "Invalid sanctions check mode");
     _validateSanctionsRoot(proofSanctionsRoot);
   }
 
@@ -613,21 +616,25 @@ contract ZKPassportVerifier {
     Commitments calldata commitments
   ) internal pure {
     uint256 offset = 0;
-    while (offset < commitments.committedInputs.length) {
+    uint256 index = 0;
+    while (offset < commitments.committedInputs.length && index < paramCommitments.length) {
       // The committed inputs are formatted as follows:
       // - 1 byte: proof type
       // - 2 bytes: length of the committed inputs
       // - N bytes: committed inputs for a given proof
-      uint256 length = uint256(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
       // One byte is dropped inside the circuit as BN254 is limited to 254 bits
+      // We also add 3 bytes to take into account the proof type and length
       bytes32 calculatedCommitment = sha256(
-        abi.encodePacked(commitments.committedInputs[offset:offset + length])
+        abi.encodePacked(commitments.committedInputs[offset:offset + length + 3])
       ) >> 8;
-      require(calculatedCommitment == paramCommitments[i], "Invalid commitment");
+      require(calculatedCommitment == paramCommitments[index], "Invalid commitment");
       offset += length + 3;
+      index++;
     }
     // Check that all the committed inputs have been covered, otherwise something is wrong
     require(offset == commitments.committedInputs.length, "Invalid committed inputs length");
+    require(index + 1 == paramCommitments.length, "Invalid parameter commitments");
   }
 
   function _getVerifier(bytes32 vkeyHash) internal view returns (address) {

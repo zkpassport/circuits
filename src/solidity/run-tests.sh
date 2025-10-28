@@ -42,7 +42,7 @@ export ROOT_REGISTRY_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep "RootRegistry deploy
 # Get the certificate and circuit registry roots from the public inputs of the fixtures
 export CERTIFICATE_REGISTRY_ROOT=$(jq -r '.inputs[0]' $SCRIPT_DIR/test/fixtures/all_subproofs_public_inputs.json)
 export CIRCUIT_REGISTRY_ROOT=$(jq -r '.inputs[1]' $SCRIPT_DIR/test/fixtures/all_subproofs_public_inputs.json)
-export SANCTIONS_REGISTRY_ROOT=0x099699583ea7729a4a05821667645e927b74feb4e6e5382c6e4370e35ed2b23c
+export SANCTIONS_REGISTRY_ROOT=0x06caac33440d8a83b838f07ba0e2bbe7e9889f10915efcb37396534f1feadac5
 
 echo "Updating roots..."
 echo "Root Registry: $ROOT_REGISTRY_ADDRESS"
