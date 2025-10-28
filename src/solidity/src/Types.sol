@@ -2,6 +2,12 @@
 // Copyright 2025 ZKPassport
 pragma solidity >=0.8.21;
 
+interface IZKPassportVerifier {
+  function verifyProof(
+    ProofVerificationParams calldata params
+  ) external view returns (bool valid, bytes32 uniqueIdentifier);
+}
+
 enum ProofType {
   DISCLOSE,
   AGE,
