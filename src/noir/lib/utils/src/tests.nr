@@ -25,7 +25,7 @@ use super::{
 use super::get_yob_from_mrz;
 use super::types::{
     DG1Data, MRZData, MRZDOB, MRZDocumentNumber, MRZIssuingCountry, MRZName, MRZNameIdCard,
-    MRZNationality,
+    MRZNationality, SaltedValue,
 };
 
 // Testing utilities
@@ -455,6 +455,55 @@ fn test_pack_be_bit_into_field() {
     x[2] = 1;
     let result = pack_be_bit_into_field::<90>(x);
     assert_eq(result, 0x038000000000000000000000);
+}
+
+#[test]
+fn test_salted_value_hash_from_value() {
+    let salted_value = SaltedValue::from_value(3, 1);
+    let hash = salted_value.get_hash();
+    assert_eq(hash, 0x2a9211c39ebf603ec089e2340d71642e179fcd1f736790ed26fa669c7a142c5e);
+}
+
+#[test]
+fn test_salted_value_hash_from_hash() {
+    let salted_value: SaltedValue<u32> = SaltedValue::from_hash(
+        0x2a9211c39ebf603ec089e2340d71642e179fcd1f736790ed26fa669c7a142c5e,
+    );
+    let hash = salted_value.get_hash();
+    assert_eq(hash, 0x2a9211c39ebf603ec089e2340d71642e179fcd1f736790ed26fa669c7a142c5e);
+}
+
+#[test(should_fail_with = "Salt must be non-zero when computing the hash from a clear value and its salt")]
+fn test_salted_value_hash_from_value_zero_salt() {
+    let salted_value = SaltedValue { salt: 0, value: 1, hash: 0 };
+    let hash = salted_value.get_hash();
+}
+
+#[test(should_fail_with = "Value must be non-zero when computing the hash from a clear value and its salt")]
+fn test_salted_value_hash_from_value_zero_value() {
+    let salted_value = SaltedValue { salt: 1, value: 0, hash: 0 };
+    let hash = salted_value.get_hash();
+}
+
+#[test(should_fail_with = "Salt cannot be 0 when creating a salted value from a clear value")]
+fn test_salted_value_from_value_zero_salt() {
+    let salted_value = SaltedValue::from_value(0, 1);
+}
+
+#[test(should_fail_with = "Value cannot be the default value when creating a salted value from a clear value")]
+fn test_salted_value_from_value_default_value() {
+    let salted_value = SaltedValue::from_value(1, 0);
+}
+
+#[test(should_fail_with = "Hash cannot be 0 when creating a salted value from a hash")]
+fn test_salted_value_from_hash_zero_hash() {
+    let salted_value: SaltedValue<u32> = SaltedValue::from_hash(0);
+}
+
+#[test(should_fail_with = "Salt must be 0 when hash is already specified")]
+fn test_salted_value_hash_from_hash_zero_hash() {
+    let salted_value = SaltedValue { salt: 1, value: 1, hash: 1 };
+    let hash = salted_value.get_hash();
 }
 
 /// MRZ getters

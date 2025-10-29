@@ -54,12 +54,12 @@ pub fn commit_to_disclosure<let DG2_HASH_SIZE: u32>(
     );
     let dg2_hash_normalized = normalize_dg2_hash(salted_dg2_hash.value);
 
-    let expiry_date =
+    let salted_expiry_date =
         SaltedValue::from_value(expiry_date_salt, get_expiry_date_from_mrz(salted_dg1.value));
 
     let comm_out = hash_salt_dg1_dg2_hash_private_nullifier(
         salted_dg1,
-        expiry_date,
+        salted_expiry_date,
         SaltedValue::from_value(salted_dg2_hash.salt, dg2_hash_normalized),
         salted_dg2_hash_type,
         salted_private_nullifier,

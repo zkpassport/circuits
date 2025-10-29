@@ -1,6 +1,6 @@
 import { describe, expect, test } from "@jest/globals"
 import { poseidon2HashAsync } from "@zkpassport/poseidon2"
-import type { PackagedCertificate, Query } from "@zkpassport/utils"
+import type { IntegrityToDisclosureSalts, PackagedCertificate, Query } from "@zkpassport/utils"
 import {
   Binary,
   DisclosedData,
@@ -52,6 +52,12 @@ import circuitManifest from "./fixtures/circuit-manifest.json"
 import FIXTURES_FACEMATCH from "./fixtures/facematch"
 
 const nowTimestamp = getNowTimestamp()
+const INTEGRITY_TO_DISCLOSURE_SALTS: IntegrityToDisclosureSalts = {
+  dg1Salt: 3n,
+  expiryDateSalt: 3n,
+  dg2HashSalt: 3n,
+  privateNullifierSalt: 3n,
+}
 
 describe("outer proof", () => {
   const helper = new TestHelper()
@@ -185,7 +191,7 @@ describe("outer proof", () => {
       expiry_date: { disclose: true },
       gender: { disclose: true },
     }
-    let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
+    let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
     if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
     const proof = await discloseCircuit.prove(inputs, {
       recursive: true,
@@ -320,7 +326,7 @@ describe("outer proof", () => {
       const nationalityInputs = await getNationalityInclusionCircuitInputs(
         helper.passport as any,
         nationalityQuery,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -349,7 +355,7 @@ describe("outer proof", () => {
       const ageInputs = await getAgeCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -600,7 +606,7 @@ describe("outer proof - evm optimised", () => {
     let inputs = await getDiscloseCircuitInputs(
       helper.passport as any,
       query,
-      3n,
+      INTEGRITY_TO_DISCLOSURE_SALTS,
       0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
@@ -666,7 +672,7 @@ describe("outer proof - evm optimised", () => {
       const bindCircuitInputs = await getBindCircuitInputs(
         helper.passport as any,
         bindQuery,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
@@ -786,7 +792,7 @@ describe("outer proof - evm optimised", () => {
       const nationalityInclusionInputs = await getNationalityInclusionCircuitInputs(
         helper.passport as any,
         nationalityInclusionQuery,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
@@ -821,7 +827,7 @@ describe("outer proof - evm optimised", () => {
       const nationalityExclusionInputs = await getNationalityExclusionCircuitInputs(
         helper.passport as any,
         nationalityExclusionQuery,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
@@ -856,7 +862,7 @@ describe("outer proof - evm optimised", () => {
       const issuingCountryInclusionInputs = await getIssuingCountryInclusionCircuitInputs(
         helper.passport as any,
         issuingCountryInclusionQuery,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
@@ -892,7 +898,7 @@ describe("outer proof - evm optimised", () => {
       const issuingCountryExclusionInputs = await getIssuingCountryExclusionCircuitInputs(
         helper.passport as any,
         issuingCountryExclusionQuery,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
@@ -928,7 +934,7 @@ describe("outer proof - evm optimised", () => {
       const ageInputs = await getAgeCircuitInputs(
         helper.passport as any,
         ageQuery,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -956,7 +962,7 @@ describe("outer proof - evm optimised", () => {
       const expiryDateInputs = await getExpiryDateCircuitInputs(
         helper.passport as any,
         expiryDateQuery,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
@@ -985,7 +991,7 @@ describe("outer proof - evm optimised", () => {
       const birthDateInputs = await getBirthdateCircuitInputs(
         helper.passport as any,
         birthDateQuery,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
@@ -1011,7 +1017,7 @@ describe("outer proof - evm optimised", () => {
       const sanctionsExclusionInputs = await getSanctionsExclusionCheckCircuitInputs(
         helper.passport as any,
         true,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         getServiceScopeHash("zkpassport.id"),
         getServiceSubscopeHash("bigproof"),
@@ -1039,7 +1045,7 @@ describe("outer proof - evm optimised", () => {
       const facematchInputs = await getFacematchCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,

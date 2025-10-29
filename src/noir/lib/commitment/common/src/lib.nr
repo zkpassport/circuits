@@ -7,8 +7,8 @@ use utils::{
     pack_le_bytes_into_fields,
     poseidon2_hash_packed,
     types::{
-        Alpha2CountryCode, Alpha3CountryCode, DG1Data, EContentData, MRZExpiryDate,
-        SignedAttrsData, SaltedValue
+        Alpha2CountryCode, Alpha3CountryCode, DG1Data, EContentData, MRZExpiryDate, SaltedValue,
+        SignedAttrsData,
     },
 };
 
@@ -42,7 +42,10 @@ pub fn calculate_scoped_nullifier(
             4,
         )
     } else {
-        Poseidon2::hash([salted_private_nullifier.value, service_scope, service_subscope], 3)
+        Poseidon2::hash(
+            [salted_private_nullifier.value, service_scope, service_subscope],
+            3,
+        )
     }
 }
 

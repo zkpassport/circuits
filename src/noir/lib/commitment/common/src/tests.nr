@@ -1,6 +1,6 @@
 use super::{
     calculate_certificate_registry_leaf, calculate_scoped_nullifier, compute_merkle_root,
-    has_value_in_tags,
+    has_value_in_tags, hash_salt_dg1_dg2_hash_private_nullifier,
 };
 use poseidon::poseidon2::Poseidon2;
 use utils::types::SaltedValue;
@@ -302,16 +302,24 @@ fn test_calculate_scoped_nullifier() {
     let service_subscope = 3;
 
     // Calculate the non-salted scoped nullifier
-    let non_salted_scoped_nullifier =
-        calculate_scoped_nullifier(SaltedValue::from_value(0, private_nullifier), service_scope, service_subscope, 0);
+    let non_salted_scoped_nullifier = calculate_scoped_nullifier(
+        SaltedValue::from_value(0, private_nullifier),
+        service_scope,
+        service_subscope,
+        0,
+    );
     assert(
         non_salted_scoped_nullifier
             == 0x23864adb160dddf590f1d3303683ebcb914f828e2635f6e85a32f0a1aecd3dd8,
     );
 
     // Calculate the salted scoped nullifier (with the same private nullifier, service scope and service subscope)
-    let salted_scoped_nullifier =
-        calculate_scoped_nullifier(SaltedValue::from_value(0, private_nullifier), service_scope, service_subscope, 1);
+    let salted_scoped_nullifier = calculate_scoped_nullifier(
+        SaltedValue::from_value(0, private_nullifier),
+        service_scope,
+        service_subscope,
+        1,
+    );
     assert(
         salted_scoped_nullifier
             == 0x0e51739f6a6687eb1956c4f475b39498e4358763075aa707642c9796d55cee14,
@@ -319,4 +327,21 @@ fn test_calculate_scoped_nullifier() {
 
     // Because one is salted and the other is not, they should be different even if the private nullifier, service scope and service subscope are the same
     assert(non_salted_scoped_nullifier != salted_scoped_nullifier);
+}
+
+#[test]
+fn test_hash_salt_dg1_dg2_hash_private_nullifier() {
+    let salted_dg1 = SaltedValue::from_value(1, [1; 95]);
+    let salted_expiry_date = SaltedValue::from_value(2, [48; 6]);
+    let salted_dg2_hash = SaltedValue::from_value(3, 2);
+    let salted_dg2_hash_type = SaltedValue::from_value(3, 3);
+    let salted_private_nullifier = SaltedValue::from_value(4, 4);
+    let hash = hash_salt_dg1_dg2_hash_private_nullifier(
+        salted_dg1,
+        salted_expiry_date,
+        salted_dg2_hash,
+        salted_dg2_hash_type,
+        salted_private_nullifier,
+    );
+    assert_eq(hash, 0x11c79137d08731a5ecf2fa2bd73797a39ff93b0dfcd90c4e93dfd0e27eab73f6);
 }

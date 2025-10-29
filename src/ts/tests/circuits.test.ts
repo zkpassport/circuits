@@ -48,7 +48,7 @@ import {
   getFacematchEvmParameterCommitment,
   packLeBytesAndHashPoseidon2,
 } from "@zkpassport/utils"
-import type { PackagedCertificate, Query } from "@zkpassport/utils"
+import type { IntegrityToDisclosureSalts, PackagedCertificate, Query } from "@zkpassport/utils"
 import { beforeAll, afterAll, describe, expect, test } from "@jest/globals"
 import * as path from "path"
 import { TestHelper } from "../test-helper"
@@ -63,6 +63,12 @@ import FIXTURES_FACEMATCH from "./fixtures/facematch"
 
 // Test constants
 const SALT = 3n
+const INTEGRITY_TO_DISCLOSURE_SALTS: IntegrityToDisclosureSalts = {
+  dg1Salt: SALT,
+  expiryDateSalt: SALT,
+  dg2HashSalt: SALT,
+  privateNullifierSalt: SALT,
+}
 const EXPECTED_NULLIFIER = 0xf03bc01b2dd79b1b8906831e8bd47f1cdf7435e8f38010a9cd1978a1b13a26an
 const nowTimestamp = getNowTimestamp()
 
@@ -168,11 +174,12 @@ describe("subcircuits - RSA PKCS", () => {
       let inputs = await getFacematchCircuitInputs(
         helper.passport as any,
         query,
-        SALT,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
         nowTimestamp,
+        true
       )
       if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
       expect(BigInt(inputs.comm_in)).toEqual(integrityCheckCommitment)
@@ -205,7 +212,9 @@ describe("subcircuits - RSA PKCS", () => {
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof) // 0x14b544bb7296b877b4f75c61b98cc40fc7ee5a0201340cb89e6e77429c71e6b5n
       expect(calculatedParamCommitment).toEqual(paramCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
-      expect(nullifier).toEqual(EXPECTED_NULLIFIER)
+      // The nullifier is 0 as the private nullifier value is hidden behind its salted hash
+      // so it cannot be used to derive the scoped nullifier in the circuit and therefore 0 is returned
+      expect(nullifier).toEqual(0n)
       const currentDate = getCurrentDateFromDisclosureProof(proof)
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     }, 90000)
@@ -215,7 +224,7 @@ describe("subcircuits - RSA PKCS", () => {
       let inputs = await getFacematchCircuitInputs(
         helper.passport as any,
         query,
-        SALT,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -262,7 +271,7 @@ describe("subcircuits - RSA PKCS", () => {
       let inputs = await getFacematchCircuitInputs(
         helper.passport as any,
         query,
-        SALT,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -311,7 +320,7 @@ describe("subcircuits - RSA PKCS", () => {
       let inputs = await getFacematchCircuitInputs(
         helper.passport as any,
         query,
-        SALT,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -359,7 +368,7 @@ describe("subcircuits - RSA PKCS", () => {
       let inputs = await getFacematchCircuitInputs(
         helper.passport as any,
         query,
-        SALT,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -423,7 +432,7 @@ describe("subcircuits - RSA PKCS", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -467,7 +476,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -528,7 +537,7 @@ describe("subcircuits - RSA PKCS", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -572,7 +581,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -619,7 +628,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         nationality: { in: ["AUS", "FRA", "USA", "GBR"] },
       }
-      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `inclusion_check_nationality`,
@@ -648,7 +657,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         issuing_country: { in: ["AUS", "FRA", "USA", "GBR"] },
       }
-      const inputs = await getIssuingCountryInclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      const inputs = await getIssuingCountryInclusionCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `inclusion_check_issuing_country`,
@@ -679,7 +688,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         nationality: { in: ["AUS", "FRA", "USA", "GBR"] },
       }
-      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `inclusion_check_nationality_evm`,
@@ -711,7 +720,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getIssuingCountryInclusionCircuitInputs(
         helper.passport as any,
         query,
-        SALT,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -747,7 +756,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         nationality: { out: ["FRA", "USA", "GBR"] },
       }
-      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `exclusion_check_nationality`,
@@ -780,7 +789,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         issuing_country: { out: ["FRA", "USA", "GBR"] },
       }
-      const inputs = await getIssuingCountryExclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      const inputs = await getIssuingCountryExclusionCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `exclusion_check_issuing_country`,
@@ -814,7 +823,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getSanctionsExclusionCheckCircuitInputs(
         helper.passport as any,
         true,
-        SALT,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         undefined,
         undefined,
@@ -849,7 +858,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         nationality: { out: ["FRA", "USA", "GBR"] },
       }
-      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `exclusion_check_nationality_evm`,
@@ -882,7 +891,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         nationality: { out: ["FRA", "USA", "GBR"] },
       }
-      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
+      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       // Override the country list to be unsorted
       const unsortedCountryList: number[] = []
       for (let i = 0; i < (query.nationality?.out ?? []).length; i++) {
@@ -909,7 +918,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getIssuingCountryExclusionCircuitInputs(
         helper.passport as any,
         query,
-        SALT,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -949,7 +958,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getSanctionsExclusionCheckCircuitInputs(
         helper.passport as any,
         true,
-        SALT,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         undefined,
         undefined,
@@ -981,7 +990,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         issuing_country: { out: ["FRA", "USA", "GBR"] },
       }
-      const inputs = await getIssuingCountryExclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      const inputs = await getIssuingCountryExclusionCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       // Override the country list to be unsorted
       const unsortedCountryList: number[] = []
       for (let i = 0; i < (query.issuing_country?.out ?? []).length; i++) {
@@ -1018,7 +1027,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getAgeCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1052,7 +1061,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getAgeCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1086,7 +1095,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getAgeCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1120,7 +1129,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getAgeCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1153,7 +1162,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getAgeCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1186,7 +1195,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getAgeCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1229,7 +1238,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getAgeCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1273,7 +1282,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getBirthdateCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1310,7 +1319,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getBirthdateCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1347,7 +1356,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getBirthdateCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1384,7 +1393,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getBirthdateCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1422,7 +1431,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getBirthdateCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1459,7 +1468,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getBirthdateCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1505,7 +1514,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getBirthdateCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1550,7 +1559,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getExpiryDateCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1585,7 +1594,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getExpiryDateCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1620,7 +1629,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getExpiryDateCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1655,7 +1664,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getExpiryDateCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1691,7 +1700,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getExpiryDateCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1726,7 +1735,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getExpiryDateCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1771,7 +1780,7 @@ describe("subcircuits - RSA PKCS", () => {
       const inputs = await getExpiryDateCircuitInputs(
         helper.passport as any,
         query,
-        3n,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -1812,7 +1821,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         bind: { user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8" },
       }
-      const inputs = await getBindCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      const inputs = await getBindCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate compare-expirydate equal circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `bind`,
@@ -1845,7 +1854,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = {
         bind: { user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8" },
       }
-      const inputs = await getBindCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      const inputs = await getBindCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate compare-expirydate equal circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `bind_evm`,
@@ -1989,7 +1998,7 @@ describe("subcircuits - RSA PKCS - SHA-1", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -2032,7 +2041,7 @@ describe("subcircuits - RSA PKCS - SHA-1", () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -2196,7 +2205,7 @@ describe("subcircuits - RSA PKCS - SHA-224 integrity check", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -2239,7 +2248,7 @@ describe("subcircuits - RSA PKCS - SHA-224 integrity check", () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -2401,7 +2410,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `disclose_bytes`,
@@ -2444,7 +2453,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
         firstname: { disclose: true },
         lastname: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -2594,7 +2603,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -2637,7 +2646,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -2796,7 +2805,7 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-192", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `disclose_bytes`,
@@ -2839,7 +2848,7 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-192", () => {
         firstname: { disclose: true },
         lastname: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -2998,7 +3007,7 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-224", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `disclose_bytes`,
@@ -3041,7 +3050,7 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-224", () => {
         firstname: { disclose: true },
         lastname: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -3198,7 +3207,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256 - SHA-1", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `disclose_bytes`,
@@ -3241,7 +3250,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256 - SHA-1", () => {
         firstname: { disclose: true },
         lastname: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -3398,7 +3407,7 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -3440,7 +3449,7 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -3485,7 +3494,7 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
       const query: Query = {
         nationality: { in: ["DEU", "FRA", "USA", "GBR"] },
       }
-      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      const inputs = await getNationalityInclusionCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `inclusion_check_nationality`,
@@ -3514,7 +3523,7 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
       const inputs = await getIssuingCountryInclusionCircuitInputs(
         helper.passport as any,
         query,
-        SALT,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -3547,7 +3556,7 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
       const query: Query = {
         nationality: { out: ["FRA", "USA", "GBR"] },
       }
-      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      const inputs = await getNationalityExclusionCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
         circuitName: `exclusion_check_nationality`,
@@ -3580,7 +3589,7 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
       const inputs = await getIssuingCountryExclusionCircuitInputs(
         helper.passport as any,
         query,
-        SALT,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
         0n,
         0n,
@@ -3719,7 +3728,7 @@ describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
         issuing_country: { disclose: true },
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, SALT, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -3886,7 +3895,7 @@ describe("subcircuits - RSA PKCS - 6144 bits", () => {
         expiry_date: { disclose: true },
         gender: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),
@@ -3929,7 +3938,7 @@ describe("subcircuits - RSA PKCS - 6144 bits", () => {
       const query: Query = {
         nationality: { disclose: true },
       }
-      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
+      let inputs = await getDiscloseCircuitInputs(helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp)
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs),

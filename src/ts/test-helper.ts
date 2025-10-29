@@ -44,7 +44,12 @@ export class TestHelper {
         const inputs = await getIntegrityCheckCircuitInputs(
           this.passport as any,
           2n,
-          3n,
+          {
+            dg1Salt: 3n,
+            expiryDateSalt: 3n,
+            dg2HashSalt: 3n,
+            privateNullifierSalt: 3n,
+          },
         )
         if (!inputs) throw new Error("Unable to generate integrity check circuit inputs")
         return inputs
@@ -55,7 +60,12 @@ export class TestHelper {
           nationality: { disclose: true },
           birthdate: { disclose: true },
         }
-        const inputs = await getDiscloseCircuitInputs(this.passport as any, query, 3n, 0n, 0n, 0n, nowTimestamp)
+        const inputs = await getDiscloseCircuitInputs(this.passport as any, query, {
+          dg1Salt: 3n,
+          expiryDateSalt: 3n,
+          dg2HashSalt: 3n,
+          privateNullifierSalt: 3n,
+        }, 0n, 0n, 0n, nowTimestamp)
         if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
         return inputs
       }
