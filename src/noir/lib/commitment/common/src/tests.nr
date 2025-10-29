@@ -303,7 +303,7 @@ fn test_calculate_scoped_nullifier() {
 
     // Calculate the non-salted scoped nullifier
     let non_salted_scoped_nullifier = calculate_scoped_nullifier(
-        SaltedValue::from_value(0, private_nullifier),
+        SaltedValue::from_value(1, private_nullifier),
         service_scope,
         service_subscope,
         0,
@@ -315,7 +315,7 @@ fn test_calculate_scoped_nullifier() {
 
     // Calculate the salted scoped nullifier (with the same private nullifier, service scope and service subscope)
     let salted_scoped_nullifier = calculate_scoped_nullifier(
-        SaltedValue::from_value(0, private_nullifier),
+        SaltedValue::from_value(1, private_nullifier),
         service_scope,
         service_subscope,
         1,
