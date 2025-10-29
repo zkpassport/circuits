@@ -4,16 +4,17 @@ use exclusion_check_sanctions::param_commit::calculate_param_commitment_sha2;
 use exclusion_check_sanctions::{
     SanctionsSparseMerkleTrees, types::SanctionsOrderedMerkleTreeProofs,
 };
-use utils::types::DG1Data;
+use utils::types::{DG1Data, SaltedValue};
+use utils::types::MRZExpiryDate;
 
 fn main(
     comm_in: pub Field,
     current_date: pub u64,
-    salt: Field,
-    private_nullifier: Field,
-    dg1: DG1Data,
-    dg2_hash_normalized: Field,
-    dg2_hash_type: u32,
+    salted_private_nullifier: SaltedValue<Field>,
+    salted_expiry_date: SaltedValue<MRZExpiryDate>,
+    salted_dg1: SaltedValue<DG1Data>,
+    salted_dg2_hash: SaltedValue<Field>,
+    salted_dg2_hash_type: SaltedValue<u32>,
     root: Field,
     proofs: SanctionsOrderedMerkleTreeProofs,
     is_strict: bool,
@@ -22,19 +23,19 @@ fn main(
     service_subscope: pub Field,
 ) -> pub (Field, Field, Field) {
     // Check the ID is not expired
-    check_expiry(dg1, current_date);
+    check_expiry(salted_dg1.value, current_date);
 
     let trees = SanctionsSparseMerkleTrees::default();
     assert(trees.root() == root);
     // Check that nationality of the passport holder is not in the list of countries
-    trees.check_sanctions_exclusion(dg1, proofs, is_strict);
+    trees.check_sanctions_exclusion(salted_dg1.value, proofs, is_strict);
     let (nullifier, nullifier_type) = nullify(
         comm_in,
-        salt,
-        dg1,
-        dg2_hash_normalized,
-        dg2_hash_type,
-        private_nullifier,
+        salted_dg1,
+        salted_expiry_date,
+        salted_dg2_hash,
+        salted_dg2_hash_type,
+        salted_private_nullifier,
         service_scope,
         service_subscope,
         nullifier_secret,

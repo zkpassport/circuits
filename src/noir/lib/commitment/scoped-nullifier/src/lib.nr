@@ -4,7 +4,7 @@ use utils::{
         NON_SALTED_MOCK_NULLIFIER, NON_SALTED_NULLIFIER, SALTED_MOCK_NULLIFIER, SALTED_NULLIFIER,
     },
     get_issuing_country_from_mrz,
-    types::{DG1Data, MRZExpiryDate},
+    types::{DG1Data, MRZExpiryDate, SaltedValue},
 };
 
 pub mod tests;
@@ -37,12 +37,11 @@ scoped_nullifier    `H(private_nullifier, service_scope, service_subscope)`
 */
 pub fn nullify(
     comm_in: Field,
-    salt: Field,
-    dg1: DG1Data,
-    expiry_date: MRZExpiryDate,
-    dg2_hash_normalized: Field,
-    dg2_hash_type: u32,
-    private_nullifier: Field,
+    salted_dg1: SaltedValue<DG1Data>,
+    salted_expiry_date: SaltedValue<MRZExpiryDate>,
+    salted_dg2_hash: SaltedValue<Field>,
+    salted_dg2_hash_type: SaltedValue<u32>,
+    salted_private_nullifier: SaltedValue<Field>,
     service_scope: Field,
     service_subscope: Field,
     nullifier_secret: Field,
@@ -50,17 +49,16 @@ pub fn nullify(
     assert(
         comm_in
             == hash_salt_dg1_dg2_hash_private_nullifier(
-                salt,
-                dg1,
-                expiry_date,
-                dg2_hash_normalized,
-                dg2_hash_type,
-                private_nullifier,
+                salted_dg1,
+                salted_expiry_date,
+                salted_dg2_hash,
+                salted_dg2_hash_type,
+                salted_private_nullifier,
             ),
         "Commitment from 3rd subproof doesn't match in disclosure proof",
     );
     let mut scoped_nullifier = calculate_scoped_nullifier(
-        private_nullifier,
+        salted_private_nullifier,
         service_scope,
         service_subscope,
         nullifier_secret,
@@ -75,7 +73,7 @@ pub fn nullify(
         // as the secret was not used to salt the nullifier
         NON_SALTED_NULLIFIER
     };
-    let issuing_country = get_issuing_country_from_mrz(dg1);
+    let issuing_country = get_issuing_country_from_mrz(salted_dg1.value);
     // Doesn't matter if we already calculated the scoped nullifier above
     // cause it's ZK all branches will be evaluated anyway
     if issuing_country == ZKR_COUNTRY_CODE_BYTES {

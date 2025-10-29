@@ -3,6 +3,7 @@ use super::{
     has_value_in_tags,
 };
 use poseidon::poseidon2::Poseidon2;
+use utils::types::SaltedValue;
 
 #[test]
 fn test_has_value_in_tags() {
@@ -302,7 +303,7 @@ fn test_calculate_scoped_nullifier() {
 
     // Calculate the non-salted scoped nullifier
     let non_salted_scoped_nullifier =
-        calculate_scoped_nullifier(private_nullifier, service_scope, service_subscope, 0);
+        calculate_scoped_nullifier(SaltedValue::from_value(0, private_nullifier), service_scope, service_subscope, 0);
     assert(
         non_salted_scoped_nullifier
             == 0x23864adb160dddf590f1d3303683ebcb914f828e2635f6e85a32f0a1aecd3dd8,
@@ -310,7 +311,7 @@ fn test_calculate_scoped_nullifier() {
 
     // Calculate the salted scoped nullifier (with the same private nullifier, service scope and service subscope)
     let salted_scoped_nullifier =
-        calculate_scoped_nullifier(private_nullifier, service_scope, service_subscope, 1);
+        calculate_scoped_nullifier(SaltedValue::from_value(0, private_nullifier), service_scope, service_subscope, 1);
     assert(
         salted_scoped_nullifier
             == 0x0e51739f6a6687eb1956c4f475b39498e4358763075aa707642c9796d55cee14,

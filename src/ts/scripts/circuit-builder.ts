@@ -375,18 +375,19 @@ const DATA_INTEGRITY_CHECK_TEMPLATE = (
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_disclosure;
 use data_check_integrity::{check_dg1_${dg_hash_algorithm}, check_signed_attributes_${signed_attributes_hash_algorithm}, get_dg2_hash_from_econtent};
-use utils::{types::{DG1Data, EContentData, SignedAttrsData}, constants::{${getHashAlgorithmIdentifier(
+use utils::{types::{DG1Data, EContentData, SignedAttrsData, SaltedValue}, constants::{${getHashAlgorithmIdentifier(
   dg_hash_algorithm,
 )}, ${getHashAlgorithmDigestLength(dg_hash_algorithm)}}};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     comm_in: pub Field,
     salt_in: Field,
-    salt_out: Field,
-    dg1: DG1Data,
+    salted_dg1: SaltedValue<DG1Data>,
+    expiry_date_salt: Field,
+    dg2_hash_salt: Field,
     signed_attributes: SignedAttrsData,
     e_content: EContentData,
-    private_nullifier: Field,
+    salted_private_nullifier: SaltedValue<Field>,
 ) -> pub Field {
     // Get the length of e_content by parsing the ASN.1
     // Safety: This is safe because the length must be correct for econtent to hash to
@@ -394,7 +395,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     let e_content_size =
         unsafe { utils::unsafe_get_asn1_element_length(e_content) };
     // Check the integrity of the data
-    check_dg1_${dg_hash_algorithm}(dg1, e_content, e_content_size);
+    check_dg1_${dg_hash_algorithm}(salted_dg1.value, e_content, e_content_size);
     // Get the length of signed_attributes by parsing the ASN.1
     // Safety: This is safe because the length was checked in the ID data circuit and the whole signed attributes
     // was committed over in that same circuit
@@ -412,14 +413,14 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     let comm_out = commit_to_disclosure::<${getHashAlgorithmDigestLength(dg_hash_algorithm)}>(
         comm_in,
         salt_in,
-        salt_out,
-        dg1,
-        dg2_hash,
-        ${getHashAlgorithmIdentifier(dg_hash_algorithm)},
+        salted_dg1,
+        expiry_date_salt,
+        SaltedValue::from_value(dg2_hash_salt, dg2_hash),
+        SaltedValue::from_value(dg2_hash_salt, ${getHashAlgorithmIdentifier(dg_hash_algorithm)}),
         signed_attributes,
         signed_attributes_size as Field,
         e_content,
-        private_nullifier,
+        salted_private_nullifier,
     );
     comm_out
 }
@@ -437,7 +438,7 @@ const FACEMATCH_ANDROID_TEMPLATE = (
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::nullify;
 use data_check_tbs_pubkey::{verify_ecdsa_pubkey_in_tbs, verify_rsa_pubkey_in_tbs};
-use data_check_expiry::check_expiry;
+use data_check_expiry::check_expiry_from_date;
 use facematch::{
     android::{get_app_id_from_credential_tbs, constants::INTEGRITY_TOKEN_MAX_LENGTH, token::{verify_integrity_token, verify_nonce, verify_integrity_token_signature, parse_integrity_token}}, calculate_attestation_registry_leaf,
     get_client_data_hash, prepare_client_data_hash_for_signature, get_facematch_mode_from_client_data, get_tbs_hash_sha256,
@@ -449,16 +450,16 @@ use facematch::constants::{
 use facematch::param_commit::{calculate_param_commitment, calculate_param_commitment_sha2};
 use sig_check_ecdsa::{verify_nist_p256_blackbox as verify_nist_p256, verify_nist_p384};
 use sig_check_rsa::verify_signature;
-use utils::{poseidon2_hash_packed, split_array, types::DG1Data, unsafe_get_asn1_element_length};
+use utils::{poseidon2_hash_packed, split_array, types::{DG1Data, SaltedValue, MRZExpiryDate}, unsafe_get_asn1_element_length};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     comm_in: pub Field,
     current_date: pub u64,
-    salt: Field,
-    private_nullifier: Field,
-    dg1: DG1Data,
-    dg2_hash_normalized: Field,
-    dg2_hash_type: u32,
+    salted_private_nullifier: SaltedValue<Field>,
+    salted_expiry_date: SaltedValue<MRZExpiryDate>,
+    salted_dg1: SaltedValue<DG1Data>,
+    salted_dg2_hash: SaltedValue<Field>,
+    salted_dg2_hash_type: SaltedValue<u32>,
     // @committed
     // Hash of root_key (the attestation registry leaf) is commitment to (via parameter commitment) and can be verified outside the circuit
     ${root_signature_algorithm === "rsa" ? `
@@ -515,7 +516,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     service_subscope: pub Field,
 ) -> pub (Field, Field, Field) {
     // Check the ID is not expired
-    check_expiry(dg1, current_date);
+    check_expiry_from_date(salted_expiry_date.value, current_date);
 
     ${intermediate_signature_algorithms.map(({ signature_algorithm, hash_algorithm, bit_size }, index) => signature_algorithm === "ecdsa" ? `
     let (intermediate_${index + 1}_key_x, intermediate_${index + 1}_key_y) = split_array(intermediate_${index + 1}_key);
@@ -604,7 +605,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
 
     // Verify the normalized dg2_hash in client_data matches the expected normalized dg2_hash
     assert(
-        verify_dg2_hash_in_client_data(dg2_hash_normalized, client_data),
+        verify_dg2_hash_in_client_data(salted_dg2_hash.value, client_data),
         "Failed to verify dg2_hash in client_data",
     );
 
@@ -631,11 +632,11 @@ ${unconstrained ? "unconstrained " : ""}fn main(
 
     let (nullifier, nullifier_type) = nullify(
         comm_in,
-        salt,
-        dg1,
-        dg2_hash_normalized,
-        dg2_hash_type,
-        private_nullifier,
+        salted_dg1,
+        salted_expiry_date,
+        salted_dg2_hash,
+        salted_dg2_hash_type,
+        salted_private_nullifier,
         service_scope,
         service_subscope,
         nullifier_secret,
