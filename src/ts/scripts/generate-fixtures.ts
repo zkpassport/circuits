@@ -1,5 +1,5 @@
 import { poseidon2HashAsync } from "@zkpassport/poseidon2"
-import type { PackagedCertificate, Query } from "@zkpassport/utils"
+import type { IntegrityToDisclosureSalts, PackagedCertificate, Query } from "@zkpassport/utils"
 import {
   Binary,
   ProofType,
@@ -56,6 +56,12 @@ class FixtureGenerator {
   private readonly DSC_KEYPAIR_PATH = path.join(this.FIXTURES_PATH, "dsc-keypair-rsa.json")
   private readonly MAX_TBS_LENGTH = 700
   private readonly nowTimestamp = getNowTimestamp()
+  private readonly INTEGRITY_TO_DISCLOSURE_SALTS: IntegrityToDisclosureSalts = {
+    dg1Salt: 3n,
+    expiryDateSalt: 3n,
+    dg2HashSalt: 3n,
+    privateNullifierSalt: 3n,
+  }
 
   async setupPassport() {
     console.log("Setting up passport data...")
@@ -167,7 +173,7 @@ class FixtureGenerator {
     const inputs = await getDiscloseCircuitInputs(
       this.helper.passport as any,
       query,
-      3n,
+      this.INTEGRITY_TO_DISCLOSURE_SALTS,
       0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
@@ -222,7 +228,7 @@ class FixtureGenerator {
     const inputs = await getBindCircuitInputs(
       this.helper.passport as any,
       bindQuery,
-      3n,
+      this.INTEGRITY_TO_DISCLOSURE_SALTS,
       0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
@@ -268,7 +274,7 @@ class FixtureGenerator {
     const inputs = await getFacematchCircuitInputs(
       this.helper.passport as any,
       { facematch: { mode: "regular" } },
-      3n,
+      this.INTEGRITY_TO_DISCLOSURE_SALTS,
       0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
@@ -365,7 +371,7 @@ class FixtureGenerator {
           getNationalityInclusionCircuitInputs(
             this.helper.passport as any,
             { nationality: { in: ["AUS", "FRA", "USA", "GBR"] } },
-            3n,
+            this.INTEGRITY_TO_DISCLOSURE_SALTS,
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
@@ -391,7 +397,7 @@ class FixtureGenerator {
           getNationalityExclusionCircuitInputs(
             this.helper.passport as any,
             { nationality: { out: ["ESP", "PRT", "ITA"] } },
-            3n,
+            this.INTEGRITY_TO_DISCLOSURE_SALTS,
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
@@ -421,7 +427,7 @@ class FixtureGenerator {
           getIssuingCountryInclusionCircuitInputs(
             this.helper.passport as any,
             { issuing_country: { in: ["AUS", "FRA", "USA", "GBR"] } },
-            3n,
+            this.INTEGRITY_TO_DISCLOSURE_SALTS,
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
@@ -447,7 +453,7 @@ class FixtureGenerator {
           getIssuingCountryExclusionCircuitInputs(
             this.helper.passport as any,
             { issuing_country: { out: ["ESP", "PRT", "ITA"] } },
-            3n,
+            this.INTEGRITY_TO_DISCLOSURE_SALTS,
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
@@ -477,7 +483,7 @@ class FixtureGenerator {
           getAgeCircuitInputs(
             this.helper.passport as any,
             { age: { gte: 18 } },
-            3n,
+              this.INTEGRITY_TO_DISCLOSURE_SALTS,
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
@@ -499,7 +505,7 @@ class FixtureGenerator {
           getExpiryDateCircuitInputs(
             this.helper.passport as any,
             { expiry_date: { gte: new Date(this.nowTimestamp * 1000) } },
-            3n,
+            this.INTEGRITY_TO_DISCLOSURE_SALTS,
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
@@ -525,7 +531,7 @@ class FixtureGenerator {
           getBirthdateCircuitInputs(
             this.helper.passport as any,
             { birthdate: { lte: new Date(this.nowTimestamp * 1000) } },
-            3n,
+            this.INTEGRITY_TO_DISCLOSURE_SALTS,
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
@@ -550,7 +556,7 @@ class FixtureGenerator {
         () => getSanctionsExclusionCheckCircuitInputs(
           this.helper.passport as any,
           true,
-          3n, 
+          this.INTEGRITY_TO_DISCLOSURE_SALTS, 
           0n,
           getServiceScopeHash("zkpassport.id"),
           getServiceSubscopeHash("bigproof"),

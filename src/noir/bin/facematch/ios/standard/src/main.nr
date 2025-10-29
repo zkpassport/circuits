@@ -1,5 +1,5 @@
 use commitment::nullify;
-use data_check_expiry::check_expiry;
+use data_check_expiry::check_expiry_from_date;
 use facematch::{
     calculate_attestation_registry_leaf,
     get_facematch_mode_from_client_data,
@@ -13,17 +13,17 @@ use facematch::constants::{
     CREDENTIAL_TBS_MAX_LEN,
 };
 use facematch::param_commit::calculate_param_commitment;
-use utils::{poseidon2_hash_packed, split_array, types::DG1Data};
+use utils::{poseidon2_hash_packed, split_array, types::{DG1Data, MRZExpiryDate, SaltedValue}};
 mod tests;
 
 fn main(
     comm_in: pub Field,
     current_date: pub u64,
-    salt: Field,
-    private_nullifier: Field,
-    dg1: DG1Data,
-    dg2_hash_normalized: Field,
-    dg2_hash_type: u32,
+    salted_private_nullifier: SaltedValue<Field>,
+    salted_expiry_date: SaltedValue<MRZExpiryDate>,
+    salted_dg1: SaltedValue<DG1Data>,
+    salted_dg2_hash: SaltedValue<Field>,
+    salted_dg2_hash_type: SaltedValue<u32>,
     // @committed
     // Hash of root_key (the attestation registry leaf) is commitment to (via parameter commitment) and can be verified outside the circuit
     root_key: [u8; 96],
@@ -48,7 +48,7 @@ fn main(
     service_subscope: pub Field,
 ) -> pub (Field, Field, Field) {
     // Check the ID is not expired
-    check_expiry(dg1, current_date);
+    check_expiry_from_date(salted_expiry_date.value, current_date);
 
     // Split the root and intermediate key into x and y coordinates
     let (root_key_x, root_key_y) = split_array(root_key);
@@ -106,17 +106,17 @@ fn main(
 
     // Verify the normalized dg2_hash in client_data matches the expected normalized dg2_hash
     assert(
-        verify_dg2_hash_in_client_data(dg2_hash_normalized, client_data),
+        verify_dg2_hash_in_client_data(salted_dg2_hash.value, client_data),
         "Failed to verify dg2_hash in client_data",
     );
 
     let (nullifier, nullifier_type) = nullify(
         comm_in,
-        salt,
-        dg1,
-        dg2_hash_normalized,
-        dg2_hash_type,
-        private_nullifier,
+        salted_dg1,
+        salted_expiry_date,
+        salted_dg2_hash,
+        salted_dg2_hash_type,
+        salted_private_nullifier,
         service_scope,
         service_subscope,
         nullifier_secret,

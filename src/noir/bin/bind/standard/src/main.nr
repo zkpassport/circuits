@@ -1,16 +1,17 @@
 use bind::calculate_param_commitment;
 use commitment::nullify;
-use data_check_expiry::check_expiry;
-use utils::types::DG1Data;
+use data_check_expiry::check_expiry_from_date;
+use utils::types::{DG1Data, SaltedValue};
+use utils::types::MRZExpiryDate;
 
 fn main(
     comm_in: pub Field,
     current_date: pub u64,
-    salt: Field,
-    private_nullifier: Field,
-    dg1: DG1Data,
-    dg2_hash_normalized: Field,
-    dg2_hash_type: u32,
+    salted_private_nullifier: SaltedValue<Field>,
+    salted_expiry_date: SaltedValue<MRZExpiryDate>,
+    salted_dg1: SaltedValue<DG1Data>,
+    salted_dg2_hash: SaltedValue<Field>,
+    salted_dg2_hash_type: SaltedValue<u32>,
     // @committed
     // The data is public (via the parameter commitment) so verifiers can check the data
     // provided to the proof is correct
@@ -20,15 +21,15 @@ fn main(
     service_subscope: pub Field,
 ) -> pub (Field, Field, Field) {
     // Check the ID is not expired
-    check_expiry(dg1, current_date);
+    check_expiry_from_date(salted_expiry_date.value, current_date);
 
     let (nullifier, nullifier_type) = nullify(
         comm_in,
-        salt,
-        dg1,
-        dg2_hash_normalized,
-        dg2_hash_type,
-        private_nullifier,
+        salted_dg1,
+        salted_expiry_date,
+        salted_dg2_hash,
+        salted_dg2_hash_type,
+        salted_private_nullifier,
         service_scope,
         service_subscope,
         nullifier_secret,

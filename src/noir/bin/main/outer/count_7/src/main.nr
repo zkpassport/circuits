@@ -125,6 +125,7 @@ fn verify_subproofs(
     // as the salted nullifier is not allowed for now
     // Mock proof salted nullifiers are allowed though
     assert(nullifier_type != SALTED_NULLIFIER, "Salted nullifiers are not allowed for now");
+    assert(scoped_nullifier != 0, "Scoped nullifier must be non-zero");
 
     verify_proof_with_type(
         csc_to_dsc_proof.vkey,

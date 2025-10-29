@@ -1,5 +1,6 @@
 use facematch::constants;
-use utils::{constants::NON_SALTED_NULLIFIER, types::DG1Data};
+use utils::{constants::NON_SALTED_NULLIFIER, types::{DG1Data, SaltedValue}};
+use utils::get_expiry_date_from_mrz;
 
 #[test]
 fn test_main() {
@@ -191,7 +192,7 @@ fn test_main() {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ];
 
-    let comm_in: Field = 0x2e57d49bc5291cac83f5b9316d8b04367231767974a4495fdc54acd337603d26;
+    let comm_in: Field = 0x0bf560897d80eaf0022f04e7f72bc86fe68c8985eedd2b0edf3b016d10d3e0be;
     let salt: Field = 0x03;
     let private_nullifier: Field =
         0x1be38799f1a15b187efcc4054f77363511b4ddbeffbf1923c49205a5e069f832;
@@ -213,11 +214,11 @@ fn test_main() {
     let (param_commitment, nullifier_type, nullifier) = crate::main(
         comm_in,
         current_date,
-        salt,
-        private_nullifier,
-        dg1,
-        dg2_hash_normalized,
-        dg2_hash_type,
+        SaltedValue::from_value(salt, private_nullifier),
+        SaltedValue::from_value(salt, get_expiry_date_from_mrz(dg1)),
+        SaltedValue::from_value(salt, dg1),
+        SaltedValue::from_value(salt, dg2_hash_normalized),
+        SaltedValue::from_value(salt, dg2_hash_type),
         root_key,
         intermediate_key,
         intermediate_tbs,
@@ -233,7 +234,7 @@ fn test_main() {
         service_scope,
         service_subscope,
     );
-    assert(param_commitment == 0xb781b9c5b5ca4e091b1872ceb198c8fdeb6b4a688e972cf5e390aa40c4e76b);
+    assert(param_commitment == 0x2403e56c0c7be3b69291c61c2c381a763b1b4dbd413ed3af45921ae664c7d4);
     assert(nullifier == 0x23e6d64d15c131d84badbfdbd06bf9c4b8794c5541737c9fcb884ee18f78b81c);
     assert(nullifier_type == NON_SALTED_NULLIFIER);
 }

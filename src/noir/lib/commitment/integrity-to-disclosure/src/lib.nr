@@ -2,7 +2,7 @@ use common::{
     get_country_from_dg1, hash_salt_country_signed_attr_dg1_e_content_private_nullifier,
     hash_salt_dg1_dg2_hash_private_nullifier, normalize_dg2_hash,
 };
-use utils::types::{DG1Data, EContentData, SignedAttrsData};
+use utils::{get_expiry_date_from_mrz, types::{DG1Data, EContentData, SaltedValue, SignedAttrsData}};
 
 /*
 ############################################################
@@ -29,16 +29,16 @@ comm_out                `H(salt, dg1, private_nullifier)`
 pub fn commit_to_disclosure<let DG2_HASH_SIZE: u32>(
     comm_in: Field,
     salt_in: Field,
-    salt_out: Field,
-    dg1: DG1Data,
-    dg2_hash: [u8; DG2_HASH_SIZE],
-    dg2_hash_type: u32,
+    salted_dg1: SaltedValue<DG1Data>,
+    expiry_date_salt: Field,
+    salted_dg2_hash: SaltedValue<[u8; DG2_HASH_SIZE]>,
+    salted_dg2_hash_type: SaltedValue<u32>,
     signed_attributes: SignedAttrsData,
     signed_attributes_size: Field,
     e_content: EContentData,
-    private_nullifier: Field,
+    salted_private_nullifier: SaltedValue<Field>,
 ) -> Field {
-    let country = get_country_from_dg1(dg1);
+    let country = get_country_from_dg1(salted_dg1.value);
     assert(
         comm_in
             == hash_salt_country_signed_attr_dg1_e_content_private_nullifier(
@@ -46,20 +46,23 @@ pub fn commit_to_disclosure<let DG2_HASH_SIZE: u32>(
                 country,
                 signed_attributes,
                 signed_attributes_size,
-                dg1,
+                salted_dg1.value,
                 e_content,
-                private_nullifier,
+                salted_private_nullifier.value,
             ),
         "Commitment from 2nd subproof doesn't match in 3rd subproof",
     );
-    let dg2_hash_normalized = normalize_dg2_hash(dg2_hash);
+    let dg2_hash_normalized = normalize_dg2_hash(salted_dg2_hash.value);
+
+    let salted_expiry_date =
+        SaltedValue::from_value(expiry_date_salt, get_expiry_date_from_mrz(salted_dg1.value));
 
     let comm_out = hash_salt_dg1_dg2_hash_private_nullifier(
-        salt_out,
-        dg1,
-        dg2_hash_normalized,
-        dg2_hash_type,
-        private_nullifier,
+        salted_dg1,
+        salted_expiry_date,
+        SaltedValue::from_value(salted_dg2_hash.salt, dg2_hash_normalized),
+        salted_dg2_hash_type,
+        salted_private_nullifier,
     );
     comm_out
 }

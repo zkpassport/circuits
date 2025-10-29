@@ -29,7 +29,7 @@ contract ZKPassportVerifierTest is TestUtils {
     bytes32(uint256(0x04b98c6f867d6a7f86d514b72c3be8f41b7aa6f49fdc17514c9f9f0a2ac3ef9a));
   bytes32 constant OUTER_PROOF_13_VKEY_HASH =
     bytes32(uint256(0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4));
-  uint256 constant CURRENT_DATE = 1761679148;
+  uint256 constant CURRENT_DATE = 1761776121;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
