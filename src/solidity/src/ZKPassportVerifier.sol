@@ -585,7 +585,7 @@ contract ZKPassportVerifier {
     }
     // Check that all the committed inputs have been covered, otherwise something is wrong
     require(offset == commitments.committedInputs.length, "Invalid committed inputs length");
-    require(index + 1 == paramCommitments.length, "Invalid parameter commitments");
+    require(index == paramCommitments.length, "Invalid parameter commitments");
   }
 
   function _getVerifier(bytes32 vkeyHash) internal view returns (address) {
@@ -651,7 +651,7 @@ contract ZKPassportVerifier {
     // Verifies the commitments against the committed inputs
     verifyCommittedInputs(
       // Extracts the commitments from the public inputs
-      params.proofVerificationData.publicInputs[PublicInput.PARAM_COMMITMENTS_INDEX:params.proofVerificationData.publicInputs.length - 1],
+      params.proofVerificationData.publicInputs[PublicInput.PARAM_COMMITMENTS_INDEX:params.proofVerificationData.publicInputs.length - 2],
       params.commitments
     );
 

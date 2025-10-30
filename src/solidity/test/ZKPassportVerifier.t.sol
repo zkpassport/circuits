@@ -29,7 +29,6 @@ contract ZKPassportVerifierTest is TestUtils {
     bytes32(uint256(0x04b98c6f867d6a7f86d514b72c3be8f41b7aa6f49fdc17514c9f9f0a2ac3ef9a));
   bytes32 constant OUTER_PROOF_13_VKEY_HASH =
     bytes32(uint256(0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4));
-  uint256 constant CURRENT_DATE = 1761776121;
 
   function setUp() public {
     // Deploy the ZKPassportVerifier
@@ -53,10 +52,11 @@ contract ZKPassportVerifierTest is TestUtils {
     bytes memory proof = loadBytesFromFile(PROOF_PATH);
     bytes32[] memory publicInputs = loadBytes32FromFile(PUBLIC_INPUTS_PATH);
     bytes memory committedInputs = loadBytesFromFile(COMMITTED_INPUTS_PATH);
+    uint256 currentDate = uint256(publicInputs[2]);
 
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
-    vm.warp(CURRENT_DATE);
+    vm.warp(currentDate);
     ProofVerificationParams memory params = ProofVerificationParams({
       proofVerificationData: ProofVerificationData({
         vkeyHash: VKEY_HASH,
@@ -101,8 +101,9 @@ contract ZKPassportVerifierTest is TestUtils {
     bytes memory proof = loadBytesFromFile(PROOF_PATH);
     bytes32[] memory publicInputs = loadBytes32FromFile(PUBLIC_INPUTS_PATH);
     bytes memory committedInputs = loadBytesFromFile(COMMITTED_INPUTS_PATH);
+    uint256 currentDate = uint256(publicInputs[2]);
 
-    vm.warp(CURRENT_DATE);
+    vm.warp(currentDate);
     ProofVerificationParams memory params = ProofVerificationParams({
       proofVerificationData: ProofVerificationData({
         vkeyHash: VKEY_HASH,  
@@ -142,10 +143,11 @@ contract ZKPassportVerifierTest is TestUtils {
     bytes memory proof = loadBytesFromFile(ALL_SUBPROOFS_PROOF_PATH);
     bytes32[] memory publicInputs = loadBytes32FromFile(ALL_SUBPROOFS_PUBLIC_INPUTS_PATH);
     bytes memory committedInputs = loadBytesFromFile(ALL_SUBPROOFS_COMMITTED_INPUTS_PATH);
+    uint256 currentDate = uint256(publicInputs[2]);
 
     // Verify the proof
     vm.startSnapshotGas("ZKPassportVerifier verifyProof");
-    vm.warp(CURRENT_DATE);
+    vm.warp(currentDate);
     ProofVerificationParams memory params = ProofVerificationParams({
       proofVerificationData: ProofVerificationData({
         vkeyHash: OUTER_PROOF_13_VKEY_HASH,
@@ -215,8 +217,10 @@ contract ZKPassportVerifierTest is TestUtils {
   function test_VerifyAllSubproofsProof_2() public {
     // Load proof and public inputs from files
     bytes memory committedInputs = loadBytesFromFile(ALL_SUBPROOFS_COMMITTED_INPUTS_PATH);
+    bytes32[] memory publicInputs = loadBytes32FromFile(ALL_SUBPROOFS_PUBLIC_INPUTS_PATH);
+    uint256 currentDate = uint256(publicInputs[2]);
 
-    vm.warp(CURRENT_DATE);
+    vm.warp(currentDate);
     ProofVerificationParams memory params = ProofVerificationParams({
       proofVerificationData: ProofVerificationData({
         vkeyHash: OUTER_PROOF_13_VKEY_HASH,
@@ -238,7 +242,7 @@ contract ZKPassportVerifierTest is TestUtils {
 
     vm.startSnapshotGas("ZKPassportVerifier isBirthdateBeforeOrEqual");
     bool isBirthdateBeforeOrEqual = zkPassportVerifier.isBirthdateBeforeOrEqual(
-        CURRENT_DATE,
+        currentDate,
         params.commitments
       );
     uint256 gasUsedIsBirthdateBeforeOrEqual = vm.stopSnapshotGas();
@@ -249,7 +253,7 @@ contract ZKPassportVerifierTest is TestUtils {
     {
       vm.startSnapshotGas("ZKPassportVerifier isExpiryDateAfterOrEqual");
       bool isExpiryDateAfterOrEqual = zkPassportVerifier.isExpiryDateAfterOrEqual(
-          CURRENT_DATE,
+          currentDate,
           params.commitments
         );
       uint256 gasUsedIsExpiryDateAfterOrEqual = vm.stopSnapshotGas();
