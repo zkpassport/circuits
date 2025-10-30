@@ -4,14 +4,15 @@ pragma solidity >=0.8.21;
 
 import {DateUtils} from "../src/DateUtils.sol";
 import {StringUtils} from "../src/StringUtils.sol";
-import {DisclosedData} from "../src/Types.sol";
-import {ZKPassportVerifier, ProofType, ProofVerificationParams, DisclosedData} from "../src/ZKPassportVerifier.sol";
+import {DisclosedData, ProofVerificationParams} from "../src/Types.sol";
+import {ZKPassportVerifier} from "../src/ZKPassportVerifier.sol";
+import {ZKPassportRootVerifier} from "../src/ZKPassportRootVerifier.sol";
 import {console} from "forge-std/console.sol";
 
 contract SampleContract {
   address public admin;
-  ZKPassportVerifier public zkPassportVerifier;
-
+  uint256 public constant ZKPASSPORT_VERIFIER_VERSION = 1;
+  ZKPassportRootVerifier public zkPassportRootVerifier;
   // Unique Identifier => whether it was verified or not
   mapping(bytes32 => bool) public isVerified;
   // Unique Identifier => nationality
@@ -34,8 +35,8 @@ contract SampleContract {
     _;
   }
 
-  function setZKPassportVerifier(address _zkPassportVerifier) public onlyAdmin {
-    zkPassportVerifier = ZKPassportVerifier(_zkPassportVerifier);
+  function setZKPassportVerifier(address _verifier) public onlyAdmin {
+    zkPassportRootVerifier = ZKPassportRootVerifier(_verifier);
   }
 
   function setDomain(string calldata _domain) public onlyAdmin {
@@ -59,25 +60,28 @@ contract SampleContract {
     // and the SDK will tell you which one they have
     bool isIDCard
   ) public returns (bytes32) {
-    (bool verified, bytes32 uniqueIdentifier) = zkPassportVerifier.verifyProof(params);
+    // Get the current verifier from the ZKPassportRootVerifier
+    ZKPassportVerifier verifier = ZKPassportVerifier(zkPassportRootVerifier.getVerifier(ZKPASSPORT_VERIFIER_VERSION));
+    // Verify the proof
+    (bool verified, bytes32 uniqueIdentifier) = verifier.verifyProof(params);
     require(verified, "Proof is invalid");
     require(!isVerified[uniqueIdentifier], "User already verified");
     // Check the proof was generated using your domain name (scope) and the subscope
     // you specified
     require(
-      zkPassportVerifier.verifyScopes(params.proofVerificationData.publicInputs, validDomain, validScope),
+      verifier.verifyScopes(params.proofVerificationData.publicInputs, validDomain, validScope),
       "Invalid domain or scope"
     );
-    require(zkPassportVerifier.isAgeAboveOrEqual(18, params.commitments), "Age is not 18+");
-    DisclosedData memory disclosedData = zkPassportVerifier.getDisclosedData(
+    require(verifier.isAgeAboveOrEqual(18, params.commitments), "Age is not 18+");
+    DisclosedData memory disclosedData = verifier.getDisclosedData(
       params.commitments,
-      isIDCard  
+      isIDCard
     );
     string[] memory nationalityExclusionList = new string[](3);
     nationalityExclusionList[0] = "ESP";
     nationalityExclusionList[1] = "ITA";
     nationalityExclusionList[2] = "PRT";
-    require(zkPassportVerifier.isNationalityOut(nationalityExclusionList, params.commitments), "Nationality is part of the exclusion list");
+    require(verifier.isNationalityOut(nationalityExclusionList, params.commitments), "Nationality is part of the exclusion list");
 
     // If all good, mark the user as verified
     isVerified[uniqueIdentifier] = true;

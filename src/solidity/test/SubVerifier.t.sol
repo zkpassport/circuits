@@ -3,11 +3,11 @@
 pragma solidity >=0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
-import {IVerifier, HonkVerifier, BaseHonkVerifier} from "../src/ultra-honk-verifiers/OuterCount5.sol";
+import {IVerifier as ISubVerifier, HonkVerifier, BaseHonkVerifier} from "../src/ultra-honk-verifiers/OuterCount5.sol";
 import {TestUtils} from "./Utils.t.sol";
 
-contract VerifierTest is TestUtils {
-  IVerifier public verifier;
+contract SubVerifierTest is TestUtils {
+  ISubVerifier public verifier;
 
   // Path to the proof file - using files directly in project root
   string constant PROOF_PATH = "./test/fixtures/valid_proof.hex";

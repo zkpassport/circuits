@@ -102,9 +102,9 @@ contract Deploy is Script {
     console.log("Outer (13 subproofs) verifier deployed at:", verifierAddresses[9]);
 
     // Add verifiers to ZKPassportVerifier
-    console.log("Adding verifiers to ZKPassportVerifier...");
-    zkPassportVerifier.addVerifiers(vkeyHashes, verifierAddresses);
-    console.log("Verifiers added to ZKPassportVerifier");
+    console.log("Adding sub-verifiers to ZKPassportVerifier...");
+    zkPassportVerifier.addSubVerifiers(vkeyHashes, verifierAddresses);
+    console.log("Sub-verifiers added to ZKPassportVerifier");
 
     // Stop broadcasting transactions
     vm.stopBroadcast();
