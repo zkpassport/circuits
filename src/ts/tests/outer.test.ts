@@ -936,8 +936,8 @@ describe("outer proof - evm optimised", () => {
         ageQuery,
         INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
-        0n,
-        0n,
+        getServiceScopeHash("zkpassport.id"),
+        getServiceSubscopeHash("bigproof"),
         nowTimestamp,
       )
       if (!ageInputs) throw new Error("Unable to generate compare-age greater than circuit inputs")
@@ -1047,8 +1047,8 @@ describe("outer proof - evm optimised", () => {
         query,
         INTEGRITY_TO_DISCLOSURE_SALTS,
         0n,
-        0n,
-        0n,
+        getServiceScopeHash("zkpassport.id"),
+        getServiceSubscopeHash("bigproof"),
         nowTimestamp,
       )
       const combinedInputs = { ...facematchInputs, ...FIXTURES_FACEMATCH.ios_regular_mode_dev }

@@ -806,9 +806,17 @@ fn verify_subproofs(
         PROOF_TYPE_HONK_ZK,
     );
 
+    let mut found_valid_scoped_nullifier = false;
+
     for i in 0..disclosure_proofs.len() {
         // Commitment out from integrity check circuit == commitment in from disclosure circuit
         assert_eq(integrity_check_proof.public_inputs[1], disclosure_proofs[i].public_inputs[0], "Commitment out from integrity check circuit != commitment in from disclosure circuit");
+        // The scoped nullifier of each disclosure circuit must be either 0 or the expected scoped nullifier
+        assert((disclosure_proofs[i].public_inputs[1] == 0) | (disclosure_proofs[i].public_inputs[1] == scoped_nullifier), "Disclosure proof scoped nullifier must be either 0 or the expected scoped nullifier");
+        // But at least one disclosure proof must have the expected scoped nullifier
+        if (!found_valid_scoped_nullifier & (disclosure_proofs[i].public_inputs[1] == scoped_nullifier)) {
+            found_valid_scoped_nullifier = true;
+        }
 
         verify_proof_with_type(
             disclosure_proofs[i].vkey,
@@ -820,12 +828,14 @@ fn verify_subproofs(
                 service_scope,
                 service_subscope,
                 nullifier_type,
-                scoped_nullifier,
+                disclosure_proofs[i].public_inputs[1], // scoped nullifier
             ),
             disclosure_proofs[i].key_hash,
             PROOF_TYPE_HONK_ZK,
         );
     }
+
+    assert(found_valid_scoped_nullifier, "Incorrect scoped nullifier provided");
 }
 
 ${unconstrained ? "unconstrained " : ""}fn main(

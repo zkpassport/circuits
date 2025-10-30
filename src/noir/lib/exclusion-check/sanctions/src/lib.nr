@@ -79,7 +79,7 @@ pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName,
     // << is the separator between the last name and the first name
     // Everything before is the last name, everything after is the first name, middle names, and other given names
     let full_name_separator = [ASCII_CODE_FOR_LESS_THAN, ASCII_CODE_FOR_LESS_THAN];
-    // < is the separator between any given name or as a replacement for spaces, hyphens, apostrophes, etc.
+    // < is the separator between any given name or as a replacement for spaces, hyphens, etc.
     // making first name parts indistinguishable from multiple separate given names
     // (e.g. Jean-Pierre Dupont -> DUPONT<<JEAN<PIERRE<<<<..., vs John Miller Doe -> DOE<<JOHN<MILLER<<<....)
     let single_name_separator = [ASCII_CODE_FOR_LESS_THAN];
@@ -275,7 +275,7 @@ pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName,
     } else {
         full_name
     };
-    // Last name + whatever comes before the third < (this should cover most possible first names with apostrophes, hyphens or other characters replaced by <)
+    // Last name + whatever comes before the third < (this should cover most possible first names with hyphens or other characters replaced by <)
     let name_3 = if fourth_name_start_index < PASSPORT_MRZ_NAME_LENGTH {
         // Implicitly fills the rest with <
         let mut result = [ASCII_CODE_FOR_LESS_THAN; PASSPORT_MRZ_NAME_LENGTH];

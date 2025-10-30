@@ -76,7 +76,7 @@ pub struct IntegrityCheckProof {
 pub struct DisclosureProof {
     pub vkey: [Field; VKEY_SIZE],
     pub proof: [Field; PROOF_SIZE],
-    pub public_inputs: [Field; 1],
+    pub public_inputs: [Field; 2],
     pub key_hash: Field,
     // Hash path for circuit D key hash in the sub-circuit merkle tree
     pub tree_hash_path: [Field; 12],
