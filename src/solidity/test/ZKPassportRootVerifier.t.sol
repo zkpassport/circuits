@@ -11,11 +11,10 @@ import {TestUtils} from "./Utils.t.sol";
 import {CommittedInputLen} from "../src/Constants.sol";
 import {DisclosedData, BoundData, FaceMatchMode, ProofVerificationData, Commitments, ServiceConfig, OS, ProofType, ProofVerificationParams} from "../src/Types.sol";
 
+
 contract ZKPassportRootVerifierTest is TestUtils {
-  ZKPassportRootVerifier public zkPassportRootVerifier;
+  ZKPassportRootVerifier public rootVerifier;
   ZKPassportVerifier public verifier;
-  OuterVerifier5 public verifier5;
-  OuterVerifier13 public verifier13;
 
   // Path to the proof file - using files directly in project root
   string constant PROOF_PATH = "./test/fixtures/valid_proof.hex";
@@ -27,6 +26,7 @@ contract ZKPassportRootVerifierTest is TestUtils {
   string constant ALL_SUBPROOFS_COMMITTED_INPUTS_PATH =
     "./test/fixtures/all_subproofs_committed_inputs.hex";
 
+  uint256 constant VERIFIER_VERSION = 1;
   bytes32 constant VKEY_HASH =
     bytes32(uint256(0x04b98c6f867d6a7f86d514b72c3be8f41b7aa6f49fdc17514c9f9f0a2ac3ef9a));
   bytes32 constant OUTER_PROOF_13_VKEY_HASH =
@@ -36,23 +36,21 @@ contract ZKPassportRootVerifierTest is TestUtils {
   function setUp() public {
     // Deploy the ZKPassportVerifier
     ZKPassportVerifier _verifier = new ZKPassportVerifier(vm.envAddress("ROOT_REGISTRY_ADDRESS"));
-    // Deploy the UltraHonkVerifier
-    verifier5 = new OuterVerifier5();
-    verifier13 = new OuterVerifier13();
-
-    // Add the verifier to the ZKPassportVerifier
+    // Deploy the sub-verifiers
+    OuterVerifier5 verifier5 = new OuterVerifier5();
+    OuterVerifier13 verifier13 = new OuterVerifier13();
+    // Add the sub-verifiers to the ZKPassportVerifier
     bytes32[] memory vkeyHashes = new bytes32[](2);
     vkeyHashes[0] = VKEY_HASH;
     vkeyHashes[1] = OUTER_PROOF_13_VKEY_HASH;
-    address[] memory verifiers = new address[](2);
-    verifiers[0] = address(verifier5);
-    verifiers[1] = address(verifier13);
-    verifier.addVerifiers(vkeyHashes, verifiers);
-
+    address[] memory subverifiers = new address[](2);
+    subverifiers[0] = address(verifier5);
+    subverifiers[1] = address(verifier13);
+    _verifier.addSubVerifiers(vkeyHashes, subverifiers);
     // Deploy the ZKPassportRootVerifier
-    zkPassportRootVerifier = new ZKPassportRootVerifier(vm.envAddress("ROOT_VERIFIER_ADMIN_ADDRESS"), vm.envAddress("ROOT_VERIFIER_GUARDIAN_ADDRESS"), address(_verifier));
+    rootVerifier = new ZKPassportRootVerifier(vm.envAddress("ROOT_VERIFIER_ADMIN_ADDRESS"), vm.envAddress("ROOT_VERIFIER_GUARDIAN_ADDRESS"), VERIFIER_VERSION, address(_verifier));
     // Get the current verifier from the ZKPassportRootVerifier
-    verifier = ZKPassportVerifier(address(zkPassportRootVerifier.verifier()));
+    verifier = ZKPassportVerifier(rootVerifier.getVerifier(VERIFIER_VERSION));
   }
 
   function test_VerifyValidProof() public {
@@ -80,10 +78,8 @@ contract ZKPassportRootVerifierTest is TestUtils {
         devMode: false
       })
     });
-    (bool result, bytes32 scopedNullifier) = zkPassportRootVerifier.verify(params);
-    uint256 gasUsed = vm.stopSnapshotGas();
-    console.log("Gas used in ZKPassportRootVerifier verify");
-    console.log(gasUsed);
+    (bool result, bytes32 scopedNullifier) = rootVerifier.verify(VERIFIER_VERSION, params);
+    logGas("ZKPassportRootVerifier verify");
     assertEq(result, true);
     assertEq(
       scopedNullifier,
@@ -92,9 +88,7 @@ contract ZKPassportRootVerifierTest is TestUtils {
 
     vm.startSnapshotGas("ZKPassportVerifier getDisclosedData");
     DisclosedData memory disclosedData = verifier.getDisclosedData(params.commitments, false);
-    uint256 gasUsedGetDisclosedData = vm.stopSnapshotGas();
-    console.log("Gas used in ZKPassportVerifier getDisclosedData");
-    console.log(gasUsedGetDisclosedData);
+    logGas("ZKPassportVerifier getDisclosedData");
     assertEq(disclosedData.name, "SILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<");
     assertEq(disclosedData.nationality, "AUS");
     assertEq(disclosedData.gender, "M");
@@ -126,7 +120,7 @@ contract ZKPassportRootVerifierTest is TestUtils {
         devMode: false
       })
     });
-    (bool result, bytes32 scopedNullifier) = zkPassportRootVerifier.verify(params);
+    (bool result, bytes32 scopedNullifier) = rootVerifier.verify(VERIFIER_VERSION, params);
     assertEq(result, true);
     assertEq(
       scopedNullifier,
@@ -134,11 +128,8 @@ contract ZKPassportRootVerifierTest is TestUtils {
     );
 
     vm.startSnapshotGas("ZKPassportVerifier getBoundData");
-    BoundData memory boundData = verifier
-      .getBoundData(params.commitments);
-    uint256 gasUsedGetBoundData = vm.stopSnapshotGas();
-    console.log("Gas used in ZKPassportVerifier getBoundData");
-    console.log(gasUsedGetBoundData);
+    BoundData memory boundData = verifier.getBoundData(params.commitments);
+    logGas("ZKPassportVerifier getBoundData");
     assertEq(boundData.senderAddress, 0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8);
     assertEq(boundData.chainId, 31337);
     assertEq(boundData.customData, "email:test@test.com,customer_id:1234567890");
@@ -170,10 +161,8 @@ contract ZKPassportRootVerifierTest is TestUtils {
       })
     });
 
-    (bool result, bytes32 scopedNullifier) = zkPassportRootVerifier.verify(params);
-    uint256 gasUsed = vm.stopSnapshotGas();
-    console.log("Gas used in ZKPassportRootVerifier verify");
-    console.log(gasUsed);
+    (bool result, bytes32 scopedNullifier) = rootVerifier.verify(VERIFIER_VERSION, params);
+    logGas("ZKPassportRootVerifier verify");
     assertEq(result, true);
     assertEq(
       scopedNullifier,
@@ -185,9 +174,7 @@ contract ZKPassportRootVerifierTest is TestUtils {
       18,
       params.commitments
     ), true);
-    uint256 gasUsedGetAgeProofInputs = vm.stopSnapshotGas();
-    console.log("Gas used in ZKPassportVerifier isAgeAboveOrEqual");
-    console.log(gasUsedGetAgeProofInputs);
+    logGas("ZKPassportVerifier isAgeAboveOrEqual");
 
     vm.startSnapshotGas("ZKPassportVerifier isNationalityIn");
     string[] memory countryList = new string[](4);
@@ -199,9 +186,7 @@ contract ZKPassportRootVerifierTest is TestUtils {
       countryList,
       params.commitments
     );
-    uint256 gasUsedGetCountryProofInputs = vm.stopSnapshotGas();
-    console.log("Gas used in ZKPassportVerifier isNationalityIn");
-    console.log(gasUsedGetCountryProofInputs);
+    logGas("ZKPassportVerifier isNationalityIn");
     assertEq(isNationalityIn, true);
 
     vm.startSnapshotGas("ZKPassportVerifier isIssuingCountryOut");
@@ -213,9 +198,7 @@ contract ZKPassportRootVerifierTest is TestUtils {
       exclusionCountryList,
       params.commitments
     );
-    uint256 gasUsedGetExclusionCountryProofInputs = vm.stopSnapshotGas();
-    console.log("Gas used in ZKPassportVerifier isIssuingCountryOut");
-    console.log(gasUsedGetExclusionCountryProofInputs);
+    logGas("ZKPassportVerifier isIssuingCountryOut");
     assertEq(isIssuingCountryOut, true);
   }
 
@@ -240,7 +223,7 @@ contract ZKPassportRootVerifierTest is TestUtils {
         devMode: false
       })
     });
-    (bool result, bytes32 scopedNullifier) = zkPassportRootVerifier.verify(params);
+    (bool result, bytes32 scopedNullifier) = rootVerifier.verify(VERIFIER_VERSION, params);
     assertEq(result, true);
 
     vm.startSnapshotGas("ZKPassportVerifier isBirthdateBeforeOrEqual");
@@ -248,9 +231,7 @@ contract ZKPassportRootVerifierTest is TestUtils {
         CURRENT_DATE,
         params.commitments
       );
-    uint256 gasUsedIsBirthdateBeforeOrEqual = vm.stopSnapshotGas();
-    console.log("Gas used in ZKPassportVerifier isBirthdateBeforeOrEqual");
-    console.log(gasUsedIsBirthdateBeforeOrEqual);
+    logGas("ZKPassportVerifier isBirthdateBeforeOrEqual");
     assertEq(isBirthdateBeforeOrEqual, true);
 
     {
@@ -259,9 +240,7 @@ contract ZKPassportRootVerifierTest is TestUtils {
           CURRENT_DATE,
           params.commitments
         );
-      uint256 gasUsedIsExpiryDateAfterOrEqual = vm.stopSnapshotGas();
-      console.log("Gas used in ZKPassportVerifier isExpiryDateAfterOrEqual");
-      console.log(gasUsedIsExpiryDateAfterOrEqual);
+      logGas("ZKPassportVerifier isExpiryDateAfterOrEqual");
       assertEq(isExpiryDateAfterOrEqual, true);
     }
     {
@@ -275,28 +254,20 @@ contract ZKPassportRootVerifierTest is TestUtils {
         countryList,
         params.commitments
       );
-      uint256 gasUsedIsIssuingCountryIn = vm.stopSnapshotGas();
-      console.log(
-        "Gas used in ZKPassportVerifier isIssuingCountryIn"
-      );
-      console.log(gasUsedIsIssuingCountryIn);
+      logGas("ZKPassportVerifier isIssuingCountryIn");
       assertEq(isIssuingCountryIn, true);
     }
 
     {
       vm.startSnapshotGas("ZKPassportVerifier enforceSanctionsRoot");
       verifier.enforceSanctionsRoot(true, params.commitments);
-      uint256 gasUsedEnforceSanctionsRoot = vm.stopSnapshotGas();
-      console.log("Gas used in ZKPassportVerifier enforceSanctionsRoot");
-      console.log(gasUsedEnforceSanctionsRoot);
+      logGas("ZKPassportVerifier enforceSanctionsRoot");
     }
 
     {
       vm.startSnapshotGas("ZKPassportVerifier isFaceMatchVerified");
       bool isFacematchVerified = verifier.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.IOS, params.commitments);
-      uint256 gasUsedIsFaceMatchVerified = vm.stopSnapshotGas();
-      console.log("Gas used in ZKPassportVerifier isFaceMatchVerified");
-      console.log(gasUsedIsFaceMatchVerified);
+      logGas("ZKPassportVerifier isFaceMatchVerified");
       assertEq(isFacematchVerified, true);
       // Should be false because the facematch mode is not strict but regular
       assertEq(verifier.isFaceMatchVerified(FaceMatchMode.STRICT, OS.IOS, params.commitments), false);

@@ -5,6 +5,16 @@ pragma solidity >=0.8.21;
 import {Test, console} from "forge-std/Test.sol";
 
 abstract contract TestUtils is Test {
+
+  /**
+   * @dev Helper function to log the approx gas cost for an operation
+   */
+  function logGas(string memory name) internal {
+    uint256 gasUsed = vm.stopSnapshotGas();
+    console.log(name);
+    console.log(gasUsed);
+  }
+
   /**
    * @dev Helper function to load proof data from a file
    */
@@ -23,12 +33,12 @@ abstract contract TestUtils is Test {
       // Try to parse the bytes
       try vm.parseBytes(proofHex) returns (bytes memory parsedBytes) {
         return parsedBytes;
-      } catch Error(string memory reason) {
+      } catch Error(string memory) {
         revert("Failed to parse proof bytes");
       } catch {
         revert("Failed to parse proof bytes");
       }
-    } catch Error(string memory reason) {
+    } catch Error(string memory) {
       revert("Failed to load proof from file");
     } catch {
       revert("Failed to load proof from file");
@@ -49,7 +59,7 @@ abstract contract TestUtils is Test {
       }
 
       return result;
-    } catch Error(string memory reason) {
+    } catch Error(string memory) {
       revert("Failed to load inputs from file");
     } catch {
       revert("Failed to load inputs from file");

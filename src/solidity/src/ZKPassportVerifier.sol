@@ -19,7 +19,7 @@ contract ZKPassportVerifier {
   bool public paused;
 
   // Mapping from vkey hash of each Outer Circuit to its Ultra Honk Verifier address
-  mapping(bytes32 => address) public vkeyHashToVerifier;
+  mapping(bytes32 => address) public vkeyHashToSubVerifier;
 
   // Maybe make this immutable as this should most likely not change
   IRootRegistry public rootRegistry;
@@ -28,8 +28,8 @@ contract ZKPassportVerifier {
   event AdminUpdated(address indexed oldAdmin, address indexed newAdmin);
   event PausedStatusChanged(bool paused);
   event ZKPassportVerifierDeployed(address indexed admin, uint256 timestamp);
-  event VerifierAdded(bytes32 indexed vkeyHash, address indexed verifier);
-  event VerifierRemoved(bytes32 indexed vkeyHash);
+  event SubVerifierAdded(bytes32 indexed vkeyHash, address indexed verifier);
+  event SubVerifierRemoved(bytes32 indexed vkeyHash);
   event CertificateRegistryRootAdded(bytes32 indexed certificateRegistryRoot);
   event CertificateRegistryRootRemoved(bytes32 indexed certificateRegistryRoot);
   event SanctionsTreesRootUpdates(bytes32 indexed _sanctionsTreesRoot);
@@ -66,20 +66,20 @@ contract ZKPassportVerifier {
     emit PausedStatusChanged(_paused);
   }
 
-  function addVerifiers(
+  function addSubVerifiers(
     bytes32[] calldata vkeyHashes,
     address[] calldata verifiers
   ) external onlyAdmin {
     for (uint256 i = 0; i < vkeyHashes.length; i++) {
-      vkeyHashToVerifier[vkeyHashes[i]] = verifiers[i];
-      emit VerifierAdded(vkeyHashes[i], verifiers[i]);
+      vkeyHashToSubVerifier[vkeyHashes[i]] = verifiers[i];
+      emit SubVerifierAdded(vkeyHashes[i], verifiers[i]);
     }
   }
 
-  function removeVerifiers(bytes32[] calldata vkeyHashes) external onlyAdmin {
+  function removeSubVerifiers(bytes32[] calldata vkeyHashes) external onlyAdmin {
     for (uint256 i = 0; i < vkeyHashes.length; i++) {
-      delete vkeyHashToVerifier[vkeyHashes[i]];
-      emit VerifierRemoved(vkeyHashes[i]);
+      delete vkeyHashToSubVerifier[vkeyHashes[i]];
+      emit SubVerifierRemoved(vkeyHashes[i]);
     }
   }
 
@@ -102,7 +102,7 @@ contract ZKPassportVerifier {
    * @param isIDCard Whether the proof is an ID card
    * @return disclosedData The data disclosed by the proof
    */
-  function getDisclosedData(    
+  function getDisclosedData(
     Commitments calldata commitments,
     bool isIDCard
   ) public pure returns (DisclosedData memory disclosedData) {
@@ -589,7 +589,7 @@ contract ZKPassportVerifier {
   }
 
   function _getVerifier(bytes32 vkeyHash) internal view returns (address) {
-    address verifier = vkeyHashToVerifier[vkeyHash];
+    address verifier = vkeyHashToSubVerifier[vkeyHash];
     require(verifier != address(0), "Verifier not found");
     return verifier;
   }
@@ -665,7 +665,7 @@ contract ZKPassportVerifier {
       || params.serviceConfig.devMode,
       "Mock proofs are only allowed in dev mode"
     );
-    
+
     // For now, only non-salted nullifiers are supported
     // but salted nullifiers can be used in dev mode
     // They will be later once a proper registration mechanism is implemented

@@ -57,15 +57,15 @@ contract Deploy is Script {
     ZKPassportVerifier zkPassportVerifier = new ZKPassportVerifier(rootRegistry);
     console.log("ZKPassportVerifier deployed at:", address(zkPassportVerifier));
 
-    // Add verifiers to ZKPassportVerifier
-    console.log("Adding verifiers to ZKPassportVerifier...");
-    zkPassportVerifier.addVerifiers(vkeyHashes, verifierAddresses);
-    console.log("Verifiers added to ZKPassportVerifier");
+    // Add sub-verifiers to ZKPassportVerifier
+    console.log("Adding sub-verifiers to ZKPassportVerifier...");
+    zkPassportVerifier.addSubVerifiers(vkeyHashes, verifierAddresses);
+    console.log("Sub-verifiers added to ZKPassportVerifier");
 
     // Stop broadcasting transactions
     vm.stopBroadcast();
 
-    // Create JSON for verifiers
+    // Create JSON for sub-verifiers
     string memory verifiers = "verifiers";
     vm.serializeAddress(verifiers, "outer_count_4", verifierAddresses[0]);
     vm.serializeAddress(verifiers, "outer_count_5", verifierAddresses[1]);
