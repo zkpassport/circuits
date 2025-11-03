@@ -154,7 +154,14 @@ async function generateDSC({
       "keypairs",
       path.basename(filePath).replace(".pem", ".json"),
     )
-    keyPair = await loadKeypairFromFile(keypairPath)
+    if (fs.existsSync(keypairPath)) {
+      keyPair = await loadKeypairFromFile(keypairPath)
+    } else {
+      keyPair =
+        keyType === "RSA"
+          ? await generateRsaKeyPair(keySize!, hashAlg)
+          : await generateEcdsaKeyPair(curve!, hashAlg)
+    }
   } else {
     keyPair =
       keyType === "RSA"

@@ -1,6 +1,6 @@
 {
   "version": "0.14.0",
-  "root": "0x10748dd2dcc2dcd39aaba1f66b117b3d4e218b9c951f4b6ea274dad4deef647b",
+  "root": "0x2534f375a927788aaee2da5a1eed024238d19531c6904775fc3f13faa6ae6b07",
   "circuits": {
     "bind": {
       "hash": "0x2d2d236aaf95b12a81ee7e78810f455c5abdecec4918c5c1884b2b7817f434f0",
@@ -198,14 +198,14 @@
       "size": 56643
     },
     "exclusion_check_sanctions": {
-      "hash": "0x1963c1b46f225bca35f6efb940261400b777c842e0419ac3cc58e7645d8e6fc6",
-      "cid": "QmexMwV5zW1sBbaZjQeCWcHrUWB817kQ4bXvc57xNheBbs",
-      "size": 53654
+      "hash": "0x028b9cb63ac1411c07319238e6c5d05caef9069515a137010b6742392edf2870",
+      "cid": "QmPLBhRJ3UGnjR8sM89Ur7sHwDVBVfLLshKLL3wF1V25xZ",
+      "size": 53712
     },
     "exclusion_check_sanctions_evm": {
-      "hash": "0x00c29365a57527fb31d765622d5457c779a3a6b4e95e9dfd33c96368291c29a7",
-      "cid": "QmQTGPUZ5J3V1XujQvCDxuvvmREMcCTL1qk84N8esEiKpm",
-      "size": 57595
+      "hash": "0x15fda8f2922af4d22421906da9fbfeee07663c1cba41a3c88f89c719a37b826d",
+      "cid": "QmdLNJfgWJqunwSJ6FN72KeXMMnFYTth1Z19LUuQZfcUD7",
+      "size": 58124
     },
     "facematch_android_rk_rsa_ik_count_1_ik_ecdsa_p256_sha256": {
       "hash": "0x027060495e63276297bd9f3266a6936df07a110f2200c1d6f1f86d1ce7effd4d",
