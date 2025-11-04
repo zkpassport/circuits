@@ -1,5 +1,5 @@
 {
-  "version": "0.14.0",
+  "version": "0.14.1",
   "root": "0x2534f375a927788aaee2da5a1eed024238d19531c6904775fc3f13faa6ae6b07",
   "circuits": {
     "bind": {
