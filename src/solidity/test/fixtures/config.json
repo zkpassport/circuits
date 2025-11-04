@@ -1,0 +1,16 @@
+{
+  "valid": {
+    "vkey_hash": "0x04b98c6f867d6a7f86d514b72c3be8f41b7aa6f49fdc17514c9f9f0a2ac3ef9a",
+    "verifier": "OuterCount5",
+    "proof": "./test/fixtures/valid_proof.hex",
+    "public_inputs": "./test/fixtures/valid_public_inputs.json",
+    "committed_inputs": "./test/fixtures/valid_committed_inputs.hex"
+  },
+  "all_subproofs": {
+    "vkey_hash": "0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4",
+    "verifier": "OuterCount13",
+    "proof": "./test/fixtures/all_subproofs_proof.hex",
+    "public_inputs": "./test/fixtures/all_subproofs_public_inputs.json",
+    "committed_inputs": "./test/fixtures/all_subproofs_committed_inputs.hex"
+  }
+}

@@ -2,98 +2,21 @@
 // Copyright 2025 ZKPassport
 pragma solidity >=0.8.21;
 
-import {IVerifier} from "../src/ultra-honk-verifiers/OuterCount4.sol";
-import {DateUtils} from "../src/DateUtils.sol";
-import {StringUtils} from "../src/StringUtils.sol";
-import {IRootRegistry} from "../src/IRootRegistry.sol";
-import {InputsExtractor} from "../src/InputsExtractor.sol";
-import {CommittedInputLen, MRZIndex, MRZLength, SECONDS_BETWEEN_1900_AND_1970, PublicInput, AppAttest} from "../src/Constants.sol";
-import {ProofType, ProofVerificationParams, BoundDataIdentifier, DisclosedData, BoundData, FaceMatchMode, Environment, NullifierType, Commitments, ServiceConfig, OS} from "../src/Types.sol";
+import {Test, console} from "forge-std/Test.sol";
+import {IVerifier} from "./ultra-honk-verifiers/OuterCount4.sol";
+import {DateUtils} from "./DateUtils.sol";
+import {StringUtils} from "./StringUtils.sol";
+import {InputsExtractor} from "./InputsExtractor.sol";
+import {CommittedInputLen, MRZIndex, MRZLength, SECONDS_BETWEEN_1900_AND_1970, PublicInput, AppAttest} from "./Constants.sol";
+import {IRootRegistry, ProofType, ProofVerificationParams, BoundDataIdentifier, DisclosedData, BoundData, FaceMatchMode, Environment, NullifierType, Commitments, ServiceConfig, OS} from "./Types.sol";
 
-contract ZKPassportVerifier {
-  bytes32 public constant CERTIFICATE_REGISTRY_ID = bytes32(uint256(1));
-  bytes32 public constant CIRCUIT_REGISTRY_ID = bytes32(uint256(2));
+contract ZKPassportHelper {
   bytes32 public constant SANCTIONS_REGISTRY_ID = bytes32(uint256(3));
+  IRootRegistry public immutable rootRegistry;
 
-  address public admin;
-  bool public paused;
-
-  // Mapping from vkey hash of each Outer Circuit to its Ultra Honk Verifier address
-  mapping(bytes32 => address) public vkeyHashToVerifier;
-
-  // Maybe make this immutable as this should most likely not change
-  IRootRegistry public rootRegistry;
-
-  // Events
-  event AdminUpdated(address indexed oldAdmin, address indexed newAdmin);
-  event PausedStatusChanged(bool paused);
-  event ZKPassportVerifierDeployed(address indexed admin, uint256 timestamp);
-  event VerifierAdded(bytes32 indexed vkeyHash, address indexed verifier);
-  event VerifierRemoved(bytes32 indexed vkeyHash);
-  event CertificateRegistryRootAdded(bytes32 indexed certificateRegistryRoot);
-  event CertificateRegistryRootRemoved(bytes32 indexed certificateRegistryRoot);
-  event SanctionsTreesRootUpdates(bytes32 indexed _sanctionsTreesRoot);
-
-  /**
-   * @dev Constructor
-   */
-  constructor(address _rootRegistry) {
-    require(_rootRegistry != address(0), "Root registry cannot be zero address");
-    admin = msg.sender;
-    rootRegistry = IRootRegistry(_rootRegistry);
-    emit ZKPassportVerifierDeployed(admin, block.timestamp);
-  }
-
-  modifier onlyAdmin() {
-    require(msg.sender == admin, "Not authorized: admin only");
-    _;
-  }
-
-  modifier whenNotPaused() {
-    require(!paused, "Contract is paused");
-    _;
-  }
-
-  function transferAdmin(address newAdmin) external onlyAdmin {
-    require(newAdmin != address(0), "Admin cannot be zero address");
-    address oldAdmin = admin;
-    admin = newAdmin;
-    emit AdminUpdated(oldAdmin, newAdmin);
-  }
-
-  function setPaused(bool _paused) external onlyAdmin {
-    paused = _paused;
-    emit PausedStatusChanged(_paused);
-  }
-
-  function addVerifiers(
-    bytes32[] calldata vkeyHashes,
-    address[] calldata verifiers
-  ) external onlyAdmin {
-    for (uint256 i = 0; i < vkeyHashes.length; i++) {
-      vkeyHashToVerifier[vkeyHashes[i]] = verifiers[i];
-      emit VerifierAdded(vkeyHashes[i], verifiers[i]);
-    }
-  }
-
-  function removeVerifiers(bytes32[] calldata vkeyHashes) external onlyAdmin {
-    for (uint256 i = 0; i < vkeyHashes.length; i++) {
-      delete vkeyHashToVerifier[vkeyHashes[i]];
-      emit VerifierRemoved(vkeyHashes[i]);
-    }
-  }
-
-  function updateRootRegistry(address _rootRegistry) external onlyAdmin {
-    require(_rootRegistry != address(0), "Root registry cannot be zero address");
-    rootRegistry = IRootRegistry(_rootRegistry);
-  }
-
-  function checkDate(
-    bytes32[] memory publicInputs,
-    uint256 validityPeriodInSeconds
-  ) internal view returns (bool) {
-    uint256 currentDateTimeStamp = uint256(publicInputs[PublicInput.CURRENT_DATE_INDEX]);
-    return DateUtils.isDateValid(currentDateTimeStamp, validityPeriodInSeconds);
+  constructor(IRootRegistry _rootRegistry) {
+    require(address(_rootRegistry) != address(0), "Root registry cannot be zero address");
+    rootRegistry = _rootRegistry;
   }
 
   /**
@@ -102,10 +25,10 @@ contract ZKPassportVerifier {
    * @param isIDCard Whether the proof is an ID card
    * @return disclosedData The data disclosed by the proof
    */
-  function getDisclosedData(    
+  function getDisclosedData(
     Commitments calldata commitments,
     bool isIDCard
-  ) public pure returns (DisclosedData memory disclosedData) {
+  ) external pure returns (DisclosedData memory disclosedData) {
     (, bytes memory discloseBytes) = InputsExtractor.getDiscloseProofInputs(commitments);
     disclosedData = InputsExtractor.getDisclosedData(discloseBytes, isIDCard);
   }
@@ -119,7 +42,7 @@ contract ZKPassportVerifier {
   function isAgeAboveOrEqual(
     uint8 minAge,
     Commitments calldata commitments
-  ) public view returns (bool) {
+  ) public pure returns (bool) {
     (uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(commitments);
     require(max == 0, "The proof upper bound must be 0, please use isAgeBetween instead");
     return minAge == min;
@@ -134,7 +57,7 @@ contract ZKPassportVerifier {
   function isAgeAbove(
     uint8 minAge,
     Commitments calldata commitments
-  ) public view returns (bool) {
+  ) public pure returns (bool) {
     return isAgeAboveOrEqual(minAge + 1, commitments);
   }
 
@@ -149,7 +72,7 @@ contract ZKPassportVerifier {
     uint8 minAge,
     uint8 maxAge,
     Commitments calldata commitments
-  ) public view returns (bool) {
+  ) public pure returns (bool) {
     (uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(commitments);
     require(minAge <= maxAge, "Min age must be less than or equal to max age");
     require(min != 0, "The proof lower bound must be non-zero, please use isAgeBelowOrEqual instead");
@@ -166,7 +89,7 @@ contract ZKPassportVerifier {
   function isAgeBelowOrEqual(
     uint8 maxAge,
     Commitments calldata commitments
-  ) public view returns (bool) {
+  ) public pure returns (bool) {
     (uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(commitments);
     require(min == 0, "The proof lower bound must be 0, please use isAgeBetween instead");
     return maxAge == max;
@@ -181,7 +104,7 @@ contract ZKPassportVerifier {
   function isAgeBelow(
     uint8 maxAge,
     Commitments calldata commitments
-  ) public view returns (bool) {
+  ) public pure returns (bool) {
     require(maxAge > 0, "Max age must be greater than 0");
     return isAgeBelowOrEqual(maxAge - 1, commitments);
   }
@@ -195,15 +118,15 @@ contract ZKPassportVerifier {
   function isAgeEqual(
     uint8 age,
     Commitments calldata commitments
-  ) public view returns (bool) {
+  ) public pure returns (bool) {
     return isAgeBetween(age, age, commitments);
   }
 
-  function isDateAfterOrEqual(
+  function _isDateAfterOrEqual(
     uint256 minDate,
     ProofType proofType,
     Commitments calldata commitments
-  ) private view returns (bool) {
+  ) private pure returns (bool) {
     (uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(commitments, proofType);
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
@@ -217,12 +140,12 @@ contract ZKPassportVerifier {
     }
   }
 
-  function isDateBetween(
+  function _isDateBetween(
     uint256 minDate,
     uint256 maxDate,
     ProofType proofType,
     Commitments calldata commitments
-  ) private view returns (bool) {
+  ) private pure returns (bool) {
     (uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(commitments, proofType);
     require(minDate <= maxDate, "Min date must be less than or equal to max date");
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
@@ -239,13 +162,13 @@ contract ZKPassportVerifier {
     }
   }
 
-  function isDateBeforeOrEqual(
+  function _isDateBeforeOrEqual(
     uint256 maxDate,
     ProofType proofType,
     Commitments calldata commitments
-  ) private view returns (bool) {
+  ) private pure returns (bool) {
     (uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(commitments, proofType);
-    require(min == 0, "The proof lower bound must be 0, please use isDateBetween instead");
+    require(min == 0, "The proof lower bound must be 0, please use _isDateBetween instead");
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
       require(max != 0, "The proof upper bound must be non-zero, please use isBirthdateAboveOrEqual instead");
@@ -267,8 +190,8 @@ contract ZKPassportVerifier {
   function isBirthdateAfterOrEqual(
     uint256 minDate,
     Commitments calldata commitments
-  ) public view returns (bool) {
-    return isDateAfterOrEqual(minDate, ProofType.BIRTHDATE, commitments);
+  ) public pure returns (bool) {
+    return _isDateAfterOrEqual(minDate, ProofType.BIRTHDATE, commitments);
   }
 
   /**
@@ -280,8 +203,8 @@ contract ZKPassportVerifier {
   function isBirthdateAfter(
     uint256 minDate,
     Commitments calldata commitments
-  ) public view returns (bool) {
-    return isDateAfterOrEqual(minDate + 1 days, ProofType.BIRTHDATE, commitments);
+  ) public pure returns (bool) {
+    return _isDateAfterOrEqual(minDate + 1 days, ProofType.BIRTHDATE, commitments);
   }
 
   /**
@@ -295,8 +218,8 @@ contract ZKPassportVerifier {
     uint256 minDate,
     uint256 maxDate,
     Commitments calldata commitments
-  ) public view returns (bool) {
-    return isDateBetween(minDate, maxDate, ProofType.BIRTHDATE, commitments);
+  ) public pure returns (bool) {
+    return _isDateBetween(minDate, maxDate, ProofType.BIRTHDATE, commitments);
   }
 
   /**
@@ -308,8 +231,8 @@ contract ZKPassportVerifier {
   function isBirthdateBeforeOrEqual(
     uint256 maxDate,
     Commitments calldata commitments
-  ) public view returns (bool) {
-    return isDateBeforeOrEqual(maxDate, ProofType.BIRTHDATE, commitments);
+  ) public pure returns (bool) {
+    return _isDateBeforeOrEqual(maxDate, ProofType.BIRTHDATE, commitments);
   }
 
   /**
@@ -321,8 +244,8 @@ contract ZKPassportVerifier {
   function isBirthdateBefore(
     uint256 maxDate,
     Commitments calldata commitments
-  ) public view returns (bool) {
-    return isDateBeforeOrEqual(maxDate - 1 days, ProofType.BIRTHDATE, commitments);
+  ) public pure returns (bool) {
+    return _isDateBeforeOrEqual(maxDate - 1 days, ProofType.BIRTHDATE, commitments);
   }
 
   /**
@@ -334,8 +257,8 @@ contract ZKPassportVerifier {
   function isBirthdateEqual(
     uint256 date,
     Commitments calldata commitments
-  ) public view returns (bool) {
-    return isDateBetween(date, date, ProofType.BIRTHDATE, commitments);
+  ) public pure returns (bool) {
+    return _isDateBetween(date, date, ProofType.BIRTHDATE, commitments);
   }
 
   /**
@@ -347,8 +270,8 @@ contract ZKPassportVerifier {
   function isExpiryDateAfterOrEqual(
     uint256 minDate,
     Commitments calldata commitments
-  ) public view returns (bool) {
-    return isDateAfterOrEqual(minDate, ProofType.EXPIRY_DATE, commitments);
+  ) public pure returns (bool) {
+    return _isDateAfterOrEqual(minDate, ProofType.EXPIRY_DATE, commitments);
   }
 
   /**
@@ -360,8 +283,8 @@ contract ZKPassportVerifier {
   function isExpiryDateAfter(
     uint256 minDate,
     Commitments calldata commitments
-  ) public view returns (bool) {
-    return isDateAfterOrEqual(minDate + 1 days, ProofType.EXPIRY_DATE, commitments);
+  ) public pure returns (bool) {
+    return _isDateAfterOrEqual(minDate + 1 days, ProofType.EXPIRY_DATE, commitments);
   }
 
   /**
@@ -375,8 +298,8 @@ contract ZKPassportVerifier {
     uint256 minDate,
     uint256 maxDate,
     Commitments calldata commitments
-  ) public view returns (bool) {
-    return isDateBetween(minDate, maxDate, ProofType.EXPIRY_DATE, commitments);
+  ) public pure returns (bool) {
+    return _isDateBetween(minDate, maxDate, ProofType.EXPIRY_DATE, commitments);
   }
 
   /**
@@ -388,8 +311,8 @@ contract ZKPassportVerifier {
   function isExpiryDateBeforeOrEqual(
     uint256 maxDate,
     Commitments calldata commitments
-  ) public view returns (bool) {
-    return isDateBeforeOrEqual(maxDate, ProofType.EXPIRY_DATE, commitments);
+  ) public pure returns (bool) {
+    return _isDateBeforeOrEqual(maxDate, ProofType.EXPIRY_DATE, commitments);
   }
 
   /**
@@ -401,8 +324,8 @@ contract ZKPassportVerifier {
   function isExpiryDateBefore(
     uint256 maxDate,
     Commitments calldata commitments
-  ) public view returns (bool) {
-    return isDateBeforeOrEqual(maxDate - 1 days, ProofType.EXPIRY_DATE, commitments);
+  ) public pure returns (bool) {
+    return _isDateBeforeOrEqual(maxDate - 1 days, ProofType.EXPIRY_DATE, commitments);
   }
 
   /**
@@ -414,8 +337,8 @@ contract ZKPassportVerifier {
   function isExpiryDateEqual(
     uint256 date,
     Commitments calldata commitments
-  ) public view returns (bool) {
-    return isDateBetween(date, date, ProofType.EXPIRY_DATE, commitments);
+  ) public pure returns (bool) {
+    return _isDateBetween(date, date, ProofType.EXPIRY_DATE, commitments);
   }
 
   function isCountryInOrOut(
@@ -444,7 +367,7 @@ contract ZKPassportVerifier {
   function isNationalityIn(
     string[] memory countryList,
     Commitments calldata commitments
-  ) public pure returns (bool) {
+  ) external pure returns (bool) {
     return isCountryInOrOut(countryList, ProofType.NATIONALITY_INCLUSION, commitments);
   }
 
@@ -457,7 +380,7 @@ contract ZKPassportVerifier {
   function isIssuingCountryIn(
     string[] memory countryList,
     Commitments calldata commitments
-  ) public pure returns (bool) {
+  ) external pure returns (bool) {
     return isCountryInOrOut(countryList, ProofType.ISSUING_COUNTRY_INCLUSION, commitments);
   }
 
@@ -471,7 +394,7 @@ contract ZKPassportVerifier {
   function isNationalityOut(
     string[] memory countryList,
     Commitments calldata commitments
-  ) public pure returns (bool) {
+  ) external pure returns (bool) {
     return isCountryInOrOut(countryList, ProofType.NATIONALITY_EXCLUSION, commitments);
   }
 
@@ -485,7 +408,7 @@ contract ZKPassportVerifier {
   function isIssuingCountryOut(
     string[] memory countryList,
     Commitments calldata commitments
-  ) public pure returns (bool) {
+  ) external pure returns (bool) {
     return isCountryInOrOut(countryList, ProofType.ISSUING_COUNTRY_EXCLUSION, commitments);
   }
 
@@ -496,10 +419,34 @@ contract ZKPassportVerifier {
    */
   function getBoundData(
     Commitments calldata commitments
-  ) public pure returns (BoundData memory boundData) {
+  ) external pure returns (BoundData memory boundData) {
     bytes memory data = InputsExtractor.getBindProofInputs(commitments);
     (boundData.senderAddress, boundData.chainId, boundData.customData) = InputsExtractor.getBoundData(data);
   }
+
+  /**
+   * @notice Checks if the sanctions root is valid against the expected sanction list(s)
+   * @param isStrict Whether the sanctions check was strict or not
+   * @param commitments The commitments
+   */
+  function isSanctionsRootValid(
+    bool isStrict,
+    Commitments calldata commitments
+  ) external view returns (bool) {
+    return _isSanctionsRootValid(isStrict, commitments);
+  }
+
+  function _isSanctionsRootValid(
+    bool isStrict,
+    Commitments calldata commitments
+  ) internal view returns (bool) {
+    (bytes32 proofSanctionsRoot, bool retrievedIsStrict) = InputsExtractor.getSanctionsProofInputs(commitments);
+    require(isStrict == retrievedIsStrict, "Invalid sanctions check mode");
+    // TODO: Change me
+    uint256 currentTimestamp = block.timestamp;
+    return rootRegistry.isRootValid(SANCTIONS_REGISTRY_ID, proofSanctionsRoot, currentTimestamp);
+  }
+
 
   /**
    * @notice Enforces that the proof checks against the expected sanction list(s)
@@ -509,10 +456,9 @@ contract ZKPassportVerifier {
   function enforceSanctionsRoot(
     bool isStrict,
     Commitments calldata commitments
-  ) public view {
-    (bytes32 proofSanctionsRoot, bool retrievedIsStrict) = InputsExtractor.getSanctionsProofInputs(commitments);
-    require(isStrict == retrievedIsStrict, "Invalid sanctions check mode");
-    _validateSanctionsRoot(proofSanctionsRoot);
+  ) external view {
+    bool isValid = _isSanctionsRootValid(isStrict, commitments);
+    require(isValid, "Invalid sanctions registry root");
   }
 
   /**
@@ -526,7 +472,7 @@ contract ZKPassportVerifier {
     FaceMatchMode faceMatchMode,
     OS os,
     Commitments calldata commitments
-  ) public pure returns (bool) {
+  ) external pure returns (bool) {
     (bytes32 rootKeyHash, Environment environment, bytes32 appIdHash, bytes32 integrityPublicKeyHash, FaceMatchMode retrievedFaceMatchMode) = InputsExtractor.getFacematchProofInputs(commitments);
     bool isProduction = environment == Environment.PRODUCTION;
     bool isCorrectMode = retrievedFaceMatchMode == faceMatchMode;
@@ -538,150 +484,23 @@ contract ZKPassportVerifier {
   }
 
   /**
-   * @notice Verifies that the proof was generated for the given domain and scope
+   * @notice Verifies that the proof was generated for the given scope (domain) and subscope (service scope)
    * @param publicInputs The public inputs of the proof
-   * @param domain The domain to check against
-   * @param scope The scope to check against
-   * @return True if the proof was generated for the given domain and scope, false otherwise
+   * @param scope The scope (domain) to check against
+   * @param subscope The subscope (service scope) to check against
+   * @return True if valid, false otherwise
    */
+   // TODO: Is this needed in *both* the sub verifier and the helper?
   function verifyScopes(
     bytes32[] calldata publicInputs,
-    string calldata domain,
-    string calldata scope
-  ) public pure returns (bool) {
+    string calldata scope,
+    string calldata subscope
+  ) external pure returns (bool) {
     // One byte is dropped at the end
     // What we call scope internally is derived from the domain
-    bytes32 scopeHash = StringUtils.isEmpty(domain)
-      ? bytes32(0)
-      : sha256(abi.encodePacked(domain)) >> 8;
-    // What we call the subscope internally is the scope specified
-    // manually in the SDK
-    bytes32 subscopeHash = StringUtils.isEmpty(scope)
-      ? bytes32(0)
-      : sha256(abi.encodePacked(scope)) >> 8;
+    bytes32 scopeHash = StringUtils.isEmpty(scope) ? bytes32(0) : sha256(abi.encodePacked(scope)) >> 8;
+    // What we call the subscope internally is the service scope specified manually in the SDK
+    bytes32 subscopeHash = StringUtils.isEmpty(subscope) ? bytes32(0) : sha256(abi.encodePacked(subscope)) >> 8;
     return publicInputs[PublicInput.SCOPE_INDEX] == scopeHash && publicInputs[PublicInput.SUBSCOPE_INDEX] == subscopeHash;
-  }
-
-  function verifyCommittedInputs(
-    bytes32[] memory paramCommitments,
-    Commitments calldata commitments
-  ) internal pure {
-    uint256 offset = 0;
-    uint256 index = 0;
-    while (offset < commitments.committedInputs.length && index < paramCommitments.length) {
-      // The committed inputs are formatted as follows:
-      // - 1 byte: proof type
-      // - 2 bytes: length of the committed inputs
-      // - N bytes: committed inputs for a given proof
-      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
-      // One byte is dropped inside the circuit as BN254 is limited to 254 bits
-      // We also add 3 bytes to take into account the proof type and length
-      bytes32 calculatedCommitment = sha256(
-        abi.encodePacked(commitments.committedInputs[offset:offset + length + 3])
-      ) >> 8;
-      require(calculatedCommitment == paramCommitments[index], "Invalid commitment");
-      offset += length + 3;
-      index++;
-    }
-    // Check that all the committed inputs have been covered, otherwise something is wrong
-    require(offset == commitments.committedInputs.length, "Invalid committed inputs length");
-    require(index == paramCommitments.length, "Invalid parameter commitments");
-  }
-
-  function _getVerifier(bytes32 vkeyHash) internal view returns (address) {
-    address verifier = vkeyHashToVerifier[vkeyHash];
-    require(verifier != address(0), "Verifier not found");
-    return verifier;
-  }
-
-  function _validateCertificateRoot(bytes32 certificateRoot) internal view {
-    require(
-      rootRegistry.isRootValid(CERTIFICATE_REGISTRY_ID, certificateRoot),
-      "Invalid certificate registry root"
-    );
-  }
-
-  function _validateCircuitRoot(bytes32 circuitRoot) internal view {
-    require(
-      rootRegistry.isRootValid(CIRCUIT_REGISTRY_ID, circuitRoot),
-      "Invalid circuit registry root"
-    );
-  }
-
-  function _validateSanctionsRoot(bytes32 sanctionsRoot) internal view {
-    require(
-      rootRegistry.isRootValid(SANCTIONS_REGISTRY_ID, sanctionsRoot),
-      "Invalid sanctions registry root"
-    );
-  }
-
-  /**
-   * @notice Verifies a proof from ZKPassport
-   * @param params The proof verification parameters
-   * @return isValid True if the proof is valid, false otherwise
-   * @return uniqueIdentifier The unique identifier associated to the identity document that generated the proof
-   */
-  function verifyProof(
-    ProofVerificationParams calldata params
-  ) external view whenNotPaused returns (bool isValid, bytes32 uniqueIdentifier) {
-    // Get the verifier for the Outer Circuit corresponding to the vkey hash
-    address verifier = _getVerifier(params.proofVerificationData.vkeyHash);
-
-    // Validate certificate registry root
-    _validateCertificateRoot(params.proofVerificationData.publicInputs[PublicInput.CERTIFICATE_REGISTRY_ROOT_INDEX]);
-
-    // Validate circuit registry root
-    _validateCircuitRoot(params.proofVerificationData.publicInputs[PublicInput.CIRCUIT_REGISTRY_ROOT_INDEX]);
-
-    // Checks the date of the proof
-    // This is the current date used as public input in the disclosure proofs
-    // so verifying it here guarantees that the disclosure proofs were generated with this date
-    require(
-      checkDate(params.proofVerificationData.publicInputs, params.serviceConfig.validityPeriodInSeconds),
-      "The proof was generated outside the validity period"
-    );
-
-    // Validate scopes if provided
-    // It is recommended to verify this against static variables in your contract
-    // by calling the verifyScopes function directly or setting domain and scope in the params
-    // inside your smart contract function before calling verifyProof
-    // Check SampleContract.sol for an example
-    require(verifyScopes(params.proofVerificationData.publicInputs, params.serviceConfig.domain, params.serviceConfig.scope), "Invalid domain or scope");
-
-    // Verifies the commitments against the committed inputs
-    verifyCommittedInputs(
-      // Extracts the commitments from the public inputs
-      params.proofVerificationData.publicInputs[PublicInput.PARAM_COMMITMENTS_INDEX:params.proofVerificationData.publicInputs.length - 2],
-      params.commitments
-    );
-
-    NullifierType nullifierType = NullifierType(uint256(params.proofVerificationData.publicInputs[params.proofVerificationData.publicInputs.length - 2]));
-
-    // Allow mock proofs in dev mode
-    // Note: On mainnets, this stage won't be reached as the ZKR certificates will not be part
-    // of the mainnet registries and the verification will fail at _validateCertificateRoot
-    require(
-      (nullifierType != NullifierType.NON_SALTED_MOCK_NULLIFIER && nullifierType != NullifierType.SALTED_MOCK_NULLIFIER)
-      || params.serviceConfig.devMode,
-      "Mock proofs are only allowed in dev mode"
-    );
-    
-    // For now, only non-salted nullifiers are supported
-    // but salted nullifiers can be used in dev mode
-    // They will be later once a proper registration mechanism is implemented
-    require(
-      nullifierType == NullifierType.NON_SALTED_NULLIFIER || params.serviceConfig.devMode,
-      "Salted nullifiers are not supported for now"
-    );
-
-    // Call the UltraHonk verifier for the given Outer Circuit to verify if the actual proof is valid
-    isValid = IVerifier(verifier).verify(params.proofVerificationData.proof, params.proofVerificationData.publicInputs);
-
-    // Get the unique identifier from the public inputs
-    uint256 uniqueIdentifierIndex = params.proofVerificationData.publicInputs.length - 1;
-    uniqueIdentifier = params.proofVerificationData.publicInputs[uniqueIdentifierIndex];
-
-    // Not actually needed but it makes it clearer what is returned
-    return (isValid, uniqueIdentifier);
   }
 }

@@ -2,9 +2,9 @@
 // Copyright 2025 ZKPassport
 pragma solidity >=0.8.21;
 
-import {MRZIndex, MRZLength, CommittedInputLen, COUNTRY_LIST_LENGTH, BOUND_DATA_LENGTH, TIMESTAMP_LENGTH} from "../src/Constants.sol";
-import {DisclosedData, ProofType, FaceMatchMode, Environment} from "../src/Types.sol";
-import {BoundDataIdentifier, Commitments} from "../src/Types.sol";
+import {MRZIndex, MRZLength, CommittedInputLen, COUNTRY_LIST_LENGTH, BOUND_DATA_LENGTH, TIMESTAMP_LENGTH} from "./Constants.sol";
+import {DisclosedData, ProofType, FaceMatchMode, Environment} from "./Types.sol";
+import {BoundDataIdentifier, Commitments} from "./Types.sol";
 
 library InputsExtractor {
   function getDisclosedData(

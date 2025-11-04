@@ -4,9 +4,9 @@ pragma solidity >=0.8.21;
 
 import {Test} from "forge-std/Test.sol";
 import {DateUtils} from "../src/DateUtils.sol";
-import {TestUtils} from "./Utils.t.sol";
+import {ZKPassportTest} from "./Utils.t.sol";
 
-contract DateUtilsTest is TestUtils {
+contract DateUtilsTest is ZKPassportTest {
   uint256 constant CURRENT_DATE = 1756239313;
 
   function test_isDateValid() public {

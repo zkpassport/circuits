@@ -3,28 +3,22 @@
 pragma solidity >=0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
-import {IVerifier, HonkVerifier, BaseHonkVerifier} from "../src/ultra-honk-verifiers/OuterCount5.sol";
-import {TestUtils} from "./Utils.t.sol";
+import {IVerifier as ProofVerifier, HonkVerifier, BaseHonkVerifier} from "../src/ultra-honk-verifiers/OuterCount5.sol";
+import {ZKPassportTest} from "./Utils.t.sol";
 
-contract VerifierTest is TestUtils {
-  IVerifier public verifier;
-
-  // Path to the proof file - using files directly in project root
-  string constant PROOF_PATH = "./test/fixtures/valid_proof.hex";
-  string constant PUBLIC_INPUTS_PATH = "./test/fixtures/valid_public_inputs.json";
+contract SubVerifierTest is ZKPassportTest {
+  ProofVerifier public verifier;
 
   function setUp() public {
     verifier = new HonkVerifier();
   }
 
   function test_VerifyValidProof() public {
-    // Load proof and public inputs from files
-    bytes memory proof = loadBytesFromFile(PROOF_PATH);
-    bytes32[] memory publicInputs = loadBytes32FromFile(PUBLIC_INPUTS_PATH);
+    FixtureData memory data = loadFixture(fixtures.valid);
 
     // Verify the proof
     vm.startSnapshotGas("UltraHonkVerifier verify");
-    bool result = verifier.verify(proof, publicInputs);
+    bool result = verifier.verify(data.proof, data.publicInputs);
     uint256 gasUsed = vm.stopSnapshotGas();
     console.log("Gas used in UltraHonkVerifier verify");
     console.log(gasUsed);

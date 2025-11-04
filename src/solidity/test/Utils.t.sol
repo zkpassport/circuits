@@ -3,8 +3,116 @@
 pragma solidity >=0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
+import {StdConstants} from "forge-std/StdConstants.sol";
+import {stdJson} from "forge-std/StdJson.sol";
+import {ZKPassportRootVerifier} from "../src/ZKPassportRootVerifier.sol";
+import {ZKPassportSubVerifier} from "../src/ZKPassportSubVerifier.sol";
+import {ZKPassportHelper} from "../src/ZKPassportHelper.sol";
+import {HonkVerifier as OuterVerifier5} from "../src/ultra-honk-verifiers/OuterCount5.sol";
+import {HonkVerifier as OuterVerifier13} from "../src/ultra-honk-verifiers/OuterCount13.sol";
+import {IRootRegistry, ProofVerifier} from "../src/Types.sol";
+import {MockRootRegistry} from "./MockRootRegistry.sol";
 
-abstract contract TestUtils is Test {
+abstract contract ZKPassportTest is Test {
+  using stdJson for string;
+
+  uint256 constant VERIFIER_VERSION = 1;
+  string constant FIXTURES_CONFIG_PATH = "./test/fixtures/config.json";
+
+  struct FixtureConfig {
+    bytes32 vkeyHash;
+    address verifier;
+    string proof;
+    string publicInputs;
+    string committedInputs;
+  }
+
+  struct FixtureData {
+    bytes proof;
+    bytes32[] publicInputs;
+    bytes committedInputs;
+  }
+
+  struct Fixtures {
+    FixtureConfig valid;
+    FixtureConfig allSubproofs;
+  }
+
+  Fixtures fixtures;
+
+  constructor() {
+    string memory fixturesJson = vm.readFile(FIXTURES_CONFIG_PATH);
+
+    fixtures.valid = FixtureConfig({
+      vkeyHash: fixturesJson.readBytes32(".valid.vkey_hash"),
+      verifier: address(new OuterVerifier5()),
+      proof: fixturesJson.readString(".valid.proof"),
+      publicInputs: fixturesJson.readString(".valid.public_inputs"),
+      committedInputs: fixturesJson.readString(".valid.committed_inputs")
+    });
+
+    fixtures.allSubproofs = FixtureConfig({
+      vkeyHash: fixturesJson.readBytes32(".all_subproofs.vkey_hash"),
+      verifier: address(new OuterVerifier13()),
+      proof: fixturesJson.readString(".all_subproofs.proof"),
+      publicInputs: fixturesJson.readString(".all_subproofs.public_inputs"),
+      committedInputs: fixturesJson.readString(".all_subproofs.committed_inputs")
+    });
+  }
+
+  function deployZKPassport() internal returns (ZKPassportRootVerifier, ZKPassportSubVerifier) {
+    address admin = vm.envAddress("ROOT_VERIFIER_ADMIN_ADDRESS");
+    address guardian = vm.envAddress("ROOT_VERIFIER_GUARDIAN_ADDRESS");
+    IRootRegistry rootRegistry = new MockRootRegistry();
+
+    // Deploy root verifier
+    ZKPassportRootVerifier rootVerifier = new ZKPassportRootVerifier(admin, guardian, rootRegistry);
+    // Deploy sub verifier
+    ZKPassportSubVerifier subVerifier = new ZKPassportSubVerifier(rootVerifier);
+    // Add sub verifier to root verifier
+    vm.prank(admin);
+    rootVerifier.addSubVerifier(VERIFIER_VERSION, subVerifier);
+    // Deploy proof verifiers
+    ProofVerifier[] memory proofVerifiers = new ProofVerifier[](2);
+    proofVerifiers[0] = ProofVerifier({
+      vkeyHash: fixtures.valid.vkeyHash,
+      verifier: fixtures.valid.verifier
+    });
+    proofVerifiers[1] = ProofVerifier({
+      vkeyHash: fixtures.allSubproofs.vkeyHash,
+      verifier: fixtures.allSubproofs.verifier
+    });
+    // Add proof verifiers to sub verifier
+    subVerifier.addProofVerifiers(proofVerifiers);
+    // Deploy helper
+    ZKPassportHelper helper = new ZKPassportHelper(rootRegistry);
+    // Add helper to root verifier
+    vm.prank(admin);
+    rootVerifier.addHelper(VERIFIER_VERSION, address(helper));
+    // Return the root verifier and sub verifier
+    return (rootVerifier, subVerifier);
+  }
+
+  /**
+   * @dev Load fixture data from config
+   */
+  function loadFixture(FixtureConfig memory config) internal view returns (FixtureData memory) {
+    return FixtureData({
+      proof: loadBytesFromFile(config.proof),
+      publicInputs: loadBytes32FromFile(config.publicInputs),
+      committedInputs: loadBytesFromFile(config.committedInputs)
+    });
+  }
+
+  /**
+   * @dev Helper function to log the approx gas cost for an operation
+   */
+  function logGas(string memory name) internal {
+    uint256 gasUsed = vm.stopSnapshotGas();
+    console.log(name);
+    console.log(gasUsed);
+  }
+
   /**
    * @dev Helper function to load proof data from a file
    */
@@ -23,12 +131,12 @@ abstract contract TestUtils is Test {
       // Try to parse the bytes
       try vm.parseBytes(proofHex) returns (bytes memory parsedBytes) {
         return parsedBytes;
-      } catch Error(string memory reason) {
+      } catch Error(string memory) {
         revert("Failed to parse proof bytes");
       } catch {
         revert("Failed to parse proof bytes");
       }
-    } catch Error(string memory reason) {
+    } catch Error(string memory) {
       revert("Failed to load proof from file");
     } catch {
       revert("Failed to load proof from file");
@@ -49,7 +157,7 @@ abstract contract TestUtils is Test {
       }
 
       return result;
-    } catch Error(string memory reason) {
+    } catch Error(string memory) {
       revert("Failed to load inputs from file");
     } catch {
       revert("Failed to load inputs from file");
