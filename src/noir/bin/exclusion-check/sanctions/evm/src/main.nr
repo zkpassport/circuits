@@ -25,8 +25,7 @@ fn main(
     // Check the ID is not expired
     check_expiry(salted_dg1.value, current_date);
 
-    let trees = SanctionsSparseMerkleTrees::default();
-    assert(trees.root() == root);
+    let trees = SanctionsSparseMerkleTrees::new(root);
     // Check that nationality of the passport holder is not in the list of countries
     trees.check_sanctions_exclusion(salted_dg1.value, proofs, is_strict);
     let (nullifier, nullifier_type) = nullify(
