@@ -4,7 +4,7 @@ pragma solidity >=0.8.21;
 
 import {console} from "forge-std/Test.sol";
 import {ZKPassportRootVerifier} from "../src/ZKPassportRootVerifier.sol";
-import {Commitments, ServiceConfig, ProofVerificationParams, ProofVerificationData} from "../src/Types.sol";
+import {ServiceConfig, ProofVerificationParams, ProofVerificationData} from "../src/Types.sol";
 import {SampleContract} from "../src/SampleContract.sol";
 import {ZKPassportTest} from "./Utils.t.sol";
 
@@ -36,9 +36,7 @@ contract SampleContractTest is ZKPassportTest {
         proof: data.proof,
         publicInputs: data.publicInputs
       }),
-      commitments: Commitments({
-        committedInputs: data.committedInputs
-      }),
+      committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
         validityPeriodInSeconds: 7 days,
         domain: "zkpassport.id",

@@ -83,18 +83,18 @@ contract SampleContract {
     require(helper.verifyScopes(params.proofVerificationData.publicInputs, validDomain, validScope), "Invalid domain or scope");
 
     // Verify the age is above or equal to the minimum age
-    require(helper.isAgeAboveOrEqual(MIN_AGE, params.commitments), "Age is not 18+");
+    require(helper.isAgeAboveOrEqual(MIN_AGE, params.committedInputs), "Age is not 18+");
 
     // Verify the nationality exclusion list used in the proof
     string[] memory nationalityExclusionList = new string[](3);
     nationalityExclusionList[0] = "ESP";
     nationalityExclusionList[1] = "ITA";
     nationalityExclusionList[2] = "PRT";
-    require(helper.isNationalityOut(nationalityExclusionList, params.commitments), "Nationality is part of the exclusion list");
+    require(helper.isNationalityOut(nationalityExclusionList, params.committedInputs), "Nationality is part of the exclusion list");
 
     // Get the disclosed data (includes the nationality)
     DisclosedData memory disclosedData = helper.getDisclosedData(
-      params.commitments,
+      params.committedInputs,
       isIDCard
     );
 

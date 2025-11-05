@@ -4,7 +4,7 @@ pragma solidity >=0.8.21;
 
 import {MRZIndex, MRZLength, CommittedInputLen, COUNTRY_LIST_LENGTH, BOUND_DATA_LENGTH, TIMESTAMP_LENGTH} from "./Constants.sol";
 import {DisclosedData, ProofType, FaceMatchMode, Environment} from "./Types.sol";
-import {BoundDataIdentifier, Commitments} from "./Types.sol";
+import {BoundDataIdentifier} from "./Types.sol";
 
 library InputsExtractor {
   function getDisclosedData(
@@ -81,17 +81,17 @@ library InputsExtractor {
   }
 
   function getDiscloseProofInputs(
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bytes memory discloseMask, bytes memory discloseBytes) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    while (offset < commitments.committedInputs.length) {
-      ProofType proofType = ProofType(uint8(commitments.committedInputs[offset]));
-      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+    while (offset < committedInputs.length) {
+      ProofType proofType = ProofType(uint8(committedInputs[offset]));
+      uint16 length = uint16(bytes2(committedInputs[offset + 1:offset + 3]));
       offset += 3;
       if (proofType == ProofType.DISCLOSE && length == CommittedInputLen.DISCLOSE_BYTES) {
-        discloseMask = commitments.committedInputs[offset:offset + MRZLength.MRZ_MAX_LENGTH];
-        discloseBytes = commitments.committedInputs[offset + MRZLength.MRZ_MAX_LENGTH:offset +
+        discloseMask = committedInputs[offset:offset + MRZLength.MRZ_MAX_LENGTH];
+        discloseBytes = committedInputs[offset + MRZLength.MRZ_MAX_LENGTH:offset +
           MRZLength.MRZ_MAX_LENGTH *
           2];
         foundCount++;
@@ -103,14 +103,14 @@ library InputsExtractor {
   }
 
   function getDateProofInputs(
-    Commitments calldata commitments,
+    bytes calldata committedInputs,
     ProofType proofType
   ) public pure returns (uint256 minDate, uint256 maxDate) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    while (offset < commitments.committedInputs.length) {
-      ProofType retrievedProofType = ProofType(uint8(commitments.committedInputs[offset]));
-      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+    while (offset < committedInputs.length) {
+      ProofType retrievedProofType = ProofType(uint8(committedInputs[offset]));
+      uint16 length = uint16(bytes2(committedInputs[offset + 1:offset + 3]));
       offset += 3;
       if (proofType == retrievedProofType && length == CommittedInputLen.COMPARE_EXPIRY) {
         // Get rid of the padding 0s bytes as the timestamp is contained within the first 64 bits
@@ -118,14 +118,14 @@ library InputsExtractor {
         minDate =
           uint256(
             bytes32(
-              commitments.committedInputs[offset:offset + TIMESTAMP_LENGTH]
+              committedInputs[offset:offset + TIMESTAMP_LENGTH]
             )
           ) >>
           192;
         maxDate =
           uint256(
             bytes32(
-              commitments.committedInputs[offset + TIMESTAMP_LENGTH:offset +
+              committedInputs[offset + TIMESTAMP_LENGTH:offset +
                 TIMESTAMP_LENGTH * 2]
             )
           ) >>
@@ -150,19 +150,17 @@ library InputsExtractor {
   }
 
   function getAgeProofInputs(
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (uint8 minAge, uint8 maxAge) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    while (offset < commitments.committedInputs.length) {
-      ProofType retrievedProofType = ProofType(uint8(commitments.committedInputs[offset]));
-      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+    while (offset < committedInputs.length) {
+      ProofType retrievedProofType = ProofType(uint8(committedInputs[offset]));
+      uint16 length = uint16(bytes2(committedInputs[offset + 1:offset + 3]));
       offset += 3;
       if (retrievedProofType == ProofType.AGE && length == CommittedInputLen.COMPARE_AGE) {
-        // Get rid of the padding 0s bytes as the timestamp is contained within the first 64 bits
-        // i.e. 256 - 64 = 192
-        minAge = uint8(commitments.committedInputs[offset]);
-        maxAge = uint8(commitments.committedInputs[offset + 1]);
+        minAge = uint8(committedInputs[offset]);
+        maxAge = uint8(committedInputs[offset + 1]);
         foundCount++;
       }
       offset += length;
@@ -172,20 +170,20 @@ library InputsExtractor {
   }
 
   function getCountryListLength(
-    Commitments calldata commitments,
+    bytes calldata committedInputs,
     ProofType proofType
   ) public pure returns (uint256 countryListLength) {
     uint256 offset = 0;
-    while (offset < commitments.committedInputs.length) {
-      ProofType retrievedProofType = ProofType(uint8(commitments.committedInputs[offset]));
-      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+    while (offset < committedInputs.length) {
+      ProofType retrievedProofType = ProofType(uint8(committedInputs[offset]));
+      uint16 length = uint16(bytes2(committedInputs[offset + 1:offset + 3]));
       offset += 3;
       if (proofType == retrievedProofType && length == CommittedInputLen.INCL_NATIONALITY) {
         for (uint256 j = 0; j < COUNTRY_LIST_LENGTH; j++) {
           // The circuit constrains that once we've reached the first `0`,
           // we won't encounter any further nonzero values.
           // We don't need to include the padding bytes
-          if (commitments.committedInputs[offset] == 0) return j;
+          if (committedInputs[offset] == 0) return j;
           offset += 3;
         }
         offset += length - COUNTRY_LIST_LENGTH * 3;
@@ -196,24 +194,24 @@ library InputsExtractor {
   }
 
   function getCountryProofInputs(
-    Commitments calldata commitments,
+    bytes calldata committedInputs,
     ProofType proofType
   ) public pure returns (string[] memory countryList, uint256 countryListLength) {
     require(proofType == ProofType.NATIONALITY_INCLUSION || proofType == ProofType.ISSUING_COUNTRY_INCLUSION || proofType == ProofType.NATIONALITY_EXCLUSION || proofType == ProofType.ISSUING_COUNTRY_EXCLUSION, "Invalid proof type");
     uint256 offset = 0;
     uint256 foundCount = 0;
-    countryListLength = getCountryListLength(commitments, proofType);
+    countryListLength = getCountryListLength(committedInputs, proofType);
     countryList = new string[](countryListLength);
-    while (offset < commitments.committedInputs.length) {
-      ProofType retrievedProofType = ProofType(uint8(commitments.committedInputs[offset]));
-      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+    while (offset < committedInputs.length) {
+      ProofType retrievedProofType = ProofType(uint8(committedInputs[offset]));
+      uint16 length = uint16(bytes2(committedInputs[offset + 1:offset + 3]));
       offset += 3;
       if (
         proofType == retrievedProofType &&
         length == CommittedInputLen.INCL_NATIONALITY
       ) {
         for (uint256 j = 0; j < countryListLength; j++) {
-          countryList[j] = string(commitments.committedInputs[offset:offset + 3]);
+          countryList[j] = string(committedInputs[offset:offset + 3]);
           offset += 3;
         }
         offset += length - countryListLength * 3;
@@ -250,16 +248,16 @@ library InputsExtractor {
   }
 
   function getBindProofInputs(
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bytes memory data) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    while (offset < commitments.committedInputs.length) {
-      ProofType retrievedProofType = ProofType(uint8(commitments.committedInputs[offset]));
-      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+    while (offset < committedInputs.length) {
+      ProofType retrievedProofType = ProofType(uint8(committedInputs[offset]));
+      uint16 length = uint16(bytes2(committedInputs[offset + 1:offset + 3]));
       offset += 3;
       if (retrievedProofType == ProofType.BIND && length == CommittedInputLen.BIND) {
-        data = commitments.committedInputs[offset:offset + BOUND_DATA_LENGTH];
+        data = committedInputs[offset:offset + BOUND_DATA_LENGTH];
         foundCount++;
       }
       offset += length;
@@ -269,17 +267,17 @@ library InputsExtractor {
   }
 
   function getSanctionsProofInputs(
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bytes32 sanctionsTreesCommitment, bool isStrict) {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    while (offset < commitments.committedInputs.length) {
-      ProofType retrievedProofType = ProofType(uint8(commitments.committedInputs[offset]));
-      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+    while (offset < committedInputs.length) {
+      ProofType retrievedProofType = ProofType(uint8(committedInputs[offset]));
+      uint16 length = uint16(bytes2(committedInputs[offset + 1:offset + 3]));
       offset += 3;
       if (retrievedProofType == ProofType.SANCTIONS && length == CommittedInputLen.SANCTIONS) {
-        sanctionsTreesCommitment = bytes32(commitments.committedInputs[offset:offset + 32]);
-        isStrict = uint8(commitments.committedInputs[offset + 32]) == 1;
+        sanctionsTreesCommitment = bytes32(committedInputs[offset:offset + 32]);
+        isStrict = uint8(committedInputs[offset + 32]) == 1;
         foundCount++;
       }
       offset += length;
@@ -323,7 +321,7 @@ library InputsExtractor {
   }
 
   function getFacematchProofInputs(
-    Commitments calldata commitments
+    bytes calldata committedInputs
   )
     public
     pure
@@ -337,19 +335,19 @@ library InputsExtractor {
   {
     uint256 offset = 0;
     uint256 foundCount = 0;
-    while (offset < commitments.committedInputs.length) {
-      ProofType retrievedProofType = ProofType(uint8(commitments.committedInputs[offset]));
-      uint16 length = uint16(bytes2(commitments.committedInputs[offset + 1:offset + 3]));
+    while (offset < committedInputs.length) {
+      ProofType retrievedProofType = ProofType(uint8(committedInputs[offset]));
+      uint16 length = uint16(bytes2(committedInputs[offset + 1:offset + 3]));
       offset += 3;
       if (retrievedProofType == ProofType.FACEMATCH && length == CommittedInputLen.FACEMATCH) {
-        rootKeyHash = bytes32(commitments.committedInputs[offset:offset + 32]);
+        rootKeyHash = bytes32(committedInputs[offset:offset + 32]);
         environment = Environment(
-          uint8(commitments.committedInputs[offset + 32])
+          uint8(committedInputs[offset + 32])
         );
-        appIdHash = bytes32(commitments.committedInputs[offset + 33:offset + 65]);
-        integrityPublicKeyHash = bytes32(commitments.committedInputs[offset + 65:offset + 97]);
+        appIdHash = bytes32(committedInputs[offset + 33:offset + 65]);
+        integrityPublicKeyHash = bytes32(committedInputs[offset + 65:offset + 97]);
         facematchMode = FaceMatchMode(
-          uint8(commitments.committedInputs[offset + 97])
+          uint8(committedInputs[offset + 97])
         );
         foundCount++;
       }

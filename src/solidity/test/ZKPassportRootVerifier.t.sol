@@ -8,7 +8,7 @@ import {ZKPassportRootVerifier} from "../src/ZKPassportRootVerifier.sol";
 import {ZKPassportSubVerifier} from "../src/ZKPassportSubVerifier.sol";
 import {ZKPassportHelper} from "../src/ZKPassportHelper.sol";
 import {CommittedInputLen} from "../src/Constants.sol";
-import {DisclosedData, BoundData, FaceMatchMode, ProofVerificationData, Commitments, ServiceConfig, OS, ProofType, ProofVerificationParams} from "../src/Types.sol";
+import {DisclosedData, BoundData, FaceMatchMode, ProofVerificationData, ServiceConfig, OS, ProofType, ProofVerificationParams} from "../src/Types.sol";
 
 
 contract ZKPassportRootVerifierTest is ZKPassportTest {
@@ -31,9 +31,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
         proof: data.proof,
         publicInputs: data.publicInputs
       }),
-      commitments: Commitments({
-        committedInputs: data.committedInputs
-      }),
+      committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
         validityPeriodInSeconds: 7 days,
         domain: "zkpassport.id",
@@ -45,6 +43,8 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     vm.startSnapshotGas("ZKPassportRootVerifier.verify");
     (bool result, bytes32 scopedNullifier, ZKPassportHelper helper) = rootVerifier.verify(params);
     logGas("ZKPassportRootVerifier.verify");
+    uint256 proofTimestamp = helper.getProofTimestamp(params.proofVerificationData.publicInputs);
+    assertEq(proofTimestamp, currentDate);
 
     assertEq(result, true, "Proof should verify successfully");
     assertEq(
@@ -54,7 +54,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     );
 
     vm.startSnapshotGas("ZKPassportHelper.getDisclosedData");
-    DisclosedData memory disclosedData = helper.getDisclosedData(params.commitments, false);
+    DisclosedData memory disclosedData = helper.getDisclosedData(params.committedInputs, false);
     logGas("ZKPassportHelper.getDisclosedData");
 
     assertEq(disclosedData.name, "SILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<");
@@ -77,9 +77,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
         proof: data.proof,
         publicInputs: data.publicInputs
       }),
-      commitments: Commitments({
-        committedInputs: data.committedInputs
-      }),
+     committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
         validityPeriodInSeconds: 7 days,
         domain: "zkpassport.id",
@@ -96,7 +94,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     );
 
     vm.startSnapshotGas("ZKPassportHelper.getBoundData");
-    BoundData memory boundData = helper.getBoundData(params.commitments);
+    BoundData memory boundData = helper.getBoundData(params.committedInputs);
     logGas("ZKPassportHelper.getBoundData");
 
     assertEq(boundData.senderAddress, 0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8, "Bound sender address should match");
@@ -117,9 +115,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
         proof: data.proof,
         publicInputs: data.publicInputs
       }),
-      commitments: Commitments({
-        committedInputs: data.committedInputs
-      }),
+      committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
         validityPeriodInSeconds: 7 days,
         domain: "zkpassport.id",
@@ -139,7 +135,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     );
 
     vm.startSnapshotGas("ZKPassportHelper.isAgeAboveOrEqual");
-    assertEq(helper.isAgeAboveOrEqual(18, params.commitments), true, "isAgeAboveOrEqual should return true");
+    assertEq(helper.isAgeAboveOrEqual(18, params.committedInputs), true, "isAgeAboveOrEqual should return true");
     logGas("ZKPassportHelper.isAgeAboveOrEqual");
 
     vm.startSnapshotGas("ZKPassportHelper.isNationalityIn");
@@ -150,7 +146,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     countryList[3] = "GBR";
     bool isNationalityIn = helper.isNationalityIn(
       countryList,
-      params.commitments
+      params.committedInputs
     );
     logGas("ZKPassportHelper.isNationalityIn");
     assertEq(isNationalityIn, true, "isNationalityIn should return true");
@@ -162,7 +158,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     exclusionCountryList[2] = "PRT";
     bool isIssuingCountryOut = helper.isIssuingCountryOut(
       exclusionCountryList,
-      params.commitments
+      params.committedInputs
     );
     logGas("ZKPassportHelper.isIssuingCountryOut");
     assertEq(isIssuingCountryOut, true, "isIssuingCountryOut should return true");
@@ -180,9 +176,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
         proof: data.proof,
         publicInputs: data.publicInputs
       }),
-      commitments: Commitments({
-        committedInputs: data.committedInputs
-      }),
+     committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
         validityPeriodInSeconds: 7 days,
         domain: "zkpassport.id",
@@ -197,7 +191,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     vm.startSnapshotGas("ZKPassportHelper.isBirthdateBeforeOrEqual");
     bool isBirthdateBeforeOrEqual = helper.isBirthdateBeforeOrEqual(
         currentDate,
-        params.commitments
+        params.committedInputs
       );
     logGas("ZKPassportHelper.isBirthdateBeforeOrEqual");
     assertEq(isBirthdateBeforeOrEqual, true, "isBirthdateBeforeOrEqual should return true");
@@ -206,7 +200,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       vm.startSnapshotGas("ZKPassportHelper.isExpiryDateAfterOrEqual");
       bool isExpiryDateAfterOrEqual = helper.isExpiryDateAfterOrEqual(
           currentDate,
-          params.commitments
+          params.committedInputs
         );
       logGas("ZKPassportHelper.isExpiryDateAfterOrEqual");
       assertEq(isExpiryDateAfterOrEqual, true, "isExpiryDateAfterOrEqual should return true");
@@ -220,7 +214,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       countryList[3] = "GBR";
       bool isIssuingCountryIn = helper.isIssuingCountryIn(
         countryList,
-        params.commitments
+        params.committedInputs
       );
       logGas("ZKPassportHelper.isIssuingCountryIn");
       assertEq(isIssuingCountryIn, true, "isIssuingCountryIn should return true");
@@ -228,22 +222,22 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
 
     {
       vm.startSnapshotGas("ZKPassportHelper.enforceSanctionsRoot");
-      bool isSanctionsRootValid = helper.isSanctionsRootValid(true, params.commitments);
+      bool isSanctionsRootValid = helper.isSanctionsRootValid(currentDate, true, params.committedInputs);
       assertEq(isSanctionsRootValid, true, "isSanctionsRootValid should return true");
       logGas("ZKPassportHelper.enforceSanctionsRoot");
     }
 
     {
       vm.startSnapshotGas("ZKPassportHelper.isFaceMatchVerified");
-      bool isFacematchVerified = helper.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.IOS, params.commitments);
+      bool isFacematchVerified = helper.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.IOS, params.committedInputs);
       logGas("ZKPassportHelper.isFaceMatchVerified");
       assertEq(isFacematchVerified, true, "isFaceMatchVerified should return true");
       // Should be false because the facematch mode is not strict but regular
-      assertEq(helper.isFaceMatchVerified(FaceMatchMode.STRICT, OS.IOS, params.commitments), false, "isFaceMatchVerified should return false");
+      assertEq(helper.isFaceMatchVerified(FaceMatchMode.STRICT, OS.IOS, params.committedInputs), false, "isFaceMatchVerified should return false");
       // Should be false because the OS is not iOS
-      assertEq(helper.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANDROID, params.commitments), false, "isFaceMatchVerified should return false");
+      assertEq(helper.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANDROID, params.committedInputs), false, "isFaceMatchVerified should return false");
       // Should be true because the OS is any
-      assertEq(helper.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANY, params.commitments), true, "isFaceMatchVerified should return true");
+      assertEq(helper.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANY, params.committedInputs), true, "isFaceMatchVerified should return true");
     }
   }
 }

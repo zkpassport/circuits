@@ -8,7 +8,7 @@ import {DateUtils} from "./DateUtils.sol";
 import {StringUtils} from "./StringUtils.sol";
 import {InputsExtractor} from "./InputsExtractor.sol";
 import {CommittedInputLen, MRZIndex, MRZLength, SECONDS_BETWEEN_1900_AND_1970, PublicInput, AppAttest} from "./Constants.sol";
-import {IRootRegistry, ProofType, ProofVerificationParams, BoundDataIdentifier, DisclosedData, BoundData, FaceMatchMode, Environment, NullifierType, Commitments, ServiceConfig, OS} from "./Types.sol";
+import {IRootRegistry, ProofType, ProofVerificationParams, BoundDataIdentifier, DisclosedData, BoundData, FaceMatchMode, Environment, NullifierType, ServiceConfig, OS} from "./Types.sol";
 
 contract ZKPassportHelper {
   bytes32 public constant SANCTIONS_REGISTRY_ID = bytes32(uint256(3));
@@ -21,29 +21,29 @@ contract ZKPassportHelper {
 
   /**
    * @notice Gets the data disclosed by the proof
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @param isIDCard Whether the proof is an ID card
    * @return disclosedData The data disclosed by the proof
    */
   function getDisclosedData(
-    Commitments calldata commitments,
+    bytes calldata committedInputs,
     bool isIDCard
   ) external pure returns (DisclosedData memory disclosedData) {
-    (, bytes memory discloseBytes) = InputsExtractor.getDiscloseProofInputs(commitments);
+    (, bytes memory discloseBytes) = InputsExtractor.getDiscloseProofInputs(committedInputs);
     disclosedData = InputsExtractor.getDisclosedData(discloseBytes, isIDCard);
   }
 
   /**
    * @notice Checks if the age is above or equal to the given age
    * @param minAge The age must be above or equal to this age
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the age is above or equal to the given age, false otherwise
    */
   function isAgeAboveOrEqual(
     uint8 minAge,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    (uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(commitments);
+    (uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(committedInputs);
     require(max == 0, "The proof upper bound must be 0, please use isAgeBetween instead");
     return minAge == min;
   }
@@ -51,29 +51,29 @@ contract ZKPassportHelper {
   /**
    * @notice Checks if the age is above the given age
    * @param minAge The age must be above this age
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the age is above the given age, false otherwise
    */
   function isAgeAbove(
     uint8 minAge,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    return isAgeAboveOrEqual(minAge + 1, commitments);
+    return isAgeAboveOrEqual(minAge + 1, committedInputs);
   }
 
   /**
    * @notice Checks if the age is in the given range
    * @param minAge The age must be greater than or equal to this age
    * @param maxAge The age must be less than or equal to this age
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the age is in the given range, false otherwise
    */
   function isAgeBetween(
     uint8 minAge,
     uint8 maxAge,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    (uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(commitments);
+    (uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(committedInputs);
     require(minAge <= maxAge, "Min age must be less than or equal to max age");
     require(min != 0, "The proof lower bound must be non-zero, please use isAgeBelowOrEqual instead");
     require(max != 0, "The proof upper bound must be non-zero, please use isAgeAboveOrEqual instead");
@@ -83,14 +83,14 @@ contract ZKPassportHelper {
   /**
    * @notice Checks if the age is below or equal to the given age
    * @param maxAge The age must be below or equal to this age
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the age is below or equal to the given age, false otherwise
    */
   function isAgeBelowOrEqual(
     uint8 maxAge,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    (uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(commitments);
+    (uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(committedInputs);
     require(min == 0, "The proof lower bound must be 0, please use isAgeBetween instead");
     return maxAge == max;
   }
@@ -98,36 +98,36 @@ contract ZKPassportHelper {
   /**
    * @notice Checks if the age is below the given age
    * @param maxAge The age must be below this age
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the age is below the given age, false otherwise
    */
   function isAgeBelow(
     uint8 maxAge,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
     require(maxAge > 0, "Max age must be greater than 0");
-    return isAgeBelowOrEqual(maxAge - 1, commitments);
+    return isAgeBelowOrEqual(maxAge - 1, committedInputs);
   }
 
   /**
    * @notice Checks if the age is equal to the given age
    * @param age The age must be equal to this age
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the age is equal to the given age, false otherwise
    */
   function isAgeEqual(
     uint8 age,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    return isAgeBetween(age, age, commitments);
+    return isAgeBetween(age, age, committedInputs);
   }
 
   function _isDateAfterOrEqual(
     uint256 minDate,
     ProofType proofType,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) private pure returns (bool) {
-    (uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(commitments, proofType);
+    (uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(committedInputs, proofType);
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
       require(max == 0, "The proof upper bound must be 0, please use isBirthdateBetween instead");
@@ -144,9 +144,9 @@ contract ZKPassportHelper {
     uint256 minDate,
     uint256 maxDate,
     ProofType proofType,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) private pure returns (bool) {
-    (uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(commitments, proofType);
+    (uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(committedInputs, proofType);
     require(minDate <= maxDate, "Min date must be less than or equal to max date");
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
@@ -165,9 +165,9 @@ contract ZKPassportHelper {
   function _isDateBeforeOrEqual(
     uint256 maxDate,
     ProofType proofType,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) private pure returns (bool) {
-    (uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(commitments, proofType);
+    (uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(committedInputs, proofType);
     require(min == 0, "The proof lower bound must be 0, please use _isDateBetween instead");
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
@@ -184,169 +184,169 @@ contract ZKPassportHelper {
   /**
    * @notice Checks if the birthdate is after or equal to the given date
    * @param minDate The birthdate must be after or equal to this date
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the birthdate is after or equal to the given date, false otherwise
    */
   function isBirthdateAfterOrEqual(
     uint256 minDate,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    return _isDateAfterOrEqual(minDate, ProofType.BIRTHDATE, commitments);
+    return _isDateAfterOrEqual(minDate, ProofType.BIRTHDATE, committedInputs);
   }
 
   /**
    * @notice Checks if the birthdate is after the given date
    * @param minDate The birthdate must be after this date
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the birthdate is after the given date, false otherwise
    */
   function isBirthdateAfter(
     uint256 minDate,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    return _isDateAfterOrEqual(minDate + 1 days, ProofType.BIRTHDATE, commitments);
+    return _isDateAfterOrEqual(minDate + 1 days, ProofType.BIRTHDATE, committedInputs);
   }
 
   /**
    * @notice Checks if the birthdate is between the given dates
    * @param minDate The birthdate must be after or equal to this date
    * @param maxDate The birthdate must be before or equal to this date
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the birthdate is between the given dates, false otherwise
    */
   function isBirthdateBetween(
     uint256 minDate,
     uint256 maxDate,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    return _isDateBetween(minDate, maxDate, ProofType.BIRTHDATE, commitments);
+    return _isDateBetween(minDate, maxDate, ProofType.BIRTHDATE, committedInputs);
   }
 
   /**
    * @notice Checks if the birthdate is before or equal to the given date
    * @param maxDate The birthdate must be before or equal to this date
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the birthdate is before or equal to the given date, false otherwise
    */
   function isBirthdateBeforeOrEqual(
     uint256 maxDate,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    return _isDateBeforeOrEqual(maxDate, ProofType.BIRTHDATE, commitments);
+    return _isDateBeforeOrEqual(maxDate, ProofType.BIRTHDATE, committedInputs);
   }
 
   /**
    * @notice Checks if the birthdate is before the given date
    * @param maxDate The birthdate must be before this date
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the birthdate is before the given date, false otherwise
    */
   function isBirthdateBefore(
     uint256 maxDate,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    return _isDateBeforeOrEqual(maxDate - 1 days, ProofType.BIRTHDATE, commitments);
+    return _isDateBeforeOrEqual(maxDate - 1 days, ProofType.BIRTHDATE, committedInputs);
   }
 
   /**
    * @notice Checks if the birthdate is equal to the given date
    * @param date The birthdate must be equal to this date
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the birthdate is equal to the given date, false otherwise
    */
   function isBirthdateEqual(
     uint256 date,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    return _isDateBetween(date, date, ProofType.BIRTHDATE, commitments);
+    return _isDateBetween(date, date, ProofType.BIRTHDATE, committedInputs);
   }
 
   /**
    * @notice Checks if the expiry date is after or equal to the given date
    * @param minDate The expiry date must be after or equal to this date
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the expiry date is after or equal to the given date, false otherwise
    */
   function isExpiryDateAfterOrEqual(
     uint256 minDate,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    return _isDateAfterOrEqual(minDate, ProofType.EXPIRY_DATE, commitments);
+    return _isDateAfterOrEqual(minDate, ProofType.EXPIRY_DATE, committedInputs);
   }
 
   /**
    * @notice Checks if the expiry date is after the given date
    * @param minDate The expiry date must be after this date
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the expiry date is after the given date, false otherwise
    */
   function isExpiryDateAfter(
     uint256 minDate,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    return _isDateAfterOrEqual(minDate + 1 days, ProofType.EXPIRY_DATE, commitments);
+    return _isDateAfterOrEqual(minDate + 1 days, ProofType.EXPIRY_DATE, committedInputs);
   }
 
   /**
    * @notice Checks if the expiry date is between the given dates
    * @param minDate The expiry date must be after or equal to this date
    * @param maxDate The expiry date must be before or equal to this date
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the expiry date is between the given dates, false otherwise
    */
   function isExpiryDateBetween(
     uint256 minDate,
     uint256 maxDate,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    return _isDateBetween(minDate, maxDate, ProofType.EXPIRY_DATE, commitments);
+    return _isDateBetween(minDate, maxDate, ProofType.EXPIRY_DATE, committedInputs);
   }
 
   /**
    * @notice Checks if the expiry date is before or equal to the given date
    * @param maxDate The expiry date must be before or equal to this date
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the expiry date is before or equal to the given date, false otherwise
    */
   function isExpiryDateBeforeOrEqual(
     uint256 maxDate,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    return _isDateBeforeOrEqual(maxDate, ProofType.EXPIRY_DATE, commitments);
+    return _isDateBeforeOrEqual(maxDate, ProofType.EXPIRY_DATE, committedInputs);
   }
 
   /**
    * @notice Checks if the expiry date is before the given date
    * @param maxDate The expiry date must be before this date
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the expiry date is before the given date, false otherwise
    */
   function isExpiryDateBefore(
     uint256 maxDate,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    return _isDateBeforeOrEqual(maxDate - 1 days, ProofType.EXPIRY_DATE, commitments);
+    return _isDateBeforeOrEqual(maxDate - 1 days, ProofType.EXPIRY_DATE, committedInputs);
   }
 
   /**
    * @notice Checks if the expiry date is equal to the given date
    * @param date The expiry date must be equal to this date
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the expiry date is equal to the given date, false otherwise
    */
   function isExpiryDateEqual(
     uint256 date,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) public pure returns (bool) {
-    return _isDateBetween(date, date, ProofType.EXPIRY_DATE, commitments);
+    return _isDateBetween(date, date, ProofType.EXPIRY_DATE, committedInputs);
   }
 
   function isCountryInOrOut(
     string[] memory countryList,
     ProofType proofType,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) private pure returns (bool) {
-    (string[] memory inputCountryList, uint256 inputCountryListLength) = InputsExtractor.getCountryProofInputs(commitments, proofType);
+    (string[] memory inputCountryList, uint256 inputCountryListLength) = InputsExtractor.getCountryProofInputs(committedInputs, proofType);
     if (countryList.length != inputCountryListLength) {
       return false;
     }
@@ -361,103 +361,109 @@ contract ZKPassportHelper {
   /**
    * @notice Checks if the nationality is in the list of countries
    * @param countryList The list of countries (needs to match exactly the list of countries in the proof)
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the nationality is in the list of countries, false otherwise
    */
   function isNationalityIn(
     string[] memory countryList,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) external pure returns (bool) {
-    return isCountryInOrOut(countryList, ProofType.NATIONALITY_INCLUSION, commitments);
+    return isCountryInOrOut(countryList, ProofType.NATIONALITY_INCLUSION, committedInputs);
   }
 
   /**
    * @notice Checks if the issuing country is in the list of countries
    * @param countryList The list of countries (needs to match exactly the list of countries in the proof)
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the issuing country is in the list of countries, false otherwise
    */
   function isIssuingCountryIn(
     string[] memory countryList,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) external pure returns (bool) {
-    return isCountryInOrOut(countryList, ProofType.ISSUING_COUNTRY_INCLUSION, commitments);
+    return isCountryInOrOut(countryList, ProofType.ISSUING_COUNTRY_INCLUSION, committedInputs);
   }
 
   /**
    * @notice Checks if the nationality is not in the list of countries
    * @param countryList The list of countries (needs to match exactly the list of countries in the proof)
    * Note: The list of countries must be sorted in alphabetical order
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the nationality is not in the list of countries, false otherwise
    */
   function isNationalityOut(
     string[] memory countryList,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) external pure returns (bool) {
-    return isCountryInOrOut(countryList, ProofType.NATIONALITY_EXCLUSION, commitments);
+    return isCountryInOrOut(countryList, ProofType.NATIONALITY_EXCLUSION, committedInputs);
   }
 
   /**
    * @notice Checks if the issuing country is not in the list of countries
    * @param countryList The list of countries (needs to match exactly the list of countries in the proof)
    * Note: The list of countries must be sorted in alphabetical order
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the issuing country is not in the list of countries, false otherwise
    */
   function isIssuingCountryOut(
     string[] memory countryList,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) external pure returns (bool) {
-    return isCountryInOrOut(countryList, ProofType.ISSUING_COUNTRY_EXCLUSION, commitments);
+    return isCountryInOrOut(countryList, ProofType.ISSUING_COUNTRY_EXCLUSION, committedInputs);
   }
 
   /**
    * @notice Gets the data bound to the proof
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return boundData The data bound to the proof
    */
   function getBoundData(
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) external pure returns (BoundData memory boundData) {
-    bytes memory data = InputsExtractor.getBindProofInputs(commitments);
+    bytes memory data = InputsExtractor.getBindProofInputs(committedInputs);
     (boundData.senderAddress, boundData.chainId, boundData.customData) = InputsExtractor.getBoundData(data);
   }
 
   /**
    * @notice Checks if the sanctions root is valid against the expected sanction list(s)
+   * @param currentTimestamp The current timestamp (preferably from the proof rather than the block timestamp).
+   * This is used to check the validity of the sanctions root at that specific time.
    * @param isStrict Whether the sanctions check was strict or not
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
+   * @return True if the sanctions root is valid against the expected sanction list(s), false otherwise
    */
   function isSanctionsRootValid(
+    uint256 currentTimestamp,
     bool isStrict,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) external view returns (bool) {
-    return _isSanctionsRootValid(isStrict, commitments);
+    return _isSanctionsRootValid(currentTimestamp, isStrict, committedInputs);
   }
 
   function _isSanctionsRootValid(
+    uint256 currentTimestamp,
     bool isStrict,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) internal view returns (bool) {
-    (bytes32 proofSanctionsRoot, bool retrievedIsStrict) = InputsExtractor.getSanctionsProofInputs(commitments);
+    (bytes32 proofSanctionsRoot, bool retrievedIsStrict) = InputsExtractor.getSanctionsProofInputs(committedInputs);
     require(isStrict == retrievedIsStrict, "Invalid sanctions check mode");
-    // TODO: Change me
-    uint256 currentTimestamp = block.timestamp;
     return rootRegistry.isRootValid(SANCTIONS_REGISTRY_ID, proofSanctionsRoot, currentTimestamp);
   }
 
 
   /**
    * @notice Enforces that the proof checks against the expected sanction list(s)
+   * @param currentTimestamp The current timestamp (preferably from the proof rather than the block timestamp).
+   * This is used to check the validity of the sanctions root at that specific time.
    * @param isStrict Whether the sanctions check was strict or not
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    */
   function enforceSanctionsRoot(
+    uint256 currentTimestamp,
     bool isStrict,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) external view {
-    bool isValid = _isSanctionsRootValid(isStrict, commitments);
+    bool isValid = _isSanctionsRootValid(currentTimestamp, isStrict, committedInputs);
     require(isValid, "Invalid sanctions registry root");
   }
 
@@ -465,15 +471,15 @@ contract ZKPassportHelper {
    * @notice Checks if the proof is tied to a FaceMatch verification
    * @param faceMatchMode The FaceMatch mode expected to be used in the verification
    * @param os The operating system on which the proof should have been generated (Any (0), iOS (1), Android (2))
-   * @param commitments The commitments
+   * @param committedInputs The committed inputs
    * @return True if the proof is tied to a valid FaceMatch verification, false otherwise
    */
   function isFaceMatchVerified(
     FaceMatchMode faceMatchMode,
     OS os,
-    Commitments calldata commitments
+    bytes calldata committedInputs
   ) external pure returns (bool) {
-    (bytes32 rootKeyHash, Environment environment, bytes32 appIdHash, bytes32 integrityPublicKeyHash, FaceMatchMode retrievedFaceMatchMode) = InputsExtractor.getFacematchProofInputs(commitments);
+    (bytes32 rootKeyHash, Environment environment, bytes32 appIdHash, bytes32 integrityPublicKeyHash, FaceMatchMode retrievedFaceMatchMode) = InputsExtractor.getFacematchProofInputs(committedInputs);
     bool isProduction = environment == Environment.PRODUCTION;
     bool isCorrectMode = retrievedFaceMatchMode == faceMatchMode;
     bool isCorrectRootKeyHash = (rootKeyHash == AppAttest.APPLE_ROOT_KEY_HASH && (os == OS.IOS || os == OS.ANY)) || (rootKeyHash == AppAttest.GOOGLE_RSA_ROOT_KEY_HASH && (os == OS.ANDROID || os == OS.ANY));
@@ -484,13 +490,23 @@ contract ZKPassportHelper {
   }
 
   /**
+   * @notice Gets the timestamp the proof was generated at
+   * @param publicInputs The public inputs of the proof
+   * @return The timestamp the proof was generated at
+   */
+  function getProofTimestamp(
+    bytes32[] calldata publicInputs
+  ) external pure returns (uint256) {
+    return uint256(publicInputs[PublicInput.CURRENT_DATE_INDEX]);
+  }
+
+  /**
    * @notice Verifies that the proof was generated for the given scope (domain) and subscope (service scope)
    * @param publicInputs The public inputs of the proof
    * @param scope The scope (domain) to check against
    * @param subscope The subscope (service scope) to check against
    * @return True if valid, false otherwise
    */
-   // TODO: Is this needed in *both* the sub verifier and the helper?
   function verifyScopes(
     bytes32[] calldata publicInputs,
     string calldata scope,

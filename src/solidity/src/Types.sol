@@ -88,34 +88,17 @@ enum OS {
 // │       ├── [5+N] nullifier_type           // u8 - PublicInputsCast.getNullifierType(array, paramCount)
 // │       └── [6+N] scoped_nullifier         // Field - PublicInputsCast.getScopedNullifier(array, paramCount)
 // │
-// ├── Commitments commitments
-// │   ├── bytes committedInputs              // Preimages of param_commitments
+// ├── bytes committedInputs              // Preimages of param_commitments
 // │
 // └── ServiceConfig serviceConfig
 //     ├── uint256 validityPeriodInSeconds    // How long the proof is valid
 //     ├── string domain                      // Service domain
 //     ├── string scope                       // Service scope
 //     └── bool devMode                       // Development mode flag
-
-// Group parameters for the proof verification
-//
-// publicInputs:
-// - 0: certificate_registry_root: pub Field,
-// - 1: circuit_registry_root: pub Field,
-// - 2: current_date: pub u64,
-// - 3: service_scope: pub Field,
-// - 4: service_subscope: pub Field,
-// - 5:5+N: param_commitments: pub [Field; N],
-// - 5+N: nullifier_type: pub u8,
-// - 6+N: scoped_nullifier: pub Field,
-//
-// committedInputs: the preimages of the `param_commitments` of the disclosure proofs.
-// committedInputCounts: offsets to locate the committedInputs of each of the param_commitments of the public_inputs.
 struct ProofVerificationParams {
   uint256 version;
   ProofVerificationData proofVerificationData;
-  // TODO: Change this to just `bytes committedInputs`
-  Commitments commitments;
+  bytes committedInputs;
   ServiceConfig serviceConfig;
 }
 
@@ -123,11 +106,6 @@ struct ProofVerificationData {
   bytes32 vkeyHash;
   bytes proof;
   bytes32[] publicInputs;
-}
-
-// TODO: Remove this
-struct Commitments {
-  bytes committedInputs;
 }
 
 struct ServiceConfig {
