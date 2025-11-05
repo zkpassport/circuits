@@ -313,6 +313,10 @@ impl SanctionsSparseMerkleTrees {
         Self { tree: 0x06caac33440d8a83b838f07ba0e2bbe7e9889f10915efcb37396534f1feadac5 }
     }
 
+    pub fn new(root: Field) -> Self {
+        Self { tree: root }
+    }
+
     pub fn root(self: Self) -> Field {
         self.tree
     }

@@ -118,7 +118,14 @@ const processFile = async (
     `${snakeToPascal(outputName)}.sol`.replace("Evm", ""),
   )
   try {
-    // Skip if output file already exists
+    // Read the input file and check whether it contains the string "unconstrained main"
+    const inputContent = fs.readFileSync(inputPath, "utf-8")
+    const isUnconstrained = inputContent.includes("unconstrained main")
+
+    if (isUnconstrained) {
+      throw new Error(`Unconstrained circuit detected: ${file}. Please remove any unconstrained circuits and rebuild them constrained.`)
+    }
+
     if (fs.existsSync(outputPath)) {
       console.log(`Skipping ${file} (already packaged)`)
       return true
