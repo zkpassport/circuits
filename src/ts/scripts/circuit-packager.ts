@@ -147,8 +147,10 @@ const processFile = async (
       await execPromise(`bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`)
     }
     if (generateSolidityVerifier) {
+      // Warning: Make sure to use a bb binary generated using the latest commit of ZKPassport's aztec-packages
+      // c.f. https://github.com/zkpassport/aztec-packages/commit/a4f7c39e15e7835c1f5f491168afa4aaac286894
       await execPromise(
-        `bb write_solidity_verifier --scheme ultra_honk --disable_zk -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
+        `bb write_solidity_verifier --scheme ultra_honk --disable_zk --optimized -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
       )
     }
 
