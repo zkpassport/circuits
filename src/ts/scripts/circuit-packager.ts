@@ -144,7 +144,7 @@ const processFile = async (
     }
     if (generateSolidityVerifier) {
       await execPromise(
-        `bb write_solidity_verifier --scheme ultra_honk --disable_zk -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
+        `bb write_solidity_verifier --scheme ultra_honk --disable_zk --optimized -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
       )
     }
 
