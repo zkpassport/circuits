@@ -111,7 +111,7 @@ contract ZKPassportRootVerifier {
   function addSubVerifier(uint256 version, ZKPassportSubVerifier subVerifier) external onlyAdmin {
     require(address(subVerifier) != address(0), "Sub verifier cannot be zero address");
     require(version > 0, "Version must be greater than 0");
-    require((address)(subverifiers[version]) == address(0), "Sub verifier already exists for version");
+    require(address(subverifiers[version]) == address(0), "Sub verifier already exists for version");
     subverifiers[version] = subVerifier;
     emit SubVerifierAdded(version, address(subVerifier));
   }
@@ -136,7 +136,7 @@ contract ZKPassportRootVerifier {
   function updateSubVerifier(uint256 version, address newSubVerifier) external onlyAdmin {
     require(version > 0, "Version must be greater than 0");
     require(newSubVerifier != address(0), "Sub verifier cannot be zero address");
-    require((address)(subverifiers[version]) != address(0), "Sub verifier not found for version");
+    require(address(subverifiers[version]) != address(0), "Sub verifier not found for version");
     address oldSubVerifier = address(subverifiers[version]);
     subverifiers[version] = ZKPassportSubVerifier(newSubVerifier);
     emit SubVerifierUpdated(version, oldSubVerifier, newSubVerifier);
@@ -150,7 +150,7 @@ contract ZKPassportRootVerifier {
   function addHelper(uint256 version, address newHelper) external onlyAdmin {
     require(newHelper != address(0), "Helper cannot be zero address");
     require(version > 0, "Version must be greater than 0");
-    require((address)(helpers[version]) == address(0), "Helper already exists for version");
+    require(address(helpers[version]) == address(0), "Helper already exists for version");
     helpers[version] = ZKPassportHelper(newHelper);
     emit HelperAdded(version, newHelper);
   }
@@ -175,7 +175,7 @@ contract ZKPassportRootVerifier {
   function updateHelper(uint256 version, address newHelper) external onlyAdmin {
     require(version > 0, "Version must be greater than 0");
     require(newHelper != address(0), "Helper cannot be zero address");
-    require((address)(helpers[version]) != address(0), "Helper not found for version");
+    require(address(helpers[version]) != address(0), "Helper not found for version");
     address oldHelper = address(helpers[version]);
     helpers[version] = ZKPassportHelper(newHelper);
     emit HelperUpdated(version, oldHelper, newHelper);
