@@ -69,7 +69,7 @@ abstract contract ZKPassportTest is Test {
     // Deploy root verifier
     ZKPassportRootVerifier rootVerifier = new ZKPassportRootVerifier(admin, guardian, rootRegistry);
     // Deploy sub verifier
-    ZKPassportSubVerifier subVerifier = new ZKPassportSubVerifier(rootVerifier);
+    ZKPassportSubVerifier subVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
     // Add sub verifier to root verifier
     vm.prank(admin);
     rootVerifier.addSubVerifier(VERIFIER_VERSION, subVerifier);
@@ -84,6 +84,7 @@ abstract contract ZKPassportTest is Test {
       verifier: fixtures.allSubproofs.verifier
     });
     // Add proof verifiers to sub verifier
+    vm.prank(admin);
     subVerifier.addProofVerifiers(proofVerifiers);
     // Deploy helper
     ZKPassportHelper helper = new ZKPassportHelper(rootRegistry);

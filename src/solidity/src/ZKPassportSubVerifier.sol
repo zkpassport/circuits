@@ -29,11 +29,12 @@ contract ZKPassportSubVerifier {
 
   /**
    * @dev Constructor
+   * @param _admin The admin address
    * @param _rootVerifier The address of the ZKPassport root verifier
    */
-  constructor(RootVerifier _rootVerifier) {
-    require(msg.sender != address(0), "Admin cannot be zero address");
-    admin = msg.sender;
+  constructor(address _admin, RootVerifier _rootVerifier) {
+    require(_admin != address(0), "Admin cannot be zero address");
+    admin = _admin;
     require(address(_rootVerifier) != address(0), "Root verifier cannot be zero address");
     rootVerifier = _rootVerifier;
     emit ZKPassportSubVerifierDeployed(admin, address(_rootVerifier));
