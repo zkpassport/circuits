@@ -20,10 +20,10 @@ contract ZKPassportRootVerifier {
   IRootRegistry public rootRegistry;
 
   // Subverifier mapping
-  mapping(uint256 => ZKPassportSubVerifier) public subverifiers;
+  mapping(bytes32 => ZKPassportSubVerifier) public subverifiers;
 
   // Helper mapping
-  mapping(uint256 => ZKPassportHelper) public helpers;
+  mapping(bytes32 => ZKPassportHelper) public helpers;
 
   // Config mapping
   mapping(bytes32 key => bytes32 value) public config;
@@ -33,12 +33,12 @@ contract ZKPassportRootVerifier {
   event AdminUpdated(address indexed oldAdmin, address indexed newAdmin);
   event GuardianUpdated(address indexed oldGuardian, address indexed newGuardian);
   event RootRegistryUpdated(address indexed oldRootRegistry, address indexed newRootRegistry);
-  event SubVerifierAdded(uint256 indexed version, address indexed subVerifier);
-  event SubVerifierRemoved(uint256 indexed version, address indexed subVerifier);
-  event SubVerifierUpdated(uint256 indexed version, address indexed oldSubVerifier, address indexed newSubVerifier);
-  event HelperAdded(uint256 indexed version, address indexed helper);
-  event HelperRemoved(uint256 indexed version, address indexed helper);
-  event HelperUpdated(uint256 indexed version, address indexed oldHelper, address indexed newHelper);
+  event SubVerifierAdded(bytes32 indexed version, address indexed subVerifier);
+  event SubVerifierRemoved(bytes32 indexed version, address indexed subVerifier);
+  event SubVerifierUpdated(bytes32 indexed version, address indexed oldSubVerifier, address indexed newSubVerifier);
+  event HelperAdded(bytes32 indexed version, address indexed helper);
+  event HelperRemoved(bytes32 indexed version, address indexed helper);
+  event HelperUpdated(bytes32 indexed version, address indexed oldHelper, address indexed newHelper);
   event PausedStatusChanged(bool paused);
   event ConfigUpdated(bytes32 indexed key, bytes32 oldValue, bytes32 newValue);
 
@@ -111,12 +111,12 @@ contract ZKPassportRootVerifier {
 
   /**
    * @notice Adds a subverifier for a specific version
-   * @param version The version number
+   * @param version The version identifier
    * @param subVerifier The address of the subverifier
    */
-  function addSubVerifier(uint256 version, ZKPassportSubVerifier subVerifier) external onlyAdmin {
+  function addSubVerifier(bytes32 version, ZKPassportSubVerifier subVerifier) external onlyAdmin {
     require(address(subVerifier) != address(0), "Subverifier cannot be zero address");
-    require(version > 0, "Version must be greater than 0");
+    require(version != bytes32(0), "Version cannot be zero");
     require(address(subverifiers[version]) == address(0), "Subverifier already exists for version");
     subverifiers[version] = subVerifier;
     emit SubVerifierAdded(version, address(subVerifier));
@@ -124,11 +124,10 @@ contract ZKPassportRootVerifier {
 
   /**
    * @notice Removes a subverifier for a specific version
-   * @param version The version number
+   * @param version The version identifier
    */
-  function removeSubVerifier(uint256 version) external onlyAdmin {
-    require(version > 0, "Version must be greater than 0");
-    require(version > 0, "Version must be greater than 0");
+  function removeSubVerifier(bytes32 version) external onlyAdmin {
+    require(version != bytes32(0), "Version cannot be zero");
     address subVerifier = address(subverifiers[version]);
     require(subVerifier != address(0), "Subverifier not found for version");
     delete subverifiers[version];
@@ -137,11 +136,11 @@ contract ZKPassportRootVerifier {
 
   /**
    * @notice Updates a subverifier for a specific version
-   * @param version The version number
+   * @param version The version identifier
    * @param newSubVerifier The address of the new subverifier
    */
-  function updateSubVerifier(uint256 version, address newSubVerifier) external onlyAdmin {
-    require(version > 0, "Version must be greater than 0");
+  function updateSubVerifier(bytes32 version, address newSubVerifier) external onlyAdmin {
+    require(version != bytes32(0), "Version cannot be zero");
     require(newSubVerifier != address(0), "Subverifier cannot be zero address");
     require(address(subverifiers[version]) != address(0), "Subverifier not found for version");
     address oldSubVerifier = address(subverifiers[version]);
@@ -152,21 +151,21 @@ contract ZKPassportRootVerifier {
   /**
    * @notice Gets the subverifier address for a specific version
    * @dev Returns zero address if no subverifier exists for the given version
-   * @param version The version number
+   * @param version The version identifier
    * @return The address of the subverifier contract, or zero address if not found
    */
-  function getSubVerifier(uint256 version) external view returns (address) {
+  function getSubVerifier(bytes32 version) external view returns (address) {
     return address(subverifiers[version]);
   }
 
   /**
    * @notice Adds a helper for a specific version
-   * @param version The version number
+   * @param version The version identifier
    * @param newHelper The address of the helper
    */
-  function addHelper(uint256 version, address newHelper) external onlyAdmin {
+  function addHelper(bytes32 version, address newHelper) external onlyAdmin {
     require(newHelper != address(0), "Helper cannot be zero address");
-    require(version > 0, "Version must be greater than 0");
+    require(version != bytes32(0), "Version cannot be zero");
     require(address(helpers[version]) == address(0), "Helper already exists for version");
     helpers[version] = ZKPassportHelper(newHelper);
     emit HelperAdded(version, newHelper);
@@ -174,10 +173,10 @@ contract ZKPassportRootVerifier {
 
   /**
    * @notice Removes a helper for a specific version
-   * @param version The version number
+   * @param version The version identifier
    */
-  function removeHelper(uint256 version) external onlyAdmin {
-    require(version > 0, "Version must be greater than 0");
+  function removeHelper(bytes32 version) external onlyAdmin {
+    require(version != bytes32(0), "Version cannot be zero");
     address helper = address(helpers[version]);
     require(helper != address(0), "Helper not found for version");
     delete helpers[version];
@@ -186,11 +185,11 @@ contract ZKPassportRootVerifier {
 
   /**
    * @notice Updates a helper for a specific version
-   * @param version The version number
+   * @param version The version identifier
    * @param newHelper The address of the new helper
    */
-  function updateHelper(uint256 version, address newHelper) external onlyAdmin {
-    require(version > 0, "Version must be greater than 0");
+  function updateHelper(bytes32 version, address newHelper) external onlyAdmin {
+    require(version != bytes32(0), "Version cannot be zero");
     require(newHelper != address(0), "Helper cannot be zero address");
     require(address(helpers[version]) != address(0), "Helper not found for version");
     address oldHelper = address(helpers[version]);
@@ -201,10 +200,10 @@ contract ZKPassportRootVerifier {
   /**
    * @notice Gets the helper address for a specific version
    * @dev Returns zero address if no helper exists for the given version
-   * @param version The version number
+   * @param version The version identifier
    * @return The address of the helper contract, or zero address if not found
    */
-  function getHelper(uint256 version) external view returns (address) {
+  function getHelper(bytes32 version) external view returns (address) {
     return address(helpers[version]);
   }
 

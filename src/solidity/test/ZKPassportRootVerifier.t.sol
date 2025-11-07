@@ -312,7 +312,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
 
   function testAddSubVerifier() public {
     ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(rootVerifier);
-    uint256 newVersion = 2;
+    bytes32 newVersion = bytes32(uint256(2));
 
     // Admin adds new subverifier
     vm.prank(admin);
@@ -324,7 +324,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
 
   function testOnlyAdminCanAddSubVerifier() public {
     ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(rootVerifier);
-    uint256 newVersion = 2;
+    bytes32 newVersion = bytes32(uint256(2));
 
     // User tries to add subverifier
     vm.prank(user);
@@ -342,15 +342,15 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
 
     // Admin tries to add subverifier to version 0
     vm.prank(admin);
-    vm.expectRevert("Version must be greater than 0");
-    rootVerifier.addSubVerifier(0, newSubVerifier);
+    vm.expectRevert("Version cannot be zero");
+    rootVerifier.addSubVerifier(bytes32(0), newSubVerifier);
   }
 
   function testCannotAddZeroAddressSubVerifier() public {
     // Admin tries to add zero address as subverifier
     vm.prank(admin);
     vm.expectRevert("Subverifier cannot be zero address");
-    rootVerifier.addSubVerifier(2, ZKPassportSubVerifier(address(0)));
+    rootVerifier.addSubVerifier(bytes32(uint256(2)), ZKPassportSubVerifier(address(0)));
   }
 
   function testCannotAddSubVerifierToExistingVersion() public {
@@ -402,13 +402,13 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     // Admin tries to update non-existent subverifier
     vm.prank(admin);
     vm.expectRevert("Subverifier not found for version");
-    rootVerifier.updateSubVerifier(999, address(newSubVerifier));
+    rootVerifier.updateSubVerifier(bytes32(uint256(999)), address(newSubVerifier));
   }
 
   function testRemoveSubVerifier() public {
     // Add a new subverifier first
     ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(rootVerifier);
-    uint256 newVersion = 2;
+    bytes32 newVersion = bytes32(uint256(2));
     vm.prank(admin);
     rootVerifier.addSubVerifier(newVersion, newSubVerifier);
 
@@ -439,13 +439,13 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     // Admin tries to remove non-existent subverifier
     vm.prank(admin);
     vm.expectRevert("Subverifier not found for version");
-    rootVerifier.removeSubVerifier(999);
+    rootVerifier.removeSubVerifier(bytes32(uint256(999)));
   }
 
   function testAddHelper() public {
     IRootRegistry rootRegistry = IRootRegistry(address(0x1234));
     ZKPassportHelper newHelper = new ZKPassportHelper(rootRegistry);
-    uint256 newVersion = 2;
+    bytes32 newVersion = bytes32(uint256(2));
 
     // Admin adds new helper
     vm.prank(admin);
@@ -460,7 +460,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   function testOnlyAdminCanAddHelper() public {
     IRootRegistry rootRegistry = IRootRegistry(address(0x1234));
     ZKPassportHelper newHelper = new ZKPassportHelper(rootRegistry);
-    uint256 newVersion = 2;
+    bytes32 newVersion = bytes32(uint256(2));
 
     // User tries to add helper
     vm.prank(user);
@@ -479,15 +479,15 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
 
     // Admin tries to add helper to version 0
     vm.prank(admin);
-    vm.expectRevert("Version must be greater than 0");
-    rootVerifier.addHelper(0, address(newHelper));
+    vm.expectRevert("Version cannot be zero");
+    rootVerifier.addHelper(bytes32(0), address(newHelper));
   }
 
   function testCannotAddZeroAddressHelper() public {
     // Admin tries to add zero address as helper
     vm.prank(admin);
     vm.expectRevert("Helper cannot be zero address");
-    rootVerifier.addHelper(2, address(0));
+    rootVerifier.addHelper(bytes32(uint256(2)), address(0));
   }
 
   function testCannotAddHelperToExistingVersion() public {
@@ -543,14 +543,14 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     // Admin tries to update non-existent helper
     vm.prank(admin);
     vm.expectRevert("Helper not found for version");
-    rootVerifier.updateHelper(999, address(newHelper));
+    rootVerifier.updateHelper(bytes32(uint256(999)), address(newHelper));
   }
 
   function testRemoveHelper() public {
     // Add a new helper first
     IRootRegistry rootRegistry = IRootRegistry(address(0x1234));
     ZKPassportHelper newHelper = new ZKPassportHelper(rootRegistry);
-    uint256 newVersion = 2;
+    bytes32 newVersion = bytes32(uint256(2));
     vm.prank(admin);
     rootVerifier.addHelper(newVersion, address(newHelper));
 
@@ -579,7 +579,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     // Admin tries to remove non-existent helper
     vm.prank(admin);
     vm.expectRevert("Helper not found for version");
-    rootVerifier.removeHelper(999);
+    rootVerifier.removeHelper(bytes32(uint256(999)));
   }
 
   function testTransferAdmin() public {
@@ -593,13 +593,13 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     // New admin should be able to add subverifier
     ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(rootVerifier);
     vm.prank(user);
-    rootVerifier.addSubVerifier(2, newSubVerifier);
+    rootVerifier.addSubVerifier(bytes32(uint256(2)), newSubVerifier);
 
     // Old admin should no longer be able to add subverifier
     ZKPassportSubVerifier anotherSubVerifier = new ZKPassportSubVerifier(rootVerifier);
     vm.prank(admin);
     vm.expectRevert("Not authorized: admin only");
-    rootVerifier.addSubVerifier(3, anotherSubVerifier);
+    rootVerifier.addSubVerifier(bytes32(uint256(3)), anotherSubVerifier);
   }
 
   function testCannotTransferAdminToZeroAddress() public {

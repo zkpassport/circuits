@@ -30,7 +30,7 @@ import {IRootRegistry, ProofVerifier} from "../src/Types.sol";
 contract Deploy is Script {
   using stdJson for string;
 
-  uint256 public constant SUB_VERIFIER_VERSION = 1;
+  bytes32 public constant SUB_VERIFIER_VERSION = bytes32(uint256(1));
 
   bytes32[] public vkeyHashes = [
     // Outer (4 subproofs)
@@ -152,7 +152,7 @@ contract Deploy is Script {
     vm.serializeUint(mainJson, "chain_id", block.chainid);
     vm.serializeString(mainJson, "deployment_timestamp", vm.toString(block.timestamp));
     vm.serializeAddress(mainJson, "root_verifier", address(rootVerifier));
-    string memory subVerifierVersion = vm.toString(SUB_VERIFIER_VERSION);
+    string memory subVerifierVersion = vm.toString(uint256(SUB_VERIFIER_VERSION));
     string memory subVerifierVersionString = string.concat("v", subVerifierVersion);
     vm.serializeAddress(mainJson, string.concat("sub_verifier_", subVerifierVersionString), address(subVerifier));
     vm.serializeAddress(mainJson, string.concat("helper_", subVerifierVersionString), address(helper));

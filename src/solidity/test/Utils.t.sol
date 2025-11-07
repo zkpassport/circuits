@@ -16,7 +16,7 @@ import {MockRootRegistry} from "./MockRootRegistry.sol";
 abstract contract ZKPassportTest is Test {
   using stdJson for string;
 
-  uint256 constant VERIFIER_VERSION = 1;
+  bytes32 constant VERIFIER_VERSION = bytes32(uint256(1));
   string constant FIXTURES_CONFIG_PATH = "./test/fixtures/config.json";
 
   struct FixtureConfig {

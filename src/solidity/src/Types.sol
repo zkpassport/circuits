@@ -72,7 +72,7 @@ enum OS {
 
 // ProofVerificationParams
 // │
-// ├── uint256 version                        // Version number of the verifier
+// ├── bytes32 version                        // Version identifier of the verifier
 // │
 // ├── ProofVerificationData proofVerificationData
 // │   ├── bytes32 vkeyHash                   // Verification key hash
@@ -96,7 +96,7 @@ enum OS {
 //     ├── string scope                       // Service scope
 //     └── bool devMode                       // Development mode flag
 struct ProofVerificationParams {
-  uint256 version;
+  bytes32 version;
   ProofVerificationData proofVerificationData;
   bytes committedInputs;
   ServiceConfig serviceConfig;
@@ -114,7 +114,6 @@ struct ServiceConfig {
   string scope;
   bool devMode;
 }
-
 
 struct DisclosedData {
     string name;
