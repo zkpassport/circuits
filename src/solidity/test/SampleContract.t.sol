@@ -39,16 +39,11 @@ contract SampleContractTest is ZKPassportTest {
     ProofVerificationParams memory params = ProofVerificationParams({
       version: VERIFIER_VERSION,
       proofVerificationData: ProofVerificationData({
-        vkeyHash: fixtures.allSubproofs.vkeyHash,
-        proof: data.proof,
-        publicInputs: data.publicInputs
+        vkeyHash: fixtures.allSubproofs.vkeyHash, proof: data.proof, publicInputs: data.publicInputs
       }),
       committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days,
-        domain: "zkpassport.id",
-        scope: "bigproof",
-        devMode: false
+        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
       })
     });
 

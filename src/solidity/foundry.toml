@@ -15,6 +15,15 @@ fs_permissions = [{ access = "read-write", path = "./"}]
 [lint]
 exclude_lints = ["screaming-snake-case-immutable", "unwrapped-modifier-logic"]
 
+[fmt]
+tab_width = 2
+ignore = [
+  "src/ultra-honk-verifiers",
+  "src/SampleContract.sol",
+  "src/Constants.sol",
+  "test/Constants.t.sol",
+]
+
 # Ethereum Sepolia configuration
 [rpc_endpoints]
 anvil = "http://127.0.0.1:8545"

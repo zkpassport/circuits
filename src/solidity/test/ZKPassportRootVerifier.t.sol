@@ -16,7 +16,16 @@ import {IRootRegistry} from "../src/IRootRegistry.sol";
 import {ZKPassportSubVerifier} from "../src/ZKPassportSubVerifier.sol";
 import {ZKPassportHelper} from "../src/ZKPassportHelper.sol";
 import {CommittedInputLen} from "../src/Constants.sol";
-import {DisclosedData, BoundData, FaceMatchMode, ProofVerificationData, ServiceConfig, OS, ProofType, ProofVerificationParams} from "../src/Types.sol";
+import {
+  DisclosedData,
+  BoundData,
+  FaceMatchMode,
+  ProofVerificationData,
+  ServiceConfig,
+  OS,
+  ProofType,
+  ProofVerificationParams
+} from "../src/Types.sol";
 
 contract ZKPassportRootVerifierTest is ZKPassportTest {
   ZKPassportRootVerifier public rootVerifier;
@@ -42,16 +51,11 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     ProofVerificationParams memory params = ProofVerificationParams({
       version: VERIFIER_VERSION,
       proofVerificationData: ProofVerificationData({
-        vkeyHash: fixtures.valid.vkeyHash,
-        proof: data.proof,
-        publicInputs: data.publicInputs
+        vkeyHash: fixtures.valid.vkeyHash, proof: data.proof, publicInputs: data.publicInputs
       }),
       committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days,
-        domain: "zkpassport.id",
-        scope: "bigproof",
-        devMode: false
+        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
       })
     });
 
@@ -88,16 +92,11 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     ProofVerificationParams memory params = ProofVerificationParams({
       version: VERIFIER_VERSION,
       proofVerificationData: ProofVerificationData({
-        vkeyHash: fixtures.valid.vkeyHash,
-        proof: data.proof,
-        publicInputs: data.publicInputs
+        vkeyHash: fixtures.valid.vkeyHash, proof: data.proof, publicInputs: data.publicInputs
       }),
-     committedInputs: data.committedInputs,
+      committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days,
-        domain: "zkpassport.id",
-        scope: "bigproof",
-        devMode: false
+        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
       })
     });
     (bool result, bytes32 scopedNullifier, ZKPassportHelper helper) = rootVerifier.verify(params);
@@ -126,16 +125,11 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     ProofVerificationParams memory params = ProofVerificationParams({
       version: VERIFIER_VERSION,
       proofVerificationData: ProofVerificationData({
-        vkeyHash: fixtures.allSubproofs.vkeyHash,
-        proof: data.proof,
-        publicInputs: data.publicInputs
+        vkeyHash: fixtures.allSubproofs.vkeyHash, proof: data.proof, publicInputs: data.publicInputs
       }),
       committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days,
-        domain: "zkpassport.id",
-        scope: "bigproof",
-        devMode: false
+        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
       })
     });
 
@@ -159,10 +153,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     countryList[1] = "FRA";
     countryList[2] = "USA";
     countryList[3] = "GBR";
-    bool isNationalityIn = helper.isNationalityIn(
-      countryList,
-      params.committedInputs
-    );
+    bool isNationalityIn = helper.isNationalityIn(countryList, params.committedInputs);
     logGas("ZKPassportHelper.isNationalityIn");
     assertEq(isNationalityIn, true, "isNationalityIn should return true");
 
@@ -171,10 +162,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     exclusionCountryList[0] = "ESP";
     exclusionCountryList[1] = "ITA";
     exclusionCountryList[2] = "PRT";
-    bool isIssuingCountryOut = helper.isIssuingCountryOut(
-      exclusionCountryList,
-      params.committedInputs
-    );
+    bool isIssuingCountryOut = helper.isIssuingCountryOut(exclusionCountryList, params.committedInputs);
     logGas("ZKPassportHelper.isIssuingCountryOut");
     assertEq(isIssuingCountryOut, true, "isIssuingCountryOut should return true");
   }
@@ -187,36 +175,29 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     ProofVerificationParams memory params = ProofVerificationParams({
       version: VERIFIER_VERSION,
       proofVerificationData: ProofVerificationData({
-        vkeyHash: fixtures.allSubproofs.vkeyHash,
-        proof: data.proof,
-        publicInputs: data.publicInputs
+        vkeyHash: fixtures.allSubproofs.vkeyHash, proof: data.proof, publicInputs: data.publicInputs
       }),
-     committedInputs: data.committedInputs,
+      committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days,
-        domain: "zkpassport.id",
-        scope: "bigproof",
-        devMode: false
+        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
       })
     });
     (bool result, bytes32 scopedNullifier, ZKPassportHelper helper) = rootVerifier.verify(params);
     assertEq(result, true, "Proof should verify successfully");
-    assertEq(scopedNullifier, bytes32(0x171de101deed3f056917faecfe6cc04db2ef02689a8a483962a688948ce44461), "Scoped nullifier should match");
+    assertEq(
+      scopedNullifier,
+      bytes32(0x171de101deed3f056917faecfe6cc04db2ef02689a8a483962a688948ce44461),
+      "Scoped nullifier should match"
+    );
 
     vm.startSnapshotGas("ZKPassportHelper.isBirthdateBeforeOrEqual");
-    bool isBirthdateBeforeOrEqual = helper.isBirthdateBeforeOrEqual(
-        currentDate,
-        params.committedInputs
-      );
+    bool isBirthdateBeforeOrEqual = helper.isBirthdateBeforeOrEqual(currentDate, params.committedInputs);
     logGas("ZKPassportHelper.isBirthdateBeforeOrEqual");
     assertEq(isBirthdateBeforeOrEqual, true, "isBirthdateBeforeOrEqual should return true");
 
     {
       vm.startSnapshotGas("ZKPassportHelper.isExpiryDateAfterOrEqual");
-      bool isExpiryDateAfterOrEqual = helper.isExpiryDateAfterOrEqual(
-          currentDate,
-          params.committedInputs
-        );
+      bool isExpiryDateAfterOrEqual = helper.isExpiryDateAfterOrEqual(currentDate, params.committedInputs);
       logGas("ZKPassportHelper.isExpiryDateAfterOrEqual");
       assertEq(isExpiryDateAfterOrEqual, true, "isExpiryDateAfterOrEqual should return true");
     }
@@ -227,10 +208,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       countryList[1] = "FRA";
       countryList[2] = "USA";
       countryList[3] = "GBR";
-      bool isIssuingCountryIn = helper.isIssuingCountryIn(
-        countryList,
-        params.committedInputs
-      );
+      bool isIssuingCountryIn = helper.isIssuingCountryIn(countryList, params.committedInputs);
       logGas("ZKPassportHelper.isIssuingCountryIn");
       assertEq(isIssuingCountryIn, true, "isIssuingCountryIn should return true");
     }
@@ -248,11 +226,23 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       logGas("ZKPassportHelper.isFaceMatchVerified");
       assertEq(isFacematchVerified, true, "isFaceMatchVerified should return true");
       // Should be false because the facematch mode is not strict but regular
-      assertEq(helper.isFaceMatchVerified(FaceMatchMode.STRICT, OS.IOS, params.committedInputs), false, "isFaceMatchVerified should return false");
+      assertEq(
+        helper.isFaceMatchVerified(FaceMatchMode.STRICT, OS.IOS, params.committedInputs),
+        false,
+        "isFaceMatchVerified should return false"
+      );
       // Should be false because the OS is not iOS
-      assertEq(helper.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANDROID, params.committedInputs), false, "isFaceMatchVerified should return false");
+      assertEq(
+        helper.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANDROID, params.committedInputs),
+        false,
+        "isFaceMatchVerified should return false"
+      );
       // Should be true because the OS is any
-      assertEq(helper.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANY, params.committedInputs), true, "isFaceMatchVerified should return true");
+      assertEq(
+        helper.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.ANY, params.committedInputs),
+        true,
+        "isFaceMatchVerified should return true"
+      );
     }
   }
 
@@ -296,16 +286,11 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     ProofVerificationParams memory params = ProofVerificationParams({
       version: VERIFIER_VERSION,
       proofVerificationData: ProofVerificationData({
-        vkeyHash: fixtures.valid.vkeyHash,
-        proof: data.proof,
-        publicInputs: data.publicInputs
+        vkeyHash: fixtures.valid.vkeyHash, proof: data.proof, publicInputs: data.publicInputs
       }),
       committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days,
-        domain: "zkpassport.id",
-        scope: "bigproof",
-        devMode: false
+        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
       })
     });
 

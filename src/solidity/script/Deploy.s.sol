@@ -137,10 +137,7 @@ contract Deploy is Script {
     console.log("Adding proof verifiers to the sub verifier...");
     ProofVerifier[] memory proofVerifiersArray = new ProofVerifier[](10);
     for (uint256 i = 0; i < 10; i++) {
-      proofVerifiersArray[i] = ProofVerifier({
-        vkeyHash: vkeyHashes[i],
-        verifier: proofVerifiers[i]
-      });
+      proofVerifiersArray[i] = ProofVerifier({vkeyHash: vkeyHashes[i], verifier: proofVerifiers[i]});
     }
     subVerifier.addProofVerifiers(proofVerifiersArray);
     console.log("Proof verifiers added to the sub verifier");

@@ -83,14 +83,9 @@ abstract contract ZKPassportTest is Test {
     rootVerifier.addSubVerifier(VERIFIER_VERSION, subVerifier);
     // Deploy proof verifiers
     ProofVerifier[] memory proofVerifiers = new ProofVerifier[](2);
-    proofVerifiers[0] = ProofVerifier({
-      vkeyHash: fixtures.valid.vkeyHash,
-      verifier: fixtures.valid.verifier
-    });
-    proofVerifiers[1] = ProofVerifier({
-      vkeyHash: fixtures.allSubproofs.vkeyHash,
-      verifier: fixtures.allSubproofs.verifier
-    });
+    proofVerifiers[0] = ProofVerifier({vkeyHash: fixtures.valid.vkeyHash, verifier: fixtures.valid.verifier});
+    proofVerifiers[1] =
+      ProofVerifier({vkeyHash: fixtures.allSubproofs.vkeyHash, verifier: fixtures.allSubproofs.verifier});
     // Add proof verifiers to sub verifier
     vm.prank(admin);
     subVerifier.addProofVerifiers(proofVerifiers);
@@ -162,7 +157,7 @@ abstract contract ZKPassportTest is Test {
       string[] memory inputs = vm.parseJsonStringArray(inputsJson, ".inputs");
       bytes32[] memory result = new bytes32[](inputs.length);
 
-      for (uint i = 0; i < inputs.length; i++) {
+      for (uint256 i = 0; i < inputs.length; i++) {
         result[i] = vm.parseBytes32(inputs[i]);
       }
 
@@ -177,12 +172,12 @@ abstract contract ZKPassportTest is Test {
   /**
    * @dev Helper function to slice a string
    */
-  function slice(string memory s, uint start, uint length) internal pure returns (string memory) {
+  function slice(string memory s, uint256 start, uint256 length) internal pure returns (string memory) {
     bytes memory b = bytes(s);
     require(start + length <= b.length, "String slice out of bounds");
 
     bytes memory result = new bytes(length);
-    for (uint i = 0; i < length; i++) {
+    for (uint256 i = 0; i < length; i++) {
       result[i] = b[start + i];
     }
 

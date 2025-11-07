@@ -105,14 +105,14 @@ struct ServiceConfig {
 }
 
 struct DisclosedData {
-    string name;
-    string issuingCountry;
-    string nationality;
-    string gender;
-    string birthDate;
-    string expiryDate;
-    string documentNumber;
-    string documentType;
+  string name;
+  string issuingCountry;
+  string nationality;
+  string gender;
+  string birthDate;
+  string expiryDate;
+  string documentNumber;
+  string documentType;
 }
 
 struct BoundData {

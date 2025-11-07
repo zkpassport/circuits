@@ -42,7 +42,7 @@ contract SubVerifierTest is ZKPassportTest {
     bytes memory proof = new bytes(10144);
 
     // Generate some random values for the proof
-    for (uint i = 0; i < 10144; i++) {
+    for (uint256 i = 0; i < 10144; i++) {
       proof[i] = bytes1(uint8(i % 256));
     }
 
@@ -50,7 +50,7 @@ contract SubVerifierTest is ZKPassportTest {
     bytes32[] memory publicInputs = new bytes32[](9);
 
     // Fill with some values
-    for (uint i = 0; i < 9; i++) {
+    for (uint256 i = 0; i < 9; i++) {
       publicInputs[i] = bytes32(uint256(i));
     }
 

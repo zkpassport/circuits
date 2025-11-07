@@ -10,9 +10,9 @@
 pragma solidity ^0.8.30;
 
 /**
-* @title IProofVerifier
-* @dev Interface for a ZKPassport proof verifier
-*/
+ * @title IProofVerifier
+ * @dev Interface for a ZKPassport proof verifier
+ */
 interface IProofVerifier {
-    function verify(bytes calldata _proof, bytes32[] calldata _publicInputs) external view returns (bool);
+  function verify(bytes calldata _proof, bytes32[] calldata _publicInputs) external view returns (bool);
 }

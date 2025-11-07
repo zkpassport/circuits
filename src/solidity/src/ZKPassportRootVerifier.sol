@@ -75,9 +75,12 @@ contract ZKPassportRootVerifier {
    * @return uniqueIdentifier The unique identifier associated with the ID used to generate the proof
    * @return helper The helper for the calling contract to use to verify the committed inputs
    */
-  function verify(
-    ProofVerificationParams calldata params
-  ) external view whenNotPaused returns (bool valid, bytes32 uniqueIdentifier, ZKPassportHelper helper) {
+  function verify(ProofVerificationParams calldata params)
+    external
+    view
+    whenNotPaused
+    returns (bool valid, bytes32 uniqueIdentifier, ZKPassportHelper helper)
+  {
     ZKPassportSubVerifier subverifier = subverifiers[params.version];
     require(address(subverifier) != address(0), "Subverifier not found for version");
     (valid, uniqueIdentifier) = subverifier.verify(rootRegistry, params);
@@ -223,10 +226,10 @@ contract ZKPassportRootVerifier {
   }
 
   /**
-    * @notice Update a config value
-    * @param key The config key
-    * @param value The config value
-    */
+   * @notice Update a config value
+   * @param key The config key
+   * @param value The config value
+   */
   function updateConfig(bytes32 key, bytes32 value) external onlyAdmin {
     bytes32 oldValue = config[key];
     config[key] = value;
@@ -234,22 +237,21 @@ contract ZKPassportRootVerifier {
   }
 
   /**
-    * @notice Pause the root verifier
-    * @dev Only admin or guardian can pause the root verifier
-    * @dev This is a security measure to pause all proof verification operations in the event of an emergency
-    */
+   * @notice Pause the root verifier
+   * @dev Only admin or guardian can pause the root verifier
+   * @dev This is a security measure to pause all proof verification operations in the event of an emergency
+   */
   function pause() external onlyAdminOrGuardian {
     paused = true;
     emit PausedStatusChanged(true);
   }
 
   /**
-    * @notice Unpause the root verifier
-    * @dev Only admin can unpause the root verifier
-    */
+   * @notice Unpause the root verifier
+   * @dev Only admin can unpause the root verifier
+   */
   function unpause() external onlyAdmin {
     paused = false;
     emit PausedStatusChanged(false);
   }
-
 }

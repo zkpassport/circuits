@@ -31,10 +31,11 @@ contract ZKPassportHelper {
    * @param isIDCard Whether the proof is an ID card
    * @return disclosedData The data disclosed by the proof
    */
-  function getDisclosedData(
-    bytes calldata committedInputs,
-    bool isIDCard
-  ) external pure returns (DisclosedData memory disclosedData) {
+  function getDisclosedData(bytes calldata committedInputs, bool isIDCard)
+    external
+    pure
+    returns (DisclosedData memory disclosedData)
+  {
     (, bytes memory discloseBytes) = InputsExtractor.getDiscloseProofInputs(committedInputs);
     disclosedData = InputsExtractor.getDisclosedData(discloseBytes, isIDCard);
   }
@@ -45,10 +46,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the age is above or equal to the given age, false otherwise
    */
-  function isAgeAboveOrEqual(
-    uint8 minAge,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isAgeAboveOrEqual(uint8 minAge, bytes calldata committedInputs) public pure returns (bool) {
     (uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(committedInputs);
     require(max == 0, "The proof upper bound must be 0, please use isAgeBetween instead");
     return minAge == min;
@@ -60,10 +58,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the age is above the given age, false otherwise
    */
-  function isAgeAbove(
-    uint8 minAge,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isAgeAbove(uint8 minAge, bytes calldata committedInputs) public pure returns (bool) {
     return isAgeAboveOrEqual(minAge + 1, committedInputs);
   }
 
@@ -74,11 +69,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the age is in the given range, false otherwise
    */
-  function isAgeBetween(
-    uint8 minAge,
-    uint8 maxAge,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isAgeBetween(uint8 minAge, uint8 maxAge, bytes calldata committedInputs) public pure returns (bool) {
     (uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(committedInputs);
     require(minAge <= maxAge, "Min age must be less than or equal to max age");
     require(min != 0, "The proof lower bound must be non-zero, please use isAgeBelowOrEqual instead");
@@ -92,10 +83,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the age is below or equal to the given age, false otherwise
    */
-  function isAgeBelowOrEqual(
-    uint8 maxAge,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isAgeBelowOrEqual(uint8 maxAge, bytes calldata committedInputs) public pure returns (bool) {
     (uint8 min, uint8 max) = InputsExtractor.getAgeProofInputs(committedInputs);
     require(min == 0, "The proof lower bound must be 0, please use isAgeBetween instead");
     return maxAge == max;
@@ -107,10 +95,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the age is below the given age, false otherwise
    */
-  function isAgeBelow(
-    uint8 maxAge,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isAgeBelow(uint8 maxAge, bytes calldata committedInputs) public pure returns (bool) {
     require(maxAge > 0, "Max age must be greater than 0");
     return isAgeBelowOrEqual(maxAge - 1, committedInputs);
   }
@@ -121,18 +106,15 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the age is equal to the given age, false otherwise
    */
-  function isAgeEqual(
-    uint8 age,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isAgeEqual(uint8 age, bytes calldata committedInputs) public pure returns (bool) {
     return isAgeBetween(age, age, committedInputs);
   }
 
-  function _isDateAfterOrEqual(
-    uint256 minDate,
-    ProofType proofType,
-    bytes calldata committedInputs
-  ) private pure returns (bool) {
+  function _isDateAfterOrEqual(uint256 minDate, ProofType proofType, bytes calldata committedInputs)
+    private
+    pure
+    returns (bool)
+  {
     (uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(committedInputs, proofType);
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
     if (proofType == ProofType.BIRTHDATE) {
@@ -146,12 +128,11 @@ contract ZKPassportHelper {
     }
   }
 
-  function _isDateBetween(
-    uint256 minDate,
-    uint256 maxDate,
-    ProofType proofType,
-    bytes calldata committedInputs
-  ) private pure returns (bool) {
+  function _isDateBetween(uint256 minDate, uint256 maxDate, ProofType proofType, bytes calldata committedInputs)
+    private
+    pure
+    returns (bool)
+  {
     (uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(committedInputs, proofType);
     require(minDate <= maxDate, "Min date must be less than or equal to max date");
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
@@ -168,11 +149,11 @@ contract ZKPassportHelper {
     }
   }
 
-  function _isDateBeforeOrEqual(
-    uint256 maxDate,
-    ProofType proofType,
-    bytes calldata committedInputs
-  ) private pure returns (bool) {
+  function _isDateBeforeOrEqual(uint256 maxDate, ProofType proofType, bytes calldata committedInputs)
+    private
+    pure
+    returns (bool)
+  {
     (uint256 min, uint256 max) = InputsExtractor.getDateProofInputs(committedInputs, proofType);
     require(min == 0, "The proof lower bound must be 0, please use _isDateBetween instead");
     require(proofType == ProofType.BIRTHDATE || proofType == ProofType.EXPIRY_DATE, "Invalid proof type");
@@ -193,10 +174,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the birthdate is after or equal to the given date, false otherwise
    */
-  function isBirthdateAfterOrEqual(
-    uint256 minDate,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isBirthdateAfterOrEqual(uint256 minDate, bytes calldata committedInputs) public pure returns (bool) {
     return _isDateAfterOrEqual(minDate, ProofType.BIRTHDATE, committedInputs);
   }
 
@@ -206,10 +184,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the birthdate is after the given date, false otherwise
    */
-  function isBirthdateAfter(
-    uint256 minDate,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isBirthdateAfter(uint256 minDate, bytes calldata committedInputs) public pure returns (bool) {
     return _isDateAfterOrEqual(minDate + 1 days, ProofType.BIRTHDATE, committedInputs);
   }
 
@@ -220,11 +195,11 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the birthdate is between the given dates, false otherwise
    */
-  function isBirthdateBetween(
-    uint256 minDate,
-    uint256 maxDate,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isBirthdateBetween(uint256 minDate, uint256 maxDate, bytes calldata committedInputs)
+    public
+    pure
+    returns (bool)
+  {
     return _isDateBetween(minDate, maxDate, ProofType.BIRTHDATE, committedInputs);
   }
 
@@ -234,10 +209,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the birthdate is before or equal to the given date, false otherwise
    */
-  function isBirthdateBeforeOrEqual(
-    uint256 maxDate,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isBirthdateBeforeOrEqual(uint256 maxDate, bytes calldata committedInputs) public pure returns (bool) {
     return _isDateBeforeOrEqual(maxDate, ProofType.BIRTHDATE, committedInputs);
   }
 
@@ -247,10 +219,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the birthdate is before the given date, false otherwise
    */
-  function isBirthdateBefore(
-    uint256 maxDate,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isBirthdateBefore(uint256 maxDate, bytes calldata committedInputs) public pure returns (bool) {
     return _isDateBeforeOrEqual(maxDate - 1 days, ProofType.BIRTHDATE, committedInputs);
   }
 
@@ -260,10 +229,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the birthdate is equal to the given date, false otherwise
    */
-  function isBirthdateEqual(
-    uint256 date,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isBirthdateEqual(uint256 date, bytes calldata committedInputs) public pure returns (bool) {
     return _isDateBetween(date, date, ProofType.BIRTHDATE, committedInputs);
   }
 
@@ -273,10 +239,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the expiry date is after or equal to the given date, false otherwise
    */
-  function isExpiryDateAfterOrEqual(
-    uint256 minDate,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isExpiryDateAfterOrEqual(uint256 minDate, bytes calldata committedInputs) public pure returns (bool) {
     return _isDateAfterOrEqual(minDate, ProofType.EXPIRY_DATE, committedInputs);
   }
 
@@ -286,10 +249,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the expiry date is after the given date, false otherwise
    */
-  function isExpiryDateAfter(
-    uint256 minDate,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isExpiryDateAfter(uint256 minDate, bytes calldata committedInputs) public pure returns (bool) {
     return _isDateAfterOrEqual(minDate + 1 days, ProofType.EXPIRY_DATE, committedInputs);
   }
 
@@ -300,11 +260,11 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the expiry date is between the given dates, false otherwise
    */
-  function isExpiryDateBetween(
-    uint256 minDate,
-    uint256 maxDate,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isExpiryDateBetween(uint256 minDate, uint256 maxDate, bytes calldata committedInputs)
+    public
+    pure
+    returns (bool)
+  {
     return _isDateBetween(minDate, maxDate, ProofType.EXPIRY_DATE, committedInputs);
   }
 
@@ -314,10 +274,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the expiry date is before or equal to the given date, false otherwise
    */
-  function isExpiryDateBeforeOrEqual(
-    uint256 maxDate,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isExpiryDateBeforeOrEqual(uint256 maxDate, bytes calldata committedInputs) public pure returns (bool) {
     return _isDateBeforeOrEqual(maxDate, ProofType.EXPIRY_DATE, committedInputs);
   }
 
@@ -327,10 +284,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the expiry date is before the given date, false otherwise
    */
-  function isExpiryDateBefore(
-    uint256 maxDate,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isExpiryDateBefore(uint256 maxDate, bytes calldata committedInputs) public pure returns (bool) {
     return _isDateBeforeOrEqual(maxDate - 1 days, ProofType.EXPIRY_DATE, committedInputs);
   }
 
@@ -340,19 +294,17 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the expiry date is equal to the given date, false otherwise
    */
-  function isExpiryDateEqual(
-    uint256 date,
-    bytes calldata committedInputs
-  ) public pure returns (bool) {
+  function isExpiryDateEqual(uint256 date, bytes calldata committedInputs) public pure returns (bool) {
     return _isDateBetween(date, date, ProofType.EXPIRY_DATE, committedInputs);
   }
 
-  function isCountryInOrOut(
-    string[] memory countryList,
-    ProofType proofType,
-    bytes calldata committedInputs
-  ) private pure returns (bool) {
-    (string[] memory inputCountryList, uint256 inputCountryListLength) = InputsExtractor.getCountryProofInputs(committedInputs, proofType);
+  function isCountryInOrOut(string[] memory countryList, ProofType proofType, bytes calldata committedInputs)
+    private
+    pure
+    returns (bool)
+  {
+    (string[] memory inputCountryList, uint256 inputCountryListLength) =
+      InputsExtractor.getCountryProofInputs(committedInputs, proofType);
     if (countryList.length != inputCountryListLength) {
       return false;
     }
@@ -370,10 +322,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the nationality is in the list of countries, false otherwise
    */
-  function isNationalityIn(
-    string[] memory countryList,
-    bytes calldata committedInputs
-  ) external pure returns (bool) {
+  function isNationalityIn(string[] memory countryList, bytes calldata committedInputs) external pure returns (bool) {
     return isCountryInOrOut(countryList, ProofType.NATIONALITY_INCLUSION, committedInputs);
   }
 
@@ -383,10 +332,11 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the issuing country is in the list of countries, false otherwise
    */
-  function isIssuingCountryIn(
-    string[] memory countryList,
-    bytes calldata committedInputs
-  ) external pure returns (bool) {
+  function isIssuingCountryIn(string[] memory countryList, bytes calldata committedInputs)
+    external
+    pure
+    returns (bool)
+  {
     return isCountryInOrOut(countryList, ProofType.ISSUING_COUNTRY_INCLUSION, committedInputs);
   }
 
@@ -397,10 +347,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the nationality is not in the list of countries, false otherwise
    */
-  function isNationalityOut(
-    string[] memory countryList,
-    bytes calldata committedInputs
-  ) external pure returns (bool) {
+  function isNationalityOut(string[] memory countryList, bytes calldata committedInputs) external pure returns (bool) {
     return isCountryInOrOut(countryList, ProofType.NATIONALITY_EXCLUSION, committedInputs);
   }
 
@@ -411,10 +358,11 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the issuing country is not in the list of countries, false otherwise
    */
-  function isIssuingCountryOut(
-    string[] memory countryList,
-    bytes calldata committedInputs
-  ) external pure returns (bool) {
+  function isIssuingCountryOut(string[] memory countryList, bytes calldata committedInputs)
+    external
+    pure
+    returns (bool)
+  {
     return isCountryInOrOut(countryList, ProofType.ISSUING_COUNTRY_EXCLUSION, committedInputs);
   }
 
@@ -423,9 +371,7 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return boundData The data bound to the proof
    */
-  function getBoundData(
-    bytes calldata committedInputs
-  ) external pure returns (BoundData memory boundData) {
+  function getBoundData(bytes calldata committedInputs) external pure returns (BoundData memory boundData) {
     bytes memory data = InputsExtractor.getBindProofInputs(committedInputs);
     (boundData.senderAddress, boundData.chainId, boundData.customData) = InputsExtractor.getBoundData(data);
   }
@@ -438,24 +384,23 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the sanctions root is valid against the expected sanction list(s), false otherwise
    */
-  function isSanctionsRootValid(
-    uint256 currentTimestamp,
-    bool isStrict,
-    bytes calldata committedInputs
-  ) external view returns (bool) {
+  function isSanctionsRootValid(uint256 currentTimestamp, bool isStrict, bytes calldata committedInputs)
+    external
+    view
+    returns (bool)
+  {
     return _isSanctionsRootValid(currentTimestamp, isStrict, committedInputs);
   }
 
-  function _isSanctionsRootValid(
-    uint256 currentTimestamp,
-    bool isStrict,
-    bytes calldata committedInputs
-  ) internal view returns (bool) {
+  function _isSanctionsRootValid(uint256 currentTimestamp, bool isStrict, bytes calldata committedInputs)
+    internal
+    view
+    returns (bool)
+  {
     (bytes32 proofSanctionsRoot, bool retrievedIsStrict) = InputsExtractor.getSanctionsProofInputs(committedInputs);
     require(isStrict == retrievedIsStrict, "Invalid sanctions check mode");
     return rootRegistry.isRootValid(SANCTIONS_REGISTRY_ID, proofSanctionsRoot, currentTimestamp);
   }
-
 
   /**
    * @notice Enforces that the proof checks against the expected sanction list(s)
@@ -464,11 +409,7 @@ contract ZKPassportHelper {
    * @param isStrict Whether the sanctions check was strict or not
    * @param committedInputs The committed inputs
    */
-  function enforceSanctionsRoot(
-    uint256 currentTimestamp,
-    bool isStrict,
-    bytes calldata committedInputs
-  ) external view {
+  function enforceSanctionsRoot(uint256 currentTimestamp, bool isStrict, bytes calldata committedInputs) external view {
     bool isValid = _isSanctionsRootValid(currentTimestamp, isStrict, committedInputs);
     require(isValid, "Invalid sanctions registry root");
   }
@@ -480,19 +421,29 @@ contract ZKPassportHelper {
    * @param committedInputs The committed inputs
    * @return True if the proof is tied to a valid FaceMatch verification, false otherwise
    */
-  function isFaceMatchVerified(
-    FaceMatchMode faceMatchMode,
-    OS os,
-    bytes calldata committedInputs
-  ) external pure returns (bool) {
-    (bytes32 rootKeyHash, Environment environment, bytes32 appIdHash, bytes32 integrityPublicKeyHash, FaceMatchMode retrievedFaceMatchMode) = InputsExtractor.getFacematchProofInputs(committedInputs);
+  function isFaceMatchVerified(FaceMatchMode faceMatchMode, OS os, bytes calldata committedInputs)
+    external
+    pure
+    returns (bool)
+  {
+    (
+      bytes32 rootKeyHash,
+      Environment environment,
+      bytes32 appIdHash,
+      bytes32 integrityPublicKeyHash,
+      FaceMatchMode retrievedFaceMatchMode
+    ) = InputsExtractor.getFacematchProofInputs(committedInputs);
     bool isProduction = environment == Environment.PRODUCTION;
     bool isCorrectMode = retrievedFaceMatchMode == faceMatchMode;
-    bool isCorrectRootKeyHash = (rootKeyHash == AppAttest.APPLE_ROOT_KEY_HASH && (os == OS.IOS || os == OS.ANY)) || (rootKeyHash == AppAttest.GOOGLE_RSA_ROOT_KEY_HASH && (os == OS.ANDROID || os == OS.ANY));
-    bool isCorrectAppIdHash = (appIdHash == AppAttest.IOS_APP_ID_HASH && (os == OS.IOS || os == OS.ANY)) || (appIdHash == AppAttest.ANDROID_APP_ID_HASH && (os == OS.ANDROID || os == OS.ANY));
+    bool isCorrectRootKeyHash = (rootKeyHash == AppAttest.APPLE_ROOT_KEY_HASH && (os == OS.IOS || os == OS.ANY))
+      || (rootKeyHash == AppAttest.GOOGLE_RSA_ROOT_KEY_HASH && (os == OS.ANDROID || os == OS.ANY));
+    bool isCorrectAppIdHash = (appIdHash == AppAttest.IOS_APP_ID_HASH && (os == OS.IOS || os == OS.ANY))
+      || (appIdHash == AppAttest.ANDROID_APP_ID_HASH && (os == OS.ANDROID || os == OS.ANY));
     // The integrity public key hash is 0 for iOS as it's logic specific to Android
-    bool isCorrectIntegrityPublicKeyHash = (integrityPublicKeyHash == bytes32(0) && (os == OS.IOS || os == OS.ANY)) || (integrityPublicKeyHash == AppAttest.ANDROID_INTEGRITY_PUBLIC_KEY_HASH && (os == OS.ANDROID || os == OS.ANY));
-    return isProduction && isCorrectMode && isCorrectRootKeyHash && isCorrectAppIdHash && isCorrectIntegrityPublicKeyHash;
+    bool isCorrectIntegrityPublicKeyHash = (integrityPublicKeyHash == bytes32(0) && (os == OS.IOS || os == OS.ANY))
+      || (integrityPublicKeyHash == AppAttest.ANDROID_INTEGRITY_PUBLIC_KEY_HASH && (os == OS.ANDROID || os == OS.ANY));
+    return
+      isProduction && isCorrectMode && isCorrectRootKeyHash && isCorrectAppIdHash && isCorrectIntegrityPublicKeyHash;
   }
 
   /**
@@ -500,9 +451,7 @@ contract ZKPassportHelper {
    * @param publicInputs The public inputs of the proof
    * @return The timestamp the proof was generated at
    */
-  function getProofTimestamp(
-    bytes32[] calldata publicInputs
-  ) external pure returns (uint256) {
+  function getProofTimestamp(bytes32[] calldata publicInputs) external pure returns (uint256) {
     return uint256(publicInputs[PublicInput.CURRENT_DATE_INDEX]);
   }
 
@@ -513,16 +462,17 @@ contract ZKPassportHelper {
    * @param subscope The subscope (service scope) to check against
    * @return True if valid, false otherwise
    */
-  function verifyScopes(
-    bytes32[] calldata publicInputs,
-    string calldata scope,
-    string calldata subscope
-  ) external pure returns (bool) {
+  function verifyScopes(bytes32[] calldata publicInputs, string calldata scope, string calldata subscope)
+    external
+    pure
+    returns (bool)
+  {
     // One byte is dropped at the end
     // What we call scope internally is derived from the domain
     bytes32 scopeHash = StringUtils.isEmpty(scope) ? bytes32(0) : sha256(abi.encodePacked(scope)) >> 8;
     // What we call the subscope internally is the service scope specified manually in the SDK
     bytes32 subscopeHash = StringUtils.isEmpty(subscope) ? bytes32(0) : sha256(abi.encodePacked(subscope)) >> 8;
-    return publicInputs[PublicInput.SCOPE_INDEX] == scopeHash && publicInputs[PublicInput.SUBSCOPE_INDEX] == subscopeHash;
+    return
+      publicInputs[PublicInput.SCOPE_INDEX] == scopeHash && publicInputs[PublicInput.SUBSCOPE_INDEX] == subscopeHash;
   }
 }
