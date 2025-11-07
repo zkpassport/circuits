@@ -1,11 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2025 ZKPassport
-pragma solidity >=0.8.21;
+// Copyright © 2025 ZKPassport
+/*
+ ______ _     _  _____  _______ _______ _______  _____   _____   ______ _______
+  ____/ |____/  |_____] |_____| |______ |______ |_____] |     | |_____/    |
+ /_____ |    \_ |       |     | ______| ______| |       |_____| |    \_    |
+
+*/
+
+pragma solidity ^0.8.30;
 
 import {MRZIndex, MRZLength, CommittedInputLen, COUNTRY_LIST_LENGTH, BOUND_DATA_LENGTH, TIMESTAMP_LENGTH} from "./Constants.sol";
 import {DisclosedData, ProofType, FaceMatchMode, Environment} from "./Types.sol";
 import {BoundDataIdentifier} from "./Types.sol";
 
+/**
+* @title InputsExtractor
+* @dev Utility functions for extracting inputs from committed inputs
+*/
 library InputsExtractor {
   function getDisclosedData(
     bytes calldata discloseBytes,

@@ -1,16 +1,24 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2025 ZKPassport
-pragma solidity >=0.8.21;
+// Copyright © 2025 ZKPassport
+/*
+ ______ _     _  _____  _______ _______ _______  _____   _____   ______ _______
+  ____/ |____/  |_____] |_____| |______ |______ |_____] |     | |_____/    |
+ /_____ |    \_ |       |     | ______| ______| |       |_____| |    \_    |
+
+*/
+
+pragma solidity ^0.8.30;
 
 import {Test, console} from "forge-std/Test.sol";
-import {IVerifier as ProofVerifier, HonkVerifier} from "../src/ultra-honk-verifiers/OuterCount5.sol";
+import {IProofVerifier} from "../src/IProofVerifier.sol";
+import {HonkVerifier} from "../src/ultra-honk-verifiers/OuterCount5.sol";
 import {ZKPassportTest} from "./Utils.t.sol";
 
 contract SubVerifierTest is ZKPassportTest {
-  ProofVerifier public verifier;
+  IProofVerifier public verifier;
 
   function setUp() public {
-    verifier = new HonkVerifier();
+    verifier = IProofVerifier(address(new HonkVerifier()));
   }
 
   function test_VerifyValidProof() public {

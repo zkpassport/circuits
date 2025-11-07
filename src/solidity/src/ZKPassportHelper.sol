@@ -1,14 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2025 ZKPassport
-pragma solidity >=0.8.21;
+// Copyright © 2025 ZKPassport
+/*
+ ______ _     _  _____  _______ _______ _______  _____   _____   ______ _______
+  ____/ |____/  |_____] |_____| |______ |______ |_____] |     | |_____/    |
+ /_____ |    \_ |       |     | ______| ______| |       |_____| |    \_    |
 
-import {Test, console} from "forge-std/Test.sol";
-import {IVerifier} from "./ultra-honk-verifiers/OuterCount4.sol";
+*/
+
+pragma solidity ^0.8.30;
+
+import {IRootRegistry} from "./IRootRegistry.sol";
 import {DateUtils} from "./DateUtils.sol";
 import {StringUtils} from "./StringUtils.sol";
 import {InputsExtractor} from "./InputsExtractor.sol";
-import {CommittedInputLen, MRZIndex, MRZLength, SECONDS_BETWEEN_1900_AND_1970, PublicInput, AppAttest} from "./Constants.sol";
-import {IRootRegistry, ProofType, ProofVerificationParams, BoundDataIdentifier, DisclosedData, BoundData, FaceMatchMode, Environment, NullifierType, ServiceConfig, OS} from "./Types.sol";
+import {SECONDS_BETWEEN_1900_AND_1970, PublicInput, AppAttest} from "./Constants.sol";
+import {ProofType, DisclosedData, BoundData, FaceMatchMode, Environment, OS} from "./Types.sol";
 
 contract ZKPassportHelper {
   bytes32 public constant SANCTIONS_REGISTRY_ID = bytes32(uint256(3));

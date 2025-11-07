@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2025 ZKPassport
-pragma solidity >=0.8.21;
+pragma solidity ^0.8.30;
 import {ZKPassportRootVerifier as RootVerifier} from "./ZKPassportRootVerifier.sol";
-import {IProofVerifier, IRootRegistry, ProofVerificationParams, NullifierType, ProofVerifier} from "./Types.sol";
+import {IRootRegistry} from "./IRootRegistry.sol";
+import {IProofVerifier} from "../src/IProofVerifier.sol";
+import {ProofVerificationParams, NullifierType, ProofVerifier} from "./Types.sol";
 import {PublicInput} from "./Constants.sol";
 import {DateUtils} from "./DateUtils.sol";
 import {StringUtils} from "./StringUtils.sol";

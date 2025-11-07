@@ -1,8 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2025 ZKPassport
-pragma solidity >=0.8.21;
+// Copyright © 2025 ZKPassport
+/*
+ ______ _     _  _____  _______ _______ _______  _____   _____   ______ _______
+  ____/ |____/  |_____] |_____| |______ |______ |_____] |     | |_____/    |
+ /_____ |    \_ |       |     | ______| ______| |       |_____| |    \_    |
 
-import {console} from "forge-std/console.sol";
+*/
+
+pragma solidity ^0.8.30;
+
 import {ZKPassportRootVerifier} from "./ZKPassportRootVerifier.sol";
 import {ZKPassportHelper} from "./ZKPassportHelper.sol";
 import {DisclosedData, ProofVerificationParams} from "./Types.sol";

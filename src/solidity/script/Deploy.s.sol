@@ -8,7 +8,7 @@
  * for outer circuits (supporting 4-13 subproofs).
  */
 
-pragma solidity >=0.8.21;
+pragma solidity ^0.8.30;
 
 import {Script, console} from "forge-std/Script.sol";
 import {stdJson} from "forge-std/StdJson.sol";
@@ -22,10 +22,11 @@ import {HonkVerifier as OuterCount10Verifier} from "../src/ultra-honk-verifiers/
 import {HonkVerifier as OuterCount11Verifier} from "../src/ultra-honk-verifiers/OuterCount11.sol";
 import {HonkVerifier as OuterCount12Verifier} from "../src/ultra-honk-verifiers/OuterCount12.sol";
 import {HonkVerifier as OuterCount13Verifier} from "../src/ultra-honk-verifiers/OuterCount13.sol";
+import {IRootRegistry} from "../src/IRootRegistry.sol";
 import {ZKPassportRootVerifier} from "../src/ZKPassportRootVerifier.sol";
 import {ZKPassportSubVerifier as ZKPassportSubVerifierV1} from "../src/ZKPassportSubVerifier.sol";
 import {ZKPassportHelper as ZKPassportHelperV1} from "../src/ZKPassportHelper.sol";
-import {IRootRegistry, ProofVerifier} from "../src/Types.sol";
+import {ProofVerifier} from "../src/Types.sol";
 
 contract Deploy is Script {
   using stdJson for string;
@@ -73,7 +74,7 @@ contract Deploy is Script {
 
     // Deploy the sub verifier
     console.log("Deploying ZKPassportSubVerifierV1...");
-    ZKPassportSubVerifierV1 subVerifier = new ZKPassportSubVerifierV1(rootVerifier);
+    ZKPassportSubVerifierV1 subVerifier = new ZKPassportSubVerifierV1(admin, rootVerifier);
     console.log("ZKPassportSubVerifierV1 deployed at:", address(subVerifier));
 
     // Add the sub verifier to the root verifier

@@ -1,15 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2025 ZKPassport
-pragma solidity >=0.8.21;
+// Copyright © 2025 ZKPassport
+/*
+ ______ _     _  _____  _______ _______ _______  _____   _____   ______ _______
+  ____/ |____/  |_____] |_____| |______ |______ |_____] |     | |_____/    |
+ /_____ |    \_ |       |     | ______| ______| |       |_____| |    \_    |
 
+*/
+
+pragma solidity ^0.8.30;
+
+import {IRootRegistry} from "./IRootRegistry.sol";
 import {ZKPassportSubVerifier} from "./ZKPassportSubVerifier.sol";
 import {ZKPassportHelper} from "./ZKPassportHelper.sol";
-import {IRootRegistry, ProofVerificationParams} from "./Types.sol";
+import {ProofVerificationParams} from "./Types.sol";
 
 /**
- * @title   ZKPassport Root Verifier
- * @author  ZKPassport
- * @notice  Main entry point for verifying ZKPassport zero-knowledge proofs
+ * @title  ZKPassport Root Verifier
+ * @notice Main entry point for verifying ZKPassport identity proofs
  */
 contract ZKPassportRootVerifier {
   address public admin;
