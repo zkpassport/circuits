@@ -7,6 +7,9 @@ solc = "0.8.30"
 # Enable the optimizer
 optimizer = true
 optimizer_runs = 200
+# Ensure deterministic init code hash
+bytecode_hash = "none"
+# File system permissions
 fs_permissions = [{ access = "read-write", path = "./"}]
 
 # Ethereum Sepolia configuration
