@@ -21,9 +21,13 @@ contract ZKPassportRootVerifier {
 
   // Subverifier mapping
   mapping(bytes32 => ZKPassportSubVerifier) public subverifiers;
+  // Counter for the number of subverifiers
+  uint256 public subverifierCount;
 
   // Helper mapping
   mapping(bytes32 => ZKPassportHelper) public helpers;
+  // Counter for the number of helpers
+  uint256 public helperCount;
 
   // Config mapping
   mapping(bytes32 key => bytes32 value) public config;
@@ -119,6 +123,7 @@ contract ZKPassportRootVerifier {
     require(version != bytes32(0), "Version cannot be zero");
     require(address(subverifiers[version]) == address(0), "Subverifier already exists for version");
     subverifiers[version] = subVerifier;
+    subverifierCount++;
     emit SubVerifierAdded(version, address(subVerifier));
   }
 
@@ -131,6 +136,7 @@ contract ZKPassportRootVerifier {
     address subVerifier = address(subverifiers[version]);
     require(subVerifier != address(0), "Subverifier not found for version");
     delete subverifiers[version];
+    subverifierCount--;
     emit SubVerifierRemoved(version, subVerifier);
   }
 
@@ -168,6 +174,7 @@ contract ZKPassportRootVerifier {
     require(version != bytes32(0), "Version cannot be zero");
     require(address(helpers[version]) == address(0), "Helper already exists for version");
     helpers[version] = ZKPassportHelper(newHelper);
+    helperCount++;
     emit HelperAdded(version, newHelper);
   }
 
@@ -180,6 +187,7 @@ contract ZKPassportRootVerifier {
     address helper = address(helpers[version]);
     require(helper != address(0), "Helper not found for version");
     delete helpers[version];
+    helperCount--;
     emit HelperRemoved(version, helper);
   }
 

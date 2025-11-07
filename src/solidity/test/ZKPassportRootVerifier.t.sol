@@ -743,4 +743,63 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     assertEq(rootVerifier.config(configKey1), configValue1);
     assertEq(rootVerifier.config(configKey2), configValue2);
   }
+
+  function testSubverifierCountTracking() public {
+    // Initial count should be 1 (from setUp)
+    assertEq(rootVerifier.subverifierCount(), 1);
+
+    // Add a new subverifier
+    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(rootVerifier);
+    bytes32 newVersion = bytes32(uint256(2));
+    vm.prank(admin);
+    rootVerifier.addSubVerifier(newVersion, newSubVerifier);
+    assertEq(rootVerifier.subverifierCount(), 2);
+
+    // Add another subverifier
+    ZKPassportSubVerifier anotherSubVerifier = new ZKPassportSubVerifier(rootVerifier);
+    bytes32 anotherVersion = bytes32(uint256(3));
+    vm.prank(admin);
+    rootVerifier.addSubVerifier(anotherVersion, anotherSubVerifier);
+    assertEq(rootVerifier.subverifierCount(), 3);
+
+    // Remove a subverifier
+    vm.prank(admin);
+    rootVerifier.removeSubVerifier(newVersion);
+    assertEq(rootVerifier.subverifierCount(), 2);
+
+    // Remove another subverifier
+    vm.prank(admin);
+    rootVerifier.removeSubVerifier(anotherVersion);
+    assertEq(rootVerifier.subverifierCount(), 1);
+  }
+
+  function testHelperCountTracking() public {
+    // Initial count should be 1 (from setUp)
+    assertEq(rootVerifier.helperCount(), 1);
+
+    // Add a new helper
+    IRootRegistry rootRegistry = IRootRegistry(address(0x1234));
+    ZKPassportHelper newHelper = new ZKPassportHelper(rootRegistry);
+    bytes32 newVersion = bytes32(uint256(2));
+    vm.prank(admin);
+    rootVerifier.addHelper(newVersion, address(newHelper));
+    assertEq(rootVerifier.helperCount(), 2);
+
+    // Add another helper
+    ZKPassportHelper anotherHelper = new ZKPassportHelper(rootRegistry);
+    bytes32 anotherVersion = bytes32(uint256(3));
+    vm.prank(admin);
+    rootVerifier.addHelper(anotherVersion, address(anotherHelper));
+    assertEq(rootVerifier.helperCount(), 3);
+
+    // Remove a helper
+    vm.prank(admin);
+    rootVerifier.removeHelper(newVersion);
+    assertEq(rootVerifier.helperCount(), 2);
+
+    // Remove another helper
+    vm.prank(admin);
+    rootVerifier.removeHelper(anotherVersion);
+    assertEq(rootVerifier.helperCount(), 1);
+  }
 }
