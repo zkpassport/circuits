@@ -61,10 +61,11 @@ abstract contract ZKPassportTest is Test {
   }
 
   function deployZKPassport() internal returns (ZKPassportRootVerifier, ZKPassportSubVerifier) {
-    address admin = vm.envAddress("ROOT_VERIFIER_ADMIN_ADDRESS");
-    address guardian = vm.envAddress("ROOT_VERIFIER_GUARDIAN_ADDRESS");
+    // Use labeled test accounts
+    address admin = makeAddr("admin");
+    address guardian = makeAddr("guardian");
+    // Deploy mock root registry
     IRootRegistry rootRegistry = new MockRootRegistry();
-
     // Deploy root verifier
     ZKPassportRootVerifier rootVerifier = new ZKPassportRootVerifier(admin, guardian, rootRegistry);
     // Deploy sub verifier
