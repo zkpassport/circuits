@@ -12,6 +12,9 @@ bytecode_hash = "none"
 # File system permissions
 fs_permissions = [{ access = "read-write", path = "./"}]
 
+[lint]
+exclude_lints = ["screaming-snake-case-immutable", "unwrapped-modifier-logic"]
+
 # Ethereum Sepolia configuration
 [rpc_endpoints]
 anvil = "http://127.0.0.1:8545"
