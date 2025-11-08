@@ -14,6 +14,13 @@ uint256 constant COUNTRY_LIST_LENGTH = 200;
 uint256 constant BOUND_DATA_LENGTH = 509;
 uint256 constant TIMESTAMP_LENGTH = 8;
 
+// Registry IDs
+library RegistryID {
+  bytes32 constant CERTIFICATE = bytes32(0x0000000000000000000000000000000000000000000000000000000000000001);
+  bytes32 constant CIRCUIT = bytes32(0x0000000000000000000000000000000000000000000000000000000000000002);
+  bytes32 constant SANCTIONS = bytes32(0x0000000000000000000000000000000000000000000000000000000000000003);
+}
+
 // The lengths of the preimages of the `param_commitments` of the various disclosure circuits.
 // Note: this is excluding the 3 bytes for the proof type and length
 library CommittedInputLen {

@@ -5,14 +5,11 @@ import {ZKPassportRootVerifier as RootVerifier} from "./ZKPassportRootVerifier.s
 import {IRootRegistry} from "./IRootRegistry.sol";
 import {IProofVerifier} from "../src/IProofVerifier.sol";
 import {ProofVerificationParams, NullifierType, ProofVerifier} from "./Types.sol";
-import {PublicInput} from "./Constants.sol";
+import {PublicInput, RegistryID} from "./Constants.sol";
 import {DateUtils} from "./DateUtils.sol";
 import {StringUtils} from "./StringUtils.sol";
 
 contract ZKPassportSubVerifier {
-  bytes32 public constant CERTIFICATE_REGISTRY_ID = bytes32(uint256(1));
-  bytes32 public constant CIRCUIT_REGISTRY_ID = bytes32(uint256(2));
-
   address public admin;
   bool public paused;
 
@@ -147,13 +144,13 @@ contract ZKPassportSubVerifier {
     view
   {
     require(
-      _rootRegistry.isRootValid(CERTIFICATE_REGISTRY_ID, certificateRoot, timestamp),
+      _rootRegistry.isRootValid(RegistryID.CERTIFICATE, certificateRoot, timestamp),
       "Invalid certificate registry root"
     );
   }
 
   function _validateCircuitRoot(IRootRegistry _rootRegistry, bytes32 circuitRoot, uint256 timestamp) internal view {
-    require(_rootRegistry.isRootValid(CIRCUIT_REGISTRY_ID, circuitRoot, timestamp), "Invalid circuit registry root");
+    require(_rootRegistry.isRootValid(RegistryID.CIRCUIT, circuitRoot, timestamp), "Invalid circuit registry root");
   }
 
   /**

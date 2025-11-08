@@ -13,11 +13,10 @@ import {IRootRegistry} from "./IRootRegistry.sol";
 import {DateUtils} from "./DateUtils.sol";
 import {StringUtils} from "./StringUtils.sol";
 import {InputsExtractor} from "./InputsExtractor.sol";
-import {SECONDS_BETWEEN_1900_AND_1970, PublicInput, AppAttest} from "./Constants.sol";
+import {SECONDS_BETWEEN_1900_AND_1970, PublicInput, AppAttest, RegistryID} from "./Constants.sol";
 import {ProofType, DisclosedData, BoundData, FaceMatchMode, Environment, OS} from "./Types.sol";
 
 contract ZKPassportHelper {
-  bytes32 public constant SANCTIONS_REGISTRY_ID = bytes32(uint256(3));
   IRootRegistry public immutable rootRegistry;
 
   constructor(IRootRegistry _rootRegistry) {
@@ -399,7 +398,7 @@ contract ZKPassportHelper {
   {
     (bytes32 proofSanctionsRoot, bool retrievedIsStrict) = InputsExtractor.getSanctionsProofInputs(committedInputs);
     require(isStrict == retrievedIsStrict, "Invalid sanctions check mode");
-    return rootRegistry.isRootValid(SANCTIONS_REGISTRY_ID, proofSanctionsRoot, currentTimestamp);
+    return rootRegistry.isRootValid(RegistryID.SANCTIONS, proofSanctionsRoot, currentTimestamp);
   }
 
   /**
