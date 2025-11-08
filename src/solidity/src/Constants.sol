@@ -1,11 +1,25 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2025 ZKPassport
-pragma solidity >=0.8.21;
+// Copyright © 2025 ZKPassport
+/*
+ ______ _     _  _____  _______ _______ _______  _____   _____   ______ _______
+  ____/ |____/  |_____] |_____| |______ |______ |_____] |     | |_____/    |
+ /_____ |    \_ |       |     | ______| ______| |       |_____| |    \_    |
+
+*/
+
+pragma solidity ^0.8.30;
 
 uint256 constant SECONDS_BETWEEN_1900_AND_1970 = 2208988800;
 uint256 constant COUNTRY_LIST_LENGTH = 200;
 uint256 constant BOUND_DATA_LENGTH = 509;
 uint256 constant TIMESTAMP_LENGTH = 8;
+
+// Registry IDs
+library RegistryID {
+  bytes32 constant CERTIFICATE = bytes32(0x0000000000000000000000000000000000000000000000000000000000000001);
+  bytes32 constant CIRCUIT = bytes32(0x0000000000000000000000000000000000000000000000000000000000000002);
+  bytes32 constant SANCTIONS = bytes32(0x0000000000000000000000000000000000000000000000000000000000000003);
+}
 
 // The lengths of the preimages of the `param_commitments` of the various disclosure circuits.
 // Note: this is excluding the 3 bytes for the proof type and length

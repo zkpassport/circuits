@@ -9,12 +9,10 @@
 
 pragma solidity ^0.8.30;
 
-library StringUtils {
-  function equals(string memory a, string memory b) internal pure returns (bool) {
-    return keccak256(bytes(a)) == keccak256(bytes(b));
-  }
-
-  function isEmpty(string memory a) internal pure returns (bool) {
-    return bytes(a).length == 0;
-  }
+/**
+ * @title IProofVerifier
+ * @dev Interface for a ZKPassport proof verifier
+ */
+interface IProofVerifier {
+  function verify(bytes calldata _proof, bytes32[] calldata _publicInputs) external view returns (bool);
 }

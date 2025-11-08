@@ -1,6 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2025 ZKPassport
-pragma solidity >=0.8.21;
+// Copyright © 2025 ZKPassport
+/*
+ ______ _     _  _____  _______ _______ _______  _____   _____   ______ _______
+  ____/ |____/  |_____] |_____| |______ |______ |_____] |     | |_____/    |
+ /_____ |    \_ |       |     | ______| ______| |       |_____| |    \_    |
+
+*/
+
+pragma solidity ^0.8.30;
+
+struct ProofVerifier {
+  bytes32 vkeyHash;
+  address verifier;
+}
 
 enum ProofType {
   DISCLOSE,
@@ -47,14 +59,42 @@ enum OS {
   ANDROID
 }
 
+// ProofVerificationParams
+// │
+// ├── bytes32 version                        // Version identifier of the verifier
+// │
+// ├── ProofVerificationData proofVerificationData
+// │   ├── bytes32 vkeyHash                   // Verification key hash
+// │   ├── bytes proof                        // The actual ZK proof
+// │   └── bytes32[] publicInputs             // Array of public inputs (7+ elements)
+// │       │                                  // Use PublicInputsCast.asStruct() for structured access:
+// │       ├── [0] certificate_registry_root  // Field - struct.certificateRegistryRoot
+// │       ├── [1] circuit_registry_root      // Field - struct.circuitRegistryRoot
+// │       ├── [2] current_date               // u64 - PublicInputsCast.getCurrentDate(struct)
+// │       ├── [3] service_scope              // Field - struct.serviceScope
+// │       ├── [4] service_subscope           // Field - struct.serviceSubscope
+// │       ├── [5:5+N] param_commitments      // Field[N] - PublicInputsCast.getParamCommitment(array, index)
+// │       ├── [5+N] nullifier_type           // u8 - PublicInputsCast.getNullifierType(array, paramCount)
+// │       └── [6+N] scoped_nullifier         // Field - PublicInputsCast.getScopedNullifier(array, paramCount)
+// │
+// ├── bytes committedInputs              // Preimages of param_commitments
+// │
+// └── ServiceConfig serviceConfig
+//     ├── uint256 validityPeriodInSeconds    // How long the proof is valid
+//     ├── string domain                      // Service domain
+//     ├── string scope                       // Service scope
+//     └── bool devMode                       // Development mode flag
+struct ProofVerificationParams {
+  bytes32 version;
+  ProofVerificationData proofVerificationData;
+  bytes committedInputs;
+  ServiceConfig serviceConfig;
+}
+
 struct ProofVerificationData {
   bytes32 vkeyHash;
   bytes proof;
   bytes32[] publicInputs;
-}
-
-struct Commitments {
-  bytes committedInputs;
 }
 
 struct ServiceConfig {
@@ -64,35 +104,15 @@ struct ServiceConfig {
   bool devMode;
 }
 
-// Group parameters for the proof verification
-//
-// publicInputs:
-// - 0: certificate_registry_root: pub Field,
-// - 1: circuit_registry_root: pub Field,
-// - 2: current_date: pub u64,
-// - 3: service_scope: pub Field,
-// - 4: service_subscope: pub Field,
-// - 5:5+N: param_commitments: pub [Field; N],
-// - 5+N: nullifier_type: pub u8,
-// - 6+N: scoped_nullifier: pub Field,
-//
-// committedInputs: the preimages of the `param_commitments` of the disclosure proofs.
-// committedInputCounts: offsets to locate the committedInputs of each of the param_commitments of the public_inputs.
-struct ProofVerificationParams {
-  ProofVerificationData proofVerificationData;
-  Commitments commitments;
-  ServiceConfig serviceConfig;
-}
-
 struct DisclosedData {
-    string name;
-    string issuingCountry;
-    string nationality;
-    string gender;
-    string birthDate;
-    string expiryDate;
-    string documentNumber;
-    string documentType;
+  string name;
+  string issuingCountry;
+  string nationality;
+  string gender;
+  string birthDate;
+  string expiryDate;
+  string documentNumber;
+  string documentType;
 }
 
 struct BoundData {

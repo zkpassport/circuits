@@ -9,7 +9,7 @@
     "compile:test": "scripts/ci-compile-circuits.sh",
     "package-circuits": "tsx --max-old-space-size=8192 src/ts/scripts/circuit-packager && cp target/packaged/manifest.json src/ts/tests/fixtures/circuit-manifest.json",
     "generate-fixtures": "tsx --max-old-space-size=8192 src/ts/scripts/generate-fixtures.ts",
-    "test-contracts": "cd src/solidity && ./run-tests.sh && cd ../.."
+    "test-contracts": "(cd src/solidity && ./run-integration-tests.sh)"
   },
   "dependencies": {
     "@aws-sdk/client-cloudfront": "^3.730.0",

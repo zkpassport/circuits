@@ -1,78 +1,60 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2025 ZKPassport
-pragma solidity >=0.8.21;
+// Copyright © 2025 ZKPassport
+/*
+ ______ _     _  _____  _______ _______ _______  _____   _____   ______ _______
+  ____/ |____/  |_____] |_____| |______ |______ |_____] |     | |_____/    |
+ /_____ |    \_ |       |     | ______| ______| |       |_____| |    \_    |
 
-import {Test, console} from "forge-std/Test.sol";
-import {ZKPassportVerifier, ProofType, ProofVerificationParams} from "../src/ZKPassportVerifier.sol";
-import {ProofVerificationData, Commitments, ServiceConfig} from "../src/Types.sol";
-import {HonkVerifier as OuterVerifier13} from "../src/ultra-honk-verifiers/OuterCount13.sol";
+*/
+
+pragma solidity ^0.8.30;
+
+import {console} from "forge-std/Test.sol";
+import {ZKPassportRootVerifier} from "../src/ZKPassportRootVerifier.sol";
+import {ServiceConfig, ProofVerificationParams, ProofVerificationData} from "../src/Types.sol";
 import {SampleContract} from "../src/SampleContract.sol";
-import {TestUtils} from "./Utils.t.sol";
-import {CommittedInputLen} from "../src/Constants.sol";
+import {ZKPassportTest} from "./Utils.t.sol";
 
-contract SampleContractTest is TestUtils {
-  OuterVerifier13 public verifier;
-  ZKPassportVerifier public zkPassportVerifier;
+contract SampleContractTest is ZKPassportTest {
   SampleContract public sampleContract;
-  // Path to the proof file - using files directly in project root
-  string constant PROOF_PATH = "./test/fixtures/all_subproofs_proof.hex";
-  string constant PUBLIC_INPUTS_PATH = "./test/fixtures/all_subproofs_public_inputs.json";
-  string constant COMMITTED_INPUTS_PATH = "./test/fixtures/all_subproofs_committed_inputs.hex";
-  bytes32 constant VKEY_HASH = 0x048f929a5be0814a81e5c4e62305e5cd4d203fb5e56c9ae5f5990aeee8fcabb4;
 
   function setUp() public {
-    // Deploy the ZKPassportVerifier
-    zkPassportVerifier = new ZKPassportVerifier(vm.envAddress("ROOT_REGISTRY_ADDRESS"));
-    // Deploy the UltraHonkVerifier
-    verifier = new OuterVerifier13();
-
-    // Add the verifier to the ZKPassportVerifier
-    bytes32[] memory vkeyHashes = new bytes32[](1);
-    vkeyHashes[0] = VKEY_HASH;
-    address[] memory verifiers = new address[](1);
-    verifiers[0] = address(verifier);
-    zkPassportVerifier.addVerifiers(vkeyHashes, verifiers);
-
-    sampleContract = new SampleContract();
-    sampleContract.setZKPassportVerifier(address(zkPassportVerifier));
+    (ZKPassportRootVerifier verifier,) = deployZKPassport();
+    sampleContract = new SampleContract(address(verifier));
   }
 
-  function test_Register() public {
-    // Load proof and public inputs from files
-    bytes memory proof = loadBytesFromFile(PROOF_PATH);
-    bytes32[] memory publicInputs = loadBytes32FromFile(PUBLIC_INPUTS_PATH);
-    bytes memory committedInputs = loadBytesFromFile(COMMITTED_INPUTS_PATH);
-    uint256 currentDate = uint256(publicInputs[2]);
+  function test_RegisterUser() public {
+    // Load fixture data
+    FixtureData memory data = loadFixture(fixtures.allSubproofs);
 
-    // The sender cannot call this function cause they are not verified
+    // Warp the clock to the date the proof was generated
+    uint256 currentDate = uint256(data.publicInputs[2]);
+    vm.warp(currentDate);
+
+    // The sender cannot call this function yet because they have not registered and been verified
     vm.expectRevert("User is not verified");
     sampleContract.doStuff();
 
-    vm.warp(currentDate);
+    // Construct the ZKPassport verification params
     ProofVerificationParams memory params = ProofVerificationParams({
+      version: VERIFIER_VERSION,
       proofVerificationData: ProofVerificationData({
-        vkeyHash: VKEY_HASH,
-        proof: proof,
-        publicInputs: publicInputs
+        vkeyHash: fixtures.allSubproofs.vkeyHash, proof: data.proof, publicInputs: data.publicInputs
       }),
-      commitments: Commitments({
-        committedInputs: committedInputs
-      }),
+      committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days,
-        domain: "zkpassport.id",
-        scope: "bigproof",
-        devMode: false
+        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
       })
     });
+
+    // Register the user
     bytes32 uniqueIdentifier = sampleContract.register(params, false);
 
-    // The sender can now call this function since they registered just before
+    // The sender may now call this function because they have successfully registered with a valid proof
     sampleContract.doStuff();
-    assertEq(
-      uniqueIdentifier,
-      bytes32(uint256(0x171de101deed3f056917faecfe6cc04db2ef02689a8a483962a688948ce44461))
-    );
+
+    // Assert the user is verified and has the correct nationality and unique identifier
+    assertEq(uniqueIdentifier, bytes32(uint256(0x171de101deed3f056917faecfe6cc04db2ef02689a8a483962a688948ce44461)));
     assertEq(sampleContract.userNationality(uniqueIdentifier), "AUS");
     assertEq(sampleContract.isVerified(uniqueIdentifier), true);
   }

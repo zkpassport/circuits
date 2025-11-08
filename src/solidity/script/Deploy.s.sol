@@ -1,8 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2025 ZKPassport
-pragma solidity >=0.8.21;
+
+/*
+ * Deploy.s.sol
+ *
+ * Deploys the ZKPassport root verifier, subverifier, helper, and proof verifiers
+ * for outer circuits (supporting 4-13 subproofs).
+ */
+
+pragma solidity ^0.8.30;
 
 import {Script, console} from "forge-std/Script.sol";
+import {stdJson} from "forge-std/StdJson.sol";
 import {HonkVerifier as OuterCount4Verifier} from "../src/ultra-honk-verifiers/OuterCount4.sol";
 import {HonkVerifier as OuterCount5Verifier} from "../src/ultra-honk-verifiers/OuterCount5.sol";
 import {HonkVerifier as OuterCount6Verifier} from "../src/ultra-honk-verifiers/OuterCount6.sol";
@@ -13,11 +22,16 @@ import {HonkVerifier as OuterCount10Verifier} from "../src/ultra-honk-verifiers/
 import {HonkVerifier as OuterCount11Verifier} from "../src/ultra-honk-verifiers/OuterCount11.sol";
 import {HonkVerifier as OuterCount12Verifier} from "../src/ultra-honk-verifiers/OuterCount12.sol";
 import {HonkVerifier as OuterCount13Verifier} from "../src/ultra-honk-verifiers/OuterCount13.sol";
-import {ZKPassportVerifier} from "../src/ZKPassportVerifier.sol";
-import {stdJson} from "forge-std/StdJson.sol";
+import {IRootRegistry} from "../src/IRootRegistry.sol";
+import {ZKPassportRootVerifier} from "../src/ZKPassportRootVerifier.sol";
+import {ZKPassportSubVerifier as ZKPassportSubVerifierV1} from "../src/ZKPassportSubVerifier.sol";
+import {ZKPassportHelper as ZKPassportHelperV1} from "../src/ZKPassportHelper.sol";
+import {ProofVerifier} from "../src/Types.sol";
 
 contract Deploy is Script {
   using stdJson for string;
+
+  bytes32 public constant SUB_VERIFIER_VERSION = bytes32(uint256(1));
 
   bytes32[] public vkeyHashes = [
     // Outer (4 subproofs)
@@ -41,8 +55,7 @@ contract Deploy is Script {
     // Outer (13 subproofs)
     bytes32(hex"0b3b18a01c22280ed3f359f2ab624a49ac305300ec89e090772f6407e46300ba")
   ];
-
-  address[] public verifierAddresses = new address[](10);
+  address[] public proofVerifiers = new address[](10);
 
   function run() public {
     // Load the private key from environment variable
@@ -51,84 +64,110 @@ contract Deploy is Script {
     // Start broadcasting transactions
     vm.startBroadcast(deployerPrivateKey);
 
-    // Log the deployment
-    console.log("Deploying Outer (4 subproofs) verifier...");
-    // Deploy the contract
-    verifierAddresses[0] = address(new OuterCount4Verifier());
-    console.log("Outer (4 subproofs) verifier deployed at:", verifierAddresses[0]);
+    // Deploy the root verifier
+    console.log("Deploying ZKPassportRootVerifier...");
+    address admin = vm.envAddress("ROOT_VERIFIER_ADMIN_ADDRESS");
+    address guardian = vm.envAddress("ROOT_VERIFIER_GUARDIAN_ADDRESS");
+    IRootRegistry rootRegistry = IRootRegistry(vm.envAddress("ROOT_REGISTRY_ADDRESS"));
+    ZKPassportRootVerifier rootVerifier = new ZKPassportRootVerifier(admin, guardian, rootRegistry);
+    console.log("ZKPassportRootVerifier deployed at:", address(rootVerifier));
 
-    console.log("Deploying Outer (5 subproofs) verifier...");
-    verifierAddresses[1] = address(new OuterCount5Verifier());
-    console.log("Outer (5 subproofs) verifier deployed at:", verifierAddresses[1]);
+    // Deploy the sub verifier
+    console.log("Deploying ZKPassportSubVerifierV1...");
+    ZKPassportSubVerifierV1 subVerifier = new ZKPassportSubVerifierV1(admin, rootVerifier);
+    console.log("ZKPassportSubVerifierV1 deployed at:", address(subVerifier));
 
-    console.log("Deploying Outer (6 subproofs) verifier...");
-    verifierAddresses[2] = address(new OuterCount6Verifier());
-    console.log("Outer (6 subproofs) verifier deployed at:", verifierAddresses[2]);
+    // Add the sub verifier to the root verifier
+    console.log("Adding sub verifier to root verifier...");
+    rootVerifier.addSubVerifier(SUB_VERIFIER_VERSION, subVerifier);
+    console.log("Sub verifier added to root verifier");
 
-    console.log("Deploying Outer (7 subproofs) verifier...");
-    verifierAddresses[3] = address(new OuterCount7Verifier());
-    console.log("Outer (7 subproofs) verifier deployed at:", verifierAddresses[3]);
+    // Deploy the helper
+    console.log("Deploying ZKPassportHelperV1...");
+    ZKPassportHelperV1 helper = new ZKPassportHelperV1(rootRegistry);
+    console.log("ZKPassportHelperV1 deployed at:", address(helper));
 
-    console.log("Deploying Outer (8 subproofs) verifier...");
-    verifierAddresses[4] = address(new OuterCount8Verifier());
-    console.log("Outer (8 subproofs) verifier deployed at:", verifierAddresses[4]);
+    // Add the helper to the root verifier
+    console.log("Adding helper to root verifier...");
+    rootVerifier.addHelper(SUB_VERIFIER_VERSION, address(helper));
+    console.log("Helper added to root verifier");
 
-    console.log("Deploying Outer (9 subproofs) verifier...");
-    verifierAddresses[5] = address(new OuterCount9Verifier());
-    console.log("Outer (9 subproofs) verifier deployed at:", verifierAddresses[5]);
+    // Deploy the proof verifiers
+    console.log("Deploying Outer (4 subproofs) proof verifier...");
+    proofVerifiers[0] = address(new OuterCount4Verifier());
+    console.log("Outer (4 subproofs) proof verifier deployed at:", proofVerifiers[0]);
 
-    console.log("Deploying Outer (10 subproofs) verifier...");
-    verifierAddresses[6] = address(new OuterCount10Verifier());
-    console.log("Outer (10 subproofs) verifier deployed at:", verifierAddresses[6]);
+    console.log("Deploying Outer (5 subproofs) proof verifier...");
+    proofVerifiers[1] = address(new OuterCount5Verifier());
+    console.log("Outer (5 subproofs) proof verifier deployed at:", proofVerifiers[1]);
 
-    console.log("Deploying Outer (11 subproofs) verifier...");
-    verifierAddresses[7] = address(new OuterCount11Verifier());
-    console.log("Outer (11 subproofs) verifier deployed at:", verifierAddresses[7]);
+    console.log("Deploying Outer (6 subproofs) proof verifier...");
+    proofVerifiers[2] = address(new OuterCount6Verifier());
+    console.log("Outer (6 subproofs) proof verifier deployed at:", proofVerifiers[2]);
 
-    console.log("Deploying Outer (12 subproofs) verifier...");
-    verifierAddresses[8] = address(new OuterCount12Verifier());
-    console.log("Outer (12 subproofs) verifier deployed at:", verifierAddresses[8]);
+    console.log("Deploying Outer (7 subproofs) proof verifier...");
+    proofVerifiers[3] = address(new OuterCount7Verifier());
+    console.log("Outer (7 subproofs) proof verifier deployed at:", proofVerifiers[3]);
 
-    console.log("Deploying Outer (13 subproofs) verifier...");
-    verifierAddresses[9] = address(new OuterCount13Verifier());
-    console.log("Outer (13 subproofs) verifier deployed at:", verifierAddresses[9]);
+    console.log("Deploying Outer (8 subproofs) proof verifier...");
+    proofVerifiers[4] = address(new OuterCount8Verifier());
+    console.log("Outer (8 subproofs) proof verifier deployed at:", proofVerifiers[4]);
 
-    console.log("Deploying ZKPassportVerifier...");
-    address rootRegistry = vm.envAddress("ROOT_REGISTRY_ADDRESS");
-    ZKPassportVerifier zkPassportVerifier = new ZKPassportVerifier(rootRegistry);
-    console.log("ZKPassportVerifier deployed at:", address(zkPassportVerifier));
+    console.log("Deploying Outer (9 subproofs) proof verifier...");
+    proofVerifiers[5] = address(new OuterCount9Verifier());
+    console.log("Outer (9 subproofs) proof verifier deployed at:", proofVerifiers[5]);
 
-    // Add verifiers to ZKPassportVerifier
-    console.log("Adding verifiers to ZKPassportVerifier...");
-    zkPassportVerifier.addVerifiers(vkeyHashes, verifierAddresses);
-    console.log("Verifiers added to ZKPassportVerifier");
+    console.log("Deploying Outer (10 subproofs) proof verifier...");
+    proofVerifiers[6] = address(new OuterCount10Verifier());
+    console.log("Outer (10 subproofs) proof verifier deployed at:", proofVerifiers[6]);
+
+    console.log("Deploying Outer (11 subproofs) proof verifier...");
+    proofVerifiers[7] = address(new OuterCount11Verifier());
+    console.log("Outer (11 subproofs) proof verifier deployed at:", proofVerifiers[7]);
+
+    console.log("Deploying Outer (12 subproofs) proof verifier...");
+    proofVerifiers[8] = address(new OuterCount12Verifier());
+    console.log("Outer (12 subproofs) proof verifier deployed at:", proofVerifiers[8]);
+
+    console.log("Deploying Outer (13 subproofs) proof verifier...");
+    proofVerifiers[9] = address(new OuterCount13Verifier());
+    console.log("Outer (13 subproofs) proof verifier deployed at:", proofVerifiers[9]);
+
+    // Add proof verifiers to the sub verifier
+    console.log("Adding proof verifiers to the sub verifier...");
+    ProofVerifier[] memory proofVerifiersArray = new ProofVerifier[](10);
+    for (uint256 i = 0; i < 10; i++) {
+      proofVerifiersArray[i] = ProofVerifier({vkeyHash: vkeyHashes[i], verifier: proofVerifiers[i]});
+    }
+    subVerifier.addProofVerifiers(proofVerifiersArray);
+    console.log("Proof verifiers added to the sub verifier");
 
     // Stop broadcasting transactions
     vm.stopBroadcast();
 
-    // Create JSON for verifiers
-    string memory verifiers = "verifiers";
-    vm.serializeAddress(verifiers, "outer_count_4", verifierAddresses[0]);
-    vm.serializeAddress(verifiers, "outer_count_5", verifierAddresses[1]);
-    vm.serializeAddress(verifiers, "outer_count_6", verifierAddresses[2]);
-    vm.serializeAddress(verifiers, "outer_count_7", verifierAddresses[3]);
-    vm.serializeAddress(verifiers, "outer_count_8", verifierAddresses[4]);
-    vm.serializeAddress(verifiers, "outer_count_9", verifierAddresses[5]);
-    vm.serializeAddress(verifiers, "outer_count_10", verifierAddresses[6]);
-    vm.serializeAddress(verifiers, "outer_count_11", verifierAddresses[7]);
-    vm.serializeAddress(verifiers, "outer_count_12", verifierAddresses[8]);
-    verifiers = vm.serializeAddress(verifiers, "outer_count_13", verifierAddresses[9]);
-
-    // Create the main JSON object
+    // Create the main JSON object with deployment details
     string memory mainJson = "main";
-
-    // Add deployment details to the main JSON
     vm.serializeUint(mainJson, "chain_id", block.chainid);
     vm.serializeString(mainJson, "deployment_timestamp", vm.toString(block.timestamp));
-    vm.serializeAddress(mainJson, "zk_passport_verifier", address(zkPassportVerifier));
-
-    // Add verifiers object to the main JSON
-    string memory finalJson = vm.serializeString(mainJson, "verifiers", verifiers);
+    vm.serializeAddress(mainJson, "root_verifier", address(rootVerifier));
+    string memory subVerifierVersion = vm.toString(uint256(SUB_VERIFIER_VERSION));
+    string memory subVerifierVersionString = string.concat("v", subVerifierVersion);
+    vm.serializeAddress(mainJson, string.concat("sub_verifier_", subVerifierVersionString), address(subVerifier));
+    vm.serializeAddress(mainJson, string.concat("helper_", subVerifierVersionString), address(helper));
+    // Add proof verifiers to JSON artifact
+    string memory proofVerifiersJson = "proof_verifiers";
+    vm.serializeAddress(proofVerifiersJson, "outer_count_4", proofVerifiers[0]);
+    vm.serializeAddress(proofVerifiersJson, "outer_count_5", proofVerifiers[1]);
+    vm.serializeAddress(proofVerifiersJson, "outer_count_6", proofVerifiers[2]);
+    vm.serializeAddress(proofVerifiersJson, "outer_count_7", proofVerifiers[3]);
+    vm.serializeAddress(proofVerifiersJson, "outer_count_8", proofVerifiers[4]);
+    vm.serializeAddress(proofVerifiersJson, "outer_count_9", proofVerifiers[5]);
+    vm.serializeAddress(proofVerifiersJson, "outer_count_10", proofVerifiers[6]);
+    vm.serializeAddress(proofVerifiersJson, "outer_count_11", proofVerifiers[7]);
+    vm.serializeAddress(proofVerifiersJson, "outer_count_12", proofVerifiers[8]);
+    proofVerifiersJson = vm.serializeAddress(proofVerifiersJson, "outer_count_13", proofVerifiers[9]);
+    mainJson = vm.serializeString(mainJson, "proof_verifiers", proofVerifiersJson);
+    string memory finalJson = vm.serializeString(mainJson, "main", mainJson);
 
     // Ensure deployments directory exists
     string memory deploymentsDir = "./deployments";
