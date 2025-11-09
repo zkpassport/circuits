@@ -31,7 +31,7 @@ import {ProofVerifier} from "../src/Types.sol";
 contract Deploy is Script {
   using stdJson for string;
 
-  bytes32 public constant SUB_VERIFIER_VERSION = bytes32(uint256(1));
+  bytes32 public SUB_VERIFIER_VERSION;
 
   bytes32[] public vkeyHashes = [
     // Outer (4 subproofs)
@@ -58,6 +58,8 @@ contract Deploy is Script {
   address[] public proofVerifiers = new address[](10);
 
   function run() public {
+    SUB_VERIFIER_VERSION = vm.envOr("SUB_VERIFIER_VERSION", bytes32(uint256(1)));
+
     // Load the private key from environment variable
     uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
