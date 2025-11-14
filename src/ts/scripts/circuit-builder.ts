@@ -231,6 +231,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     csc_pubkey_redc_param: [u8; ${Math.ceil(bit_size / 8) + 1}],
     dsc_signature: [u8; ${Math.ceil(bit_size / 8)}],
     exponent: u32,
+    ${rsa_type === "pss" ? "pss_salt_len: u32," : ""}
 ) -> pub Field {
     // Get the length of tbs_certificate by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid
@@ -245,6 +246,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         exponent,
         tbs_certificate,
         tbs_certificate_len,
+        ${rsa_type === "pss" ? `pss_salt_len` : "0"},
     ), "RSA signature verification failed");
     let comm_out = commit_to_dsc(
         certificate_registry_root,
@@ -337,6 +339,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     signed_attributes: SignedAttrsData,
     exponent: u32,
     e_content: EContentData,
+    ${rsa_type === "pss" ? "pss_salt_len: u32," : ""}
 ) -> pub Field {
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate);
     // Get the length of signed_attributes by parsing the ASN.1
@@ -352,6 +355,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         exponent,
         signed_attributes,
         signed_attributes_size,
+        ${rsa_type === "pss" ? `pss_salt_len` : "0"},
     ), "RSA signature verification failed");
     let comm_out = commit_to_id(
         comm_in,

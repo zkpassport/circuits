@@ -17,6 +17,7 @@ pub fn verify_signature<let SIG_BYTES: u32, let IS_PSS: u32, let DATA_TO_SIGN_MA
     exponent: u32,
     data_to_sign: [u8; DATA_TO_SIGN_MAX_LEN],
     data_to_sign_len: u32,
+    pss_salt_len: u32,
 ) -> bool {
     assert(
         (SIG_BYTES == 768)
@@ -37,16 +38,16 @@ pub fn verify_signature<let SIG_BYTES: u32, let IS_PSS: u32, let DATA_TO_SIGN_MA
     if (IS_PSS == 1) {
         if (HASH_BYTE_SIZE == 20) {
             let msg_hash = sha1_and_check_data_to_sign(data_to_sign, data_to_sign_len);
-            verify_sha1_pss::<_, SIG_BYTES * 8>(msg_hash, signature, exponent)
+            verify_sha1_pss::<_, SIG_BYTES * 8>(msg_hash, signature, exponent, pss_salt_len)
         } else if (HASH_BYTE_SIZE == 32) {
             let msg_hash = sha256_and_check_data_to_sign(data_to_sign, data_to_sign_len);
-            verify_sha256_pss::<_, SIG_BYTES * 8>(msg_hash, signature, exponent)
+            verify_sha256_pss::<_, SIG_BYTES * 8>(msg_hash, signature, exponent, pss_salt_len)
         } else if (HASH_BYTE_SIZE == 48) {
             let msg_hash = sha384_and_check_data_to_sign(data_to_sign, data_to_sign_len);
-            verify_sha384_pss::<_, SIG_BYTES * 8>(msg_hash, signature, exponent)
+            verify_sha384_pss::<_, SIG_BYTES * 8>(msg_hash, signature, exponent, pss_salt_len)
         } else if (HASH_BYTE_SIZE == 64) {
             let msg_hash = sha512_and_check_data_to_sign(data_to_sign, data_to_sign_len);
-            verify_sha512_pss::<_, SIG_BYTES * 8>(msg_hash, signature, exponent)
+            verify_sha512_pss::<_, SIG_BYTES * 8>(msg_hash, signature, exponent, pss_salt_len)
         } else {
             false
         }
