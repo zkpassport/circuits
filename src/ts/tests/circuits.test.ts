@@ -60,6 +60,9 @@ import { serializeAsn, createUTCDate } from "../utils"
 import { Circuit } from "../circuits"
 import fs from "fs"
 import FIXTURES_FACEMATCH from "./fixtures/facematch"
+import { AlgorithmIdentifier } from "@peculiar/asn1-x509"
+import { id_ecdsaWithSHA512, id_ecdsaWithSHA256, id_ecdsaWithSHA384, id_ecdsaWithSHA1 } from "@peculiar/asn1-ecc"
+import { id_sha1WithRSAEncryption, id_sha224WithRSAEncryption, id_sha256WithRSAEncryption, id_sha384WithRSAEncryption } from "@peculiar/asn1-rsa"
 
 // Test constants
 const SALT = 3n
@@ -107,7 +110,9 @@ describe("subcircuits - RSA PKCS", () => {
       dscKeypair,
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc], "SHA-256")
+    const { sod } = await generateSod(dg1, [dsc], "SHA-256", new AlgorithmIdentifier({
+      algorithm: id_sha256WithRSAEncryption,
+    }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
 
     // Add newly generated CSCA certificate to the list
@@ -2031,7 +2036,9 @@ describe("subcircuits - RSA PKCS - SHA-1", () => {
       dscKeySize: 2048,
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc], "SHA-1")
+    const { sod } = await generateSod(dg1, [dsc], "SHA-1", new AlgorithmIdentifier({
+      algorithm: id_sha1WithRSAEncryption,
+    }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-1")
 
     // Add newly generated CSCA certificate to the list
@@ -2254,7 +2261,9 @@ describe("subcircuits - RSA PKCS - SHA-224 integrity check", () => {
       dscKeySize: 2048,
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc], "SHA-224")
+    const { sod } = await generateSod(dg1, [dsc], "SHA-224", new AlgorithmIdentifier({
+      algorithm: id_sha224WithRSAEncryption,
+    }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
 
     // Add newly generated CSCA certificate to the list
@@ -2477,7 +2486,9 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
       dscKeypair: dscKeypair,
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc], "SHA-384")
+    const { sod } = await generateSod(dg1, [dsc], "SHA-384", new AlgorithmIdentifier({
+      algorithm: id_ecdsaWithSHA384,
+    }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
     cscaCerts.push(convertPemToPackagedCertificate(cscPem))
@@ -2686,7 +2697,9 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
       dscCurve: "P-384",
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc], "SHA-512")
+    const { sod } = await generateSod(dg1, [dsc], "SHA-512", new AlgorithmIdentifier({
+      algorithm: id_ecdsaWithSHA512,
+    }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-384")
     // Add newly generated CSC to masterlist
     cscaCerts.push(convertPemToPackagedCertificate(cscPem))
@@ -2902,7 +2915,9 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-192", () => {
       dscCurve: "brainpoolP192r1",
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc], "SHA-1")
+    const { sod } = await generateSod(dg1, [dsc], "SHA-1", new AlgorithmIdentifier({
+      algorithm: id_ecdsaWithSHA1,
+    }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-1")
     // Add newly generated CSC to masterlist
     cscaCerts.push(convertPemToPackagedCertificate(cscPem))
@@ -3120,7 +3135,9 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-224", () => {
       dscCurve: "brainpoolP224r1",
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc], "SHA-1")
+    const { sod } = await generateSod(dg1, [dsc], "SHA-1", new AlgorithmIdentifier({
+      algorithm: id_ecdsaWithSHA1,
+    }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-1")
     // Add newly generated CSC to masterlist
     cscaCerts.push(convertPemToPackagedCertificate(cscPem))
@@ -3338,7 +3355,9 @@ describe("subcircuits - ECDSA NIST P-384 and P-256 - SHA-1", () => {
       dscCurve: "P-256",
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc], "SHA-1")
+    const { sod } = await generateSod(dg1, [dsc], "SHA-1", new AlgorithmIdentifier({
+      algorithm: id_ecdsaWithSHA1,
+    }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-1")
     // Add newly generated CSC to masterlist
     cscaCerts.push(convertPemToPackagedCertificate(cscPem))
@@ -3555,7 +3574,9 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
       issuingCountry: "DE",
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc], "SHA-512")
+    const { sod } = await generateSod(dg1, [dsc], "SHA-512", new AlgorithmIdentifier({
+      algorithm: id_ecdsaWithSHA512,
+    }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-512")
     // Add newly generated CSC to masterlist
     cscaCerts.push(convertPemToPackagedCertificate(cscPem))
@@ -3913,7 +3934,9 @@ describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
       issuingCountry: "ZK",
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc], "SHA-256")
+    const { sod } = await generateSod(dg1, [dsc], "SHA-256", new AlgorithmIdentifier({
+      algorithm: id_sha256WithRSAEncryption,
+    }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
     cscaCerts.push(convertPemToPackagedCertificate(cscPem))
@@ -4080,7 +4103,9 @@ describe("subcircuits - RSA PKCS - 6144 bits", () => {
       dscKeySize: 4096,
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc], "SHA-1")
+    const { sod } = await generateSod(dg1, [dsc], "SHA-1", new AlgorithmIdentifier({
+      algorithm: id_sha1WithRSAEncryption,
+    }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-1")
 
     // Add newly generated CSCA certificate to the list
@@ -4298,7 +4323,9 @@ describe("subcircuits - RSA PKCS - German passport", () => {
       issuingCountry: "DE",
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc], "SHA-256")
+    const { sod } = await generateSod(dg1, [dsc], "SHA-256", new AlgorithmIdentifier({
+      algorithm: id_sha256WithRSAEncryption,
+    }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
     cscaCerts.push(convertPemToPackagedCertificate(cscPem))

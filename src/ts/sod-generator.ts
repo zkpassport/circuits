@@ -134,6 +134,9 @@ export function generateSod(
   dg1: Binary,
   certificates: Certificate[] = [],
   hashAlgorithm: HashAlgorithm = "SHA-256",
+  signatureAlgorithm: AlgorithmIdentifier = new AlgorithmIdentifier({
+    algorithm: "1.2.840.113549.1.1.11", // sha256WithRSAEncryption
+  }),
 ) {
   // Digest Algorithms
   const digestAlgorithms = new DigestAlgorithmIdentifiers([
@@ -166,9 +169,7 @@ export function generateSod(
       algorithm: getHashAlgorithmIdentifier(hashAlgorithm),
     }),
     signedAttrs: signedAttrs,
-    signatureAlgorithm: new AlgorithmIdentifier({
-      algorithm: certificates[0]?.signatureAlgorithm?.algorithm || "1.2.840.113549.1.1.11", // sha256WithRSAEncryption
-    }),
+    signatureAlgorithm: signatureAlgorithm,
     signature: new OctetString(new Uint8Array(256)),
   })
 

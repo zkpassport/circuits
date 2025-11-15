@@ -30,6 +30,7 @@ fn main(
             exponent,
             signed_attributes,
             signed_attributes_size,
+            0,
         ),
         "RSA signature verification failed",
     );

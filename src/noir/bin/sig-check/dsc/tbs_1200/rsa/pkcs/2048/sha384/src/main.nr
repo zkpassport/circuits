@@ -27,6 +27,7 @@ fn main(
             exponent,
             tbs_certificate,
             tbs_certificate_len,
+            0,
         ),
         "RSA signature verification failed",
     );

@@ -50,6 +50,8 @@ import { TestHelper } from "../test-helper"
 import { createUTCDate, serializeAsn } from "../utils"
 import circuitManifest from "./fixtures/circuit-manifest.json"
 import FIXTURES_FACEMATCH from "./fixtures/facematch"
+import { AlgorithmIdentifier } from "@peculiar/asn1-x509"
+import { id_sha256WithRSAEncryption } from "@peculiar/asn1-rsa"
 
 const nowTimestamp = getNowTimestamp()
 const INTEGRITY_TO_DISCLOSURE_SALTS: IntegrityToDisclosureSalts = {
@@ -96,7 +98,9 @@ describe("outer proof", () => {
       dscKeypair,
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc], "SHA-256")
+    const { sod } = await generateSod(dg1, [dsc], "SHA-256", new AlgorithmIdentifier({
+      algorithm: id_sha256WithRSAEncryption,
+    }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
     cscaCerts.push(convertPemToPackagedCertificate(cscPem))
@@ -510,7 +514,9 @@ describe("outer proof - evm optimised", () => {
       dscKeypair,
     })
     // Generate SOD and sign it with DSC keypair
-    const { sod } = await generateSod(dg1, [dsc], "SHA-256")
+    const { sod } = await generateSod(dg1, [dsc], "SHA-256", new AlgorithmIdentifier({
+      algorithm: id_sha256WithRSAEncryption,
+    }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
     cscaCerts.push(convertPemToPackagedCertificate(cscPem))
@@ -665,7 +671,7 @@ describe("outer proof - evm optimised", () => {
       const bindQuery: Query = {
         bind: {
           user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8",
-          chain: "local_anvil",
+          chain: "local",
           custom_data: "email:test@test.com,customer_id:1234567890",
         },
       }

@@ -16,6 +16,7 @@ fn main(
     signed_attributes: SignedAttrsData,
     exponent: u32,
     e_content: EContentData,
+    pss_salt_len: u32,
 ) -> pub Field {
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate);
     // Get the length of signed_attributes by parsing the ASN.1
@@ -30,6 +31,7 @@ fn main(
             exponent,
             signed_attributes,
             signed_attributes_size,
+            pss_salt_len,
         ),
         "RSA signature verification failed",
     );

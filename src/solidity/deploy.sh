@@ -92,6 +92,70 @@ elif [ "$NETWORK" = "sepolia" ]; then
       --delay 2 \
       --timeout 300
   fi
+elif [ "$NETWORK" = "ethereum" ]; then
+  # Check if environment variables are set
+  if [ -z "$MAINNET_RPC_URL" ] || [ -z "$PRIVATE_KEY" ]; then
+    echo "Error: Required environment variables not set"
+    echo "Please set MAINNET_RPC_URL and PRIVATE_KEY in your .env file or environment"
+    echo "You can copy .env.example to .env and fill in your values"
+    exit 1
+  fi
+  # For Ethereum, check if ETHERSCAN_API_KEY is set
+  if [ -z "$ETHERSCAN_API_KEY" ]; then
+    echo "Warning: ETHERSCAN_API_KEY not set. Contract verification will be skipped."
+    # Deploy to Ethereum without verification, with gas settings and sequential broadcasting
+    echo "Deploying with gas settings: Gas Price=$GAS_PRICE, Priority Fee=$PRIORITY_FEE, Retries=$TX_RETRIES"
+    forge script $DEPLOY_SCRIPT \
+      --rpc-url $MAINNET_RPC_URL \
+      --broadcast \
+      --retries 10 \
+      --slow \
+      --delay 2 \
+      --timeout 300
+  else
+    # Deploy to Ethereum with verification, with gas settings and sequential broadcasting
+    echo "Deploying with gas settings: Gas Price=$GAS_PRICE, Priority Fee=$PRIORITY_FEE, Retries=$TX_RETRIES"
+    forge script $DEPLOY_SCRIPT \
+      --rpc-url $MAINNET_RPC_URL \
+      --broadcast \
+      --verify \
+      --retries 10 \
+      --slow \
+      --delay 2 \
+      --timeout 300
+  fi
+elif [ "$NETWORK" = "base" ]; then
+  # Check if environment variables are set
+  if [ -z "$BASE_RPC_URL" ] || [ -z "$PRIVATE_KEY" ]; then
+    echo "Error: Required environment variables not set"
+    echo "Please set BASE_RPC_URL and PRIVATE_KEY in your .env file or environment"
+    echo "You can copy .env.example to .env and fill in your values"
+    exit 1
+  fi
+  # For Base, check if ETHERSCAN_API_KEY is set
+  if [ -z "$ETHERSCAN_API_KEY" ]; then
+    echo "Warning: ETHERSCAN_API_KEY not set. Contract verification will be skipped."
+    # Deploy to Base without verification, with gas settings and sequential broadcasting
+    echo "Deploying with gas settings: Gas Price=$GAS_PRICE, Priority Fee=$PRIORITY_FEE, Retries=$TX_RETRIES"
+    forge script $DEPLOY_SCRIPT \
+      --rpc-url $BASE_RPC_URL \
+      --broadcast \
+      --retries 10 \
+      --slow \
+      --delay 2 \
+      --timeout 300
+  else
+    # Deploy to Base with verification, with gas settings and sequential broadcasting
+    echo "Deploying with gas settings: Gas Price=$GAS_PRICE, Priority Fee=$PRIORITY_FEE, Retries=$TX_RETRIES"
+    forge script $DEPLOY_SCRIPT \
+      --rpc-url $BASE_RPC_URL \
+      --broadcast \
+      --verify \
+      --retries 10 \
+      --slow \
+      --delay 2 \
+      --timeout 300
+  fi
 else
   echo "Unsupported network: $NETWORK"
   echo "Supported networks: anvil, sepolia"
