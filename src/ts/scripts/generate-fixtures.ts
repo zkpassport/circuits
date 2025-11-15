@@ -220,7 +220,7 @@ class FixtureGenerator {
     const bindQuery: Query = {
       bind: {
         user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8",
-        chain: "local_anvil",
+        chain: "local",
         custom_data: "email:test@test.com,customer_id:1234567890",
       },
     }
