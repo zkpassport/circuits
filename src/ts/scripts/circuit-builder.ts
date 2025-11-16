@@ -537,7 +537,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     `}
     let intermediate_1_tbs_len = unsafe { unsafe_get_asn1_element_length(intermediate_1_tbs) };
     ${root_signature_algorithm === "rsa" ? `
-    assert(verify_signature::<_, 0, _, 32>(root_key, intermediate_1_sig, root_key_redc_param, 65537, intermediate_1_tbs, intermediate_1_tbs_len), "Failed to verify intermediate certificate");
+    assert(verify_signature::<_, 0, _, 32>(root_key, intermediate_1_sig, root_key_redc_param, 65537, intermediate_1_tbs, intermediate_1_tbs_len, 0), "Failed to verify intermediate certificate");
     ` : `
     let (root_key_x, root_key_y) = split_array(root_key);
     let intermediate_1_tbs_hash = get_tbs_hash_sha384(intermediate_1_tbs);
@@ -566,7 +566,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
       } else {
         result += `
         let intermediate_${index + 1}_tbs_len = unsafe { unsafe_get_asn1_element_length(intermediate_${index + 1}_tbs) };
-        assert(verify_signature::<_, 0, _, ${getHashAlgorithmByteSize(intermediate_signature_algorithms[index - 1].hash_algorithm)}>(intermediate_${index}_key, intermediate_${index + 1}_sig, intermediate_${index}_key_redc_param, 65537, intermediate_${index + 1}_tbs, intermediate_${index + 1}_tbs_len), "Failed to verify intermediate certificate");
+        assert(verify_signature::<_, 0, _, ${getHashAlgorithmByteSize(intermediate_signature_algorithms[index - 1].hash_algorithm)}>(intermediate_${index}_key, intermediate_${index + 1}_sig, intermediate_${index}_key_redc_param, 65537, intermediate_${index + 1}_tbs, intermediate_${index + 1}_tbs_len, 0), "Failed to verify intermediate certificate");
         `;
       }
      return result;
@@ -585,7 +585,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     );
     ` : `
     let credential_tbs_len = unsafe { unsafe_get_asn1_element_length(credential_tbs) };
-    assert(verify_signature::<_, 0, _, ${getHashAlgorithmByteSize(intermediate_signature_algorithms[intermediate_signature_algorithms.length - 1].hash_algorithm)}>(intermediate_${intermediate_signature_algorithms.length}_key, credential_sig, intermediate_${intermediate_signature_algorithms.length}_key_redc_param, 65537, credential_tbs, credential_tbs_len), "Failed to verify credential certificate");
+    assert(verify_signature::<_, 0, _, ${getHashAlgorithmByteSize(intermediate_signature_algorithms[intermediate_signature_algorithms.length - 1].hash_algorithm)}>(intermediate_${intermediate_signature_algorithms.length}_key, credential_sig, intermediate_${intermediate_signature_algorithms.length}_key_redc_param, 65537, credential_tbs, credential_tbs_len, 0), "Failed to verify credential certificate");
     `}
 
     let (client_data_sig_r, client_data_sig_s) = split_array(client_data_sig);

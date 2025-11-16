@@ -115,6 +115,7 @@ fn main(
             65537,
             intermediate_1_tbs,
             intermediate_1_tbs_len,
+            0,
         ),
         "Failed to verify intermediate certificate",
     );
@@ -137,6 +138,7 @@ fn main(
             65537,
             intermediate_2_tbs,
             intermediate_2_tbs_len,
+            0,
         ),
         "Failed to verify intermediate certificate",
     );
@@ -170,6 +172,7 @@ fn main(
             65537,
             credential_tbs,
             credential_tbs_len,
+            0,
         ),
         "Failed to verify credential certificate",
     );
