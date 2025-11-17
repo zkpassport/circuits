@@ -15,6 +15,7 @@ fn main(
     csc_pubkey_redc_param: [u8; 129],
     dsc_signature: [u8; 128],
     exponent: u32,
+    pss_salt_len: u32,
 ) -> pub Field {
     // Get the length of tbs_certificate by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid
@@ -27,6 +28,7 @@ fn main(
             exponent,
             tbs_certificate,
             tbs_certificate_len,
+            pss_salt_len,
         ),
         "RSA signature verification failed",
     );

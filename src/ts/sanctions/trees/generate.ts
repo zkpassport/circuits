@@ -112,7 +112,7 @@ async function generateSanctionsTrees() {
     const sanctionsLists = openSanctionsResults.map(({datasetName}) => JSON.parse(fs.readFileSync(path.join(__dirname, `../input/${datasetName}/persons_with_passports.json`), 'utf8')));
 
     // Generate the tree for each sanctions list
-    console.log("Generating Trees for each sanctions list");
+    /*console.log("Generating Trees for each sanctions list");
     for (const sanctionsList of sanctionsLists) {
         const datasetName = sanctionsList[0].datasets[0];
         console.log("Generating Trees for dataset: ", datasetName);
@@ -123,7 +123,7 @@ async function generateSanctionsTrees() {
         } catch (error) {
             console.error("Error generating trees for dataset: ", datasetName, error);
         }
-    }
+    }*/
 
     // Generate the tree for all sanctions lists
     console.log("Generating Tree for all sanctions lists combined");
