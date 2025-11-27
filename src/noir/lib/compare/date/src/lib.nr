@@ -80,7 +80,6 @@ pub fn compare_date(
 /// # Arguments
 ///
 /// * `proof_type`: The proof type
-/// * `current_date`: The current date
 /// * `min_date`: The minimum date
 /// * `max_date`: The maximum date
 ///
@@ -89,16 +88,15 @@ pub fn compare_date(
 /// * `commitment`: The commitment of the current date, min date and max date
 pub fn calculate_param_commitment(
     proof_type: u8,
-    current_date_timestamp: u64,
     min_date_timestamp: u64,
     max_date_timestamp: u64,
 ) -> Field {
     let mut params = [0 as Field; 4];
     params[0] = proof_type as Field;
-    params[1] = current_date_timestamp as Field;
+    params[1] = (params.len() - 2) as Field;
     params[2] = min_date_timestamp as Field;
     params[3] = max_date_timestamp as Field;
-    Poseidon2::hash(params, 4)
+    Poseidon2::hash(params, params.len())
 }
 
 /// Calculate the commitment of the current date, min date and max date using SHA2-256
@@ -108,7 +106,6 @@ pub fn calculate_param_commitment(
 /// # Arguments
 ///
 /// * `proof_type`: The proof type
-/// * `current_date`: The current date
 /// * `min_date`: The minimum date
 /// * `max_date`: The maximum date
 ///
@@ -117,24 +114,22 @@ pub fn calculate_param_commitment(
 /// * `commitment`: The commitment of the current date, min date and max date
 pub fn calculate_param_commitment_sha2(
     proof_type: u8,
-    current_date_timestamp: u64,
     min_date_timestamp: u64,
     max_date_timestamp: u64,
 ) -> Field {
-    let mut params = [0 as u8; 25];
+    let mut params = [0 as u8; 19];
     params[0] = proof_type;
-    let current_date_timestamp_bytes: [u8; 8] = (current_date_timestamp as Field).to_be_bytes();
-    for i in 1..9 {
-        params[i] = current_date_timestamp_bytes[i - 1];
-    }
+    let len_bytes: [u8; 2] = utils::encode_integer_over_bytes(params.len() - 3);
+    params[1] = len_bytes[0];
+    params[2] = len_bytes[1];
     let min_date_timestamp_bytes: [u8; 8] = (min_date_timestamp as Field).to_be_bytes();
-    for i in 9..17 {
-        params[i] = min_date_timestamp_bytes[i - 9];
+    for i in 3..11 {
+        params[i] = min_date_timestamp_bytes[i - 3];
     }
     let max_date_timestamp_bytes: [u8; 8] = (max_date_timestamp as Field).to_be_bytes();
-    for i in 17..25 {
-        params[i] = max_date_timestamp_bytes[i - 17];
+    for i in 11..19 {
+        params[i] = max_date_timestamp_bytes[i - 11];
     }
-    let hash = sha256::sha256_var(params, 25);
+    let hash = sha256::sha256_var(params, params.len() as u64);
     utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

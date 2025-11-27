@@ -1,5 +1,6 @@
 // This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::nullify;
+use data_check_expiry::check_expiry_from_date;
 use data_check_tbs_pubkey::{verify_ecdsa_pubkey_in_tbs, verify_rsa_pubkey_in_tbs};
 use facematch::{
     android::{
@@ -24,15 +25,21 @@ use facematch::constants::{
 use facematch::param_commit::{calculate_param_commitment, calculate_param_commitment_sha2};
 use sig_check_ecdsa::{verify_nist_p256_blackbox as verify_nist_p256, verify_nist_p384};
 use sig_check_rsa::verify_signature;
-use utils::{poseidon2_hash_packed, split_array, types::DG1Data, unsafe_get_asn1_element_length};
+use utils::{
+    poseidon2_hash_packed,
+    split_array,
+    types::{DG1Data, MRZExpiryDate, SaltedValue},
+    unsafe_get_asn1_element_length,
+};
 
 fn main(
     comm_in: pub Field,
-    salt: Field,
-    private_nullifier: Field,
-    dg1: DG1Data,
-    dg2_hash_normalized: Field,
-    dg2_hash_type: u32,
+    current_date: pub u64,
+    salted_private_nullifier: SaltedValue<Field>,
+    salted_expiry_date: SaltedValue<MRZExpiryDate>,
+    salted_dg1: SaltedValue<DG1Data>,
+    salted_dg2_hash: SaltedValue<Field>,
+    salted_dg2_hash_type: SaltedValue<u32>,
     // @committed
     // Hash of root_key (the attestation registry leaf) is commitment to (via parameter commitment) and can be verified outside the circuit
     // There are only two possible root keys, right now the RSA one is the only one used
@@ -85,6 +92,9 @@ fn main(
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field, Field) {
+    // Check the ID is not expired
+    check_expiry_from_date(salted_expiry_date.value, current_date);
+
     let (intermediate_1_key_x, intermediate_1_key_y) = split_array(intermediate_1_key);
 
     let (intermediate_3_key_x, intermediate_3_key_y) = split_array(intermediate_3_key);
@@ -110,6 +120,7 @@ fn main(
             65537,
             intermediate_1_tbs,
             intermediate_1_tbs_len,
+            0,
         ),
         "Failed to verify intermediate certificate",
     );
@@ -147,6 +158,7 @@ fn main(
             65537,
             intermediate_3_tbs,
             intermediate_3_tbs_len,
+            0,
         ),
         "Failed to verify intermediate certificate",
     );
@@ -196,7 +208,7 @@ fn main(
 
     // Verify the normalized dg2_hash in client_data matches the expected normalized dg2_hash
     assert(
-        verify_dg2_hash_in_client_data(dg2_hash_normalized, client_data),
+        verify_dg2_hash_in_client_data(salted_dg2_hash.value, client_data),
         "Failed to verify dg2_hash in client_data",
     );
 
@@ -234,11 +246,11 @@ fn main(
 
     let (nullifier, nullifier_type) = nullify(
         comm_in,
-        salt,
-        dg1,
-        dg2_hash_normalized,
-        dg2_hash_type,
-        private_nullifier,
+        salted_dg1,
+        salted_expiry_date,
+        salted_dg2_hash,
+        salted_dg2_hash_type,
+        salted_private_nullifier,
         service_scope,
         service_subscope,
         nullifier_secret,

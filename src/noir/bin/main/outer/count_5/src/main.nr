@@ -125,6 +125,7 @@ fn verify_subproofs(
     // as the salted nullifier is not allowed for now
     // Mock proof salted nullifiers are allowed though
     assert(nullifier_type != SALTED_NULLIFIER, "Salted nullifiers are not allowed for now");
+    assert(scoped_nullifier != 0, "Scoped nullifier must be non-zero");
 
     verify_proof_with_type(
         csc_to_dsc_proof.vkey,
@@ -166,13 +167,14 @@ fn verify_subproofs(
         integrity_check_proof.vkey,
         integrity_check_proof.proof,
         prepare_integrity_check_inputs(
-            current_date,
             integrity_check_proof.public_inputs[0], // comm_in
             integrity_check_proof.public_inputs[1], // comm_out
         ),
         integrity_check_proof.key_hash,
         PROOF_TYPE_HONK_ZK,
     );
+
+    let mut found_valid_scoped_nullifier = false;
 
     for i in 0..disclosure_proofs.len() {
         // Commitment out from integrity check circuit == commitment in from disclosure circuit
@@ -181,22 +183,38 @@ fn verify_subproofs(
             disclosure_proofs[i].public_inputs[0],
             "Commitment out from integrity check circuit != commitment in from disclosure circuit",
         );
+        // The scoped nullifier of each disclosure circuit must be either 0 or the expected scoped nullifier
+        assert(
+            (disclosure_proofs[i].public_inputs[1] == 0)
+                | (disclosure_proofs[i].public_inputs[1] == scoped_nullifier),
+            "Disclosure proof scoped nullifier must be either 0 or the expected scoped nullifier",
+        );
+        // But at least one disclosure proof must have the expected scoped nullifier
+        if (
+            !found_valid_scoped_nullifier
+                & (disclosure_proofs[i].public_inputs[1] == scoped_nullifier)
+        ) {
+            found_valid_scoped_nullifier = true;
+        }
 
         verify_proof_with_type(
             disclosure_proofs[i].vkey,
             disclosure_proofs[i].proof,
             prepare_disclosure_inputs(
                 disclosure_proofs[i].public_inputs[0], // comm_in
+                current_date,
                 param_commitments[i],
                 service_scope,
                 service_subscope,
                 nullifier_type,
-                scoped_nullifier,
+                disclosure_proofs[i].public_inputs[1], // scoped nullifier
             ),
             disclosure_proofs[i].key_hash,
             PROOF_TYPE_HONK_ZK,
         );
     }
+
+    assert(found_valid_scoped_nullifier, "Incorrect scoped nullifier provided");
 }
 
 fn main(

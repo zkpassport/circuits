@@ -16,9 +16,8 @@ const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
 const PACKAGED_CIRCUITS_DIR = path.join(TARGET_DIR, "packaged/circuits")
 const MAX_CONCURRENT_PROCESSES = 10
 const DEPLOY_SOL_PATH = "src/solidity/script/Deploy.s.sol"
-const ADD_VERIFIERS_SOL_PATH = "src/solidity/script/AddVerifiers.s.sol"
-const DEPLOY_WITH_EXISTING_VERIFIERS_SOL_PATH =
-  "src/solidity/script/DeployWithExistingVerifiers.s.sol"
+const DEPLOY_SUB_VERIFIER_SOL_PATH = "src/solidity/script/DeploySubVerifier.s.sol"
+const DEPLOY_PROOF_VERIFIERS_SOL_PATH = "src/solidity/script/DeployProofVerifiers.s.sol"
 
 /**
  * Calculates the IPFS CIDv0 of the given data
@@ -119,7 +118,14 @@ const processFile = async (
     `${snakeToPascal(outputName)}.sol`.replace("Evm", ""),
   )
   try {
-    // Skip if output file already exists
+    // Read the input file and check whether it contains the string "unconstrained main"
+    const inputContent = fs.readFileSync(inputPath, "utf-8")
+    const isUnconstrained = inputContent.includes("unconstrained main")
+
+    if (isUnconstrained) {
+      throw new Error(`Unconstrained circuit detected: ${file}. Please remove any unconstrained circuits and rebuild them constrained.`)
+    }
+
     if (fs.existsSync(outputPath)) {
       console.log(`Skipping ${file} (already packaged)`)
       return true
@@ -138,13 +144,13 @@ const processFile = async (
     )
     // TODO: remove this condition once bb gates works with outer circuits again
     if (!file.startsWith("outer")) {
-      await execPromise(
-        `bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`,
-      )
+      await execPromise(`bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`)
     }
     if (generateSolidityVerifier) {
+      // Warning: Make sure to use a bb binary generated using the latest commit of ZKPassport's aztec-packages
+      // c.f. https://github.com/zkpassport/aztec-packages/commit/a4f7c39e15e7835c1f5f491168afa4aaac286894
       await execPromise(
-        `bb write_solidity_verifier --scheme ultra_honk --disable_zk -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
+        `bb write_solidity_verifier --scheme ultra_honk --disable_zk --optimized -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
       )
     }
 
@@ -201,7 +207,7 @@ const processFile = async (
 }
 
 // Get all outer EVM vkey hashes from packaged circuit files
-const getOuterkeyHashes = (): { count: number; hash: string }[] => {
+const getOuterVkeyHashes = (): { count: number; hash: string }[] => {
   console.log("Collecting vkey hashes from packaged circuit files...")
   const vkeyHashes: { count: number; hash: string }[] = []
 
@@ -255,18 +261,17 @@ const getOuterkeyHashes = (): { count: number; hash: string }[] => {
 }
 
 const updateVkeyHashesInSolidityDeployScript = (filePath: string) => {
+  const scriptName = filePath.split("/").pop()?.split(".")[0]
   // Get vkey hashes from packaged files
-  const outerVkeyHashes = getOuterkeyHashes()
-
+  const outerVkeyHashes = getOuterVkeyHashes()
   if (outerVkeyHashes.length === 0) {
-    console.log("No outer vkey hashes found to update in Deploy.s.sol")
+    console.log(`No outer vkey hashes found to update in ${scriptName}`)
     return
   }
-
-  console.log("Updating Deploy.s.sol with vkey hashes...")
+  console.log(`Updating ${scriptName} with vkey hashes...`)
 
   try {
-    // Read the Deploy.s.sol file
+    // Read the script file
     const content = fs.readFileSync(filePath, "utf-8")
 
     // Find the vkeyHashes array section
@@ -294,19 +299,6 @@ const updateVkeyHashesInSolidityDeployScript = (filePath: string) => {
   } catch (error) {
     console.error(`Error updating ${filePath}:`, error)
   }
-}
-
-// Update Deploy.s.sol file with vkey hashes
-const updateDeploySol = () => {
-  updateVkeyHashesInSolidityDeployScript(DEPLOY_SOL_PATH)
-}
-
-const updateAddVerifiersSol = () => {
-  updateVkeyHashesInSolidityDeployScript(ADD_VERIFIERS_SOL_PATH)
-}
-
-const updateDeployWithExistingVerifiersSol = () => {
-  updateVkeyHashesInSolidityDeployScript(DEPLOY_WITH_EXISTING_VERIFIERS_SOL_PATH)
 }
 
 // Process files with controlled concurrency
@@ -359,11 +351,11 @@ const processFiles = async () => {
   }
 
   // Update Deploy.s.sol with the vkey hashes
-  updateDeploySol()
-  // Update AddVerifiers.s.sol with the vkey hashes
-  updateAddVerifiersSol()
+  updateVkeyHashesInSolidityDeployScript(DEPLOY_SOL_PATH)
   // Update DeployWithExistingVerifiers.s.sol with the vkey hashes
-  updateDeployWithExistingVerifiersSol()
+  // updateVkeyHashesInSolidityDeployScript(DEPLOY_SUB_VERIFIER_SOL_PATH)
+  // Update DeployProofVerifiers.s.sol with the vkey hashes
+  // updateVkeyHashesInSolidityDeployScript(DEPLOY_PROOF_VERIFIERS_SOL_PATH)
 
   // Exit with error code if any file failed to process
   if (hasErrors) {

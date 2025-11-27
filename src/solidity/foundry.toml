@@ -2,21 +2,41 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+# Lock the Solidity compiler version to 0.8.30
+solc = "0.8.30"
 # Enable the optimizer
 optimizer = true
 optimizer_runs = 200
+# Ensure deterministic init code hash
+bytecode_hash = "none"
+# File system permissions
 fs_permissions = [{ access = "read-write", path = "./"}]
 
+[lint]
+exclude_lints = ["screaming-snake-case-immutable", "unwrapped-modifier-logic"]
+
+[fmt]
+tab_width = 2
+ignore = [
+  "src/ultra-honk-verifiers",
+  "src/SampleContract.sol",
+  "src/Constants.sol",
+  "test/Constants.t.sol",
+]
 
 # Ethereum Sepolia configuration
 [rpc_endpoints]
-sepolia = "${SEPOLIA_RPC_URL}"
 anvil = "http://127.0.0.1:8545"
+sepolia = "${SEPOLIA_RPC_URL}"
+mainnet = "${MAINNET_RPC_URL}"
+base = "${BASE_RPC_URL}"
 
 # Etherscan configuration
 # The API key is only needed for Sepolia deployments with verification
 # For local deployments, this section is not used
 [etherscan]
 sepolia = { key = "${ETHERSCAN_API_KEY}" }
+mainnet = { key = "${ETHERSCAN_API_KEY}" }
+base = { key = "${ETHERSCAN_API_KEY}" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

@@ -1,17 +1,21 @@
 {
-  "chain_id": 11155111,
-  "deployment_timestamp": "1760614356",
-  "verifiers": {
-    "outer_count_10": "0x77fc39C00E0C4df7A9993962F619535DCe5AB656",
-    "outer_count_11": "0x91964BECE4dF2a5A3E878b5B6Fa13466e2d192Cf",
-    "outer_count_12": "0x259CC6e2eC9ea9493b307f032b75a35373f4FE3F",
-    "outer_count_13": "0xb68dE6E9ef2E2BBD5cC387a3cf2b5FeD714535d7",
-    "outer_count_4": "0xFaE3636d86e4604E8e862C4a12289D7591317ECc",
-    "outer_count_5": "0x2BB71DFA7A7f4Ee050a01F18b76f50b3B496be1b",
-    "outer_count_6": "0xBE721A6984C6179D187268dc2108d69ad93fd1bd",
-    "outer_count_7": "0x2d4e00D66a827A08A456Ab4f7A4eE9dDfF34DF5a",
-    "outer_count_8": "0xF18BF207EC357Fa211b1e60d1CDf29921198f0Ad",
-    "outer_count_9": "0x5Fe57Ea506aeb69Be166e15FEDcc94cB60D804C0"
-  },
-  "zk_passport_verifier": "0x3101Bad9eA5fACadA5554844a1a88F7Fe48D4DE0"
+  "main": {
+    "chain_id": 11155111,
+    "deployment_timestamp": "1762603680",
+    "helper_v1": "0xCEE0522ac9020fADd041FbdbcbDCa741F349088E",
+    "proof_verifiers": {
+      "outer_count_10": "0xFB240f4Fb14c2f77E1DD6e4a1DA283B66C78E223",
+      "outer_count_11": "0xf267E722Bd166954c4A55982b6fC9bCBDF632C9D",
+      "outer_count_12": "0xc1e73d7438E0058fBC252612231a8e6E570A4677",
+      "outer_count_13": "0x06bF16073E72b29FdbE227Cd2D17b6b6432A0D26",
+      "outer_count_4": "0x80B618f620d3012669277323CA687a97534A35eD",
+      "outer_count_5": "0xE3c9151aF6a4B4c970323C5D767d98B83e1Bd009",
+      "outer_count_6": "0x0E2bF7aF4Eb4393732983Eca7655eBb3CF036263",
+      "outer_count_7": "0x44038dF8c99F8fC2A46CEb11ef0439D088A440c5",
+      "outer_count_8": "0x7cC0C62b8B4Aef36c4f23D33fa0d110528Cf504f",
+      "outer_count_9": "0x5373D3e346B67d86C11248eBac8B7975dEb23AaE"
+    },
+    "root_verifier": "0x1D000001000EFD9a6371f4d90bB8920D5431c0D8",
+    "sub_verifier_v1": "0x56c93ab61400E8aB35f1bedB6cA26BBDaa0d6f97"
+  }
 }

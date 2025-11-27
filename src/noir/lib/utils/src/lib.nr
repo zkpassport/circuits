@@ -127,6 +127,51 @@ pub fn pack_be_bytes_into_u128s<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE_
     result
 }
 
+pub fn pack_be_bits_into_fields<let NBits: u32, let N: u32, let MAX_FIELD_SIZE_IN_BITS: u32>(
+    x: [u1; NBits],
+) -> [Field; N] {
+    let mut result = [0 as Field; N];
+
+    let mut limb: Field = 0;
+    let mut k = 0;
+    for _j in 0..(MAX_FIELD_SIZE_IN_BITS - (N * MAX_FIELD_SIZE_IN_BITS - NBits)) {
+        limb *= 2;
+        limb += x[k] as Field;
+        k += 1;
+    }
+    std::as_witness(limb);
+
+    result[N - 1] = limb;
+
+    for i in 1..N {
+        let mut limb: Field = 0;
+        for _j in 0..MAX_FIELD_SIZE_IN_BITS {
+            limb *= 2;
+            limb += x[k] as Field;
+            k += 1;
+        }
+        std::as_witness(limb);
+        result[N - i - 1] = limb;
+    }
+
+    result
+}
+
+pub fn pack_be_bit_into_field<let NBits: u32>(x: [u1; NBits]) -> Field {
+    std::static_assert(
+        NBits < std::field::modulus_num_bits() as u32,
+        "NBits must be less than the bits field size",
+    );
+
+    let mut result: Field = 0;
+    for i in 0..NBits {
+        result *= 2;
+        result += x[i] as Field;
+    }
+    std::as_witness(result);
+    result
+}
+
 pub fn pack_be_bytes_into_fields<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE_IN_BYTES: u32>(
     x: [u8; NBytes],
 ) -> [Field; N] {
@@ -188,6 +233,14 @@ pub fn array_concat_as_field<let N: u32, let M: u32>(
     }
     for i in 0..M {
         result[N + i] = array2[i] as Field;
+    }
+    result
+}
+
+pub fn u8_array_to_fields<let N: u32>(array: [u8; N]) -> [Field; N] {
+    let mut result = [0 as Field; N];
+    for i in 0..N {
+        result[i] = array[i] as Field;
     }
     result
 }
@@ -410,6 +463,33 @@ pub unconstrained fn unsafe_get_asn1_element_length<let N: u32>(asn1: [u8; N]) -
 /// Find the index of the first occurrence of the needle in the haystack
 /// Returns the index of the first occurrence of the needle in the haystack
 /// Returns HAYSTACK_SIZE if the needle is not found
+pub fn find_subarray_index_after_index<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+    needle: [u8; NEEDLE_SIZE],
+    haystack: [u8; HAYSTACK_SIZE],
+    start_index: u32,
+) -> u32 {
+    // Safety: This is safe because the offset is only used as a starting point
+    // to verify the substring exists
+    let offset_unchecked =
+        unsafe { find_subarray_index_after_index_unsafe(needle, haystack, start_index) };
+    let mut offset = offset_unchecked;
+    // Check if offset is valid before attempting verification
+    if (offset_unchecked < HAYSTACK_SIZE) & (offset_unchecked + NEEDLE_SIZE <= HAYSTACK_SIZE) {
+        for i in 0..NEEDLE_SIZE {
+            if haystack[i + offset_unchecked] != needle[i] {
+                offset = HAYSTACK_SIZE;
+            }
+        }
+    } else {
+        // If offset is out of bounds, needle was not found
+        offset = HAYSTACK_SIZE;
+    }
+    offset
+}
+
+/// Find the index of the first occurrence of the needle in the haystack
+/// Returns the index of the first occurrence of the needle in the haystack
+/// Returns HAYSTACK_SIZE if the needle is not found
 pub fn find_subarray_index<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
     needle: [u8; NEEDLE_SIZE],
     haystack: [u8; HAYSTACK_SIZE],
@@ -441,9 +521,10 @@ pub fn is_subarray_in_array<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
 
 /// Safety: This is safe because the offset is only used as a starting point
 /// to verify the substring exists
-pub unconstrained fn find_subarray_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+pub unconstrained fn find_subarray_index_after_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
     needle: [u8; NEEDLE_SIZE],
     haystack: [u8; HAYSTACK_SIZE],
+    start_index: u32,
 ) -> u32 {
     let mut result = HAYSTACK_SIZE; // Default to "not found" value
     // Handle edge cases
@@ -452,7 +533,7 @@ pub unconstrained fn find_subarray_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTA
     } else if NEEDLE_SIZE <= HAYSTACK_SIZE {
         // Search for the needle in the haystack
         for i in 0..(HAYSTACK_SIZE - NEEDLE_SIZE + 1) {
-            let mut found = true;
+            let mut found = i >= start_index;
             for j in 0..NEEDLE_SIZE {
                 if haystack[i + j] != needle[j] {
                     found = false;
@@ -466,6 +547,15 @@ pub unconstrained fn find_subarray_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTA
         }
     }
     result
+}
+
+/// Safety: This is safe because the offset is only used as a starting point
+/// to verify the substring exists
+pub unconstrained fn find_subarray_index_unsafe<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+    needle: [u8; NEEDLE_SIZE],
+    haystack: [u8; HAYSTACK_SIZE],
+) -> u32 {
+    find_subarray_index_after_index_unsafe(needle, haystack, 0)
 }
 
 fn pack_le_bytes_into_fields_internal<let BYTES_PER_FIELD: u32, let NUM_BYTES: u32, let NUM_FIELDS: u32>(
@@ -506,4 +596,10 @@ pub fn poseidon2_hash_packed<let NUM_BYTES: u32>(padded_input: [u8; NUM_BYTES], 
     let packed: [Field; _] = pack_le_bytes_into_fields::<31, _>(padded_input);
     let num_of_fields: u32 = (len + 31 - 1) / 31;
     Poseidon2::hash_fixed(packed, num_of_fields)
+}
+
+pub fn encode_integer_over_bytes<let NUM_BYTES: u32>(x: u32) -> [u8; NUM_BYTES] {
+    let field_number = x as Field;
+    let bytes: [u8; NUM_BYTES] = field_number.to_be_bytes();
+    bytes
 }

@@ -1,13 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2025 ZKPassport
-pragma solidity >=0.8.21;
+// Copyright © 2025 ZKPassport
+/*
+ ______ _     _  _____  _______ _______ _______  _____   _____   ______ _______
+  ____/ |____/  |_____] |_____| |______ |______ |_____] |     | |_____/    |
+ /_____ |    \_ |       |     | ______| ______| |       |_____| |    \_    |
+
+*/
+
+pragma solidity ^0.8.30;
 
 import {Test} from "forge-std/Test.sol";
 import {CommittedInputLen} from "../src/Constants.sol";
-import {TestUtils} from "./Utils.t.sol";
+import {ZKPassportTest} from "./Utils.t.sol";
 
-contract ConstantsTest is TestUtils {
-  function test_CommittedInputLen() public {
+contract ConstantsTest is ZKPassportTest {
+  function test_CommittedInputLen() public pure {
     // Check that the committed inputs lengths are consistent
     // to make sure they are not edited by mistake
     require(CommittedInputLen.INCL_NATIONALITY == CommittedInputLen.EXCL_NATIONALITY, "Inclusion nationality and exclusion nationality committed inputs should have the same length");

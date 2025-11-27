@@ -1,5 +1,5 @@
 import { poseidon2HashAsync } from "@zkpassport/poseidon2"
-import type { PackagedCertificate, Query } from "@zkpassport/utils"
+import type { IntegrityToDisclosureSalts, PackagedCertificate, Query } from "@zkpassport/utils"
 import {
   Binary,
   ProofType,
@@ -27,6 +27,7 @@ import {
   getFacematchCircuitInputs,
   getFacematchEvmParameterCommitment,
   packLeBytesAndHashPoseidon2,
+  ProofTypeLength,
 } from "@zkpassport/utils"
 import * as path from "path"
 import * as fs from "fs"
@@ -55,6 +56,12 @@ class FixtureGenerator {
   private readonly DSC_KEYPAIR_PATH = path.join(this.FIXTURES_PATH, "dsc-keypair-rsa.json")
   private readonly MAX_TBS_LENGTH = 700
   private readonly nowTimestamp = getNowTimestamp()
+  private readonly INTEGRITY_TO_DISCLOSURE_SALTS: IntegrityToDisclosureSalts = {
+    dg1Salt: 3n,
+    expiryDateSalt: 3n,
+    dg2HashSalt: 3n,
+    privateNullifierSalt: 3n,
+  }
 
   async setupPassport() {
     console.log("Setting up passport data...")
@@ -166,10 +173,11 @@ class FixtureGenerator {
     const inputs = await getDiscloseCircuitInputs(
       this.helper.passport as any,
       query,
-      3n,
+      this.INTEGRITY_TO_DISCLOSURE_SALTS,
       0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
+      this.nowTimestamp,
     )
     if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
 
@@ -188,7 +196,7 @@ class FixtureGenerator {
     const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
 
     const committedInputs =
-      ProofType.DISCLOSE.toString(16).padStart(2, "0") +
+      ProofType.DISCLOSE.toString(16).padStart(2, "0") + ProofTypeLength[ProofType.DISCLOSE].evm.toString(16).padStart(4, "0") +
       inputs.disclose_mask.map((x: number) => x.toString(16).padStart(2, "0")).join("") +
       disclosedBytes.map((x: number) => x.toString(16).padStart(2, "0")).join("")
 
@@ -212,7 +220,7 @@ class FixtureGenerator {
     const bindQuery: Query = {
       bind: {
         user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8",
-        chain: "local_anvil",
+        chain: "local",
         custom_data: "email:test@test.com,customer_id:1234567890",
       },
     }
@@ -220,10 +228,11 @@ class FixtureGenerator {
     const inputs = await getBindCircuitInputs(
       this.helper.passport as any,
       bindQuery,
-      3n,
+      this.INTEGRITY_TO_DISCLOSURE_SALTS,
       0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
+      this.nowTimestamp,
     )
     if (!inputs) throw new Error("Unable to generate bind circuit inputs")
 
@@ -239,8 +248,8 @@ class FixtureGenerator {
     const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
 
     const committedInputs =
-      ProofType.BIND.toString(16).padStart(2, "0") +
-      rightPadArrayWithZeros(formatBoundData(bindQuery.bind!), 500)
+      ProofType.BIND.toString(16).padStart(2, "0") + ProofTypeLength[ProofType.BIND].evm.toString(16).padStart(4, "0") +
+      rightPadArrayWithZeros(formatBoundData(bindQuery.bind!), 509)
         .map((x) => x.toString(16).padStart(2, "0"))
         .join("")
 
@@ -265,7 +274,7 @@ class FixtureGenerator {
     const inputs = await getFacematchCircuitInputs(
       this.helper.passport as any,
       { facematch: { mode: "regular" } },
-      3n,
+      this.INTEGRITY_TO_DISCLOSURE_SALTS,
       0n,
       getServiceScopeHash("zkpassport.id"),
       getServiceSubscopeHash("bigproof"),
@@ -293,7 +302,7 @@ class FixtureGenerator {
     const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
 
     const committedInputs =
-      ProofType.FACEMATCH.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(root_key_leaf, 32))
+      ProofType.FACEMATCH.toString(16).padStart(2, "0") + ProofTypeLength[ProofType.FACEMATCH].evm.toString(16).padStart(4, "0") + Array.from(numberToBytesBE(root_key_leaf, 32))
       .map((x) => x.toString(16).padStart(2, "0"))
       .join("") + environment.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(app_id_hash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + Array.from(numberToBytesBE(integrityPubKeyHash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + facematch_mode.toString(16).padStart(2, "0")
 
@@ -341,7 +350,7 @@ class FixtureGenerator {
       const vkey = (await circuit.getVerificationKey({ evm: false })).vkeyFields
       const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
 
-      allCommittedInputs += proofType.toString(16).padStart(2, "0") + formatCommittedInputs(inputs)
+      allCommittedInputs += proofType.toString(16).padStart(2, "0") + ProofTypeLength[proofType].evm.toString(16).padStart(4, "0") + formatCommittedInputs(inputs)
 
       await circuit.destroy()
 
@@ -362,10 +371,11 @@ class FixtureGenerator {
           getNationalityInclusionCircuitInputs(
             this.helper.passport as any,
             { nationality: { in: ["AUS", "FRA", "USA", "GBR"] } },
-            3n,
+            this.INTEGRITY_TO_DISCLOSURE_SALTS,
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
+            this.nowTimestamp,
           ),
         { nationality: { in: ["AUS", "FRA", "USA", "GBR"] } },
         ProofType.NATIONALITY_INCLUSION,
@@ -387,10 +397,11 @@ class FixtureGenerator {
           getNationalityExclusionCircuitInputs(
             this.helper.passport as any,
             { nationality: { out: ["ESP", "PRT", "ITA"] } },
-            3n,
+            this.INTEGRITY_TO_DISCLOSURE_SALTS,
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
+            this.nowTimestamp,
           ),
         { nationality: { out: ["ESP", "PRT", "ITA"] } },
         ProofType.NATIONALITY_EXCLUSION,
@@ -416,10 +427,11 @@ class FixtureGenerator {
           getIssuingCountryInclusionCircuitInputs(
             this.helper.passport as any,
             { issuing_country: { in: ["AUS", "FRA", "USA", "GBR"] } },
-            3n,
+            this.INTEGRITY_TO_DISCLOSURE_SALTS,
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
+            this.nowTimestamp,
           ),
         { issuing_country: { in: ["AUS", "FRA", "USA", "GBR"] } },
         ProofType.ISSUING_COUNTRY_INCLUSION,
@@ -441,10 +453,11 @@ class FixtureGenerator {
           getIssuingCountryExclusionCircuitInputs(
             this.helper.passport as any,
             { issuing_country: { out: ["ESP", "PRT", "ITA"] } },
-            3n,
+            this.INTEGRITY_TO_DISCLOSURE_SALTS,
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
+            this.nowTimestamp,
           ),
         { issuing_country: { out: ["ESP", "PRT", "ITA"] } },
         ProofType.ISSUING_COUNTRY_EXCLUSION,
@@ -470,7 +483,7 @@ class FixtureGenerator {
           getAgeCircuitInputs(
             this.helper.passport as any,
             { age: { gte: 18 } },
-            3n,
+              this.INTEGRITY_TO_DISCLOSURE_SALTS,
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
@@ -479,9 +492,6 @@ class FixtureGenerator {
         { age: { gte: 18 } },
         ProofType.AGE,
         (inputs) =>
-          Array.from(numberToBytesBE(inputs.current_date, 8))
-            .map((x) => x.toString(16).padStart(2, "0"))
-            .join("") +
           inputs.min_age_required.toString(16).padStart(2, "0") +
           inputs.max_age_required.toString(16).padStart(2, "0"),
       ),
@@ -495,7 +505,7 @@ class FixtureGenerator {
           getExpiryDateCircuitInputs(
             this.helper.passport as any,
             { expiry_date: { gte: new Date(this.nowTimestamp * 1000) } },
-            3n,
+            this.INTEGRITY_TO_DISCLOSURE_SALTS,
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
@@ -504,9 +514,6 @@ class FixtureGenerator {
         { expiry_date: { gte: new Date(this.nowTimestamp * 1000) } },
         ProofType.EXPIRY_DATE,
         (inputs) =>
-          Array.from(numberToBytesBE(inputs.current_date, 8))
-            .map((x: number) => x.toString(16).padStart(2, "0"))
-            .join("") +
           Array.from(numberToBytesBE(inputs.min_date, 8))
             .map((x: number) => x.toString(16).padStart(2, "0"))
             .join("") +
@@ -524,7 +531,7 @@ class FixtureGenerator {
           getBirthdateCircuitInputs(
             this.helper.passport as any,
             { birthdate: { lte: new Date(this.nowTimestamp * 1000) } },
-            3n,
+            this.INTEGRITY_TO_DISCLOSURE_SALTS,
             0n,
             getServiceScopeHash("zkpassport.id"),
             getServiceSubscopeHash("bigproof"),
@@ -533,9 +540,6 @@ class FixtureGenerator {
         { birthdate: { lte: new Date(this.nowTimestamp * 1000) } },
         ProofType.BIRTHDATE,
         (inputs) =>
-          Array.from(numberToBytesBE(inputs.current_date, 8))
-            .map((x) => x.toString(16).padStart(2, "0"))
-            .join("") +
           Array.from(numberToBytesBE(inputs.min_date, 8))
             .map((x: number) => x.toString(16).padStart(2, "0"))
             .join("") +
@@ -551,14 +555,16 @@ class FixtureGenerator {
         "exclusion_check_sanctions_evm",
         () => getSanctionsExclusionCheckCircuitInputs(
           this.helper.passport as any,
-          3n, 
+          true,
+          this.INTEGRITY_TO_DISCLOSURE_SALTS, 
           0n,
           getServiceScopeHash("zkpassport.id"),
           getServiceSubscopeHash("bigproof"),
+          this.nowTimestamp,
         ),
         { sanctions: { countries: "all", lists: "all" } },
         ProofType.SANCTIONS_EXCLUSION,
-        (inputs) => inputs.root.slice(2).padStart(64, "0"),
+        (inputs) => inputs.root.slice(2).padStart(64, "0") + inputs.is_strict.toString(16).padStart(2, "0"),
       ),
     )
 

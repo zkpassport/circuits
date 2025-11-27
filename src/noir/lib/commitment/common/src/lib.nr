@@ -1,11 +1,15 @@
 use poseidon::poseidon2::Poseidon2;
 use utils::{
-    constants::{DG1_LENGTH, ECONTENT_LENGTH, SIGNED_ATTRS_LENGTH},
+    constants::{DG1_LENGTH, ECONTENT_LENGTH, SIGNED_ATTRS_LENGTH, YYMMDD_DATE_LENGTH},
     get_issuing_country_from_mrz,
+    pack_be_bytes_into_field,
     pack_be_bytes_into_fields,
     pack_le_bytes_into_fields,
     poseidon2_hash_packed,
-    types::{Alpha2CountryCode, Alpha3CountryCode, DG1Data, EContentData, SignedAttrsData},
+    types::{
+        Alpha2CountryCode, Alpha3CountryCode, DG1Data, EContentData, MRZExpiryDate, SaltedValue,
+        SignedAttrsData,
+    },
 };
 
 pub mod tests;
@@ -19,20 +23,29 @@ pub fn normalize_dg2_hash<let DG2_HASH_SIZE: u32>(dg2_hash: [u8; DG2_HASH_SIZE])
 }
 
 pub fn calculate_scoped_nullifier(
-    private_nullifier: Field,
+    salted_private_nullifier: SaltedValue<Field>,
     service_scope: Field,
     service_subscope: Field,
     nullifier_secret: Field,
 ) -> Field {
+    if salted_private_nullifier.value == 0 {
+        // If the private nullifier value is 0, it means it is hidden behind its salted hash
+        // inside the circuit, so we just return 0 making this proof not usable to derive
+        // the scoped nullifier
+        0
+    }
     // A nullifier secret set to 0 means it should be ignored and the nullifier should be computed without it
     // Otherwise, the nullifier should be computed with the secret
-    if nullifier_secret != 0 {
+    else if nullifier_secret != 0 {
         Poseidon2::hash(
-            [private_nullifier, service_scope, service_subscope, nullifier_secret],
+            [salted_private_nullifier.value, service_scope, service_subscope, nullifier_secret],
             4,
         )
     } else {
-        Poseidon2::hash([private_nullifier, service_scope, service_subscope], 3)
+        Poseidon2::hash(
+            [salted_private_nullifier.value, service_scope, service_subscope],
+            3,
+        )
     }
 }
 
@@ -114,29 +127,24 @@ pub fn hash_salt_country_tbs<let TBS_MAX_SIZE: u32>(
 }
 
 pub fn hash_salt_dg1_dg2_hash_private_nullifier(
-    salt: Field,
-    dg1: DG1Data,
-    dg2_hash_normalized: Field,
-    dg2_hash_type: u32,
-    private_nullifier: Field,
+    salted_dg1: SaltedValue<DG1Data>,
+    salted_expiry_date: SaltedValue<MRZExpiryDate>,
+    salted_dg2_hash: SaltedValue<Field>,
+    salted_dg2_hash_type: SaltedValue<u32>,
+    salted_private_nullifier: SaltedValue<Field>,
 ) -> Field {
-    let mut hash_inputs: [Field; 4 + ((DG1_LENGTH + 30) / 31)] = std::mem::zeroed();
-    hash_inputs[0] = salt;
+    let mut hash_inputs: [Field; 5] = std::mem::zeroed();
 
-    let packed_dg1: [Field; (DG1_LENGTH + 30) / 31] =
-        pack_be_bytes_into_fields::<DG1_LENGTH, _, 31>(dg1);
-    for i in 0..((DG1_LENGTH + 30) / 31) {
-        hash_inputs[1 + i] = packed_dg1[i];
-    }
-
+    hash_inputs[0] = salted_dg1.get_hash();
+    hash_inputs[1] = salted_expiry_date.get_hash();
     // Commits over the "normalised" dg2 hash
     // i.e. the hash of dg2 hashed into a single field with Poseidon2
-    hash_inputs[1 + ((DG1_LENGTH + 30) / 31)] = dg2_hash_normalized;
+    hash_inputs[2] = salted_dg2_hash.get_hash();
     // Commit over the dg2 hash type (SHA1, SHA224, SHA256, SHA384 or SHA512)
-    hash_inputs[2 + ((DG1_LENGTH + 30) / 31)] = dg2_hash_type as Field;
+    hash_inputs[3] = salted_dg2_hash_type.get_hash();
+    hash_inputs[4] = salted_private_nullifier.get_hash();
 
-    hash_inputs[3 + ((DG1_LENGTH + 30) / 31)] = private_nullifier;
-    Poseidon2::hash(hash_inputs, 4 + ((DG1_LENGTH + 30) / 31))
+    Poseidon2::hash(hash_inputs, 5)
 }
 
 pub fn calculate_private_nullifier<let SIG: u32>(

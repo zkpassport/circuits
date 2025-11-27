@@ -4,32 +4,32 @@ global PROOF_SIZE: u32 = 508;
 global VKEY_SIZE: u32 = 115;
 
 pub fn prepare_integrity_check_inputs(
-    timestamp: u64,
     comm_in: Field,
     comm_out: Field,
-) -> [Field; 3] {
-    let mut result: [Field; 3] = [0; 3];
-    result[0] = timestamp as Field;
-    result[1] = comm_in;
-    result[2] = comm_out;
+) -> [Field; 2] {
+    let mut result: [Field; 2] = [0; 2];
+    result[0] = comm_in;
+    result[1] = comm_out;
     result
 }
 
 pub fn prepare_disclosure_inputs(
     comm_in: Field,
+    current_date: u64,
     param_commitment: Field,
     service_scope: Field,
     service_subscope: Field,
     nullifier_type: Field,
     scoped_nullifier: Field,
-) -> [Field; 6] {
-    let mut result: [Field; 6] = [0; 6];
+) -> [Field; 7] {
+    let mut result: [Field; 7] = [0; 7];
     result[0] = comm_in;
-    result[1] = service_scope;
-    result[2] = service_subscope;
-    result[3] = param_commitment;
-    result[4] = nullifier_type;
-    result[5] = scoped_nullifier;
+    result[1] = current_date as Field;
+    result[2] = service_scope;
+    result[3] = service_subscope;
+    result[4] = param_commitment;
+    result[5] = nullifier_type;
+    result[6] = scoped_nullifier;
     result
 }
 
@@ -76,7 +76,7 @@ pub struct IntegrityCheckProof {
 pub struct DisclosureProof {
     pub vkey: [Field; VKEY_SIZE],
     pub proof: [Field; PROOF_SIZE],
-    pub public_inputs: [Field; 1],
+    pub public_inputs: [Field; 2],
     pub key_hash: Field,
     // Hash path for circuit D key hash in the sub-circuit merkle tree
     pub tree_hash_path: [Field; 12],

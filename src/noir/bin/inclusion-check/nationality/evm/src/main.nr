@@ -1,14 +1,17 @@
 use commitment::nullify;
+use data_check_expiry::check_expiry;
 use inclusion_check_country::{calculate_param_commitment_sha2, check_nationality_inclusion};
-use utils::{constants::PROOF_TYPE_NATIONALITY_INCLUSION, types::DG1Data};
+use utils::{constants::PROOF_TYPE_NATIONALITY_INCLUSION, types::{DG1Data, SaltedValue}};
+use utils::types::MRZExpiryDate;
 
 fn main(
     comm_in: pub Field,
-    salt: Field,
-    private_nullifier: Field,
-    dg1: DG1Data,
-    dg2_hash_normalized: Field,
-    dg2_hash_type: u32,
+    current_date: pub u64,
+    salted_private_nullifier: SaltedValue<Field>,
+    salted_expiry_date: SaltedValue<MRZExpiryDate>,
+    salted_dg1: SaltedValue<DG1Data>,
+    salted_dg2_hash: SaltedValue<Field>,
+    salted_dg2_hash_type: SaltedValue<u32>,
     // @committed
     // There are roughly 200 countries in the world
     // so we can safely pad it to 200
@@ -17,15 +20,18 @@ fn main(
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field, Field) {
+    // Check the ID is not expired
+    check_expiry(salted_dg1.value, current_date);
+
     // Check that the nationality of the passport holder is in the list of countries
-    check_nationality_inclusion(dg1, country_list);
+    check_nationality_inclusion(salted_dg1.value, country_list);
     let (nullifier, nullifier_type) = nullify(
         comm_in,
-        salt,
-        dg1,
-        dg2_hash_normalized,
-        dg2_hash_type,
-        private_nullifier,
+        salted_dg1,
+        salted_expiry_date,
+        salted_dg2_hash,
+        salted_dg2_hash_type,
+        salted_private_nullifier,
         service_scope,
         service_subscope,
         nullifier_secret,

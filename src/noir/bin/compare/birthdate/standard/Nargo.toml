@@ -8,3 +8,4 @@ compiler_version = ">=1.0.0"
 compare_date_lib = { path = "../../../../lib/compare/date" }
 commitment = { path = "../../../../lib/commitment/scoped-nullifier" }
 utils = { path = "../../../../lib/utils" }
+data_check_expiry = { path = "../../../../lib/data-check/expiry" }

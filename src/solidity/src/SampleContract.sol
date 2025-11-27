@@ -1,49 +1,69 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2025 ZKPassport
-pragma solidity >=0.8.21;
+// Copyright © 2025 ZKPassport
+/*
+ ______ _     _  _____  _______ _______ _______  _____   _____   ______ _______
+  ____/ |____/  |_____] |_____| |______ |______ |_____] |     | |_____/    |
+ /_____ |    \_ |       |     | ______| ______| |       |_____| |    \_    |
 
-import {DateUtils} from "../src/DateUtils.sol";
-import {StringUtils} from "../src/StringUtils.sol";
-import {DisclosedData} from "../src/Types.sol";
-import {ZKPassportVerifier, ProofType, ProofVerificationParams, DisclosedData} from "../src/ZKPassportVerifier.sol";
-import {console} from "forge-std/console.sol";
+*/
+
+pragma solidity ^0.8.30;
+
+import {ZKPassportRootVerifier} from "./ZKPassportRootVerifier.sol";
+import {ZKPassportHelper} from "./ZKPassportHelper.sol";
+import {DisclosedData, ProofVerificationParams} from "./Types.sol";
 
 contract SampleContract {
-  address public admin;
-  ZKPassportVerifier public zkPassportVerifier;
+  // ZKPassport Verifier contract
+  ZKPassportRootVerifier public zkPassportVerifier;
 
-  // Unique Identifier => whether it was verified or not
+  // Unique identifier => whether it was verified or not
   mapping(bytes32 => bool) public isVerified;
-  // Unique Identifier => nationality
+
+  // Unique identifier => nationality
   mapping(bytes32 => string) public userNationality;
+
   // User address => unique identifier
   mapping(address => bytes32) public userUniqueIdentifier;
-  string public validDomain;
-  string public validScope;
 
-  constructor() {
-    admin = msg.sender;
-    // Replace with your domain name
-    validDomain = "zkpassport.id";
-    // Replace with the scope you specified in the SDK
-    validScope = "bigproof";
-  }
+  // Replace with your domain name
+  string internal constant validDomain = "zkpassport.id";
 
-  modifier onlyAdmin() {
-    require(msg.sender == admin, "Only admin can call this function");
-    _;
-  }
+  // Replace with your usage scope (e.g. "registration")
+  string internal constant validScope = "bigproof";
 
-  function setZKPassportVerifier(address _zkPassportVerifier) public onlyAdmin {
-    zkPassportVerifier = ZKPassportVerifier(_zkPassportVerifier);
-  }
+  // Errors
+  error InvalidProof();
+  error InvalidScope();
+  error InvalidDomain();
+  error InvalidBoundAddress(address _expected, address _received);
+  error InvalidChainId(uint256 _expected, uint256 _received);
+  error InvalidAge();
+  error InvalidCountry();
+  error InvalidValidityPeriod();
+  error InvalidFaceMatch();
+  error ExtraDiscloseDataNonZero();
+  error SybilDetected(bytes32 _nullifier);
+  error AttesterDoesNotExist(address _attester);
+  error NoNullifier();
+  error MerkleProofInvalid();
 
-  function setDomain(string calldata _domain) public onlyAdmin {
-    validDomain = _domain;
-  }
+  // Excluded countries list
+  string internal constant PKR = "PRK";
+  string internal constant UKR = "UKR";
+  string internal constant IRN = "IRN";
+  string internal constant CUB = "CUB";
 
-  function setSubscope(string calldata _subscope) public onlyAdmin {
-    validScope = _subscope;
+  // Minimum age
+  uint8 public constant MIN_AGE = 18;
+
+  // Validity period in seconds
+  uint256 public constant VALIDITY_PERIOD = 7 days;
+
+  // Pass the address of the ZKPassport Root Verifier
+  constructor(address _zkPassportVerifier) {
+    require(_zkPassportVerifier != address(0), "ZKPassport Root Verifier cannot be zero address");
+    zkPassportVerifier = ZKPassportRootVerifier(_zkPassportVerifier);
   }
 
   /**
@@ -59,30 +79,37 @@ contract SampleContract {
     // and the SDK will tell you which one they have
     bool isIDCard
   ) public returns (bytes32) {
-    (bool verified, bytes32 uniqueIdentifier) = zkPassportVerifier.verifyProof(params);
+
+    // Verify the proof
+    (bool verified, bytes32 uniqueIdentifier, ZKPassportHelper helper) = zkPassportVerifier.verify(params);
     require(verified, "Proof is invalid");
     require(!isVerified[uniqueIdentifier], "User already verified");
-    // Check the proof was generated using your domain name (scope) and the subscope
-    // you specified
-    require(
-      zkPassportVerifier.verifyScopes(params.proofVerificationData.publicInputs, validDomain, validScope),
-      "Invalid domain or scope"
-    );
-    require(zkPassportVerifier.isAgeAboveOrEqual(18, params.commitments, params.serviceConfig), "Age is not 18+");
-    DisclosedData memory disclosedData = zkPassportVerifier.getDisclosedData(
-      params.commitments,
-      isIDCard  
-    );
+
+    // Verify the proof was generated for the correct domain name
+    require(helper.verifyScopes(params.proofVerificationData.publicInputs, validDomain, validScope), "Invalid domain or scope");
+
+    // Verify the age is above or equal to the minimum age
+    require(helper.isAgeAboveOrEqual(MIN_AGE, params.committedInputs), "Age is not 18+");
+
+    // Verify the nationality exclusion list used in the proof
     string[] memory nationalityExclusionList = new string[](3);
     nationalityExclusionList[0] = "ESP";
     nationalityExclusionList[1] = "ITA";
     nationalityExclusionList[2] = "PRT";
-    require(zkPassportVerifier.isNationalityOut(nationalityExclusionList, params.commitments), "Nationality is part of the exclusion list");
+    require(helper.isNationalityOut(nationalityExclusionList, params.committedInputs), "Nationality is part of the exclusion list");
+
+    // Get the disclosed data (includes the nationality)
+    DisclosedData memory disclosedData = helper.getDisclosedData(
+      params.committedInputs,
+      isIDCard
+    );
 
     // If all good, mark the user as verified
     isVerified[uniqueIdentifier] = true;
+
     // Store the nationality for later use
     userNationality[uniqueIdentifier] = disclosedData.nationality;
+
     // Attach the unique identifier to the user address
     // So they don't have to run the check again if they use the same address
     userUniqueIdentifier[msg.sender] = uniqueIdentifier;
@@ -100,7 +127,7 @@ contract SampleContract {
     delete userUniqueIdentifier[msg.sender];
   }
 
-  function doStuff() public {
+  function doStuff() public view {
     // Check the user is verified and registered
     require(userUniqueIdentifier[msg.sender] != bytes32(0), "User is not verified");
     // Everything that follows will be conditioned on the sender being registered with a valid proof

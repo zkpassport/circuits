@@ -231,6 +231,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     csc_pubkey_redc_param: [u8; ${Math.ceil(bit_size / 8) + 1}],
     dsc_signature: [u8; ${Math.ceil(bit_size / 8)}],
     exponent: u32,
+    ${rsa_type === "pss" ? "pss_salt_len: u32," : ""}
 ) -> pub Field {
     // Get the length of tbs_certificate by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid
@@ -245,6 +246,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         exponent,
         tbs_certificate,
         tbs_certificate_len,
+        ${rsa_type === "pss" ? `pss_salt_len` : "0"},
     ), "RSA signature verification failed");
     let comm_out = commit_to_dsc(
         certificate_registry_root,
@@ -337,6 +339,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     signed_attributes: SignedAttrsData,
     exponent: u32,
     e_content: EContentData,
+    ${rsa_type === "pss" ? "pss_salt_len: u32," : ""}
 ) -> pub Field {
     verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate);
     // Get the length of signed_attributes by parsing the ASN.1
@@ -352,6 +355,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         exponent,
         signed_attributes,
         signed_attributes_size,
+        ${rsa_type === "pss" ? `pss_salt_len` : "0"},
     ), "RSA signature verification failed");
     let comm_out = commit_to_id(
         comm_in,
@@ -374,31 +378,28 @@ const DATA_INTEGRITY_CHECK_TEMPLATE = (
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_disclosure;
-use data_check_expiry::check_expiry;
 use data_check_integrity::{check_dg1_${dg_hash_algorithm}, check_signed_attributes_${signed_attributes_hash_algorithm}, get_dg2_hash_from_econtent};
-use utils::{types::{DG1Data, EContentData, SignedAttrsData}, constants::{${getHashAlgorithmIdentifier(
+use utils::{types::{DG1Data, EContentData, SignedAttrsData, SaltedValue}, constants::{${getHashAlgorithmIdentifier(
   dg_hash_algorithm,
 )}, ${getHashAlgorithmDigestLength(dg_hash_algorithm)}}};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
-    current_date: pub u64,
     comm_in: pub Field,
     salt_in: Field,
-    salt_out: Field,
-    dg1: DG1Data,
+    salted_dg1: SaltedValue<DG1Data>,
+    expiry_date_salt: Field,
+    dg2_hash_salt: Field,
     signed_attributes: SignedAttrsData,
     e_content: EContentData,
-    private_nullifier: Field,
+    salted_private_nullifier: SaltedValue<Field>,
 ) -> pub Field {
-    // Check the ID is not expired first
-    check_expiry(dg1, current_date);
     // Get the length of e_content by parsing the ASN.1
     // Safety: This is safe because the length must be correct for econtent to hash to
     // the expected digest in signed attributes as checked below in check_signed_attributes_${dg_hash_algorithm}
     let e_content_size =
         unsafe { utils::unsafe_get_asn1_element_length(e_content) };
     // Check the integrity of the data
-    check_dg1_${dg_hash_algorithm}(dg1, e_content, e_content_size);
+    check_dg1_${dg_hash_algorithm}(salted_dg1.value, e_content, e_content_size);
     // Get the length of signed_attributes by parsing the ASN.1
     // Safety: This is safe because the length was checked in the ID data circuit and the whole signed attributes
     // was committed over in that same circuit
@@ -416,14 +417,14 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     let comm_out = commit_to_disclosure::<${getHashAlgorithmDigestLength(dg_hash_algorithm)}>(
         comm_in,
         salt_in,
-        salt_out,
-        dg1,
-        dg2_hash,
-        ${getHashAlgorithmIdentifier(dg_hash_algorithm)},
+        salted_dg1,
+        expiry_date_salt,
+        SaltedValue::from_value(dg2_hash_salt, dg2_hash),
+        SaltedValue::from_value(dg2_hash_salt, ${getHashAlgorithmIdentifier(dg_hash_algorithm)}),
         signed_attributes,
         signed_attributes_size as Field,
         e_content,
-        private_nullifier,
+        salted_private_nullifier,
     );
     comm_out
 }
@@ -441,6 +442,7 @@ const FACEMATCH_ANDROID_TEMPLATE = (
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::nullify;
 use data_check_tbs_pubkey::{verify_ecdsa_pubkey_in_tbs, verify_rsa_pubkey_in_tbs};
+use data_check_expiry::check_expiry_from_date;
 use facematch::{
     android::{get_app_id_from_credential_tbs, constants::INTEGRITY_TOKEN_MAX_LENGTH, token::{verify_integrity_token, verify_nonce, verify_integrity_token_signature, parse_integrity_token}}, calculate_attestation_registry_leaf,
     get_client_data_hash, prepare_client_data_hash_for_signature, get_facematch_mode_from_client_data, get_tbs_hash_sha256,
@@ -452,15 +454,16 @@ use facematch::constants::{
 use facematch::param_commit::{calculate_param_commitment, calculate_param_commitment_sha2};
 use sig_check_ecdsa::{verify_nist_p256_blackbox as verify_nist_p256, verify_nist_p384};
 use sig_check_rsa::verify_signature;
-use utils::{poseidon2_hash_packed, split_array, types::DG1Data, unsafe_get_asn1_element_length};
+use utils::{poseidon2_hash_packed, split_array, types::{DG1Data, SaltedValue, MRZExpiryDate}, unsafe_get_asn1_element_length};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     comm_in: pub Field,
-    salt: Field,
-    private_nullifier: Field,
-    dg1: DG1Data,
-    dg2_hash_normalized: Field,
-    dg2_hash_type: u32,
+    current_date: pub u64,
+    salted_private_nullifier: SaltedValue<Field>,
+    salted_expiry_date: SaltedValue<MRZExpiryDate>,
+    salted_dg1: SaltedValue<DG1Data>,
+    salted_dg2_hash: SaltedValue<Field>,
+    salted_dg2_hash_type: SaltedValue<u32>,
     // @committed
     // Hash of root_key (the attestation registry leaf) is commitment to (via parameter commitment) and can be verified outside the circuit
     ${root_signature_algorithm === "rsa" ? `
@@ -516,6 +519,9 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field, Field) {
+    // Check the ID is not expired
+    check_expiry_from_date(salted_expiry_date.value, current_date);
+
     ${intermediate_signature_algorithms.map(({ signature_algorithm, hash_algorithm, bit_size }, index) => signature_algorithm === "ecdsa" ? `
     let (intermediate_${index + 1}_key_x, intermediate_${index + 1}_key_y) = split_array(intermediate_${index + 1}_key);
     ` : ``).join("")}
@@ -531,7 +537,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     `}
     let intermediate_1_tbs_len = unsafe { unsafe_get_asn1_element_length(intermediate_1_tbs) };
     ${root_signature_algorithm === "rsa" ? `
-    assert(verify_signature::<_, 0, _, 32>(root_key, intermediate_1_sig, root_key_redc_param, 65537, intermediate_1_tbs, intermediate_1_tbs_len), "Failed to verify intermediate certificate");
+    assert(verify_signature::<_, 0, _, 32>(root_key, intermediate_1_sig, root_key_redc_param, 65537, intermediate_1_tbs, intermediate_1_tbs_len, 0), "Failed to verify intermediate certificate");
     ` : `
     let (root_key_x, root_key_y) = split_array(root_key);
     let intermediate_1_tbs_hash = get_tbs_hash_sha384(intermediate_1_tbs);
@@ -560,7 +566,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
       } else {
         result += `
         let intermediate_${index + 1}_tbs_len = unsafe { unsafe_get_asn1_element_length(intermediate_${index + 1}_tbs) };
-        assert(verify_signature::<_, 0, _, ${getHashAlgorithmByteSize(intermediate_signature_algorithms[index - 1].hash_algorithm)}>(intermediate_${index}_key, intermediate_${index + 1}_sig, intermediate_${index}_key_redc_param, 65537, intermediate_${index + 1}_tbs, intermediate_${index + 1}_tbs_len), "Failed to verify intermediate certificate");
+        assert(verify_signature::<_, 0, _, ${getHashAlgorithmByteSize(intermediate_signature_algorithms[index - 1].hash_algorithm)}>(intermediate_${index}_key, intermediate_${index + 1}_sig, intermediate_${index}_key_redc_param, 65537, intermediate_${index + 1}_tbs, intermediate_${index + 1}_tbs_len, 0), "Failed to verify intermediate certificate");
         `;
       }
      return result;
@@ -579,7 +585,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     );
     ` : `
     let credential_tbs_len = unsafe { unsafe_get_asn1_element_length(credential_tbs) };
-    assert(verify_signature::<_, 0, _, ${getHashAlgorithmByteSize(intermediate_signature_algorithms[intermediate_signature_algorithms.length - 1].hash_algorithm)}>(intermediate_${intermediate_signature_algorithms.length}_key, credential_sig, intermediate_${intermediate_signature_algorithms.length}_key_redc_param, 65537, credential_tbs, credential_tbs_len), "Failed to verify credential certificate");
+    assert(verify_signature::<_, 0, _, ${getHashAlgorithmByteSize(intermediate_signature_algorithms[intermediate_signature_algorithms.length - 1].hash_algorithm)}>(intermediate_${intermediate_signature_algorithms.length}_key, credential_sig, intermediate_${intermediate_signature_algorithms.length}_key_redc_param, 65537, credential_tbs, credential_tbs_len, 0), "Failed to verify credential certificate");
     `}
 
     let (client_data_sig_r, client_data_sig_s) = split_array(client_data_sig);
@@ -603,7 +609,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
 
     // Verify the normalized dg2_hash in client_data matches the expected normalized dg2_hash
     assert(
-        verify_dg2_hash_in_client_data(dg2_hash_normalized, client_data),
+        verify_dg2_hash_in_client_data(salted_dg2_hash.value, client_data),
         "Failed to verify dg2_hash in client_data",
     );
 
@@ -630,11 +636,11 @@ ${unconstrained ? "unconstrained " : ""}fn main(
 
     let (nullifier, nullifier_type) = nullify(
         comm_in,
-        salt,
-        dg1,
-        dg2_hash_normalized,
-        dg2_hash_type,
-        private_nullifier,
+        salted_dg1,
+        salted_expiry_date,
+        salted_dg2_hash,
+        salted_dg2_hash_type,
+        salted_private_nullifier,
         service_scope,
         service_subscope,
         nullifier_secret,
@@ -763,6 +769,7 @@ fn verify_subproofs(
     // as the salted nullifier is not allowed for now
     // Mock proof salted nullifiers are allowed though
     assert(nullifier_type != SALTED_NULLIFIER, "Salted nullifiers are not allowed for now");
+    assert(scoped_nullifier != 0, "Scoped nullifier must be non-zero");
 
     verify_proof_with_type(
         csc_to_dsc_proof.vkey,
@@ -796,7 +803,6 @@ fn verify_subproofs(
         integrity_check_proof.vkey,
         integrity_check_proof.proof,
         prepare_integrity_check_inputs(
-            current_date,
             integrity_check_proof.public_inputs[0], // comm_in
             integrity_check_proof.public_inputs[1], // comm_out
         ),
@@ -804,25 +810,36 @@ fn verify_subproofs(
         PROOF_TYPE_HONK_ZK,
     );
 
+    let mut found_valid_scoped_nullifier = false;
+
     for i in 0..disclosure_proofs.len() {
         // Commitment out from integrity check circuit == commitment in from disclosure circuit
         assert_eq(integrity_check_proof.public_inputs[1], disclosure_proofs[i].public_inputs[0], "Commitment out from integrity check circuit != commitment in from disclosure circuit");
+        // The scoped nullifier of each disclosure circuit must be either 0 or the expected scoped nullifier
+        assert((disclosure_proofs[i].public_inputs[1] == 0) | (disclosure_proofs[i].public_inputs[1] == scoped_nullifier), "Disclosure proof scoped nullifier must be either 0 or the expected scoped nullifier");
+        // But at least one disclosure proof must have the expected scoped nullifier
+        if (!found_valid_scoped_nullifier & (disclosure_proofs[i].public_inputs[1] == scoped_nullifier)) {
+            found_valid_scoped_nullifier = true;
+        }
 
         verify_proof_with_type(
             disclosure_proofs[i].vkey,
             disclosure_proofs[i].proof,
             prepare_disclosure_inputs(
                 disclosure_proofs[i].public_inputs[0], // comm_in
+                current_date,
                 param_commitments[i],
                 service_scope,
                 service_subscope,
                 nullifier_type,
-                scoped_nullifier,
+                disclosure_proofs[i].public_inputs[1], // scoped nullifier
             ),
             disclosure_proofs[i].key_hash,
             PROOF_TYPE_HONK_ZK,
         );
     }
+
+    assert(found_valid_scoped_nullifier, "Incorrect scoped nullifier provided");
 }
 
 ${unconstrained ? "unconstrained " : ""}fn main(
@@ -990,7 +1007,6 @@ function generateDataIntegrityCheckCircuit(
   const name = `data_check_integrity_sa_${signed_attributes_hash_algorithm}_dg_${dg_hash_algorithm}`
   const nargoFile = NARGO_TEMPLATE(name, [
     { name: "data_check_integrity", path: "../../../../../lib/data-check/integrity" },
-    { name: "data_check_expiry", path: "../../../../../lib/data-check/expiry" },
     { name: "commitment", path: "../../../../../lib/commitment/integrity-to-disclosure" },
     { name: "utils", path: "../../../../../lib/utils" },
   ])
@@ -1029,6 +1045,7 @@ function generateFaceMatchAndroidCircuit(
     { name: "sig_check_rsa", path: `${relativePath}lib/sig-check/rsa` },
     { name: "sig_check_ecdsa", path: `${relativePath}lib/sig-check/ecdsa` },
     { name: "data_check_tbs_pubkey", path: `${relativePath}lib/data-check/tbs-pubkey` },
+    { name: "data_check_expiry", path: `${relativePath}lib/data-check/expiry` },
     { name: "commitment", path: `${relativePath}lib/commitment/scoped-nullifier` },
     { name: "utils", path: `${relativePath}lib/utils` },
   ])
@@ -1191,6 +1208,7 @@ const generateFaceMatchAndroidCircuits = ({ unconstrained = false }: { unconstra
   const intermediate_signature_algorithms: { signature_algorithm: "ecdsa" | "rsa"; hash_algorithm: "sha256" | "sha384"; bit_size: number }[] = [
     { signature_algorithm: "ecdsa", hash_algorithm: "sha256", bit_size: 256 },
     { signature_algorithm: "ecdsa", hash_algorithm: "sha384", bit_size: 384 },
+    { signature_algorithm: "ecdsa", hash_algorithm: "sha256", bit_size: 384 },
     { signature_algorithm: "rsa", hash_algorithm: "sha256", bit_size: 2048 },
     { signature_algorithm: "rsa", hash_algorithm: "sha256", bit_size: 4096 },
   ]

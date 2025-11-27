@@ -16,7 +16,9 @@ import { generateSod } from "@/sod-generator"
 import * as fs from "fs"
 import { PemConverter } from "@peculiar/x509"
 import { AsnSerializer } from "@peculiar/asn1-schema"
-import { Certificate } from "@peculiar/asn1-x509"
+import { AlgorithmIdentifier, Certificate } from "@peculiar/asn1-x509"
+import { id_sha256WithRSAEncryption, id_sha384WithRSAEncryption, id_sha512WithRSAEncryption } from "@peculiar/asn1-rsa"
+import {id_ecdsaWithSHA256, id_ecdsaWithSHA384, id_ecdsaWithSHA512 } from "@peculiar/asn1-ecc"
 
 // John Miller Smith's MRZ
 const johnMRZ =
@@ -47,6 +49,11 @@ const paulDG1 = Binary.fromHex("615B5F1F58").concat(Binary.from(paulMRZ))
 const stephanieMRZ =
   "P<ZKRSMITH<<STEPHANIE<MILLER<<<<<<<<<<<<<<<<ZP5555555_ZKR150503_F290101_<<<<<<<<<<<<<<<<"
 const stephanieDG1 = Binary.fromHex("615B5F1F58").concat(Binary.from(stephanieMRZ))
+
+// Mister Sanctioned MRZ
+const misterSanctionedMRZ =
+  "P<ZKRSANCTIONED<<MISTER<<<<<<<<<<<<<<<<<<<<<ZP7777777_ZKR750101_M300201_<<<<<<<<<<<<<<<<"
+const misterSanctionedDG1 = Binary.fromHex("615B5F1F58").concat(Binary.from(misterSanctionedMRZ))
 
 async function generateCSCA({
   hashAlg,
@@ -154,7 +161,14 @@ async function generateDSC({
       "keypairs",
       path.basename(filePath).replace(".pem", ".json"),
     )
-    keyPair = await loadKeypairFromFile(keypairPath)
+    if (fs.existsSync(keypairPath)) {
+      keyPair = await loadKeypairFromFile(keypairPath)
+    } else {
+      keyPair =
+        keyType === "RSA"
+          ? await generateRsaKeyPair(keySize!, hashAlg)
+          : await generateEcdsaKeyPair(curve!, hashAlg)
+    }
   } else {
     keyPair =
       keyType === "RSA"
@@ -199,16 +213,18 @@ async function generateAndSignSod({
   dsc,
   signingKeyPair,
   hashAlg,
+  signatureAlgorithm,
   filePath,
 }: {
   dg1: Binary
   dsc: Certificate
   signingKeyPair: KeyPair
   hashAlg: HashAlgorithm
+  signatureAlgorithm: AlgorithmIdentifier
   filePath: string
 }) {
   // Generate SOD and sign it with DSC keypair
-  const { sod } = await generateSod(dg1, [dsc], hashAlg)
+  const { sod } = await generateSod(dg1, [dsc], hashAlg, signatureAlgorithm)
   const { sod: signedSod } = await signSod(sod, signingKeyPair, hashAlg)
   saveSodToFile(signedSod, filePath, true)
 }
@@ -287,6 +303,9 @@ await generateAndSignSod({
   dsc: dscRsa2048Sha256.cert,
   signingKeyPair: dscRsa2048Sha256.keyPair,
   hashAlg: "SHA-256",
+  signatureAlgorithm: new AlgorithmIdentifier({
+    algorithm: id_sha256WithRSAEncryption,
+  }),
   filePath: path.join(fixturesDir, "john-miller-smith-rsa-2048-sha256.json"),
 })
 await generateAndSignSod({
@@ -294,6 +313,9 @@ await generateAndSignSod({
   dsc: dscRsa3072Sha384.cert,
   signingKeyPair: dscRsa3072Sha384.keyPair,
   hashAlg: "SHA-384",
+  signatureAlgorithm: new AlgorithmIdentifier({
+    algorithm: id_sha384WithRSAEncryption,
+  }),
   filePath: path.join(fixturesDir, "jane-miller-smith-rsa-3072-sha384.json"),
 })
 await generateAndSignSod({
@@ -301,7 +323,20 @@ await generateAndSignSod({
   dsc: dscRsa4096Sha512.cert,
   signingKeyPair: dscRsa4096Sha512.keyPair,
   hashAlg: "SHA-512",
+  signatureAlgorithm: new AlgorithmIdentifier({
+    algorithm: id_sha512WithRSAEncryption,
+  }),
   filePath: path.join(fixturesDir, "jack-miller-smith-rsa-4096-sha512.json"),
+})
+await generateAndSignSod({
+  dg1: misterSanctionedDG1,
+  dsc: dscRsa2048Sha256.cert,
+  signingKeyPair: dscRsa2048Sha256.keyPair,
+  hashAlg: "SHA-256",
+  signatureAlgorithm: new AlgorithmIdentifier({
+    algorithm: id_sha256WithRSAEncryption,
+  }),
+  filePath: path.join(fixturesDir, "mister-sanctioned-rsa-2048-sha256.json"),
 })
 
 const cscaEcdsa = await generateCSCA({
@@ -358,6 +393,9 @@ await generateAndSignSod({
   dsc: dscEcdsaP256Sha256.cert,
   signingKeyPair: dscEcdsaP256Sha256.keyPair,
   hashAlg: "SHA-256",
+  signatureAlgorithm: new AlgorithmIdentifier({
+    algorithm: id_ecdsaWithSHA256,
+  }),
   filePath: path.join(fixturesDir, "mary-miller-smith-ecdsa-p256-sha256.json"),
 })
 await generateAndSignSod({
@@ -365,6 +403,9 @@ await generateAndSignSod({
   dsc: dscEcdsaP384Sha384.cert,
   signingKeyPair: dscEcdsaP384Sha384.keyPair,
   hashAlg: "SHA-384",
+  signatureAlgorithm: new AlgorithmIdentifier({
+    algorithm: id_ecdsaWithSHA384,
+  }),
   filePath: path.join(fixturesDir, "paul-miller-smith-ecdsa-p384-sha384.json"),
 })
 await generateAndSignSod({
@@ -372,6 +413,9 @@ await generateAndSignSod({
   dsc: dscEcdsaP521Sha512.cert,
   signingKeyPair: dscEcdsaP521Sha512.keyPair,
   hashAlg: "SHA-512",
+  signatureAlgorithm: new AlgorithmIdentifier({
+    algorithm: id_ecdsaWithSHA512,
+  }),
   filePath: path.join(fixturesDir, "stephanie-miller-smith-ecdsa-p521-sha512.json"),
 })
 
