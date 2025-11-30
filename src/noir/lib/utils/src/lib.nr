@@ -109,6 +109,7 @@ pub fn pack_be_bytes_into_u128s<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE_
     }
     std::as_witness(limb);
 
+    limb.assert_max_bit_size::<128>();
     result[N - 1] = limb as u128;
 
     for i in 1..N {
@@ -119,6 +120,7 @@ pub fn pack_be_bytes_into_u128s<let NBytes: u32, let N: u32, let MAX_FIELD_SIZE_
             k += 1;
         }
         std::as_witness(limb);
+        limb.assert_max_bit_size::<128>();
         result[N - i - 1] = limb as u128;
     }
 
