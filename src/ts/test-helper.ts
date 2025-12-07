@@ -31,7 +31,12 @@ export class TestHelper {
   ): Promise<InputMap> {
     switch (circuitType) {
       case "dsc": {
-        const inputs = await getDSCCircuitInputs(this.passport as any, 1n, this.certificates)
+        const inputs = await getDSCCircuitInputs(this.passport as any, 1n, {
+          version: 0,
+          timestamp: 0,
+          root: "",
+          certificates: this.certificates,
+        })
         if (!inputs) throw new Error("Unable to generate DSC circuit inputs")
         return inputs
       }

@@ -44,9 +44,10 @@ fn main(
     // facematch_mode is commitment to (via parameter commitment) and can be verified outside the circuit
     facematch_mode: u8, // FACEMATCH_MODE_REGULAR (1) or FACEMATCH_MODE_STRICT (2)
     nullifier_secret: Field,
+    oprf_proof: commitment::OPRFProof,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub (Field, Field, Field) {
+) -> pub (Field, Field, Field, Field) {
     // Check the ID is not expired
     check_expiry_from_date(salted_expiry_date.value, current_date);
 
@@ -110,7 +111,7 @@ fn main(
         "Failed to verify dg2_hash in client_data",
     );
 
-    let (nullifier, nullifier_type) = nullify(
+    let (nullifier, nullifier_type, oprf_pk_hash) = nullify(
         comm_in,
         salted_dg1,
         salted_expiry_date,
@@ -120,6 +121,7 @@ fn main(
         service_scope,
         service_subscope,
         nullifier_secret,
+        oprf_proof,
     );
 
     let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
@@ -127,5 +129,5 @@ fn main(
     let param_commitment =
         calculate_param_commitment(root_key_leaf, environment, app_id_hash, 0, facematch_mode);
 
-    (param_commitment, nullifier_type, nullifier)
+    (param_commitment, nullifier_type, nullifier, oprf_pk_hash)
 }

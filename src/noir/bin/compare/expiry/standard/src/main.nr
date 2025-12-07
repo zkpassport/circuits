@@ -23,9 +23,10 @@ fn main(
     // If the maximum date timestamp is 0, it is not checked
     max_date: u64,
     nullifier_secret: Field,
+    oprf_proof: commitment::OPRFProof,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub (Field, Field, Field) {
+) -> pub (Field, Field, Field, Field) {
     // Check the ID is not expired
     check_expiry(salted_dg1.value, current_date);
 
@@ -34,9 +35,7 @@ fn main(
     // Uses the usual unix epoch year of 1970 as the epoch year as expiry dates are in the future
     // and for expired documents, the expiry date is still way after 1970
     compare_date(expiry_date, min_date, max_date, 1970);
-    // Use Poseidon2 to calculate the parameter commitment so the prover has less work to do
-    let param_commitment = calculate_param_commitment(PROOF_TYPE_EXPIRY_DATE, min_date, max_date);
-    let (nullifier, nullifier_type) = nullify(
+    let (nullifier, nullifier_type, oprf_pk_hash) = nullify(
         comm_in,
         salted_dg1,
         salted_expiry_date,
@@ -46,6 +45,9 @@ fn main(
         service_scope,
         service_subscope,
         nullifier_secret,
+        oprf_proof,
     );
-    (param_commitment, nullifier_type, nullifier)
+    // Use Poseidon2 to calculate the parameter commitment so the prover has less work to do
+    let param_commitment = calculate_param_commitment(PROOF_TYPE_EXPIRY_DATE, min_date, max_date);
+    (param_commitment, nullifier_type, nullifier, oprf_pk_hash)
 }

@@ -122,6 +122,10 @@ const STATIC_CIRCUITS = [
     name: "facematch_ios_evm",
     path: "./src/noir/bin/facematch/ios/evm",
   },
+  {
+    name: "oprf_auth",
+    path: "./src/noir/bin/oprf-auth",
+  },
 ]
 
 const LIB_CIRCUITS = [
@@ -516,9 +520,10 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     // Play Integrity's public key behind the signature over the integrity token
     play_integrity_public_key: [u8; 64],
     nullifier_secret: Field,
+    oprf_proof: commitment::OPRFProof,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub (Field, Field, Field) {
+) -> pub (Field, Field, Field, Field) {
     // Check the ID is not expired
     check_expiry_from_date(salted_expiry_date.value, current_date);
 
@@ -634,7 +639,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         "Failed to verify nonce from integrity token",
     );
 
-    let (nullifier, nullifier_type) = nullify(
+    let (nullifier, nullifier_type, oprf_pk_hash) = nullify(
         comm_in,
         salted_dg1,
         salted_expiry_date,
@@ -644,6 +649,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         service_scope,
         service_subscope,
         nullifier_secret,
+        oprf_proof,
     );
 
     let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
@@ -651,7 +657,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     let param_commitment =
         ${evm ? "calculate_param_commitment_sha2" : "calculate_param_commitment"}(root_key_leaf, environment, app_id_hash, play_integrity_public_key_hash, facematch_mode);
 
-    (param_commitment, nullifier_type, nullifier)
+    (param_commitment, nullifier_type, nullifier, oprf_pk_hash)
 }
 `
 
@@ -690,7 +696,6 @@ use outer_lib::{
     CSCtoDSCProof, DisclosureProof, DSCtoIDDataProof, IntegrityCheckProof, poseidon2_hash,
     prepare_disclosure_inputs, prepare_integrity_check_inputs,
 };
-use utils::constants::{NON_SALTED_NULLIFIER, SALTED_NULLIFIER, NON_SALTED_MOCK_NULLIFIER, SALTED_MOCK_NULLIFIER};
 use std::verify_proof_with_type;
 global PROOF_TYPE_HONK_ZK: u32 = 7;
 
@@ -711,6 +716,8 @@ fn verify_subproofs(
     nullifier_type: Field,
     // The scoped nullifier: H(private_nullifier,service_scope,service_subscope)
     scoped_nullifier: Field,
+    // The hash of the OPRF public key used for salted nullifiers (0 if non-salted)
+    oprf_pk_hash: Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
     integrity_check_proof: IntegrityCheckProof,
@@ -765,10 +772,6 @@ fn verify_subproofs(
         assert_eq(poseidon2_hash(disclosure_proofs[i].vkey), disclosure_proofs[i].key_hash, "Disclosure proof vkey hash mismatch");
     }
 
-    // Assert that the nullifier type is not the salted nullifier
-    // as the salted nullifier is not allowed for now
-    // Mock proof salted nullifiers are allowed though
-    assert(nullifier_type != SALTED_NULLIFIER, "Salted nullifiers are not allowed for now");
     assert(scoped_nullifier != 0, "Scoped nullifier must be non-zero");
 
     verify_proof_with_type(
@@ -833,6 +836,7 @@ fn verify_subproofs(
                 service_subscope,
                 nullifier_type,
                 disclosure_proofs[i].public_inputs[1], // scoped nullifier
+                oprf_pk_hash,
             ),
             disclosure_proofs[i].key_hash,
             PROOF_TYPE_HONK_ZK,
@@ -853,6 +857,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     param_commitments: pub [Field; ${disclosure_proofs_count}],
     nullifier_type: pub Field,
     scoped_nullifier: pub Field,
+    oprf_pk_hash: pub Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
     integrity_check_proof: IntegrityCheckProof,
@@ -867,6 +872,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         service_subscope,
         nullifier_type,
         scoped_nullifier,
+        oprf_pk_hash,
         csc_to_dsc_proof,
         dsc_to_id_data_proof,
         integrity_check_proof,

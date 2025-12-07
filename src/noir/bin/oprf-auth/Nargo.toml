@@ -1,0 +1,11 @@
+[package]
+name = "oprf_auth"
+type = "bin"
+authors = []
+compiler_version = ">=1.0.0"
+
+[dependencies]
+utils = { path = "../../lib/utils" }
+common = { path = "../../lib/commitment/common" }
+babyjubjub = { tag = "main", git = "https://github.com/TaceoLabs/oprf-nr", directory = "babyjubjub" }
+oprf = { tag = "main", git = "https://github.com/TaceoLabs/oprf-nr", directory = "oprf" }

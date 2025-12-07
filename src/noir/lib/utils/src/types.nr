@@ -38,6 +38,15 @@ pub type SHA256Digest = [u8; SHA256_DIGEST_LENGTH];
 pub type SHA384Digest = [u8; SHA384_DIGEST_LENGTH];
 pub type SHA512Digest = [u8; SHA512_DIGEST_LENGTH];
 
+pub struct OPRFProof {
+    pub pk: babyjubjub::BabyJubJubPoint,
+    pub dlog_e: Field,
+    pub dlog_s: Field,
+    pub response_blinded: babyjubjub::BabyJubJubPoint,
+    pub response: babyjubjub::BabyJubJubPoint,
+    pub beta: Field,
+}
+
 /// This struct acts as a wrapper around a value, so it can be specified as either a clear value with
 /// a provided salt for hashing or only as its salted hash if its clear value is not needed inside the circuit
 pub struct SaltedValue<T> {
