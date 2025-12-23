@@ -467,14 +467,12 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     // @committed
     // Hash of root_key (the attestation registry leaf) is commitment to (via parameter commitment) and can be verified outside the circuit
     ${root_signature_algorithm === "rsa" ? `
-    // There are only two possible root keys, right now the RSA one is the only one used
-    // but the new one to be rolled out in February 2026 will be ECDSA P384 so both should be supported
+    // There are only two possible root keys, one RSA (old) and one ECDSA P384 (new)
     // c.f. https://developer.android.com/privacy-and-security/security-key-attestation#root_certificate
     root_key: [u8; 512],
     root_key_redc_param: [u8; 513],
     ` : `
-    // There are only two possible root keys, right now the RSA one is the only one used
-    // but the new one to be rolled out in February 2026 will be ECDSA P384, so support is ready for this one
+    // There are only two possible root keys, one RSA (old) and one ECDSA P384 (new)
     // c.f. https://developer.android.com/privacy-and-security/security-key-attestation#root_certificate
     root_key: [u8; 96],
     `}
@@ -1212,8 +1210,7 @@ const generateFaceMatchAndroidCircuits = ({ unconstrained = false }: { unconstra
     { signature_algorithm: "rsa", hash_algorithm: "sha256", bit_size: 2048 },
     { signature_algorithm: "rsa", hash_algorithm: "sha256", bit_size: 4096 },
   ]
-  // Don't generate the circuits for the ECDSA root key as it's not used yet (only in February 2026)
-  const root_signature_algorithms: ("rsa" | "ecdsa")[] = ["rsa"]
+  const root_signature_algorithms: ("rsa" | "ecdsa")[] = ["rsa", "ecdsa"]
   console.log("Generating FaceMatch Android circuits...")
   root_signature_algorithms.forEach((root_signature_algorithm) => {
     // Non-EVM
