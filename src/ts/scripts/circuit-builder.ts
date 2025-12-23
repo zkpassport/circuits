@@ -1207,9 +1207,12 @@ const generateFaceMatchAndroidCircuits = ({ unconstrained = false }: { unconstra
     { signature_algorithm: "ecdsa", hash_algorithm: "sha256", bit_size: 256 },
     { signature_algorithm: "ecdsa", hash_algorithm: "sha384", bit_size: 384 },
     { signature_algorithm: "ecdsa", hash_algorithm: "sha256", bit_size: 384 },
-    { signature_algorithm: "rsa", hash_algorithm: "sha256", bit_size: 2048 },
-    { signature_algorithm: "rsa", hash_algorithm: "sha256", bit_size: 4096 },
+    // There has been no report of devices using RSA for their intermediate certificates so far
+    // so we skip it to reduce the number of circuits to generate
+    /*{ signature_algorithm: "rsa", hash_algorithm: "sha256", bit_size: 2048 },
+    { signature_algorithm: "rsa", hash_algorithm: "sha256", bit_size: 4096 },*/
   ]
+  // Support both RSA (old) and ECDSA P384 (new) root keys
   const root_signature_algorithms: ("rsa" | "ecdsa")[] = ["rsa", "ecdsa"]
   console.log("Generating FaceMatch Android circuits...")
   root_signature_algorithms.forEach((root_signature_algorithm) => {
