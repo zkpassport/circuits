@@ -127,6 +127,8 @@ library AppAttest {
   bytes32 constant APPLE_ROOT_KEY_HASH = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340b;
   // The hash of Google's RSA root certificate public key
   bytes32 constant GOOGLE_RSA_ROOT_KEY_HASH = 0x16700a2d9168a194fc85f237af5829b5a2be05b8ae8ac4879ada34cf54a9c211;
+  // The hash of Google's ECDSA (P384) root certificate public key
+  bytes32 constant GOOGLE_ECDSA_ROOT_KEY_HASH = 0x0e1889bec6c1d686abcf08360ff404f803ab345881ea8cba6aad33b7f7f7ffe0;
   // The hash of the Android integrity public key
   bytes32 constant ANDROID_INTEGRITY_PUBLIC_KEY_HASH = 0x12e3dc7cc8fec0205b51ff21825630865028f3be5bc64a6eec9ee5e71221319f;
 }
