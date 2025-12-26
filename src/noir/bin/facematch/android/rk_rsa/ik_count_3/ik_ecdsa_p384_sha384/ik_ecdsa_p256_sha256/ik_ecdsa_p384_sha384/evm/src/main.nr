@@ -42,8 +42,7 @@ fn main(
     salted_dg2_hash_type: SaltedValue<u32>,
     // @committed
     // Hash of root_key (the attestation registry leaf) is commitment to (via parameter commitment) and can be verified outside the circuit
-    // There are only two possible root keys, right now the RSA one is the only one used
-    // but the new one to be rolled out in February 2026 will be ECDSA P384 so both should be supported
+    // There are only two possible root keys, one RSA (old) and one ECDSA P384 (new)
     // c.f. https://developer.android.com/privacy-and-security/security-key-attestation#root_certificate
     root_key: [u8; 512],
     root_key_redc_param: [u8; 513],
