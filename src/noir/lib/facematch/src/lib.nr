@@ -261,7 +261,7 @@ pub fn get_tbs_hash_sha256<let TBS_MAX_LEN: u32>(tbs: [u8; TBS_MAX_LEN]) -> [u8;
     let tbs_len = unsafe { unsafe_get_asn1_element_length(tbs) };
     // Ensure all bytes beyond tbs_len are zero
     check_zero_padding(tbs, tbs_len);
-    sha256::sha256_var(tbs, tbs_len as u64)
+    sha256::sha256_var(tbs, tbs_len)
 }
 
 pub fn get_tbs_hash_sha384<let TBS_MAX_LEN: u32>(tbs: [u8; TBS_MAX_LEN]) -> [u8; 48] {
@@ -287,7 +287,7 @@ pub fn get_client_data_hash<let CLIENT_DATA_LEN: u32>(
 pub fn prepare_client_data_hash_for_signature(
     poseidon2_hash_bytes: [u8; CLIENT_DATA_HASH_LEN],
 ) -> [u8; 32] {
-    sha256::sha256_var(poseidon2_hash_bytes, CLIENT_DATA_HASH_LEN as u64)
+    sha256::sha256_var(poseidon2_hash_bytes, CLIENT_DATA_HASH_LEN)
 }
 
 pub fn verify_intermediate_certificate<let TBS_MAX_LEN: u32>(

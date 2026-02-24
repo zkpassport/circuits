@@ -7,7 +7,7 @@ import {
   getIntegrityCheckCircuitInputs,
   getNowTimestamp,
   PassportReader,
-  type PackagedCertificate,
+  type PackagedCertificatesFile,
   type PassportViewModel,
   type Query,
 } from "@zkpassport/utils"
@@ -19,10 +19,10 @@ type CircuitType = "dsc" | "id" | "integrity" | "disclose"
 export class TestHelper {
   private passportReader = new PassportReader()
   public passport!: PassportViewModel
-  private certificates!: PackagedCertificate[]
+  private packagedCerts!: PackagedCertificatesFile
 
-  setCertificates(certificates: PackagedCertificate[]) {
-    this.certificates = certificates
+  setCertificates(packagedCerts: PackagedCertificatesFile) {
+    this.packagedCerts = packagedCerts
   }
 
   async generateCircuitInputs(
@@ -31,7 +31,7 @@ export class TestHelper {
   ): Promise<InputMap> {
     switch (circuitType) {
       case "dsc": {
-        const inputs = await getDSCCircuitInputs(this.passport as any, 1n, this.certificates)
+        const inputs = await getDSCCircuitInputs(this.passport as any, 1n, this.packagedCerts)
         if (!inputs) throw new Error("Unable to generate DSC circuit inputs")
         return inputs
       }

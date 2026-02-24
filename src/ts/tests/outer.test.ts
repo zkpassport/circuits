@@ -1,6 +1,6 @@
 import { describe, expect, test } from "@jest/globals"
 import { poseidon2HashAsync } from "@zkpassport/poseidon2"
-import type { IntegrityToDisclosureSalts, PackagedCertificate, Query } from "@zkpassport/utils"
+import type { IntegrityToDisclosureSalts, PackagedCertificatesFile, Query } from "@zkpassport/utils"
 import {
   Binary,
   DisclosedData,
@@ -63,7 +63,7 @@ const INTEGRITY_TO_DISCLOSURE_SALTS: IntegrityToDisclosureSalts = {
 
 describe("outer proof", () => {
   const helper = new TestHelper()
-  const cscaCerts: PackagedCertificate[] = []
+  const packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-rsa.json")
   const MAX_TBS_LENGTH = 700
@@ -103,11 +103,11 @@ describe("outer proof", () => {
     }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
-    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+    packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setCertificates(cscaCerts)
+    helper.setCertificates(packagedCerts)
 
     subproofs = new Map()
     const cscToDscCircuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096_sha512`)
@@ -479,7 +479,7 @@ describe("outer proof", () => {
 
 describe("outer proof - evm optimised", () => {
   const helper = new TestHelper()
-  const cscaCerts: PackagedCertificate[] = []
+  const packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-rsa.json")
   const MAX_TBS_LENGTH = 700
@@ -519,11 +519,11 @@ describe("outer proof - evm optimised", () => {
     }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
-    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+    packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setCertificates(cscaCerts)
+    helper.setCertificates(packagedCerts)
 
     subproofs = new Map()
     const cscToDscCircuit = Circuit.from(`sig_check_dsc_tbs_${MAX_TBS_LENGTH}_rsa_pkcs_4096_sha512`)

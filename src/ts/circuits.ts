@@ -1,5 +1,5 @@
 import { CompiledCircuit, InputMap, Noir } from "@noir-lang/noir_js"
-import { UltraHonkBackend } from "@aztec/bb.js"
+import { Barretenberg, UltraHonkBackend } from "@aztec/bb.js"
 import fs from "fs"
 import path from "path"
 import os from "os"
@@ -15,6 +15,7 @@ const writeFileAsync = promisify(fs.writeFile)
 export class Circuit {
   private manifest: CompiledCircuit
   private name: string
+  private api?: Barretenberg
   public backend?: UltraHonkBackend
   public noir?: Noir
 
@@ -25,15 +26,8 @@ export class Circuit {
 
   async init(recursive: boolean = false) {
     if (!this.backend) {
-      this.backend = new UltraHonkBackend(
-        this.manifest.bytecode,
-        {
-          threads: BB_THREADS,
-        },
-        {
-          recursive,
-        },
-      )
+      this.api = await Barretenberg.new({ threads: BB_THREADS })
+      this.backend = new UltraHonkBackend(this.manifest.bytecode, this.api)
       if (!this.backend) throw new Error("Error initializing backend")
     }
     if (!this.noir) {
@@ -43,8 +37,9 @@ export class Circuit {
   }
 
   async destroy() {
-    if (!this.backend) return
-    await this.backend!.destroy()
+    if (!this.api) return
+    await this.api.destroy()
+    this.api = undefined
     this.backend = undefined
   }
 

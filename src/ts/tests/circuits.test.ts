@@ -48,7 +48,7 @@ import {
   getFacematchEvmParameterCommitment,
   packLeBytesAndHashPoseidon2,
 } from "@zkpassport/utils"
-import type { IntegrityToDisclosureSalts, PackagedCertificate, Query } from "@zkpassport/utils"
+import type { IntegrityToDisclosureSalts, PackagedCertificatesFile, Query } from "@zkpassport/utils"
 import { beforeAll, afterAll, describe, expect, test } from "@jest/globals"
 import * as path from "path"
 import { TestHelper } from "../test-helper"
@@ -77,7 +77,7 @@ const nowTimestamp = getNowTimestamp()
 
 describe("subcircuits - RSA PKCS", () => {
   const helper = new TestHelper()
-  const cscaCerts: PackagedCertificate[] = []
+  const packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-rsa.json")
   const MAX_TBS_LENGTH = 700
@@ -87,10 +87,10 @@ describe("subcircuits - RSA PKCS", () => {
 
   beforeAll(async () => {
     // Add CSCA certificate test fixtures
-    const fixtureCSCACerts = JSON.parse(
+    const fixtureData = JSON.parse(
       fs.readFileSync(path.join(FIXTURES_PATH, "csca-packaged-certs.json"), "utf8"),
-    ).certificates
-    cscaCerts.push(...fixtureCSCACerts)
+    )
+    packagedCerts.certificates.push(...fixtureData.certificates)
 
     // Johnny Silverhand's MRZ
     const mrz =
@@ -116,12 +116,12 @@ describe("subcircuits - RSA PKCS", () => {
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
 
     // Add newly generated CSCA certificate to the list
-    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+    packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
 
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setCertificates(cscaCerts)
+    helper.setCertificates(packagedCerts)
   })
 
   describe("dsc", () => {
@@ -1996,7 +1996,7 @@ describe("subcircuits - RSA PKCS", () => {
 
 describe("subcircuits - RSA PKCS - SHA-1", () => {
   const helper = new TestHelper()
-  const cscaCerts: PackagedCertificate[] = []
+  const packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const MAX_TBS_LENGTH = 700
   let dscCommitment: bigint
@@ -2016,10 +2016,10 @@ describe("subcircuits - RSA PKCS - SHA-1", () => {
 
   beforeAll(async () => {
     // Add CSCA certificate test fixtures
-    const fixtureCSCACerts = JSON.parse(
+    const fixtureData = JSON.parse(
       fs.readFileSync(path.join(FIXTURES_PATH, "csca-packaged-certs.json"), "utf8"),
-    ).certificates
-    cscaCerts.push(...fixtureCSCACerts)
+    )
+    packagedCerts.certificates.push(...fixtureData.certificates)
 
     // Johnny Silverhand's MRZ
     const mrz =
@@ -2042,12 +2042,12 @@ describe("subcircuits - RSA PKCS - SHA-1", () => {
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-1")
 
     // Add newly generated CSCA certificate to the list
-    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+    packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
 
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setCertificates(cscaCerts)
+    helper.setCertificates(packagedCerts)
   })
 
   describe("dsc", () => {
@@ -2221,7 +2221,7 @@ describe("subcircuits - RSA PKCS - SHA-1", () => {
 
 describe("subcircuits - RSA PKCS - SHA-224 integrity check", () => {
   const helper = new TestHelper()
-  const cscaCerts: PackagedCertificate[] = []
+  const packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const MAX_TBS_LENGTH = 700
   let dscCommitment: bigint
@@ -2241,10 +2241,10 @@ describe("subcircuits - RSA PKCS - SHA-224 integrity check", () => {
 
   beforeAll(async () => {
     // Add CSCA certificate test fixtures
-    const fixtureCSCACerts = JSON.parse(
+    const fixtureData = JSON.parse(
       fs.readFileSync(path.join(FIXTURES_PATH, "csca-packaged-certs.json"), "utf8"),
-    ).certificates
-    cscaCerts.push(...fixtureCSCACerts)
+    )
+    packagedCerts.certificates.push(...fixtureData.certificates)
 
     // Johnny Silverhand's MRZ
     const mrz =
@@ -2267,12 +2267,12 @@ describe("subcircuits - RSA PKCS - SHA-224 integrity check", () => {
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
 
     // Add newly generated CSCA certificate to the list
-    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+    packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
 
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setCertificates(cscaCerts)
+    helper.setCertificates(packagedCerts)
   })
 
   describe("dsc", () => {
@@ -2446,7 +2446,7 @@ describe("subcircuits - RSA PKCS - SHA-224 integrity check", () => {
 
 describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
   const helper = new TestHelper()
-  const cscaCerts: PackagedCertificate[] = []
+  const packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-ecdsa.json")
   const MAX_TBS_LENGTH = 700
@@ -2491,11 +2491,11 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
     }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
-    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+    packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setCertificates(cscaCerts)
+    helper.setCertificates(packagedCerts)
   })
 
   describe("dsc", () => {
@@ -2669,7 +2669,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256", () => {
 
 describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
   const helper = new TestHelper()
-  const cscaCerts: PackagedCertificate[] = []
+  const packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-ecdsa.json")
   const MAX_TBS_LENGTH = 700
@@ -2702,11 +2702,11 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
     }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-384")
     // Add newly generated CSC to masterlist
-    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+    packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setCertificates(cscaCerts)
+    helper.setCertificates(packagedCerts)
   })
 
   describe("dsc", () => {
@@ -2880,7 +2880,7 @@ describe("subcircuits - ECDSA NIST P-521 and P-384", () => {
 
 describe("subcircuits - ECDSA NIST P-256 and Brainpool P-192", () => {
   const helper = new TestHelper()
-  const cscaCerts: PackagedCertificate[] = []
+  const packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
   const MAX_TBS_LENGTH = 700
   let dscCommitment: bigint
   let idDataCommitment: bigint
@@ -2920,11 +2920,11 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-192", () => {
     }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-1")
     // Add newly generated CSC to masterlist
-    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+    packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setCertificates(cscaCerts)
+    helper.setCertificates(packagedCerts)
   })
 
   describe("dsc", () => {
@@ -3100,7 +3100,7 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-192", () => {
 
 describe("subcircuits - ECDSA NIST P-256 and Brainpool P-224", () => {
   const helper = new TestHelper()
-  const cscaCerts: PackagedCertificate[] = []
+  const packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
   const MAX_TBS_LENGTH = 700
   let dscCommitment: bigint
   let idDataCommitment: bigint
@@ -3140,11 +3140,11 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-224", () => {
     }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-1")
     // Add newly generated CSC to masterlist
-    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+    packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setCertificates(cscaCerts)
+    helper.setCertificates(packagedCerts)
   })
 
   describe("dsc", () => {
@@ -3320,7 +3320,7 @@ describe("subcircuits - ECDSA NIST P-256 and Brainpool P-224", () => {
 
 describe("subcircuits - ECDSA NIST P-384 and P-256 - SHA-1", () => {
   const helper = new TestHelper()
-  const cscaCerts: PackagedCertificate[] = []
+  const packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
   const MAX_TBS_LENGTH = 700
   let dscCommitment: bigint
   let idDataCommitment: bigint
@@ -3360,11 +3360,11 @@ describe("subcircuits - ECDSA NIST P-384 and P-256 - SHA-1", () => {
     }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-1")
     // Add newly generated CSC to masterlist
-    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+    packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setCertificates(cscaCerts)
+    helper.setCertificates(packagedCerts)
   })
 
   describe("dsc", () => {
@@ -3538,7 +3538,7 @@ describe("subcircuits - ECDSA NIST P-384 and P-256 - SHA-1", () => {
 
 describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
   const helper = new TestHelper()
-  const cscaCerts: PackagedCertificate[] = []
+  const packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
   const MAX_TBS_LENGTH = 700
   let dscCommitment: bigint
   let idDataCommitment: bigint
@@ -3579,11 +3579,11 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
     }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-512")
     // Add newly generated CSC to masterlist
-    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+    packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setCertificates(cscaCerts)
+    helper.setCertificates(packagedCerts)
   })
 
   describe("dsc", () => {
@@ -3902,7 +3902,7 @@ describe("subcircuits - ECDSA NIST P-521 and Brainpool P-512r1", () => {
 
 describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
   const helper = new TestHelper()
-  const cscaCerts: PackagedCertificate[] = []
+  const packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
   const MAX_TBS_LENGTH = 700
   let dscCommitment: bigint
   let idDataCommitment: bigint
@@ -3939,11 +3939,11 @@ describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
     }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
-    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+    packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setCertificates(cscaCerts)
+    helper.setCertificates(packagedCerts)
   })
 
   describe("dsc", () => {
@@ -4063,7 +4063,7 @@ describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
 
 describe("subcircuits - RSA PKCS - 6144 bits", () => {
   const helper = new TestHelper()
-  const cscaCerts: PackagedCertificate[] = []
+  const packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const MAX_TBS_LENGTH = 1000
   let dscCommitment: bigint
@@ -4083,10 +4083,10 @@ describe("subcircuits - RSA PKCS - 6144 bits", () => {
 
   beforeAll(async () => {
     // Add CSCA certificate test fixtures
-    const fixtureCSCACerts = JSON.parse(
+    const fixtureData = JSON.parse(
       fs.readFileSync(path.join(FIXTURES_PATH, "csca-packaged-certs.json"), "utf8"),
-    ).certificates
-    cscaCerts.push(...fixtureCSCACerts)
+    )
+    packagedCerts.certificates.push(...fixtureData.certificates)
 
     // Johnny Silverhand's MRZ
     const mrz =
@@ -4109,12 +4109,12 @@ describe("subcircuits - RSA PKCS - 6144 bits", () => {
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-1")
 
     // Add newly generated CSCA certificate to the list
-    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+    packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
 
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setCertificates(cscaCerts)
+    helper.setCertificates(packagedCerts)
   })
 
   describe("dsc", () => {
@@ -4291,7 +4291,7 @@ describe("subcircuits - RSA PKCS - 6144 bits", () => {
 
 describe("subcircuits - RSA PKCS - German passport", () => {
   const helper = new TestHelper()
-  const cscaCerts: PackagedCertificate[] = []
+  const packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
   const MAX_TBS_LENGTH = 700
   let dscCommitment: bigint
   let idDataCommitment: bigint
@@ -4328,11 +4328,11 @@ describe("subcircuits - RSA PKCS - German passport", () => {
     }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
-    cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+    packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    helper.setCertificates(cscaCerts)
+    helper.setCertificates(packagedCerts)
   })
 
   describe("dsc", () => {
