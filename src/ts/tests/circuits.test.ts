@@ -174,6 +174,19 @@ describe("subcircuits - RSA PKCS", () => {
   })
 
   describe("facematch ios", () => {
+    let iosCircuit: Circuit
+    let iosEvmCircuit: Circuit
+
+    beforeAll(() => {
+      iosCircuit = Circuit.from("facematch_ios")
+      iosEvmCircuit = Circuit.from("facematch_ios_evm")
+    })
+
+    afterAll(async () => {
+      await iosCircuit.destroy()
+      await iosEvmCircuit.destroy()
+    })
+
     test("verify facematch", async () => {
       const query: Query = { facematch: { mode: "regular" } }
       let inputs = await getFacematchCircuitInputs(
@@ -190,13 +203,11 @@ describe("subcircuits - RSA PKCS", () => {
       expect(BigInt(inputs.comm_in)).toEqual(integrityCheckCommitment)
 
       const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH.ios_regular_mode_dev }
-      const circuit = Circuit.from("facematch_ios")
-      const proof = await circuit.prove(combinedInputs, {
-        witness: await circuit.solve(combinedInputs),
+      const proof = await iosCircuit.prove(combinedInputs, {
+        witness: await iosCircuit.solve(combinedInputs),
         useCli: true,
         circuitName: "facematch_ios",
       })
-      await circuit.destroy()
 
       // Calculate expected parameter commitment and compare with the one returned from the circuit
       const root_key_leaf = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340bn
@@ -239,13 +250,11 @@ describe("subcircuits - RSA PKCS", () => {
       expect(BigInt(inputs.comm_in)).toEqual(integrityCheckCommitment)
 
       const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH.ios_strict_mode_prod }
-      const circuit = Circuit.from("facematch_ios")
-      const proof = await circuit.prove(combinedInputs, {
-        witness: await circuit.solve(combinedInputs),
+      const proof = await iosCircuit.prove(combinedInputs, {
+        witness: await iosCircuit.solve(combinedInputs),
         useCli: true,
         circuitName: "facematch_ios",
       })
-      await circuit.destroy()
 
       // Calculate expected parameter commitment and compare with the one returned from the circuit
       const root_key_leaf = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340bn
@@ -286,13 +295,11 @@ describe("subcircuits - RSA PKCS", () => {
       expect(BigInt(inputs.comm_in)).toEqual(integrityCheckCommitment)
 
       const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH.ios_regular_mode_prod }
-      const circuit = Circuit.from("facematch_ios_evm")
-      const proof = await circuit.prove(combinedInputs, {
-        witness: await circuit.solve(combinedInputs),
+      const proof = await iosEvmCircuit.prove(combinedInputs, {
+        witness: await iosEvmCircuit.solve(combinedInputs),
         useCli: true,
         circuitName: "facematch_ios_evm",
       })
-      await circuit.destroy()
 
       // Calculate expected parameter commitment and compare with the one returned from the circuit
       const root_key_leaf = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340bn
@@ -320,6 +327,23 @@ describe("subcircuits - RSA PKCS", () => {
   })
 
   describe("facematch android", () => {
+    let androidCircuit: Circuit
+    let androidEvmCircuit: Circuit
+
+    beforeAll(() => {
+      androidCircuit = Circuit.from(
+        "facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256",
+      )
+      androidEvmCircuit = Circuit.from(
+        "facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256_evm",
+      )
+    })
+
+    afterAll(async () => {
+      await androidCircuit.destroy()
+      await androidEvmCircuit.destroy()
+    })
+
     test("verify facematch", async () => {
       const query: Query = { facematch: { mode: "regular" } }
       let inputs = await getFacematchCircuitInputs(
@@ -335,17 +359,13 @@ describe("subcircuits - RSA PKCS", () => {
       expect(BigInt(inputs.comm_in)).toEqual(integrityCheckCommitment)
 
       const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH.android_regular_mode_dev }
-      const circuit = Circuit.from(
-        "facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256",
-      )
-      const proof = await circuit.prove(combinedInputs, {
-        witness: await circuit.solve(combinedInputs),
+      const proof = await androidCircuit.prove(combinedInputs, {
+        witness: await androidCircuit.solve(combinedInputs),
         useCli: true,
         // Root RSA key, 3 intermediate certificates (ECDSA P384, ECDSA P256, ECDSA P256) and the credential (P-256)
         circuitName:
           "facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256",
       })
-      await circuit.destroy()
 
       // Calculate expected parameter commitment and compare with the one returned from the circuit
       const root_key_leaf = 0x16700a2d9168a194fc85f237af5829b5a2be05b8ae8ac4879ada34cf54a9c211n
@@ -384,17 +404,13 @@ describe("subcircuits - RSA PKCS", () => {
       expect(BigInt(inputs.comm_in)).toEqual(integrityCheckCommitment)
 
       const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH.android_strict_mode_dev }
-      const circuit = Circuit.from(
-        "facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256_evm",
-      )
-      const proof = await circuit.prove(combinedInputs, {
-        witness: await circuit.solve(combinedInputs),
+      const proof = await androidEvmCircuit.prove(combinedInputs, {
+        witness: await androidEvmCircuit.solve(combinedInputs),
         useCli: true,
         // Root RSA key, 3 intermediate certificates (ECDSA P384, ECDSA P256, ECDSA P256) and the credential (P-256)
         circuitName:
           "facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256_evm",
       })
-      await circuit.destroy()
 
       // Calculate expected parameter commitment and compare with the one returned from the circuit
       const root_key_leaf = 0x16700a2d9168a194fc85f237af5829b5a2be05b8ae8ac4879ada34cf54a9c211n

@@ -24,16 +24,24 @@ export class Circuit {
     this.name = name
   }
 
-  async init(recursive: boolean = false) {
+  private async initNoir() {
+    if (!this.noir) {
+      this.noir = new Noir(this.manifest)
+      if (!this.noir) throw new Error("Error initializing noir")
+    }
+  }
+
+  private async initBackend() {
     if (!this.backend) {
       this.api = await Barretenberg.new({ threads: BB_THREADS })
       this.backend = new UltraHonkBackend(this.manifest.bytecode, this.api)
       if (!this.backend) throw new Error("Error initializing backend")
     }
-    if (!this.noir) {
-      this.noir = new Noir(this.manifest)
-      if (!this.noir) throw new Error("Error initializing noir")
-    }
+  }
+
+  async init(recursive: boolean = false) {
+    await this.initBackend()
+    await this.initNoir()
   }
 
   async destroy() {
@@ -45,7 +53,7 @@ export class Circuit {
 
   async solve(inputs: InputMap, recursive: boolean = false): Promise<Uint8Array> {
     this.checkInputs(inputs)
-    await this.init(recursive)
+    await this.initNoir()
     const { witness } = await this.noir!.execute(inputs)
     if (!witness) throw new Error("Error solving witness")
     return witness
@@ -65,7 +73,6 @@ export class Circuit {
     },
   ): Promise<ProofData> {
     this.checkInputs(inputs)
-    await this.init(options?.recursive ?? false)
     const witness = options?.witness ?? (await this.solve(inputs, options?.recursive ?? false))
     let proof: ProofData
     if (options?.useCli) {
@@ -111,6 +118,7 @@ export class Circuit {
         publicInputs: publicInputs.match(/.{1,64}/g)?.map((x) => `0x${x}`) ?? [],
       }
     } else {
+      await this.initBackend()
       if (options?.recursive) {
         //proof = await this.backend!.generateProofForRecursiveAggregation(witness)
         throw new Error("Recursive proof not supported")
