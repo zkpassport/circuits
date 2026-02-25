@@ -14,7 +14,7 @@ let barretenberg: Barretenberg
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
 const PACKAGED_CIRCUITS_DIR = path.join(TARGET_DIR, "packaged/circuits")
-const MAX_CONCURRENT_PROCESSES = 10
+const MAX_CONCURRENT_PROCESSES = 5
 const DEPLOY_SOL_PATH = "src/solidity/script/Deploy.s.sol"
 const DEPLOY_SUB_VERIFIER_SOL_PATH = "src/solidity/script/DeploySubVerifier.s.sol"
 const DEPLOY_PROOF_VERIFIERS_SOL_PATH = "src/solidity/script/DeployProofVerifiers.s.sol"
@@ -97,7 +97,7 @@ if (!fs.existsSync(PACKAGED_CIRCUITS_DIR)) {
 // Get all JSON files from target directory
 const files = fs
   .readdirSync(TARGET_DIR)
-  .filter((file) => !file.endsWith(".vkey.json") && file.endsWith(".json"))
+  .filter((file) => !file.endsWith(".vkey.json") && !file.endsWith(".size.json") && file.endsWith(".json"))
 
 // Promisify exec
 const execPromise = promisify(exec)
@@ -138,19 +138,12 @@ const processFile = async (
     console.log(`Generating vkey: ${file}`)
     fs.mkdirSync(vkeyPath, { recursive: true })
     await execPromise(
-      `bb write_vk --scheme ultra_honk${
-        evm ? " --oracle_hash keccak" : ""
-      } -b "${inputPath}" -o "${vkeyPath}"`,
+      `bb write_vk -t ${evm ? "evm" : "noir-recursive"} -b "${inputPath}" -o "${vkeyPath}"`,
     )
-    // TODO: remove this condition once bb gates works with outer circuits again
-    if (!file.startsWith("outer")) {
-      await execPromise(`bb gates --scheme ultra_honk -b "${inputPath}" > "${gateCountPath}"`)
-    }
+    await execPromise(`bb gates -t noir-recursive -b "${inputPath}" > "${gateCountPath}"`)
     if (generateSolidityVerifier) {
-      // Warning: Make sure to use a bb binary generated using the latest commit of ZKPassport's aztec-packages
-      // c.f. https://github.com/zkpassport/aztec-packages/commit/a4f7c39e15e7835c1f5f491168afa4aaac286894
       await execPromise(
-        `bb write_solidity_verifier --scheme ultra_honk --disable_zk --optimized -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
+        `bb write_solidity_verifier -t evm-no-zk --optimized -k "${vkeyPath}/vk" -o "${solidityVerifierPath}"`,
       )
     }
 
@@ -167,13 +160,9 @@ const processFile = async (
 
     // Read and parse the input file
     const jsonContent = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
-    let gateCount = 0
-    // TODO: remove this condition once bb gates works with outer circuits again
-    if (!file.startsWith("outer")) {
-      const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
-      gateCount = gateCountFileContent.functions[0].circuit_size
-      fs.unlinkSync(gateCountPath)
-    }
+    const gateCountFileContent = JSON.parse(fs.readFileSync(gateCountPath, "utf-8"))
+    const gateCount = gateCountFileContent.functions[0].circuit_size
+    fs.unlinkSync(gateCountPath)
 
     // Create packaged circuit object
     const packagedCircuit: {

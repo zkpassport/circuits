@@ -93,9 +93,8 @@ export class Circuit {
       await writeFileAsync(vkeyPath, vkeyBytes)
 
       // Generate proof
-      const proveCommand = `bb prove --scheme ultra_honk \
-        ${options?.evm ? "--oracle_hash keccak" : ""} \
-        ${options?.disableZK ? "--disable_zk" : ""} \
+      const verifierTarget = `${options?.evm ? "evm" : "noir-recursive"}${options?.disableZK ? "-no-zk" : ""}`
+      const proveCommand = `bb prove -t ${verifierTarget} \
         -b ${circuitPath} \
         -w ${witnessPath} \
         -k ${vkeyPath} \
@@ -161,8 +160,7 @@ export class Circuit {
       fs.mkdirSync(vkeyPath, { recursive: true })
 
       // Run bb write_vk command
-      const writeVkCommand = `bb write_vk --scheme ultra_honk \
-        ${evm ? " --oracle_hash keccak" : ""} \
+      const writeVkCommand = `bb write_vk -t ${evm ? "evm" : "noir-recursive"} \
         -b "${circuitPath}" \
         -o "${vkeyPath}"
       `

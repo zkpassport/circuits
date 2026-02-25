@@ -690,7 +690,7 @@ use outer_lib::{
 };
 use utils::constants::{NON_SALTED_NULLIFIER, SALTED_NULLIFIER, NON_SALTED_MOCK_NULLIFIER, SALTED_MOCK_NULLIFIER};
 use std::verify_proof_with_type;
-global PROOF_TYPE_HONK_ZK: u32 = 7;
+global PROOF_TYPE_HONK_ZK: u32 = 6;
 
 fn verify_subproofs(
     // Root of the certificate merkle tree
@@ -1282,7 +1282,7 @@ const generateWorkspaceToml = () => {
 
 // Maximum number of concurrent circuit compilations via `nargo compile`
 // Default value that can be overridden via CLI using --concurrency=x
-const DEFAULT_CONCURRENCY = 10
+const DEFAULT_CONCURRENCY = 2
 
 // Promise pool for controlled concurrency
 class PromisePool {

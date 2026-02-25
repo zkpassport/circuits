@@ -1,6 +1,6 @@
 # Get the name of the circuit from the argument
 package_name=$1
-oracle_hash=${2:-"poseidon2"}
+verifier_target=${2:-"noir-recursive"}
 
-# Compile the circuit and get the number of the gates
-nargo compile --force --package $package_name && bb write_vk --scheme ultra_honk -b ./target/$package_name.json -o ./vkeys/${package_name} --oracle_hash ${oracle_hash}
+# Compile the circuit and generate the verification key
+nargo compile --force --package $package_name && bb write_vk -t ${verifier_target} -b ./target/$package_name.json -o ./vkeys/${package_name}
