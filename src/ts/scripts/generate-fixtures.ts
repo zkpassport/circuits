@@ -37,7 +37,7 @@ import { generateSod, wrapSodInContentInfo } from "../sod-generator"
 import { TestHelper } from "../test-helper"
 import { serializeAsn } from "../utils"
 import circuitManifest from "../tests/fixtures/circuit-manifest.json"
-import { numberToBytesBE } from "@noble/curves/utils"
+import { numberToBytesBE } from "@noble/ciphers/utils.js"
 import FIXTURES_FACEMATCH from "./fixtures/facematch"
 
 interface SubproofData {
