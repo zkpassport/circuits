@@ -26,7 +26,7 @@ jobs:
 
       - name: Install bb
         run: |
-          curl -L https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/master/barretenberg/bbup/install | bash || true
+          curl -L https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/next/barretenberg/bbup/install | bash || true
           echo /home/runner/.bb >> $GITHUB_PATH
           /home/runner/.bb/bbup -v ${{ env.BB_VERSION }}
           /home/runner/.bb/bb --version
