@@ -21,6 +21,7 @@ CIRCUITS=(
     "sig_check_dsc_tbs_700_ecdsa_brainpool_256r1_sha256"
     "sig_check_dsc_tbs_700_ecdsa_brainpool_384r1_sha384"
     "sig_check_dsc_tbs_700_ecdsa_brainpool_512r1_sha512"
+    "sig_check_dsc_tbs_700_ecdsa_nist_p256_sha256"
     "sig_check_id_data_tbs_700_ecdsa_nist_p192_sha1"
     "sig_check_id_data_tbs_700_ecdsa_nist_p224_sha224"
     "sig_check_id_data_tbs_700_ecdsa_nist_p256_sha1"
