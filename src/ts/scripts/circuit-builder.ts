@@ -12,7 +12,7 @@ function ensureDirectoryExistence(filePath: string) {
   } catch (e) {}
 }
 
-const SIGNED_ATTRIBUTES_SIZE = 220
+const SIGNED_ATTRIBUTES_SIZE = 256
 
 const generatedCircuits: {
   name: string
