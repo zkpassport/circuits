@@ -79,9 +79,10 @@ fn main(
     // Play Integrity's public key behind the signature over the integrity token
     play_integrity_public_key: [u8; 64],
     nullifier_secret: Field,
+    oprf_proof: commitment::OPRFProof,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub (Field, Field, Field) {
+) -> pub (Field, Field, Field, Field) {
     // Check the ID is not expired
     check_expiry_from_date(salted_expiry_date.value, current_date);
 
@@ -194,7 +195,7 @@ fn main(
         "Failed to verify nonce from integrity token",
     );
 
-    let (nullifier, nullifier_type) = nullify(
+    let (nullifier, nullifier_type, oprf_pk_hash) = nullify(
         comm_in,
         salted_dg1,
         salted_expiry_date,
@@ -204,6 +205,7 @@ fn main(
         service_scope,
         service_subscope,
         nullifier_secret,
+        oprf_proof,
     );
 
     let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
@@ -217,5 +219,5 @@ fn main(
         facematch_mode,
     );
 
-    (param_commitment, nullifier_type, nullifier)
+    (param_commitment, nullifier_type, nullifier, oprf_pk_hash)
 }
