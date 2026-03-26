@@ -23,19 +23,49 @@ uint256 constant LOG_N = 22;
 uint256 constant NUMBER_PUBLIC_INPUTS = 16;
 uint256 constant REAL_NUMBER_PUBLIC_INPUTS = 8;
 uint256 constant PUBLIC_INPUTS_OFFSET = 1;
-// LOG_N * 8
-uint256 constant NUMBER_OF_BARYCENTRIC_INVERSES = 176;
 
 contract HonkVerifier is IVerifier {
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                    SLAB ALLOCATION                         */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
     /**
-     * We manually manage memory within this optimised implementation
-     * Memory is loaded into a large slab that is ordered in the following way
+     * We manually manage memory within this optimised implementation.
+     * Memory is loaded into a large slab with the following layout:
      *
-     * // TODO: ranges
-     * **
+     * HIGH MEMORY (persistent, non-overlapping regions from 0x1000 upward):
+     *
+     *                    VK Data (circuit size, num PIs, offset, 28 G1 commitment points)
+     *                    Proof: Pairing point limbs (8 field elements)
+     *                    Proof: Witness commitments (W_L..Z_PERM, 8 G1 points)
+     *                    Proof: Sumcheck univariates (LOG_N rounds x 8 coefficients)
+     *                    Proof: Sumcheck evaluations (41 entity evaluations)
+     *                    Proof: Gemini fold commitments (LOG_N-1 G1 points)
+     *                    Proof: Gemini A evaluations (LOG_N field elements)
+     *                    Proof: Shplonk Q + KZG quotient (2 G1 points)
+     *                    Challenges (eta..sum_u, alpha[0..26], gate + sum_u challenges)
+     *                    Subrelation evaluations (28 slots, used during sumcheck)
+     *                    Subrelation intermediates (7 slots: round target, pow, AUX)
+     *                    Powers of evaluation challenge (LOG_N slots)
+     *                    Batch scalars (69 slots, for MSM)
+     *                    Gemini R inverse (1 slot)
+     *                    Inverted Gemini denominators (LOG_N+1 = 16 slots)
+     *                    Batch evaluation accumulator inversions (LOG_N slots)
+     *                    Batched eval, constant term accumulator, pos/neg inv denom
+     *                    Inverted challenge^pow - u (LOG_N slots)
+     *                    Pos inverted denominators (LOG_N slots)
+     *                    Neg inverted denominators (LOG_N slots)
+     *                    Fold pos evaluations (LOG_N slots)
+     *                    LATER_SCRATCH_SPACE (batch inversion products marker)
+     *                    Temporary space (45 slots, ephemeral computation)
+     *
+     * LOW MEMORY / SCRATCH SPACE (barycentric evaluation during sumcheck):
+     *                    Barycentric Lagrange denominators (8 domain points)
+     *                    Barycentric denominator inverses (LOG_N x 8 slots)
+     *                     [Slots at 0x1000-0x10E0 overlap VK data; VK is re-loaded later]
+     *
+     *   Scratch aliases (0x00-0x40): CHALL_POW/SUMCHECK_U/GEMINI_A during sumcheck;
+     *   SS_POS_INV_DENOM/SS_NEG_INV_DENOM/SS_GEMINI_EVALS during shplemini.
+     *   MSM stage reuses 0x00-0xA0 for ACCUMULATOR, G1_LOCATION, SCALAR.
      */
 
     // {{ SECTION_START MEMORY_LAYOUT }}
@@ -43,394 +73,391 @@ contract HonkVerifier is IVerifier {
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                                           VK INDICIES                                            */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant VK_CIRCUIT_SIZE_LOC = 0x1000;
-uint256 internal constant VK_NUM_PUBLIC_INPUTS_LOC = 0x1020;
-uint256 internal constant VK_PUB_INPUTS_OFFSET_LOC = 0x1040;
-uint256 internal constant Q_M_X_LOC = 0x1060;
-uint256 internal constant Q_M_Y_LOC = 0x1080;
-uint256 internal constant Q_C_X_LOC = 0x10a0;
-uint256 internal constant Q_C_Y_LOC = 0x10c0;
-uint256 internal constant Q_L_X_LOC = 0x10e0;
-uint256 internal constant Q_L_Y_LOC = 0x1100;
-uint256 internal constant Q_R_X_LOC = 0x1120;
-uint256 internal constant Q_R_Y_LOC = 0x1140;
-uint256 internal constant Q_O_X_LOC = 0x1160;
-uint256 internal constant Q_O_Y_LOC = 0x1180;
-uint256 internal constant Q_4_X_LOC = 0x11a0;
-uint256 internal constant Q_4_Y_LOC = 0x11c0;
-uint256 internal constant Q_LOOKUP_X_LOC = 0x11e0;
-uint256 internal constant Q_LOOKUP_Y_LOC = 0x1200;
-uint256 internal constant Q_ARITH_X_LOC = 0x1220;
-uint256 internal constant Q_ARITH_Y_LOC = 0x1240;
-uint256 internal constant Q_DELTA_RANGE_X_LOC = 0x1260;
-uint256 internal constant Q_DELTA_RANGE_Y_LOC = 0x1280;
-uint256 internal constant Q_ELLIPTIC_X_LOC = 0x12a0;
-uint256 internal constant Q_ELLIPTIC_Y_LOC = 0x12c0;
-uint256 internal constant Q_MEMORY_X_LOC = 0x12e0;
-uint256 internal constant Q_MEMORY_Y_LOC = 0x1300;
-uint256 internal constant Q_NNF_X_LOC = 0x1320;
-uint256 internal constant Q_NNF_Y_LOC = 0x1340;
-uint256 internal constant Q_POSEIDON_2_EXTERNAL_X_LOC = 0x1360;
-uint256 internal constant Q_POSEIDON_2_EXTERNAL_Y_LOC = 0x1380;
-uint256 internal constant Q_POSEIDON_2_INTERNAL_X_LOC = 0x13a0;
-uint256 internal constant Q_POSEIDON_2_INTERNAL_Y_LOC = 0x13c0;
-uint256 internal constant SIGMA_1_X_LOC = 0x13e0;
-uint256 internal constant SIGMA_1_Y_LOC = 0x1400;
-uint256 internal constant SIGMA_2_X_LOC = 0x1420;
-uint256 internal constant SIGMA_2_Y_LOC = 0x1440;
-uint256 internal constant SIGMA_3_X_LOC = 0x1460;
-uint256 internal constant SIGMA_3_Y_LOC = 0x1480;
-uint256 internal constant SIGMA_4_X_LOC = 0x14a0;
-uint256 internal constant SIGMA_4_Y_LOC = 0x14c0;
-uint256 internal constant ID_1_X_LOC = 0x14e0;
-uint256 internal constant ID_1_Y_LOC = 0x1500;
-uint256 internal constant ID_2_X_LOC = 0x1520;
-uint256 internal constant ID_2_Y_LOC = 0x1540;
-uint256 internal constant ID_3_X_LOC = 0x1560;
-uint256 internal constant ID_3_Y_LOC = 0x1580;
-uint256 internal constant ID_4_X_LOC = 0x15a0;
-uint256 internal constant ID_4_Y_LOC = 0x15c0;
-uint256 internal constant TABLE_1_X_LOC = 0x15e0;
-uint256 internal constant TABLE_1_Y_LOC = 0x1600;
-uint256 internal constant TABLE_2_X_LOC = 0x1620;
-uint256 internal constant TABLE_2_Y_LOC = 0x1640;
-uint256 internal constant TABLE_3_X_LOC = 0x1660;
-uint256 internal constant TABLE_3_Y_LOC = 0x1680;
-uint256 internal constant TABLE_4_X_LOC = 0x16a0;
-uint256 internal constant TABLE_4_Y_LOC = 0x16c0;
-uint256 internal constant LAGRANGE_FIRST_X_LOC = 0x16e0;
-uint256 internal constant LAGRANGE_FIRST_Y_LOC = 0x1700;
-uint256 internal constant LAGRANGE_LAST_X_LOC = 0x1720;
-uint256 internal constant LAGRANGE_LAST_Y_LOC = 0x1740;
+uint256 internal constant Q_M_X_LOC = 0x1000;
+uint256 internal constant Q_M_Y_LOC = 0x1020;
+uint256 internal constant Q_C_X_LOC = 0x1040;
+uint256 internal constant Q_C_Y_LOC = 0x1060;
+uint256 internal constant Q_L_X_LOC = 0x1080;
+uint256 internal constant Q_L_Y_LOC = 0x10a0;
+uint256 internal constant Q_R_X_LOC = 0x10c0;
+uint256 internal constant Q_R_Y_LOC = 0x10e0;
+uint256 internal constant Q_O_X_LOC = 0x1100;
+uint256 internal constant Q_O_Y_LOC = 0x1120;
+uint256 internal constant Q_4_X_LOC = 0x1140;
+uint256 internal constant Q_4_Y_LOC = 0x1160;
+uint256 internal constant Q_LOOKUP_X_LOC = 0x1180;
+uint256 internal constant Q_LOOKUP_Y_LOC = 0x11a0;
+uint256 internal constant Q_ARITH_X_LOC = 0x11c0;
+uint256 internal constant Q_ARITH_Y_LOC = 0x11e0;
+uint256 internal constant Q_DELTA_RANGE_X_LOC = 0x1200;
+uint256 internal constant Q_DELTA_RANGE_Y_LOC = 0x1220;
+uint256 internal constant Q_ELLIPTIC_X_LOC = 0x1240;
+uint256 internal constant Q_ELLIPTIC_Y_LOC = 0x1260;
+uint256 internal constant Q_MEMORY_X_LOC = 0x1280;
+uint256 internal constant Q_MEMORY_Y_LOC = 0x12a0;
+uint256 internal constant Q_NNF_X_LOC = 0x12c0;
+uint256 internal constant Q_NNF_Y_LOC = 0x12e0;
+uint256 internal constant Q_POSEIDON_2_EXTERNAL_X_LOC = 0x1300;
+uint256 internal constant Q_POSEIDON_2_EXTERNAL_Y_LOC = 0x1320;
+uint256 internal constant Q_POSEIDON_2_INTERNAL_X_LOC = 0x1340;
+uint256 internal constant Q_POSEIDON_2_INTERNAL_Y_LOC = 0x1360;
+uint256 internal constant SIGMA_1_X_LOC = 0x1380;
+uint256 internal constant SIGMA_1_Y_LOC = 0x13a0;
+uint256 internal constant SIGMA_2_X_LOC = 0x13c0;
+uint256 internal constant SIGMA_2_Y_LOC = 0x13e0;
+uint256 internal constant SIGMA_3_X_LOC = 0x1400;
+uint256 internal constant SIGMA_3_Y_LOC = 0x1420;
+uint256 internal constant SIGMA_4_X_LOC = 0x1440;
+uint256 internal constant SIGMA_4_Y_LOC = 0x1460;
+uint256 internal constant ID_1_X_LOC = 0x1480;
+uint256 internal constant ID_1_Y_LOC = 0x14a0;
+uint256 internal constant ID_2_X_LOC = 0x14c0;
+uint256 internal constant ID_2_Y_LOC = 0x14e0;
+uint256 internal constant ID_3_X_LOC = 0x1500;
+uint256 internal constant ID_3_Y_LOC = 0x1520;
+uint256 internal constant ID_4_X_LOC = 0x1540;
+uint256 internal constant ID_4_Y_LOC = 0x1560;
+uint256 internal constant TABLE_1_X_LOC = 0x1580;
+uint256 internal constant TABLE_1_Y_LOC = 0x15a0;
+uint256 internal constant TABLE_2_X_LOC = 0x15c0;
+uint256 internal constant TABLE_2_Y_LOC = 0x15e0;
+uint256 internal constant TABLE_3_X_LOC = 0x1600;
+uint256 internal constant TABLE_3_Y_LOC = 0x1620;
+uint256 internal constant TABLE_4_X_LOC = 0x1640;
+uint256 internal constant TABLE_4_Y_LOC = 0x1660;
+uint256 internal constant LAGRANGE_FIRST_X_LOC = 0x1680;
+uint256 internal constant LAGRANGE_FIRST_Y_LOC = 0x16a0;
+uint256 internal constant LAGRANGE_LAST_X_LOC = 0x16c0;
+uint256 internal constant LAGRANGE_LAST_Y_LOC = 0x16e0;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                                          PROOF INDICIES                                          */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant PAIRING_POINT_0_X_0_LOC = 0x1760;
-uint256 internal constant PAIRING_POINT_0_X_1_LOC = 0x1780;
-uint256 internal constant PAIRING_POINT_0_Y_0_LOC = 0x17a0;
-uint256 internal constant PAIRING_POINT_0_Y_1_LOC = 0x17c0;
-uint256 internal constant PAIRING_POINT_1_X_0_LOC = 0x17e0;
-uint256 internal constant PAIRING_POINT_1_X_1_LOC = 0x1800;
-uint256 internal constant PAIRING_POINT_1_Y_0_LOC = 0x1820;
-uint256 internal constant PAIRING_POINT_1_Y_1_LOC = 0x1840;
-uint256 internal constant W_L_X_LOC = 0x1860;
-uint256 internal constant W_L_Y_LOC = 0x1880;
-uint256 internal constant W_R_X_LOC = 0x18a0;
-uint256 internal constant W_R_Y_LOC = 0x18c0;
-uint256 internal constant W_O_X_LOC = 0x18e0;
-uint256 internal constant W_O_Y_LOC = 0x1900;
-uint256 internal constant LOOKUP_READ_COUNTS_X_LOC = 0x1920;
-uint256 internal constant LOOKUP_READ_COUNTS_Y_LOC = 0x1940;
-uint256 internal constant LOOKUP_READ_TAGS_X_LOC = 0x1960;
-uint256 internal constant LOOKUP_READ_TAGS_Y_LOC = 0x1980;
-uint256 internal constant W_4_X_LOC = 0x19a0;
-uint256 internal constant W_4_Y_LOC = 0x19c0;
-uint256 internal constant LOOKUP_INVERSES_X_LOC = 0x19e0;
-uint256 internal constant LOOKUP_INVERSES_Y_LOC = 0x1a00;
-uint256 internal constant Z_PERM_X_LOC = 0x1a20;
-uint256 internal constant Z_PERM_Y_LOC = 0x1a40;
+uint256 internal constant PAIRING_POINT_0_X_0_LOC = 0x1700;
+uint256 internal constant PAIRING_POINT_0_X_1_LOC = 0x1720;
+uint256 internal constant PAIRING_POINT_0_Y_0_LOC = 0x1740;
+uint256 internal constant PAIRING_POINT_0_Y_1_LOC = 0x1760;
+uint256 internal constant PAIRING_POINT_1_X_0_LOC = 0x1780;
+uint256 internal constant PAIRING_POINT_1_X_1_LOC = 0x17a0;
+uint256 internal constant PAIRING_POINT_1_Y_0_LOC = 0x17c0;
+uint256 internal constant PAIRING_POINT_1_Y_1_LOC = 0x17e0;
+uint256 internal constant W_L_X_LOC = 0x1800;
+uint256 internal constant W_L_Y_LOC = 0x1820;
+uint256 internal constant W_R_X_LOC = 0x1840;
+uint256 internal constant W_R_Y_LOC = 0x1860;
+uint256 internal constant W_O_X_LOC = 0x1880;
+uint256 internal constant W_O_Y_LOC = 0x18a0;
+uint256 internal constant LOOKUP_READ_COUNTS_X_LOC = 0x18c0;
+uint256 internal constant LOOKUP_READ_COUNTS_Y_LOC = 0x18e0;
+uint256 internal constant LOOKUP_READ_TAGS_X_LOC = 0x1900;
+uint256 internal constant LOOKUP_READ_TAGS_Y_LOC = 0x1920;
+uint256 internal constant W_4_X_LOC = 0x1940;
+uint256 internal constant W_4_Y_LOC = 0x1960;
+uint256 internal constant LOOKUP_INVERSES_X_LOC = 0x1980;
+uint256 internal constant LOOKUP_INVERSES_Y_LOC = 0x19a0;
+uint256 internal constant Z_PERM_X_LOC = 0x19c0;
+uint256 internal constant Z_PERM_Y_LOC = 0x19e0;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                              PROOF INDICIES - SUMCHECK UNIVARIATES                               */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant SUMCHECK_UNIVARIATE_0_0_LOC = 0x1a60;
-uint256 internal constant SUMCHECK_UNIVARIATE_0_1_LOC = 0x1a80;
-uint256 internal constant SUMCHECK_UNIVARIATE_0_2_LOC = 0x1aa0;
-uint256 internal constant SUMCHECK_UNIVARIATE_0_3_LOC = 0x1ac0;
-uint256 internal constant SUMCHECK_UNIVARIATE_0_4_LOC = 0x1ae0;
-uint256 internal constant SUMCHECK_UNIVARIATE_0_5_LOC = 0x1b00;
-uint256 internal constant SUMCHECK_UNIVARIATE_0_6_LOC = 0x1b20;
-uint256 internal constant SUMCHECK_UNIVARIATE_0_7_LOC = 0x1b40;
-uint256 internal constant SUMCHECK_UNIVARIATE_1_0_LOC = 0x1b60;
-uint256 internal constant SUMCHECK_UNIVARIATE_1_1_LOC = 0x1b80;
-uint256 internal constant SUMCHECK_UNIVARIATE_1_2_LOC = 0x1ba0;
-uint256 internal constant SUMCHECK_UNIVARIATE_1_3_LOC = 0x1bc0;
-uint256 internal constant SUMCHECK_UNIVARIATE_1_4_LOC = 0x1be0;
-uint256 internal constant SUMCHECK_UNIVARIATE_1_5_LOC = 0x1c00;
-uint256 internal constant SUMCHECK_UNIVARIATE_1_6_LOC = 0x1c20;
-uint256 internal constant SUMCHECK_UNIVARIATE_1_7_LOC = 0x1c40;
-uint256 internal constant SUMCHECK_UNIVARIATE_2_0_LOC = 0x1c60;
-uint256 internal constant SUMCHECK_UNIVARIATE_2_1_LOC = 0x1c80;
-uint256 internal constant SUMCHECK_UNIVARIATE_2_2_LOC = 0x1ca0;
-uint256 internal constant SUMCHECK_UNIVARIATE_2_3_LOC = 0x1cc0;
-uint256 internal constant SUMCHECK_UNIVARIATE_2_4_LOC = 0x1ce0;
-uint256 internal constant SUMCHECK_UNIVARIATE_2_5_LOC = 0x1d00;
-uint256 internal constant SUMCHECK_UNIVARIATE_2_6_LOC = 0x1d20;
-uint256 internal constant SUMCHECK_UNIVARIATE_2_7_LOC = 0x1d40;
-uint256 internal constant SUMCHECK_UNIVARIATE_3_0_LOC = 0x1d60;
-uint256 internal constant SUMCHECK_UNIVARIATE_3_1_LOC = 0x1d80;
-uint256 internal constant SUMCHECK_UNIVARIATE_3_2_LOC = 0x1da0;
-uint256 internal constant SUMCHECK_UNIVARIATE_3_3_LOC = 0x1dc0;
-uint256 internal constant SUMCHECK_UNIVARIATE_3_4_LOC = 0x1de0;
-uint256 internal constant SUMCHECK_UNIVARIATE_3_5_LOC = 0x1e00;
-uint256 internal constant SUMCHECK_UNIVARIATE_3_6_LOC = 0x1e20;
-uint256 internal constant SUMCHECK_UNIVARIATE_3_7_LOC = 0x1e40;
-uint256 internal constant SUMCHECK_UNIVARIATE_4_0_LOC = 0x1e60;
-uint256 internal constant SUMCHECK_UNIVARIATE_4_1_LOC = 0x1e80;
-uint256 internal constant SUMCHECK_UNIVARIATE_4_2_LOC = 0x1ea0;
-uint256 internal constant SUMCHECK_UNIVARIATE_4_3_LOC = 0x1ec0;
-uint256 internal constant SUMCHECK_UNIVARIATE_4_4_LOC = 0x1ee0;
-uint256 internal constant SUMCHECK_UNIVARIATE_4_5_LOC = 0x1f00;
-uint256 internal constant SUMCHECK_UNIVARIATE_4_6_LOC = 0x1f20;
-uint256 internal constant SUMCHECK_UNIVARIATE_4_7_LOC = 0x1f40;
-uint256 internal constant SUMCHECK_UNIVARIATE_5_0_LOC = 0x1f60;
-uint256 internal constant SUMCHECK_UNIVARIATE_5_1_LOC = 0x1f80;
-uint256 internal constant SUMCHECK_UNIVARIATE_5_2_LOC = 0x1fa0;
-uint256 internal constant SUMCHECK_UNIVARIATE_5_3_LOC = 0x1fc0;
-uint256 internal constant SUMCHECK_UNIVARIATE_5_4_LOC = 0x1fe0;
-uint256 internal constant SUMCHECK_UNIVARIATE_5_5_LOC = 0x2000;
-uint256 internal constant SUMCHECK_UNIVARIATE_5_6_LOC = 0x2020;
-uint256 internal constant SUMCHECK_UNIVARIATE_5_7_LOC = 0x2040;
-uint256 internal constant SUMCHECK_UNIVARIATE_6_0_LOC = 0x2060;
-uint256 internal constant SUMCHECK_UNIVARIATE_6_1_LOC = 0x2080;
-uint256 internal constant SUMCHECK_UNIVARIATE_6_2_LOC = 0x20a0;
-uint256 internal constant SUMCHECK_UNIVARIATE_6_3_LOC = 0x20c0;
-uint256 internal constant SUMCHECK_UNIVARIATE_6_4_LOC = 0x20e0;
-uint256 internal constant SUMCHECK_UNIVARIATE_6_5_LOC = 0x2100;
-uint256 internal constant SUMCHECK_UNIVARIATE_6_6_LOC = 0x2120;
-uint256 internal constant SUMCHECK_UNIVARIATE_6_7_LOC = 0x2140;
-uint256 internal constant SUMCHECK_UNIVARIATE_7_0_LOC = 0x2160;
-uint256 internal constant SUMCHECK_UNIVARIATE_7_1_LOC = 0x2180;
-uint256 internal constant SUMCHECK_UNIVARIATE_7_2_LOC = 0x21a0;
-uint256 internal constant SUMCHECK_UNIVARIATE_7_3_LOC = 0x21c0;
-uint256 internal constant SUMCHECK_UNIVARIATE_7_4_LOC = 0x21e0;
-uint256 internal constant SUMCHECK_UNIVARIATE_7_5_LOC = 0x2200;
-uint256 internal constant SUMCHECK_UNIVARIATE_7_6_LOC = 0x2220;
-uint256 internal constant SUMCHECK_UNIVARIATE_7_7_LOC = 0x2240;
-uint256 internal constant SUMCHECK_UNIVARIATE_8_0_LOC = 0x2260;
-uint256 internal constant SUMCHECK_UNIVARIATE_8_1_LOC = 0x2280;
-uint256 internal constant SUMCHECK_UNIVARIATE_8_2_LOC = 0x22a0;
-uint256 internal constant SUMCHECK_UNIVARIATE_8_3_LOC = 0x22c0;
-uint256 internal constant SUMCHECK_UNIVARIATE_8_4_LOC = 0x22e0;
-uint256 internal constant SUMCHECK_UNIVARIATE_8_5_LOC = 0x2300;
-uint256 internal constant SUMCHECK_UNIVARIATE_8_6_LOC = 0x2320;
-uint256 internal constant SUMCHECK_UNIVARIATE_8_7_LOC = 0x2340;
-uint256 internal constant SUMCHECK_UNIVARIATE_9_0_LOC = 0x2360;
-uint256 internal constant SUMCHECK_UNIVARIATE_9_1_LOC = 0x2380;
-uint256 internal constant SUMCHECK_UNIVARIATE_9_2_LOC = 0x23a0;
-uint256 internal constant SUMCHECK_UNIVARIATE_9_3_LOC = 0x23c0;
-uint256 internal constant SUMCHECK_UNIVARIATE_9_4_LOC = 0x23e0;
-uint256 internal constant SUMCHECK_UNIVARIATE_9_5_LOC = 0x2400;
-uint256 internal constant SUMCHECK_UNIVARIATE_9_6_LOC = 0x2420;
-uint256 internal constant SUMCHECK_UNIVARIATE_9_7_LOC = 0x2440;
-uint256 internal constant SUMCHECK_UNIVARIATE_10_0_LOC = 0x2460;
-uint256 internal constant SUMCHECK_UNIVARIATE_10_1_LOC = 0x2480;
-uint256 internal constant SUMCHECK_UNIVARIATE_10_2_LOC = 0x24a0;
-uint256 internal constant SUMCHECK_UNIVARIATE_10_3_LOC = 0x24c0;
-uint256 internal constant SUMCHECK_UNIVARIATE_10_4_LOC = 0x24e0;
-uint256 internal constant SUMCHECK_UNIVARIATE_10_5_LOC = 0x2500;
-uint256 internal constant SUMCHECK_UNIVARIATE_10_6_LOC = 0x2520;
-uint256 internal constant SUMCHECK_UNIVARIATE_10_7_LOC = 0x2540;
-uint256 internal constant SUMCHECK_UNIVARIATE_11_0_LOC = 0x2560;
-uint256 internal constant SUMCHECK_UNIVARIATE_11_1_LOC = 0x2580;
-uint256 internal constant SUMCHECK_UNIVARIATE_11_2_LOC = 0x25a0;
-uint256 internal constant SUMCHECK_UNIVARIATE_11_3_LOC = 0x25c0;
-uint256 internal constant SUMCHECK_UNIVARIATE_11_4_LOC = 0x25e0;
-uint256 internal constant SUMCHECK_UNIVARIATE_11_5_LOC = 0x2600;
-uint256 internal constant SUMCHECK_UNIVARIATE_11_6_LOC = 0x2620;
-uint256 internal constant SUMCHECK_UNIVARIATE_11_7_LOC = 0x2640;
-uint256 internal constant SUMCHECK_UNIVARIATE_12_0_LOC = 0x2660;
-uint256 internal constant SUMCHECK_UNIVARIATE_12_1_LOC = 0x2680;
-uint256 internal constant SUMCHECK_UNIVARIATE_12_2_LOC = 0x26a0;
-uint256 internal constant SUMCHECK_UNIVARIATE_12_3_LOC = 0x26c0;
-uint256 internal constant SUMCHECK_UNIVARIATE_12_4_LOC = 0x26e0;
-uint256 internal constant SUMCHECK_UNIVARIATE_12_5_LOC = 0x2700;
-uint256 internal constant SUMCHECK_UNIVARIATE_12_6_LOC = 0x2720;
-uint256 internal constant SUMCHECK_UNIVARIATE_12_7_LOC = 0x2740;
-uint256 internal constant SUMCHECK_UNIVARIATE_13_0_LOC = 0x2760;
-uint256 internal constant SUMCHECK_UNIVARIATE_13_1_LOC = 0x2780;
-uint256 internal constant SUMCHECK_UNIVARIATE_13_2_LOC = 0x27a0;
-uint256 internal constant SUMCHECK_UNIVARIATE_13_3_LOC = 0x27c0;
-uint256 internal constant SUMCHECK_UNIVARIATE_13_4_LOC = 0x27e0;
-uint256 internal constant SUMCHECK_UNIVARIATE_13_5_LOC = 0x2800;
-uint256 internal constant SUMCHECK_UNIVARIATE_13_6_LOC = 0x2820;
-uint256 internal constant SUMCHECK_UNIVARIATE_13_7_LOC = 0x2840;
-uint256 internal constant SUMCHECK_UNIVARIATE_14_0_LOC = 0x2860;
-uint256 internal constant SUMCHECK_UNIVARIATE_14_1_LOC = 0x2880;
-uint256 internal constant SUMCHECK_UNIVARIATE_14_2_LOC = 0x28a0;
-uint256 internal constant SUMCHECK_UNIVARIATE_14_3_LOC = 0x28c0;
-uint256 internal constant SUMCHECK_UNIVARIATE_14_4_LOC = 0x28e0;
-uint256 internal constant SUMCHECK_UNIVARIATE_14_5_LOC = 0x2900;
-uint256 internal constant SUMCHECK_UNIVARIATE_14_6_LOC = 0x2920;
-uint256 internal constant SUMCHECK_UNIVARIATE_14_7_LOC = 0x2940;
-uint256 internal constant SUMCHECK_UNIVARIATE_15_0_LOC = 0x2960;
-uint256 internal constant SUMCHECK_UNIVARIATE_15_1_LOC = 0x2980;
-uint256 internal constant SUMCHECK_UNIVARIATE_15_2_LOC = 0x29a0;
-uint256 internal constant SUMCHECK_UNIVARIATE_15_3_LOC = 0x29c0;
-uint256 internal constant SUMCHECK_UNIVARIATE_15_4_LOC = 0x29e0;
-uint256 internal constant SUMCHECK_UNIVARIATE_15_5_LOC = 0x2a00;
-uint256 internal constant SUMCHECK_UNIVARIATE_15_6_LOC = 0x2a20;
-uint256 internal constant SUMCHECK_UNIVARIATE_15_7_LOC = 0x2a40;
-uint256 internal constant SUMCHECK_UNIVARIATE_16_0_LOC = 0x2a60;
-uint256 internal constant SUMCHECK_UNIVARIATE_16_1_LOC = 0x2a80;
-uint256 internal constant SUMCHECK_UNIVARIATE_16_2_LOC = 0x2aa0;
-uint256 internal constant SUMCHECK_UNIVARIATE_16_3_LOC = 0x2ac0;
-uint256 internal constant SUMCHECK_UNIVARIATE_16_4_LOC = 0x2ae0;
-uint256 internal constant SUMCHECK_UNIVARIATE_16_5_LOC = 0x2b00;
-uint256 internal constant SUMCHECK_UNIVARIATE_16_6_LOC = 0x2b20;
-uint256 internal constant SUMCHECK_UNIVARIATE_16_7_LOC = 0x2b40;
-uint256 internal constant SUMCHECK_UNIVARIATE_17_0_LOC = 0x2b60;
-uint256 internal constant SUMCHECK_UNIVARIATE_17_1_LOC = 0x2b80;
-uint256 internal constant SUMCHECK_UNIVARIATE_17_2_LOC = 0x2ba0;
-uint256 internal constant SUMCHECK_UNIVARIATE_17_3_LOC = 0x2bc0;
-uint256 internal constant SUMCHECK_UNIVARIATE_17_4_LOC = 0x2be0;
-uint256 internal constant SUMCHECK_UNIVARIATE_17_5_LOC = 0x2c00;
-uint256 internal constant SUMCHECK_UNIVARIATE_17_6_LOC = 0x2c20;
-uint256 internal constant SUMCHECK_UNIVARIATE_17_7_LOC = 0x2c40;
-uint256 internal constant SUMCHECK_UNIVARIATE_18_0_LOC = 0x2c60;
-uint256 internal constant SUMCHECK_UNIVARIATE_18_1_LOC = 0x2c80;
-uint256 internal constant SUMCHECK_UNIVARIATE_18_2_LOC = 0x2ca0;
-uint256 internal constant SUMCHECK_UNIVARIATE_18_3_LOC = 0x2cc0;
-uint256 internal constant SUMCHECK_UNIVARIATE_18_4_LOC = 0x2ce0;
-uint256 internal constant SUMCHECK_UNIVARIATE_18_5_LOC = 0x2d00;
-uint256 internal constant SUMCHECK_UNIVARIATE_18_6_LOC = 0x2d20;
-uint256 internal constant SUMCHECK_UNIVARIATE_18_7_LOC = 0x2d40;
-uint256 internal constant SUMCHECK_UNIVARIATE_19_0_LOC = 0x2d60;
-uint256 internal constant SUMCHECK_UNIVARIATE_19_1_LOC = 0x2d80;
-uint256 internal constant SUMCHECK_UNIVARIATE_19_2_LOC = 0x2da0;
-uint256 internal constant SUMCHECK_UNIVARIATE_19_3_LOC = 0x2dc0;
-uint256 internal constant SUMCHECK_UNIVARIATE_19_4_LOC = 0x2de0;
-uint256 internal constant SUMCHECK_UNIVARIATE_19_5_LOC = 0x2e00;
-uint256 internal constant SUMCHECK_UNIVARIATE_19_6_LOC = 0x2e20;
-uint256 internal constant SUMCHECK_UNIVARIATE_19_7_LOC = 0x2e40;
-uint256 internal constant SUMCHECK_UNIVARIATE_20_0_LOC = 0x2e60;
-uint256 internal constant SUMCHECK_UNIVARIATE_20_1_LOC = 0x2e80;
-uint256 internal constant SUMCHECK_UNIVARIATE_20_2_LOC = 0x2ea0;
-uint256 internal constant SUMCHECK_UNIVARIATE_20_3_LOC = 0x2ec0;
-uint256 internal constant SUMCHECK_UNIVARIATE_20_4_LOC = 0x2ee0;
-uint256 internal constant SUMCHECK_UNIVARIATE_20_5_LOC = 0x2f00;
-uint256 internal constant SUMCHECK_UNIVARIATE_20_6_LOC = 0x2f20;
-uint256 internal constant SUMCHECK_UNIVARIATE_20_7_LOC = 0x2f40;
-uint256 internal constant SUMCHECK_UNIVARIATE_21_0_LOC = 0x2f60;
-uint256 internal constant SUMCHECK_UNIVARIATE_21_1_LOC = 0x2f80;
-uint256 internal constant SUMCHECK_UNIVARIATE_21_2_LOC = 0x2fa0;
-uint256 internal constant SUMCHECK_UNIVARIATE_21_3_LOC = 0x2fc0;
-uint256 internal constant SUMCHECK_UNIVARIATE_21_4_LOC = 0x2fe0;
-uint256 internal constant SUMCHECK_UNIVARIATE_21_5_LOC = 0x3000;
-uint256 internal constant SUMCHECK_UNIVARIATE_21_6_LOC = 0x3020;
-uint256 internal constant SUMCHECK_UNIVARIATE_21_7_LOC = 0x3040;
+uint256 internal constant SUMCHECK_UNIVARIATE_0_0_LOC = 0x1a00;
+uint256 internal constant SUMCHECK_UNIVARIATE_0_1_LOC = 0x1a20;
+uint256 internal constant SUMCHECK_UNIVARIATE_0_2_LOC = 0x1a40;
+uint256 internal constant SUMCHECK_UNIVARIATE_0_3_LOC = 0x1a60;
+uint256 internal constant SUMCHECK_UNIVARIATE_0_4_LOC = 0x1a80;
+uint256 internal constant SUMCHECK_UNIVARIATE_0_5_LOC = 0x1aa0;
+uint256 internal constant SUMCHECK_UNIVARIATE_0_6_LOC = 0x1ac0;
+uint256 internal constant SUMCHECK_UNIVARIATE_0_7_LOC = 0x1ae0;
+uint256 internal constant SUMCHECK_UNIVARIATE_1_0_LOC = 0x1b00;
+uint256 internal constant SUMCHECK_UNIVARIATE_1_1_LOC = 0x1b20;
+uint256 internal constant SUMCHECK_UNIVARIATE_1_2_LOC = 0x1b40;
+uint256 internal constant SUMCHECK_UNIVARIATE_1_3_LOC = 0x1b60;
+uint256 internal constant SUMCHECK_UNIVARIATE_1_4_LOC = 0x1b80;
+uint256 internal constant SUMCHECK_UNIVARIATE_1_5_LOC = 0x1ba0;
+uint256 internal constant SUMCHECK_UNIVARIATE_1_6_LOC = 0x1bc0;
+uint256 internal constant SUMCHECK_UNIVARIATE_1_7_LOC = 0x1be0;
+uint256 internal constant SUMCHECK_UNIVARIATE_2_0_LOC = 0x1c00;
+uint256 internal constant SUMCHECK_UNIVARIATE_2_1_LOC = 0x1c20;
+uint256 internal constant SUMCHECK_UNIVARIATE_2_2_LOC = 0x1c40;
+uint256 internal constant SUMCHECK_UNIVARIATE_2_3_LOC = 0x1c60;
+uint256 internal constant SUMCHECK_UNIVARIATE_2_4_LOC = 0x1c80;
+uint256 internal constant SUMCHECK_UNIVARIATE_2_5_LOC = 0x1ca0;
+uint256 internal constant SUMCHECK_UNIVARIATE_2_6_LOC = 0x1cc0;
+uint256 internal constant SUMCHECK_UNIVARIATE_2_7_LOC = 0x1ce0;
+uint256 internal constant SUMCHECK_UNIVARIATE_3_0_LOC = 0x1d00;
+uint256 internal constant SUMCHECK_UNIVARIATE_3_1_LOC = 0x1d20;
+uint256 internal constant SUMCHECK_UNIVARIATE_3_2_LOC = 0x1d40;
+uint256 internal constant SUMCHECK_UNIVARIATE_3_3_LOC = 0x1d60;
+uint256 internal constant SUMCHECK_UNIVARIATE_3_4_LOC = 0x1d80;
+uint256 internal constant SUMCHECK_UNIVARIATE_3_5_LOC = 0x1da0;
+uint256 internal constant SUMCHECK_UNIVARIATE_3_6_LOC = 0x1dc0;
+uint256 internal constant SUMCHECK_UNIVARIATE_3_7_LOC = 0x1de0;
+uint256 internal constant SUMCHECK_UNIVARIATE_4_0_LOC = 0x1e00;
+uint256 internal constant SUMCHECK_UNIVARIATE_4_1_LOC = 0x1e20;
+uint256 internal constant SUMCHECK_UNIVARIATE_4_2_LOC = 0x1e40;
+uint256 internal constant SUMCHECK_UNIVARIATE_4_3_LOC = 0x1e60;
+uint256 internal constant SUMCHECK_UNIVARIATE_4_4_LOC = 0x1e80;
+uint256 internal constant SUMCHECK_UNIVARIATE_4_5_LOC = 0x1ea0;
+uint256 internal constant SUMCHECK_UNIVARIATE_4_6_LOC = 0x1ec0;
+uint256 internal constant SUMCHECK_UNIVARIATE_4_7_LOC = 0x1ee0;
+uint256 internal constant SUMCHECK_UNIVARIATE_5_0_LOC = 0x1f00;
+uint256 internal constant SUMCHECK_UNIVARIATE_5_1_LOC = 0x1f20;
+uint256 internal constant SUMCHECK_UNIVARIATE_5_2_LOC = 0x1f40;
+uint256 internal constant SUMCHECK_UNIVARIATE_5_3_LOC = 0x1f60;
+uint256 internal constant SUMCHECK_UNIVARIATE_5_4_LOC = 0x1f80;
+uint256 internal constant SUMCHECK_UNIVARIATE_5_5_LOC = 0x1fa0;
+uint256 internal constant SUMCHECK_UNIVARIATE_5_6_LOC = 0x1fc0;
+uint256 internal constant SUMCHECK_UNIVARIATE_5_7_LOC = 0x1fe0;
+uint256 internal constant SUMCHECK_UNIVARIATE_6_0_LOC = 0x2000;
+uint256 internal constant SUMCHECK_UNIVARIATE_6_1_LOC = 0x2020;
+uint256 internal constant SUMCHECK_UNIVARIATE_6_2_LOC = 0x2040;
+uint256 internal constant SUMCHECK_UNIVARIATE_6_3_LOC = 0x2060;
+uint256 internal constant SUMCHECK_UNIVARIATE_6_4_LOC = 0x2080;
+uint256 internal constant SUMCHECK_UNIVARIATE_6_5_LOC = 0x20a0;
+uint256 internal constant SUMCHECK_UNIVARIATE_6_6_LOC = 0x20c0;
+uint256 internal constant SUMCHECK_UNIVARIATE_6_7_LOC = 0x20e0;
+uint256 internal constant SUMCHECK_UNIVARIATE_7_0_LOC = 0x2100;
+uint256 internal constant SUMCHECK_UNIVARIATE_7_1_LOC = 0x2120;
+uint256 internal constant SUMCHECK_UNIVARIATE_7_2_LOC = 0x2140;
+uint256 internal constant SUMCHECK_UNIVARIATE_7_3_LOC = 0x2160;
+uint256 internal constant SUMCHECK_UNIVARIATE_7_4_LOC = 0x2180;
+uint256 internal constant SUMCHECK_UNIVARIATE_7_5_LOC = 0x21a0;
+uint256 internal constant SUMCHECK_UNIVARIATE_7_6_LOC = 0x21c0;
+uint256 internal constant SUMCHECK_UNIVARIATE_7_7_LOC = 0x21e0;
+uint256 internal constant SUMCHECK_UNIVARIATE_8_0_LOC = 0x2200;
+uint256 internal constant SUMCHECK_UNIVARIATE_8_1_LOC = 0x2220;
+uint256 internal constant SUMCHECK_UNIVARIATE_8_2_LOC = 0x2240;
+uint256 internal constant SUMCHECK_UNIVARIATE_8_3_LOC = 0x2260;
+uint256 internal constant SUMCHECK_UNIVARIATE_8_4_LOC = 0x2280;
+uint256 internal constant SUMCHECK_UNIVARIATE_8_5_LOC = 0x22a0;
+uint256 internal constant SUMCHECK_UNIVARIATE_8_6_LOC = 0x22c0;
+uint256 internal constant SUMCHECK_UNIVARIATE_8_7_LOC = 0x22e0;
+uint256 internal constant SUMCHECK_UNIVARIATE_9_0_LOC = 0x2300;
+uint256 internal constant SUMCHECK_UNIVARIATE_9_1_LOC = 0x2320;
+uint256 internal constant SUMCHECK_UNIVARIATE_9_2_LOC = 0x2340;
+uint256 internal constant SUMCHECK_UNIVARIATE_9_3_LOC = 0x2360;
+uint256 internal constant SUMCHECK_UNIVARIATE_9_4_LOC = 0x2380;
+uint256 internal constant SUMCHECK_UNIVARIATE_9_5_LOC = 0x23a0;
+uint256 internal constant SUMCHECK_UNIVARIATE_9_6_LOC = 0x23c0;
+uint256 internal constant SUMCHECK_UNIVARIATE_9_7_LOC = 0x23e0;
+uint256 internal constant SUMCHECK_UNIVARIATE_10_0_LOC = 0x2400;
+uint256 internal constant SUMCHECK_UNIVARIATE_10_1_LOC = 0x2420;
+uint256 internal constant SUMCHECK_UNIVARIATE_10_2_LOC = 0x2440;
+uint256 internal constant SUMCHECK_UNIVARIATE_10_3_LOC = 0x2460;
+uint256 internal constant SUMCHECK_UNIVARIATE_10_4_LOC = 0x2480;
+uint256 internal constant SUMCHECK_UNIVARIATE_10_5_LOC = 0x24a0;
+uint256 internal constant SUMCHECK_UNIVARIATE_10_6_LOC = 0x24c0;
+uint256 internal constant SUMCHECK_UNIVARIATE_10_7_LOC = 0x24e0;
+uint256 internal constant SUMCHECK_UNIVARIATE_11_0_LOC = 0x2500;
+uint256 internal constant SUMCHECK_UNIVARIATE_11_1_LOC = 0x2520;
+uint256 internal constant SUMCHECK_UNIVARIATE_11_2_LOC = 0x2540;
+uint256 internal constant SUMCHECK_UNIVARIATE_11_3_LOC = 0x2560;
+uint256 internal constant SUMCHECK_UNIVARIATE_11_4_LOC = 0x2580;
+uint256 internal constant SUMCHECK_UNIVARIATE_11_5_LOC = 0x25a0;
+uint256 internal constant SUMCHECK_UNIVARIATE_11_6_LOC = 0x25c0;
+uint256 internal constant SUMCHECK_UNIVARIATE_11_7_LOC = 0x25e0;
+uint256 internal constant SUMCHECK_UNIVARIATE_12_0_LOC = 0x2600;
+uint256 internal constant SUMCHECK_UNIVARIATE_12_1_LOC = 0x2620;
+uint256 internal constant SUMCHECK_UNIVARIATE_12_2_LOC = 0x2640;
+uint256 internal constant SUMCHECK_UNIVARIATE_12_3_LOC = 0x2660;
+uint256 internal constant SUMCHECK_UNIVARIATE_12_4_LOC = 0x2680;
+uint256 internal constant SUMCHECK_UNIVARIATE_12_5_LOC = 0x26a0;
+uint256 internal constant SUMCHECK_UNIVARIATE_12_6_LOC = 0x26c0;
+uint256 internal constant SUMCHECK_UNIVARIATE_12_7_LOC = 0x26e0;
+uint256 internal constant SUMCHECK_UNIVARIATE_13_0_LOC = 0x2700;
+uint256 internal constant SUMCHECK_UNIVARIATE_13_1_LOC = 0x2720;
+uint256 internal constant SUMCHECK_UNIVARIATE_13_2_LOC = 0x2740;
+uint256 internal constant SUMCHECK_UNIVARIATE_13_3_LOC = 0x2760;
+uint256 internal constant SUMCHECK_UNIVARIATE_13_4_LOC = 0x2780;
+uint256 internal constant SUMCHECK_UNIVARIATE_13_5_LOC = 0x27a0;
+uint256 internal constant SUMCHECK_UNIVARIATE_13_6_LOC = 0x27c0;
+uint256 internal constant SUMCHECK_UNIVARIATE_13_7_LOC = 0x27e0;
+uint256 internal constant SUMCHECK_UNIVARIATE_14_0_LOC = 0x2800;
+uint256 internal constant SUMCHECK_UNIVARIATE_14_1_LOC = 0x2820;
+uint256 internal constant SUMCHECK_UNIVARIATE_14_2_LOC = 0x2840;
+uint256 internal constant SUMCHECK_UNIVARIATE_14_3_LOC = 0x2860;
+uint256 internal constant SUMCHECK_UNIVARIATE_14_4_LOC = 0x2880;
+uint256 internal constant SUMCHECK_UNIVARIATE_14_5_LOC = 0x28a0;
+uint256 internal constant SUMCHECK_UNIVARIATE_14_6_LOC = 0x28c0;
+uint256 internal constant SUMCHECK_UNIVARIATE_14_7_LOC = 0x28e0;
+uint256 internal constant SUMCHECK_UNIVARIATE_15_0_LOC = 0x2900;
+uint256 internal constant SUMCHECK_UNIVARIATE_15_1_LOC = 0x2920;
+uint256 internal constant SUMCHECK_UNIVARIATE_15_2_LOC = 0x2940;
+uint256 internal constant SUMCHECK_UNIVARIATE_15_3_LOC = 0x2960;
+uint256 internal constant SUMCHECK_UNIVARIATE_15_4_LOC = 0x2980;
+uint256 internal constant SUMCHECK_UNIVARIATE_15_5_LOC = 0x29a0;
+uint256 internal constant SUMCHECK_UNIVARIATE_15_6_LOC = 0x29c0;
+uint256 internal constant SUMCHECK_UNIVARIATE_15_7_LOC = 0x29e0;
+uint256 internal constant SUMCHECK_UNIVARIATE_16_0_LOC = 0x2a00;
+uint256 internal constant SUMCHECK_UNIVARIATE_16_1_LOC = 0x2a20;
+uint256 internal constant SUMCHECK_UNIVARIATE_16_2_LOC = 0x2a40;
+uint256 internal constant SUMCHECK_UNIVARIATE_16_3_LOC = 0x2a60;
+uint256 internal constant SUMCHECK_UNIVARIATE_16_4_LOC = 0x2a80;
+uint256 internal constant SUMCHECK_UNIVARIATE_16_5_LOC = 0x2aa0;
+uint256 internal constant SUMCHECK_UNIVARIATE_16_6_LOC = 0x2ac0;
+uint256 internal constant SUMCHECK_UNIVARIATE_16_7_LOC = 0x2ae0;
+uint256 internal constant SUMCHECK_UNIVARIATE_17_0_LOC = 0x2b00;
+uint256 internal constant SUMCHECK_UNIVARIATE_17_1_LOC = 0x2b20;
+uint256 internal constant SUMCHECK_UNIVARIATE_17_2_LOC = 0x2b40;
+uint256 internal constant SUMCHECK_UNIVARIATE_17_3_LOC = 0x2b60;
+uint256 internal constant SUMCHECK_UNIVARIATE_17_4_LOC = 0x2b80;
+uint256 internal constant SUMCHECK_UNIVARIATE_17_5_LOC = 0x2ba0;
+uint256 internal constant SUMCHECK_UNIVARIATE_17_6_LOC = 0x2bc0;
+uint256 internal constant SUMCHECK_UNIVARIATE_17_7_LOC = 0x2be0;
+uint256 internal constant SUMCHECK_UNIVARIATE_18_0_LOC = 0x2c00;
+uint256 internal constant SUMCHECK_UNIVARIATE_18_1_LOC = 0x2c20;
+uint256 internal constant SUMCHECK_UNIVARIATE_18_2_LOC = 0x2c40;
+uint256 internal constant SUMCHECK_UNIVARIATE_18_3_LOC = 0x2c60;
+uint256 internal constant SUMCHECK_UNIVARIATE_18_4_LOC = 0x2c80;
+uint256 internal constant SUMCHECK_UNIVARIATE_18_5_LOC = 0x2ca0;
+uint256 internal constant SUMCHECK_UNIVARIATE_18_6_LOC = 0x2cc0;
+uint256 internal constant SUMCHECK_UNIVARIATE_18_7_LOC = 0x2ce0;
+uint256 internal constant SUMCHECK_UNIVARIATE_19_0_LOC = 0x2d00;
+uint256 internal constant SUMCHECK_UNIVARIATE_19_1_LOC = 0x2d20;
+uint256 internal constant SUMCHECK_UNIVARIATE_19_2_LOC = 0x2d40;
+uint256 internal constant SUMCHECK_UNIVARIATE_19_3_LOC = 0x2d60;
+uint256 internal constant SUMCHECK_UNIVARIATE_19_4_LOC = 0x2d80;
+uint256 internal constant SUMCHECK_UNIVARIATE_19_5_LOC = 0x2da0;
+uint256 internal constant SUMCHECK_UNIVARIATE_19_6_LOC = 0x2dc0;
+uint256 internal constant SUMCHECK_UNIVARIATE_19_7_LOC = 0x2de0;
+uint256 internal constant SUMCHECK_UNIVARIATE_20_0_LOC = 0x2e00;
+uint256 internal constant SUMCHECK_UNIVARIATE_20_1_LOC = 0x2e20;
+uint256 internal constant SUMCHECK_UNIVARIATE_20_2_LOC = 0x2e40;
+uint256 internal constant SUMCHECK_UNIVARIATE_20_3_LOC = 0x2e60;
+uint256 internal constant SUMCHECK_UNIVARIATE_20_4_LOC = 0x2e80;
+uint256 internal constant SUMCHECK_UNIVARIATE_20_5_LOC = 0x2ea0;
+uint256 internal constant SUMCHECK_UNIVARIATE_20_6_LOC = 0x2ec0;
+uint256 internal constant SUMCHECK_UNIVARIATE_20_7_LOC = 0x2ee0;
+uint256 internal constant SUMCHECK_UNIVARIATE_21_0_LOC = 0x2f00;
+uint256 internal constant SUMCHECK_UNIVARIATE_21_1_LOC = 0x2f20;
+uint256 internal constant SUMCHECK_UNIVARIATE_21_2_LOC = 0x2f40;
+uint256 internal constant SUMCHECK_UNIVARIATE_21_3_LOC = 0x2f60;
+uint256 internal constant SUMCHECK_UNIVARIATE_21_4_LOC = 0x2f80;
+uint256 internal constant SUMCHECK_UNIVARIATE_21_5_LOC = 0x2fa0;
+uint256 internal constant SUMCHECK_UNIVARIATE_21_6_LOC = 0x2fc0;
+uint256 internal constant SUMCHECK_UNIVARIATE_21_7_LOC = 0x2fe0;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                              PROOF INDICIES - SUMCHECK EVALUATIONS                               */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant QM_EVAL_LOC = 0x3060;
-uint256 internal constant QC_EVAL_LOC = 0x3080;
-uint256 internal constant QL_EVAL_LOC = 0x30a0;
-uint256 internal constant QR_EVAL_LOC = 0x30c0;
-uint256 internal constant QO_EVAL_LOC = 0x30e0;
-uint256 internal constant Q4_EVAL_LOC = 0x3100;
-uint256 internal constant QLOOKUP_EVAL_LOC = 0x3120;
-uint256 internal constant QARITH_EVAL_LOC = 0x3140;
-uint256 internal constant QRANGE_EVAL_LOC = 0x3160;
-uint256 internal constant QELLIPTIC_EVAL_LOC = 0x3180;
-uint256 internal constant QMEMORY_EVAL_LOC = 0x31a0;
-uint256 internal constant QNNF_EVAL_LOC = 0x31c0;
-uint256 internal constant QPOSEIDON2_EXTERNAL_EVAL_LOC = 0x31e0;
-uint256 internal constant QPOSEIDON2_INTERNAL_EVAL_LOC = 0x3200;
-uint256 internal constant SIGMA1_EVAL_LOC = 0x3220;
-uint256 internal constant SIGMA2_EVAL_LOC = 0x3240;
-uint256 internal constant SIGMA3_EVAL_LOC = 0x3260;
-uint256 internal constant SIGMA4_EVAL_LOC = 0x3280;
-uint256 internal constant ID1_EVAL_LOC = 0x32a0;
-uint256 internal constant ID2_EVAL_LOC = 0x32c0;
-uint256 internal constant ID3_EVAL_LOC = 0x32e0;
-uint256 internal constant ID4_EVAL_LOC = 0x3300;
-uint256 internal constant TABLE1_EVAL_LOC = 0x3320;
-uint256 internal constant TABLE2_EVAL_LOC = 0x3340;
-uint256 internal constant TABLE3_EVAL_LOC = 0x3360;
-uint256 internal constant TABLE4_EVAL_LOC = 0x3380;
-uint256 internal constant LAGRANGE_FIRST_EVAL_LOC = 0x33a0;
-uint256 internal constant LAGRANGE_LAST_EVAL_LOC = 0x33c0;
-uint256 internal constant W1_EVAL_LOC = 0x33e0;
-uint256 internal constant W2_EVAL_LOC = 0x3400;
-uint256 internal constant W3_EVAL_LOC = 0x3420;
-uint256 internal constant W4_EVAL_LOC = 0x3440;
-uint256 internal constant Z_PERM_EVAL_LOC = 0x3460;
-uint256 internal constant LOOKUP_INVERSES_EVAL_LOC = 0x3480;
-uint256 internal constant LOOKUP_READ_COUNTS_EVAL_LOC = 0x34a0;
-uint256 internal constant LOOKUP_READ_TAGS_EVAL_LOC = 0x34c0;
-uint256 internal constant W1_SHIFT_EVAL_LOC = 0x34e0;
-uint256 internal constant W2_SHIFT_EVAL_LOC = 0x3500;
-uint256 internal constant W3_SHIFT_EVAL_LOC = 0x3520;
-uint256 internal constant W4_SHIFT_EVAL_LOC = 0x3540;
-uint256 internal constant Z_PERM_SHIFT_EVAL_LOC = 0x3560;
+uint256 internal constant QM_EVAL_LOC = 0x3000;
+uint256 internal constant QC_EVAL_LOC = 0x3020;
+uint256 internal constant QL_EVAL_LOC = 0x3040;
+uint256 internal constant QR_EVAL_LOC = 0x3060;
+uint256 internal constant QO_EVAL_LOC = 0x3080;
+uint256 internal constant Q4_EVAL_LOC = 0x30a0;
+uint256 internal constant QLOOKUP_EVAL_LOC = 0x30c0;
+uint256 internal constant QARITH_EVAL_LOC = 0x30e0;
+uint256 internal constant QRANGE_EVAL_LOC = 0x3100;
+uint256 internal constant QELLIPTIC_EVAL_LOC = 0x3120;
+uint256 internal constant QMEMORY_EVAL_LOC = 0x3140;
+uint256 internal constant QNNF_EVAL_LOC = 0x3160;
+uint256 internal constant QPOSEIDON2_EXTERNAL_EVAL_LOC = 0x3180;
+uint256 internal constant QPOSEIDON2_INTERNAL_EVAL_LOC = 0x31a0;
+uint256 internal constant SIGMA1_EVAL_LOC = 0x31c0;
+uint256 internal constant SIGMA2_EVAL_LOC = 0x31e0;
+uint256 internal constant SIGMA3_EVAL_LOC = 0x3200;
+uint256 internal constant SIGMA4_EVAL_LOC = 0x3220;
+uint256 internal constant ID1_EVAL_LOC = 0x3240;
+uint256 internal constant ID2_EVAL_LOC = 0x3260;
+uint256 internal constant ID3_EVAL_LOC = 0x3280;
+uint256 internal constant ID4_EVAL_LOC = 0x32a0;
+uint256 internal constant TABLE1_EVAL_LOC = 0x32c0;
+uint256 internal constant TABLE2_EVAL_LOC = 0x32e0;
+uint256 internal constant TABLE3_EVAL_LOC = 0x3300;
+uint256 internal constant TABLE4_EVAL_LOC = 0x3320;
+uint256 internal constant LAGRANGE_FIRST_EVAL_LOC = 0x3340;
+uint256 internal constant LAGRANGE_LAST_EVAL_LOC = 0x3360;
+uint256 internal constant W1_EVAL_LOC = 0x3380;
+uint256 internal constant W2_EVAL_LOC = 0x33a0;
+uint256 internal constant W3_EVAL_LOC = 0x33c0;
+uint256 internal constant W4_EVAL_LOC = 0x33e0;
+uint256 internal constant Z_PERM_EVAL_LOC = 0x3400;
+uint256 internal constant LOOKUP_INVERSES_EVAL_LOC = 0x3420;
+uint256 internal constant LOOKUP_READ_COUNTS_EVAL_LOC = 0x3440;
+uint256 internal constant LOOKUP_READ_TAGS_EVAL_LOC = 0x3460;
+uint256 internal constant W1_SHIFT_EVAL_LOC = 0x3480;
+uint256 internal constant W2_SHIFT_EVAL_LOC = 0x34a0;
+uint256 internal constant W3_SHIFT_EVAL_LOC = 0x34c0;
+uint256 internal constant W4_SHIFT_EVAL_LOC = 0x34e0;
+uint256 internal constant Z_PERM_SHIFT_EVAL_LOC = 0x3500;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                              PROOF INDICIES - GEMINI FOLDING COMMS                               */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_0_X_LOC = 0x3580;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_0_Y_LOC = 0x35a0;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_1_X_LOC = 0x35c0;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_1_Y_LOC = 0x35e0;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_2_X_LOC = 0x3600;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_2_Y_LOC = 0x3620;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_3_X_LOC = 0x3640;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_3_Y_LOC = 0x3660;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_4_X_LOC = 0x3680;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_4_Y_LOC = 0x36a0;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_5_X_LOC = 0x36c0;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_5_Y_LOC = 0x36e0;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_6_X_LOC = 0x3700;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_6_Y_LOC = 0x3720;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_7_X_LOC = 0x3740;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_7_Y_LOC = 0x3760;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_8_X_LOC = 0x3780;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_8_Y_LOC = 0x37a0;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_9_X_LOC = 0x37c0;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_9_Y_LOC = 0x37e0;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_10_X_LOC = 0x3800;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_10_Y_LOC = 0x3820;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_11_X_LOC = 0x3840;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_11_Y_LOC = 0x3860;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_12_X_LOC = 0x3880;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_12_Y_LOC = 0x38a0;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_13_X_LOC = 0x38c0;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_13_Y_LOC = 0x38e0;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_14_X_LOC = 0x3900;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_14_Y_LOC = 0x3920;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_15_X_LOC = 0x3940;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_15_Y_LOC = 0x3960;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_16_X_LOC = 0x3980;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_16_Y_LOC = 0x39a0;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_17_X_LOC = 0x39c0;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_17_Y_LOC = 0x39e0;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_18_X_LOC = 0x3a00;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_18_Y_LOC = 0x3a20;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_19_X_LOC = 0x3a40;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_19_Y_LOC = 0x3a60;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_20_X_LOC = 0x3a80;
-uint256 internal constant GEMINI_FOLD_UNIVARIATE_20_Y_LOC = 0x3aa0;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_0_X_LOC = 0x3520;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_0_Y_LOC = 0x3540;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_1_X_LOC = 0x3560;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_1_Y_LOC = 0x3580;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_2_X_LOC = 0x35a0;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_2_Y_LOC = 0x35c0;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_3_X_LOC = 0x35e0;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_3_Y_LOC = 0x3600;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_4_X_LOC = 0x3620;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_4_Y_LOC = 0x3640;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_5_X_LOC = 0x3660;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_5_Y_LOC = 0x3680;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_6_X_LOC = 0x36a0;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_6_Y_LOC = 0x36c0;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_7_X_LOC = 0x36e0;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_7_Y_LOC = 0x3700;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_8_X_LOC = 0x3720;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_8_Y_LOC = 0x3740;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_9_X_LOC = 0x3760;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_9_Y_LOC = 0x3780;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_10_X_LOC = 0x37a0;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_10_Y_LOC = 0x37c0;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_11_X_LOC = 0x37e0;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_11_Y_LOC = 0x3800;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_12_X_LOC = 0x3820;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_12_Y_LOC = 0x3840;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_13_X_LOC = 0x3860;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_13_Y_LOC = 0x3880;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_14_X_LOC = 0x38a0;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_14_Y_LOC = 0x38c0;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_15_X_LOC = 0x38e0;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_15_Y_LOC = 0x3900;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_16_X_LOC = 0x3920;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_16_Y_LOC = 0x3940;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_17_X_LOC = 0x3960;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_17_Y_LOC = 0x3980;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_18_X_LOC = 0x39a0;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_18_Y_LOC = 0x39c0;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_19_X_LOC = 0x39e0;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_19_Y_LOC = 0x3a00;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_20_X_LOC = 0x3a20;
+uint256 internal constant GEMINI_FOLD_UNIVARIATE_20_Y_LOC = 0x3a40;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                           PROOF INDICIES - GEMINI FOLDING EVALUATIONS                            */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant GEMINI_A_EVAL_0 = 0x3ac0;
-uint256 internal constant GEMINI_A_EVAL_1 = 0x3ae0;
-uint256 internal constant GEMINI_A_EVAL_2 = 0x3b00;
-uint256 internal constant GEMINI_A_EVAL_3 = 0x3b20;
-uint256 internal constant GEMINI_A_EVAL_4 = 0x3b40;
-uint256 internal constant GEMINI_A_EVAL_5 = 0x3b60;
-uint256 internal constant GEMINI_A_EVAL_6 = 0x3b80;
-uint256 internal constant GEMINI_A_EVAL_7 = 0x3ba0;
-uint256 internal constant GEMINI_A_EVAL_8 = 0x3bc0;
-uint256 internal constant GEMINI_A_EVAL_9 = 0x3be0;
-uint256 internal constant GEMINI_A_EVAL_10 = 0x3c00;
-uint256 internal constant GEMINI_A_EVAL_11 = 0x3c20;
-uint256 internal constant GEMINI_A_EVAL_12 = 0x3c40;
-uint256 internal constant GEMINI_A_EVAL_13 = 0x3c60;
-uint256 internal constant GEMINI_A_EVAL_14 = 0x3c80;
-uint256 internal constant GEMINI_A_EVAL_15 = 0x3ca0;
-uint256 internal constant GEMINI_A_EVAL_16 = 0x3cc0;
-uint256 internal constant GEMINI_A_EVAL_17 = 0x3ce0;
-uint256 internal constant GEMINI_A_EVAL_18 = 0x3d00;
-uint256 internal constant GEMINI_A_EVAL_19 = 0x3d20;
-uint256 internal constant GEMINI_A_EVAL_20 = 0x3d40;
-uint256 internal constant GEMINI_A_EVAL_21 = 0x3d60;
-uint256 internal constant SHPLONK_Q_X_LOC = 0x3d80;
-uint256 internal constant SHPLONK_Q_Y_LOC = 0x3da0;
-uint256 internal constant KZG_QUOTIENT_X_LOC = 0x3dc0;
-uint256 internal constant KZG_QUOTIENT_Y_LOC = 0x3de0;
+uint256 internal constant GEMINI_A_EVAL_0 = 0x3a60;
+uint256 internal constant GEMINI_A_EVAL_1 = 0x3a80;
+uint256 internal constant GEMINI_A_EVAL_2 = 0x3aa0;
+uint256 internal constant GEMINI_A_EVAL_3 = 0x3ac0;
+uint256 internal constant GEMINI_A_EVAL_4 = 0x3ae0;
+uint256 internal constant GEMINI_A_EVAL_5 = 0x3b00;
+uint256 internal constant GEMINI_A_EVAL_6 = 0x3b20;
+uint256 internal constant GEMINI_A_EVAL_7 = 0x3b40;
+uint256 internal constant GEMINI_A_EVAL_8 = 0x3b60;
+uint256 internal constant GEMINI_A_EVAL_9 = 0x3b80;
+uint256 internal constant GEMINI_A_EVAL_10 = 0x3ba0;
+uint256 internal constant GEMINI_A_EVAL_11 = 0x3bc0;
+uint256 internal constant GEMINI_A_EVAL_12 = 0x3be0;
+uint256 internal constant GEMINI_A_EVAL_13 = 0x3c00;
+uint256 internal constant GEMINI_A_EVAL_14 = 0x3c20;
+uint256 internal constant GEMINI_A_EVAL_15 = 0x3c40;
+uint256 internal constant GEMINI_A_EVAL_16 = 0x3c60;
+uint256 internal constant GEMINI_A_EVAL_17 = 0x3c80;
+uint256 internal constant GEMINI_A_EVAL_18 = 0x3ca0;
+uint256 internal constant GEMINI_A_EVAL_19 = 0x3cc0;
+uint256 internal constant GEMINI_A_EVAL_20 = 0x3ce0;
+uint256 internal constant GEMINI_A_EVAL_21 = 0x3d00;
+uint256 internal constant SHPLONK_Q_X_LOC = 0x3d20;
+uint256 internal constant SHPLONK_Q_Y_LOC = 0x3d40;
+uint256 internal constant KZG_QUOTIENT_X_LOC = 0x3d60;
+uint256 internal constant KZG_QUOTIENT_Y_LOC = 0x3d80;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                                    PROOF INDICIES - COMPLETE                                     */
@@ -439,88 +466,88 @@ uint256 internal constant KZG_QUOTIENT_Y_LOC = 0x3de0;
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                                            CHALLENGES                                            */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant ETA_CHALLENGE = 0x3e00;
-uint256 internal constant ETA_TWO_CHALLENGE = 0x3e20;
-uint256 internal constant ETA_THREE_CHALLENGE = 0x3e40;
-uint256 internal constant BETA_CHALLENGE = 0x3e60;
-uint256 internal constant GAMMA_CHALLENGE = 0x3e80;
-uint256 internal constant RHO_CHALLENGE = 0x3ea0;
-uint256 internal constant GEMINI_R_CHALLENGE = 0x3ec0;
-uint256 internal constant SHPLONK_NU_CHALLENGE = 0x3ee0;
-uint256 internal constant SHPLONK_Z_CHALLENGE = 0x3f00;
-uint256 internal constant PUBLIC_INPUTS_DELTA_NUMERATOR_CHALLENGE = 0x3f20;
-uint256 internal constant PUBLIC_INPUTS_DELTA_DENOMINATOR_CHALLENGE = 0x3f40;
-uint256 internal constant ALPHA_CHALLENGE_0 = 0x3f60;
-uint256 internal constant ALPHA_CHALLENGE_1 = 0x3f80;
-uint256 internal constant ALPHA_CHALLENGE_2 = 0x3fa0;
-uint256 internal constant ALPHA_CHALLENGE_3 = 0x3fc0;
-uint256 internal constant ALPHA_CHALLENGE_4 = 0x3fe0;
-uint256 internal constant ALPHA_CHALLENGE_5 = 0x4000;
-uint256 internal constant ALPHA_CHALLENGE_6 = 0x4020;
-uint256 internal constant ALPHA_CHALLENGE_7 = 0x4040;
-uint256 internal constant ALPHA_CHALLENGE_8 = 0x4060;
-uint256 internal constant ALPHA_CHALLENGE_9 = 0x4080;
-uint256 internal constant ALPHA_CHALLENGE_10 = 0x40a0;
-uint256 internal constant ALPHA_CHALLENGE_11 = 0x40c0;
-uint256 internal constant ALPHA_CHALLENGE_12 = 0x40e0;
-uint256 internal constant ALPHA_CHALLENGE_13 = 0x4100;
-uint256 internal constant ALPHA_CHALLENGE_14 = 0x4120;
-uint256 internal constant ALPHA_CHALLENGE_15 = 0x4140;
-uint256 internal constant ALPHA_CHALLENGE_16 = 0x4160;
-uint256 internal constant ALPHA_CHALLENGE_17 = 0x4180;
-uint256 internal constant ALPHA_CHALLENGE_18 = 0x41a0;
-uint256 internal constant ALPHA_CHALLENGE_19 = 0x41c0;
-uint256 internal constant ALPHA_CHALLENGE_20 = 0x41e0;
-uint256 internal constant ALPHA_CHALLENGE_21 = 0x4200;
-uint256 internal constant ALPHA_CHALLENGE_22 = 0x4220;
-uint256 internal constant ALPHA_CHALLENGE_23 = 0x4240;
-uint256 internal constant ALPHA_CHALLENGE_24 = 0x4260;
-uint256 internal constant ALPHA_CHALLENGE_25 = 0x4280;
-uint256 internal constant ALPHA_CHALLENGE_26 = 0x42a0;
-uint256 internal constant GATE_CHALLENGE_0 = 0x42c0;
-uint256 internal constant GATE_CHALLENGE_1 = 0x42e0;
-uint256 internal constant GATE_CHALLENGE_2 = 0x4300;
-uint256 internal constant GATE_CHALLENGE_3 = 0x4320;
-uint256 internal constant GATE_CHALLENGE_4 = 0x4340;
-uint256 internal constant GATE_CHALLENGE_5 = 0x4360;
-uint256 internal constant GATE_CHALLENGE_6 = 0x4380;
-uint256 internal constant GATE_CHALLENGE_7 = 0x43a0;
-uint256 internal constant GATE_CHALLENGE_8 = 0x43c0;
-uint256 internal constant GATE_CHALLENGE_9 = 0x43e0;
-uint256 internal constant GATE_CHALLENGE_10 = 0x4400;
-uint256 internal constant GATE_CHALLENGE_11 = 0x4420;
-uint256 internal constant GATE_CHALLENGE_12 = 0x4440;
-uint256 internal constant GATE_CHALLENGE_13 = 0x4460;
-uint256 internal constant GATE_CHALLENGE_14 = 0x4480;
-uint256 internal constant GATE_CHALLENGE_15 = 0x44a0;
-uint256 internal constant GATE_CHALLENGE_16 = 0x44c0;
-uint256 internal constant GATE_CHALLENGE_17 = 0x44e0;
-uint256 internal constant GATE_CHALLENGE_18 = 0x4500;
-uint256 internal constant GATE_CHALLENGE_19 = 0x4520;
-uint256 internal constant GATE_CHALLENGE_20 = 0x4540;
-uint256 internal constant GATE_CHALLENGE_21 = 0x4560;
-uint256 internal constant SUM_U_CHALLENGE_0 = 0x4580;
-uint256 internal constant SUM_U_CHALLENGE_1 = 0x45a0;
-uint256 internal constant SUM_U_CHALLENGE_2 = 0x45c0;
-uint256 internal constant SUM_U_CHALLENGE_3 = 0x45e0;
-uint256 internal constant SUM_U_CHALLENGE_4 = 0x4600;
-uint256 internal constant SUM_U_CHALLENGE_5 = 0x4620;
-uint256 internal constant SUM_U_CHALLENGE_6 = 0x4640;
-uint256 internal constant SUM_U_CHALLENGE_7 = 0x4660;
-uint256 internal constant SUM_U_CHALLENGE_8 = 0x4680;
-uint256 internal constant SUM_U_CHALLENGE_9 = 0x46a0;
-uint256 internal constant SUM_U_CHALLENGE_10 = 0x46c0;
-uint256 internal constant SUM_U_CHALLENGE_11 = 0x46e0;
-uint256 internal constant SUM_U_CHALLENGE_12 = 0x4700;
-uint256 internal constant SUM_U_CHALLENGE_13 = 0x4720;
-uint256 internal constant SUM_U_CHALLENGE_14 = 0x4740;
-uint256 internal constant SUM_U_CHALLENGE_15 = 0x4760;
-uint256 internal constant SUM_U_CHALLENGE_16 = 0x4780;
-uint256 internal constant SUM_U_CHALLENGE_17 = 0x47a0;
-uint256 internal constant SUM_U_CHALLENGE_18 = 0x47c0;
-uint256 internal constant SUM_U_CHALLENGE_19 = 0x47e0;
-uint256 internal constant SUM_U_CHALLENGE_20 = 0x4800;
-uint256 internal constant SUM_U_CHALLENGE_21 = 0x4820;
+uint256 internal constant ETA_CHALLENGE = 0x3da0;
+uint256 internal constant ETA_TWO_CHALLENGE = 0x3dc0;
+uint256 internal constant ETA_THREE_CHALLENGE = 0x3de0;
+uint256 internal constant BETA_CHALLENGE = 0x3e00;
+uint256 internal constant GAMMA_CHALLENGE = 0x3e20;
+uint256 internal constant RHO_CHALLENGE = 0x3e40;
+uint256 internal constant GEMINI_R_CHALLENGE = 0x3e60;
+uint256 internal constant SHPLONK_NU_CHALLENGE = 0x3e80;
+uint256 internal constant SHPLONK_Z_CHALLENGE = 0x3ea0;
+uint256 internal constant PUBLIC_INPUTS_DELTA_NUMERATOR_CHALLENGE = 0x3ec0;
+uint256 internal constant PUBLIC_INPUTS_DELTA_DENOMINATOR_CHALLENGE = 0x3ee0;
+uint256 internal constant ALPHA_CHALLENGE_0 = 0x3f00;
+uint256 internal constant ALPHA_CHALLENGE_1 = 0x3f20;
+uint256 internal constant ALPHA_CHALLENGE_2 = 0x3f40;
+uint256 internal constant ALPHA_CHALLENGE_3 = 0x3f60;
+uint256 internal constant ALPHA_CHALLENGE_4 = 0x3f80;
+uint256 internal constant ALPHA_CHALLENGE_5 = 0x3fa0;
+uint256 internal constant ALPHA_CHALLENGE_6 = 0x3fc0;
+uint256 internal constant ALPHA_CHALLENGE_7 = 0x3fe0;
+uint256 internal constant ALPHA_CHALLENGE_8 = 0x4000;
+uint256 internal constant ALPHA_CHALLENGE_9 = 0x4020;
+uint256 internal constant ALPHA_CHALLENGE_10 = 0x4040;
+uint256 internal constant ALPHA_CHALLENGE_11 = 0x4060;
+uint256 internal constant ALPHA_CHALLENGE_12 = 0x4080;
+uint256 internal constant ALPHA_CHALLENGE_13 = 0x40a0;
+uint256 internal constant ALPHA_CHALLENGE_14 = 0x40c0;
+uint256 internal constant ALPHA_CHALLENGE_15 = 0x40e0;
+uint256 internal constant ALPHA_CHALLENGE_16 = 0x4100;
+uint256 internal constant ALPHA_CHALLENGE_17 = 0x4120;
+uint256 internal constant ALPHA_CHALLENGE_18 = 0x4140;
+uint256 internal constant ALPHA_CHALLENGE_19 = 0x4160;
+uint256 internal constant ALPHA_CHALLENGE_20 = 0x4180;
+uint256 internal constant ALPHA_CHALLENGE_21 = 0x41a0;
+uint256 internal constant ALPHA_CHALLENGE_22 = 0x41c0;
+uint256 internal constant ALPHA_CHALLENGE_23 = 0x41e0;
+uint256 internal constant ALPHA_CHALLENGE_24 = 0x4200;
+uint256 internal constant ALPHA_CHALLENGE_25 = 0x4220;
+uint256 internal constant ALPHA_CHALLENGE_26 = 0x4240;
+uint256 internal constant GATE_CHALLENGE_0 = 0x4260;
+uint256 internal constant GATE_CHALLENGE_1 = 0x4280;
+uint256 internal constant GATE_CHALLENGE_2 = 0x42a0;
+uint256 internal constant GATE_CHALLENGE_3 = 0x42c0;
+uint256 internal constant GATE_CHALLENGE_4 = 0x42e0;
+uint256 internal constant GATE_CHALLENGE_5 = 0x4300;
+uint256 internal constant GATE_CHALLENGE_6 = 0x4320;
+uint256 internal constant GATE_CHALLENGE_7 = 0x4340;
+uint256 internal constant GATE_CHALLENGE_8 = 0x4360;
+uint256 internal constant GATE_CHALLENGE_9 = 0x4380;
+uint256 internal constant GATE_CHALLENGE_10 = 0x43a0;
+uint256 internal constant GATE_CHALLENGE_11 = 0x43c0;
+uint256 internal constant GATE_CHALLENGE_12 = 0x43e0;
+uint256 internal constant GATE_CHALLENGE_13 = 0x4400;
+uint256 internal constant GATE_CHALLENGE_14 = 0x4420;
+uint256 internal constant GATE_CHALLENGE_15 = 0x4440;
+uint256 internal constant GATE_CHALLENGE_16 = 0x4460;
+uint256 internal constant GATE_CHALLENGE_17 = 0x4480;
+uint256 internal constant GATE_CHALLENGE_18 = 0x44a0;
+uint256 internal constant GATE_CHALLENGE_19 = 0x44c0;
+uint256 internal constant GATE_CHALLENGE_20 = 0x44e0;
+uint256 internal constant GATE_CHALLENGE_21 = 0x4500;
+uint256 internal constant SUM_U_CHALLENGE_0 = 0x4520;
+uint256 internal constant SUM_U_CHALLENGE_1 = 0x4540;
+uint256 internal constant SUM_U_CHALLENGE_2 = 0x4560;
+uint256 internal constant SUM_U_CHALLENGE_3 = 0x4580;
+uint256 internal constant SUM_U_CHALLENGE_4 = 0x45a0;
+uint256 internal constant SUM_U_CHALLENGE_5 = 0x45c0;
+uint256 internal constant SUM_U_CHALLENGE_6 = 0x45e0;
+uint256 internal constant SUM_U_CHALLENGE_7 = 0x4600;
+uint256 internal constant SUM_U_CHALLENGE_8 = 0x4620;
+uint256 internal constant SUM_U_CHALLENGE_9 = 0x4640;
+uint256 internal constant SUM_U_CHALLENGE_10 = 0x4660;
+uint256 internal constant SUM_U_CHALLENGE_11 = 0x4680;
+uint256 internal constant SUM_U_CHALLENGE_12 = 0x46a0;
+uint256 internal constant SUM_U_CHALLENGE_13 = 0x46c0;
+uint256 internal constant SUM_U_CHALLENGE_14 = 0x46e0;
+uint256 internal constant SUM_U_CHALLENGE_15 = 0x4700;
+uint256 internal constant SUM_U_CHALLENGE_16 = 0x4720;
+uint256 internal constant SUM_U_CHALLENGE_17 = 0x4740;
+uint256 internal constant SUM_U_CHALLENGE_18 = 0x4760;
+uint256 internal constant SUM_U_CHALLENGE_19 = 0x4780;
+uint256 internal constant SUM_U_CHALLENGE_20 = 0x47a0;
+uint256 internal constant SUM_U_CHALLENGE_21 = 0x47c0;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                                      CHALLENGES - COMPLETE                                       */
@@ -533,190 +560,190 @@ uint256 internal constant SUM_U_CHALLENGE_21 = 0x4820;
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                             SUMCHECK - RUNTIME MEMORY - BARYCENTRIC                              */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_0_LOC = 0x100;
-uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_1_LOC = 0x120;
-uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_2_LOC = 0x140;
-uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_3_LOC = 0x160;
-uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_4_LOC = 0x180;
-uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_5_LOC = 0x1a0;
-uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_6_LOC = 0x1c0;
-uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_7_LOC = 0x1e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_0_LOC = 0x200;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_1_LOC = 0x220;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_2_LOC = 0x240;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_3_LOC = 0x260;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_4_LOC = 0x280;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_5_LOC = 0x2a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_6_LOC = 0x2c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_7_LOC = 0x2e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_0_LOC = 0x300;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_1_LOC = 0x320;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_2_LOC = 0x340;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_3_LOC = 0x360;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_4_LOC = 0x380;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_5_LOC = 0x3a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_6_LOC = 0x3c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_7_LOC = 0x3e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_0_LOC = 0x400;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_1_LOC = 0x420;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_2_LOC = 0x440;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_3_LOC = 0x460;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_4_LOC = 0x480;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_5_LOC = 0x4a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_6_LOC = 0x4c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_7_LOC = 0x4e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_0_LOC = 0x500;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_1_LOC = 0x520;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_2_LOC = 0x540;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_3_LOC = 0x560;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_4_LOC = 0x580;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_5_LOC = 0x5a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_6_LOC = 0x5c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_7_LOC = 0x5e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_0_LOC = 0x600;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_1_LOC = 0x620;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_2_LOC = 0x640;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_3_LOC = 0x660;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_4_LOC = 0x680;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_5_LOC = 0x6a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_6_LOC = 0x6c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_7_LOC = 0x6e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_0_LOC = 0x700;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_1_LOC = 0x720;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_2_LOC = 0x740;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_3_LOC = 0x760;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_4_LOC = 0x780;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_5_LOC = 0x7a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_6_LOC = 0x7c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_7_LOC = 0x7e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_0_LOC = 0x800;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_1_LOC = 0x820;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_2_LOC = 0x840;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_3_LOC = 0x860;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_4_LOC = 0x880;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_5_LOC = 0x8a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_6_LOC = 0x8c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_7_LOC = 0x8e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_0_LOC = 0x900;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_1_LOC = 0x920;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_2_LOC = 0x940;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_3_LOC = 0x960;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_4_LOC = 0x980;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_5_LOC = 0x9a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_6_LOC = 0x9c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_7_LOC = 0x9e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_0_LOC = 0xa00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_1_LOC = 0xa20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_2_LOC = 0xa40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_3_LOC = 0xa60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_4_LOC = 0xa80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_5_LOC = 0xaa0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_6_LOC = 0xac0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_7_LOC = 0xae0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_0_LOC = 0xb00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_1_LOC = 0xb20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_2_LOC = 0xb40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_3_LOC = 0xb60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_4_LOC = 0xb80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_5_LOC = 0xba0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_6_LOC = 0xbc0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_7_LOC = 0xbe0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_0_LOC = 0xc00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_1_LOC = 0xc20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_2_LOC = 0xc40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_3_LOC = 0xc60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_4_LOC = 0xc80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_5_LOC = 0xca0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_6_LOC = 0xcc0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_7_LOC = 0xce0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_0_LOC = 0xd00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_1_LOC = 0xd20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_2_LOC = 0xd40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_3_LOC = 0xd60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_4_LOC = 0xd80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_5_LOC = 0xda0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_6_LOC = 0xdc0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_7_LOC = 0xde0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_0_LOC = 0xe00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_1_LOC = 0xe20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_2_LOC = 0xe40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_3_LOC = 0xe60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_4_LOC = 0xe80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_5_LOC = 0xea0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_6_LOC = 0xec0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_7_LOC = 0xee0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_0_LOC = 0xf00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_1_LOC = 0xf20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_2_LOC = 0xf40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_3_LOC = 0xf60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_4_LOC = 0xf80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_5_LOC = 0xfa0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_6_LOC = 0xfc0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_7_LOC = 0xfe0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_0_LOC = 0x1000;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_1_LOC = 0x1020;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_2_LOC = 0x1040;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_3_LOC = 0x1060;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_4_LOC = 0x1080;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_5_LOC = 0x10a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_6_LOC = 0x10c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_7_LOC = 0x10e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_0_LOC = 0x1100;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_1_LOC = 0x1120;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_2_LOC = 0x1140;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_3_LOC = 0x1160;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_4_LOC = 0x1180;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_5_LOC = 0x11a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_6_LOC = 0x11c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_7_LOC = 0x11e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_0_LOC = 0x1200;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_1_LOC = 0x1220;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_2_LOC = 0x1240;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_3_LOC = 0x1260;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_4_LOC = 0x1280;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_5_LOC = 0x12a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_6_LOC = 0x12c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_7_LOC = 0x12e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_0_LOC = 0x1300;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_1_LOC = 0x1320;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_2_LOC = 0x1340;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_3_LOC = 0x1360;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_4_LOC = 0x1380;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_5_LOC = 0x13a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_6_LOC = 0x13c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_7_LOC = 0x13e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_0_LOC = 0x1400;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_1_LOC = 0x1420;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_2_LOC = 0x1440;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_3_LOC = 0x1460;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_4_LOC = 0x1480;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_5_LOC = 0x14a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_6_LOC = 0x14c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_7_LOC = 0x14e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_0_LOC = 0x1500;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_1_LOC = 0x1520;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_2_LOC = 0x1540;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_3_LOC = 0x1560;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_4_LOC = 0x1580;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_5_LOC = 0x15a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_6_LOC = 0x15c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_7_LOC = 0x15e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_0_LOC = 0x1600;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_1_LOC = 0x1620;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_2_LOC = 0x1640;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_3_LOC = 0x1660;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_4_LOC = 0x1680;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_5_LOC = 0x16a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_6_LOC = 0x16c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_7_LOC = 0x16e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_0_LOC = 0x1700;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_1_LOC = 0x1720;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_2_LOC = 0x1740;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_3_LOC = 0x1760;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_4_LOC = 0x1780;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_5_LOC = 0x17a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_6_LOC = 0x17c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_7_LOC = 0x17e0;
+uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_0_LOC = 0x47e0;
+uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_1_LOC = 0x4800;
+uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_2_LOC = 0x4820;
+uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_3_LOC = 0x4840;
+uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_4_LOC = 0x4860;
+uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_5_LOC = 0x4880;
+uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_6_LOC = 0x48a0;
+uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_7_LOC = 0x48c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_0_LOC = 0x48e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_1_LOC = 0x4900;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_2_LOC = 0x4920;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_3_LOC = 0x4940;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_4_LOC = 0x4960;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_5_LOC = 0x4980;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_6_LOC = 0x49a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_7_LOC = 0x49c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_0_LOC = 0x49e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_1_LOC = 0x4a00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_2_LOC = 0x4a20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_3_LOC = 0x4a40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_4_LOC = 0x4a60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_5_LOC = 0x4a80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_6_LOC = 0x4aa0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_7_LOC = 0x4ac0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_0_LOC = 0x4ae0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_1_LOC = 0x4b00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_2_LOC = 0x4b20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_3_LOC = 0x4b40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_4_LOC = 0x4b60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_5_LOC = 0x4b80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_6_LOC = 0x4ba0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_7_LOC = 0x4bc0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_0_LOC = 0x4be0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_1_LOC = 0x4c00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_2_LOC = 0x4c20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_3_LOC = 0x4c40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_4_LOC = 0x4c60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_5_LOC = 0x4c80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_6_LOC = 0x4ca0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_7_LOC = 0x4cc0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_0_LOC = 0x4ce0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_1_LOC = 0x4d00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_2_LOC = 0x4d20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_3_LOC = 0x4d40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_4_LOC = 0x4d60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_5_LOC = 0x4d80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_6_LOC = 0x4da0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_7_LOC = 0x4dc0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_0_LOC = 0x4de0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_1_LOC = 0x4e00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_2_LOC = 0x4e20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_3_LOC = 0x4e40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_4_LOC = 0x4e60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_5_LOC = 0x4e80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_6_LOC = 0x4ea0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_7_LOC = 0x4ec0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_0_LOC = 0x4ee0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_1_LOC = 0x4f00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_2_LOC = 0x4f20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_3_LOC = 0x4f40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_4_LOC = 0x4f60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_5_LOC = 0x4f80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_6_LOC = 0x4fa0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_7_LOC = 0x4fc0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_0_LOC = 0x4fe0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_1_LOC = 0x5000;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_2_LOC = 0x5020;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_3_LOC = 0x5040;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_4_LOC = 0x5060;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_5_LOC = 0x5080;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_6_LOC = 0x50a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_7_LOC = 0x50c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_0_LOC = 0x50e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_1_LOC = 0x5100;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_2_LOC = 0x5120;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_3_LOC = 0x5140;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_4_LOC = 0x5160;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_5_LOC = 0x5180;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_6_LOC = 0x51a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_7_LOC = 0x51c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_0_LOC = 0x51e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_1_LOC = 0x5200;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_2_LOC = 0x5220;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_3_LOC = 0x5240;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_4_LOC = 0x5260;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_5_LOC = 0x5280;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_6_LOC = 0x52a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_7_LOC = 0x52c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_0_LOC = 0x52e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_1_LOC = 0x5300;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_2_LOC = 0x5320;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_3_LOC = 0x5340;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_4_LOC = 0x5360;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_5_LOC = 0x5380;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_6_LOC = 0x53a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_7_LOC = 0x53c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_0_LOC = 0x53e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_1_LOC = 0x5400;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_2_LOC = 0x5420;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_3_LOC = 0x5440;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_4_LOC = 0x5460;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_5_LOC = 0x5480;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_6_LOC = 0x54a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_7_LOC = 0x54c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_0_LOC = 0x54e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_1_LOC = 0x5500;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_2_LOC = 0x5520;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_3_LOC = 0x5540;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_4_LOC = 0x5560;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_5_LOC = 0x5580;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_6_LOC = 0x55a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_7_LOC = 0x55c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_0_LOC = 0x55e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_1_LOC = 0x5600;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_2_LOC = 0x5620;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_3_LOC = 0x5640;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_4_LOC = 0x5660;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_5_LOC = 0x5680;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_6_LOC = 0x56a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_7_LOC = 0x56c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_0_LOC = 0x56e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_1_LOC = 0x5700;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_2_LOC = 0x5720;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_3_LOC = 0x5740;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_4_LOC = 0x5760;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_5_LOC = 0x5780;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_6_LOC = 0x57a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_7_LOC = 0x57c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_0_LOC = 0x57e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_1_LOC = 0x5800;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_2_LOC = 0x5820;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_3_LOC = 0x5840;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_4_LOC = 0x5860;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_5_LOC = 0x5880;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_6_LOC = 0x58a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_7_LOC = 0x58c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_0_LOC = 0x58e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_1_LOC = 0x5900;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_2_LOC = 0x5920;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_3_LOC = 0x5940;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_4_LOC = 0x5960;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_5_LOC = 0x5980;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_6_LOC = 0x59a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_7_LOC = 0x59c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_0_LOC = 0x59e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_1_LOC = 0x5a00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_2_LOC = 0x5a20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_3_LOC = 0x5a40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_4_LOC = 0x5a60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_5_LOC = 0x5a80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_6_LOC = 0x5aa0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_7_LOC = 0x5ac0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_0_LOC = 0x5ae0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_1_LOC = 0x5b00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_2_LOC = 0x5b20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_3_LOC = 0x5b40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_4_LOC = 0x5b60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_5_LOC = 0x5b80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_6_LOC = 0x5ba0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_7_LOC = 0x5bc0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_0_LOC = 0x5be0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_1_LOC = 0x5c00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_2_LOC = 0x5c20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_3_LOC = 0x5c40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_4_LOC = 0x5c60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_5_LOC = 0x5c80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_6_LOC = 0x5ca0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_7_LOC = 0x5cc0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_0_LOC = 0x5ce0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_1_LOC = 0x5d00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_2_LOC = 0x5d20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_3_LOC = 0x5d40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_4_LOC = 0x5d60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_5_LOC = 0x5d80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_6_LOC = 0x5da0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_7_LOC = 0x5dc0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_0_LOC = 0x5de0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_1_LOC = 0x5e00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_2_LOC = 0x5e20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_3_LOC = 0x5e40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_4_LOC = 0x5e60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_5_LOC = 0x5e80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_6_LOC = 0x5ea0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_7_LOC = 0x5ec0;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                         SUMCHECK - RUNTIME MEMORY - BARYCENTRIC COMPLETE                         */
@@ -725,34 +752,34 @@ uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_7_LOC = 0x17e0;
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                       SUMCHECK - RUNTIME MEMORY - SUBRELATION EVALUATIONS                        */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant SUBRELATION_EVAL_0_LOC = 0x4840;
-uint256 internal constant SUBRELATION_EVAL_1_LOC = 0x4860;
-uint256 internal constant SUBRELATION_EVAL_2_LOC = 0x4880;
-uint256 internal constant SUBRELATION_EVAL_3_LOC = 0x48a0;
-uint256 internal constant SUBRELATION_EVAL_4_LOC = 0x48c0;
-uint256 internal constant SUBRELATION_EVAL_5_LOC = 0x48e0;
-uint256 internal constant SUBRELATION_EVAL_6_LOC = 0x4900;
-uint256 internal constant SUBRELATION_EVAL_7_LOC = 0x4920;
-uint256 internal constant SUBRELATION_EVAL_8_LOC = 0x4940;
-uint256 internal constant SUBRELATION_EVAL_9_LOC = 0x4960;
-uint256 internal constant SUBRELATION_EVAL_10_LOC = 0x4980;
-uint256 internal constant SUBRELATION_EVAL_11_LOC = 0x49a0;
-uint256 internal constant SUBRELATION_EVAL_12_LOC = 0x49c0;
-uint256 internal constant SUBRELATION_EVAL_13_LOC = 0x49e0;
-uint256 internal constant SUBRELATION_EVAL_14_LOC = 0x4a00;
-uint256 internal constant SUBRELATION_EVAL_15_LOC = 0x4a20;
-uint256 internal constant SUBRELATION_EVAL_16_LOC = 0x4a40;
-uint256 internal constant SUBRELATION_EVAL_17_LOC = 0x4a60;
-uint256 internal constant SUBRELATION_EVAL_18_LOC = 0x4a80;
-uint256 internal constant SUBRELATION_EVAL_19_LOC = 0x4aa0;
-uint256 internal constant SUBRELATION_EVAL_20_LOC = 0x4ac0;
-uint256 internal constant SUBRELATION_EVAL_21_LOC = 0x4ae0;
-uint256 internal constant SUBRELATION_EVAL_22_LOC = 0x4b00;
-uint256 internal constant SUBRELATION_EVAL_23_LOC = 0x4b20;
-uint256 internal constant SUBRELATION_EVAL_24_LOC = 0x4b40;
-uint256 internal constant SUBRELATION_EVAL_25_LOC = 0x4b60;
-uint256 internal constant SUBRELATION_EVAL_26_LOC = 0x4b80;
-uint256 internal constant SUBRELATION_EVAL_27_LOC = 0x4ba0;
+uint256 internal constant SUBRELATION_EVAL_0_LOC = 0x5ee0;
+uint256 internal constant SUBRELATION_EVAL_1_LOC = 0x5f00;
+uint256 internal constant SUBRELATION_EVAL_2_LOC = 0x5f20;
+uint256 internal constant SUBRELATION_EVAL_3_LOC = 0x5f40;
+uint256 internal constant SUBRELATION_EVAL_4_LOC = 0x5f60;
+uint256 internal constant SUBRELATION_EVAL_5_LOC = 0x5f80;
+uint256 internal constant SUBRELATION_EVAL_6_LOC = 0x5fa0;
+uint256 internal constant SUBRELATION_EVAL_7_LOC = 0x5fc0;
+uint256 internal constant SUBRELATION_EVAL_8_LOC = 0x5fe0;
+uint256 internal constant SUBRELATION_EVAL_9_LOC = 0x6000;
+uint256 internal constant SUBRELATION_EVAL_10_LOC = 0x6020;
+uint256 internal constant SUBRELATION_EVAL_11_LOC = 0x6040;
+uint256 internal constant SUBRELATION_EVAL_12_LOC = 0x6060;
+uint256 internal constant SUBRELATION_EVAL_13_LOC = 0x6080;
+uint256 internal constant SUBRELATION_EVAL_14_LOC = 0x60a0;
+uint256 internal constant SUBRELATION_EVAL_15_LOC = 0x60c0;
+uint256 internal constant SUBRELATION_EVAL_16_LOC = 0x60e0;
+uint256 internal constant SUBRELATION_EVAL_17_LOC = 0x6100;
+uint256 internal constant SUBRELATION_EVAL_18_LOC = 0x6120;
+uint256 internal constant SUBRELATION_EVAL_19_LOC = 0x6140;
+uint256 internal constant SUBRELATION_EVAL_20_LOC = 0x6160;
+uint256 internal constant SUBRELATION_EVAL_21_LOC = 0x6180;
+uint256 internal constant SUBRELATION_EVAL_22_LOC = 0x61a0;
+uint256 internal constant SUBRELATION_EVAL_23_LOC = 0x61c0;
+uint256 internal constant SUBRELATION_EVAL_24_LOC = 0x61e0;
+uint256 internal constant SUBRELATION_EVAL_25_LOC = 0x6200;
+uint256 internal constant SUBRELATION_EVAL_26_LOC = 0x6220;
+uint256 internal constant SUBRELATION_EVAL_27_LOC = 0x6240;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                   SUMCHECK - RUNTIME MEMORY - SUBRELATION EVALUATIONS COMPLETE                   */
@@ -761,13 +788,13 @@ uint256 internal constant SUBRELATION_EVAL_27_LOC = 0x4ba0;
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                      SUMCHECK - RUNTIME MEMORY - SUBRELATION INTERMEDIATES                       */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant FINAL_ROUND_TARGET_LOC = 0x4bc0;
-uint256 internal constant POW_PARTIAL_EVALUATION_LOC = 0x4be0;
-uint256 internal constant AUX_NON_NATIVE_FIELD_IDENTITY = 0x4c00;
-uint256 internal constant AUX_LIMB_ACCUMULATOR_IDENTITY = 0x4c20;
-uint256 internal constant AUX_RAM_CONSISTENCY_CHECK_IDENTITY = 0x4c40;
-uint256 internal constant AUX_ROM_CONSISTENCY_CHECK_IDENTITY = 0x4c60;
-uint256 internal constant AUX_MEMORY_CHECK_IDENTITY = 0x4c80;
+uint256 internal constant FINAL_ROUND_TARGET_LOC = 0x6260;
+uint256 internal constant POW_PARTIAL_EVALUATION_LOC = 0x6280;
+uint256 internal constant AUX_NON_NATIVE_FIELD_IDENTITY = 0x62a0;
+uint256 internal constant AUX_LIMB_ACCUMULATOR_IDENTITY = 0x62c0;
+uint256 internal constant AUX_RAM_CONSISTENCY_CHECK_IDENTITY = 0x62e0;
+uint256 internal constant AUX_ROM_CONSISTENCY_CHECK_IDENTITY = 0x6300;
+uint256 internal constant AUX_MEMORY_CHECK_IDENTITY = 0x6320;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                               SUMCHECK - RUNTIME MEMORY - COMPLETE                               */
@@ -781,28 +808,28 @@ uint256 internal constant AUX_MEMORY_CHECK_IDENTITY = 0x4c80;
 /*                            SHPLEMINI - POWERS OF EVALUATION CHALLENGE                            */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 /// {{ UNROLL_SECTION_START POWERS_OF_EVALUATION_CHALLENGE }}
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_0_LOC = 0x4ca0;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_1_LOC = 0x4cc0;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_2_LOC = 0x4ce0;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_3_LOC = 0x4d00;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_4_LOC = 0x4d20;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_5_LOC = 0x4d40;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_6_LOC = 0x4d60;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_7_LOC = 0x4d80;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_8_LOC = 0x4da0;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_9_LOC = 0x4dc0;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_10_LOC = 0x4de0;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_11_LOC = 0x4e00;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_12_LOC = 0x4e20;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_13_LOC = 0x4e40;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_14_LOC = 0x4e60;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_15_LOC = 0x4e80;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_16_LOC = 0x4ea0;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_17_LOC = 0x4ec0;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_18_LOC = 0x4ee0;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_19_LOC = 0x4f00;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_20_LOC = 0x4f20;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_21_LOC = 0x4f40;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_0_LOC = 0x6340;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_1_LOC = 0x6360;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_2_LOC = 0x6380;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_3_LOC = 0x63a0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_4_LOC = 0x63c0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_5_LOC = 0x63e0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_6_LOC = 0x6400;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_7_LOC = 0x6420;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_8_LOC = 0x6440;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_9_LOC = 0x6460;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_10_LOC = 0x6480;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_11_LOC = 0x64a0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_12_LOC = 0x64c0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_13_LOC = 0x64e0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_14_LOC = 0x6500;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_15_LOC = 0x6520;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_16_LOC = 0x6540;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_17_LOC = 0x6560;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_18_LOC = 0x6580;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_19_LOC = 0x65a0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_20_LOC = 0x65c0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_21_LOC = 0x65e0;
 /// {{ UNROLL_SECTION_END POWERS_OF_EVALUATION_CHALLENGE }}
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -812,75 +839,74 @@ uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_21_LOC = 0x4f40;
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                            SHPLEMINI - RUNTIME MEMORY - BATCH SCALARS                            */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant BATCH_SCALAR_0_LOC = 0x4f60;
-uint256 internal constant BATCH_SCALAR_1_LOC = 0x4f80;
-uint256 internal constant BATCH_SCALAR_2_LOC = 0x4fa0;
-uint256 internal constant BATCH_SCALAR_3_LOC = 0x4fc0;
-uint256 internal constant BATCH_SCALAR_4_LOC = 0x4fe0;
-uint256 internal constant BATCH_SCALAR_5_LOC = 0x5000;
-uint256 internal constant BATCH_SCALAR_6_LOC = 0x5020;
-uint256 internal constant BATCH_SCALAR_7_LOC = 0x5040;
-uint256 internal constant BATCH_SCALAR_8_LOC = 0x5060;
-uint256 internal constant BATCH_SCALAR_9_LOC = 0x5080;
-uint256 internal constant BATCH_SCALAR_10_LOC = 0x50a0;
-uint256 internal constant BATCH_SCALAR_11_LOC = 0x50c0;
-uint256 internal constant BATCH_SCALAR_12_LOC = 0x50e0;
-uint256 internal constant BATCH_SCALAR_13_LOC = 0x5100;
-uint256 internal constant BATCH_SCALAR_14_LOC = 0x5120;
-uint256 internal constant BATCH_SCALAR_15_LOC = 0x5140;
-uint256 internal constant BATCH_SCALAR_16_LOC = 0x5160;
-uint256 internal constant BATCH_SCALAR_17_LOC = 0x5180;
-uint256 internal constant BATCH_SCALAR_18_LOC = 0x51a0;
-uint256 internal constant BATCH_SCALAR_19_LOC = 0x51c0;
-uint256 internal constant BATCH_SCALAR_20_LOC = 0x51e0;
-uint256 internal constant BATCH_SCALAR_21_LOC = 0x5200;
-uint256 internal constant BATCH_SCALAR_22_LOC = 0x5220;
-uint256 internal constant BATCH_SCALAR_23_LOC = 0x5240;
-uint256 internal constant BATCH_SCALAR_24_LOC = 0x5260;
-uint256 internal constant BATCH_SCALAR_25_LOC = 0x5280;
-uint256 internal constant BATCH_SCALAR_26_LOC = 0x52a0;
-uint256 internal constant BATCH_SCALAR_27_LOC = 0x52c0;
-uint256 internal constant BATCH_SCALAR_28_LOC = 0x52e0;
-uint256 internal constant BATCH_SCALAR_29_LOC = 0x5300;
-uint256 internal constant BATCH_SCALAR_30_LOC = 0x5320;
-uint256 internal constant BATCH_SCALAR_31_LOC = 0x5340;
-uint256 internal constant BATCH_SCALAR_32_LOC = 0x5360;
-uint256 internal constant BATCH_SCALAR_33_LOC = 0x5380;
-uint256 internal constant BATCH_SCALAR_34_LOC = 0x53a0;
-uint256 internal constant BATCH_SCALAR_35_LOC = 0x53c0;
-uint256 internal constant BATCH_SCALAR_36_LOC = 0x53e0;
-uint256 internal constant BATCH_SCALAR_37_LOC = 0x5400;
-uint256 internal constant BATCH_SCALAR_38_LOC = 0x5420;
-uint256 internal constant BATCH_SCALAR_39_LOC = 0x5440;
-uint256 internal constant BATCH_SCALAR_40_LOC = 0x5460;
-uint256 internal constant BATCH_SCALAR_41_LOC = 0x5480;
-uint256 internal constant BATCH_SCALAR_42_LOC = 0x54a0;
-uint256 internal constant BATCH_SCALAR_43_LOC = 0x54c0;
-uint256 internal constant BATCH_SCALAR_44_LOC = 0x54e0;
-uint256 internal constant BATCH_SCALAR_45_LOC = 0x5500;
-uint256 internal constant BATCH_SCALAR_46_LOC = 0x5520;
-uint256 internal constant BATCH_SCALAR_47_LOC = 0x5540;
-uint256 internal constant BATCH_SCALAR_48_LOC = 0x5560;
-uint256 internal constant BATCH_SCALAR_49_LOC = 0x5580;
-uint256 internal constant BATCH_SCALAR_50_LOC = 0x55a0;
-uint256 internal constant BATCH_SCALAR_51_LOC = 0x55c0;
-uint256 internal constant BATCH_SCALAR_52_LOC = 0x55e0;
-uint256 internal constant BATCH_SCALAR_53_LOC = 0x5600;
-uint256 internal constant BATCH_SCALAR_54_LOC = 0x5620;
-uint256 internal constant BATCH_SCALAR_55_LOC = 0x5640;
-uint256 internal constant BATCH_SCALAR_56_LOC = 0x5660;
-uint256 internal constant BATCH_SCALAR_57_LOC = 0x5680;
-uint256 internal constant BATCH_SCALAR_58_LOC = 0x56a0;
-uint256 internal constant BATCH_SCALAR_59_LOC = 0x56c0;
-uint256 internal constant BATCH_SCALAR_60_LOC = 0x56e0;
-uint256 internal constant BATCH_SCALAR_61_LOC = 0x5700;
-uint256 internal constant BATCH_SCALAR_62_LOC = 0x5720;
-uint256 internal constant BATCH_SCALAR_63_LOC = 0x5740;
-uint256 internal constant BATCH_SCALAR_64_LOC = 0x5760;
-uint256 internal constant BATCH_SCALAR_65_LOC = 0x5780;
-uint256 internal constant BATCH_SCALAR_66_LOC = 0x57a0;
-uint256 internal constant BATCH_SCALAR_67_LOC = 0x57c0;
-uint256 internal constant BATCH_SCALAR_68_LOC = 0x57e0;
+uint256 internal constant BATCH_SCALAR_1_LOC = 0x6600;
+uint256 internal constant BATCH_SCALAR_2_LOC = 0x6620;
+uint256 internal constant BATCH_SCALAR_3_LOC = 0x6640;
+uint256 internal constant BATCH_SCALAR_4_LOC = 0x6660;
+uint256 internal constant BATCH_SCALAR_5_LOC = 0x6680;
+uint256 internal constant BATCH_SCALAR_6_LOC = 0x66a0;
+uint256 internal constant BATCH_SCALAR_7_LOC = 0x66c0;
+uint256 internal constant BATCH_SCALAR_8_LOC = 0x66e0;
+uint256 internal constant BATCH_SCALAR_9_LOC = 0x6700;
+uint256 internal constant BATCH_SCALAR_10_LOC = 0x6720;
+uint256 internal constant BATCH_SCALAR_11_LOC = 0x6740;
+uint256 internal constant BATCH_SCALAR_12_LOC = 0x6760;
+uint256 internal constant BATCH_SCALAR_13_LOC = 0x6780;
+uint256 internal constant BATCH_SCALAR_14_LOC = 0x67a0;
+uint256 internal constant BATCH_SCALAR_15_LOC = 0x67c0;
+uint256 internal constant BATCH_SCALAR_16_LOC = 0x67e0;
+uint256 internal constant BATCH_SCALAR_17_LOC = 0x6800;
+uint256 internal constant BATCH_SCALAR_18_LOC = 0x6820;
+uint256 internal constant BATCH_SCALAR_19_LOC = 0x6840;
+uint256 internal constant BATCH_SCALAR_20_LOC = 0x6860;
+uint256 internal constant BATCH_SCALAR_21_LOC = 0x6880;
+uint256 internal constant BATCH_SCALAR_22_LOC = 0x68a0;
+uint256 internal constant BATCH_SCALAR_23_LOC = 0x68c0;
+uint256 internal constant BATCH_SCALAR_24_LOC = 0x68e0;
+uint256 internal constant BATCH_SCALAR_25_LOC = 0x6900;
+uint256 internal constant BATCH_SCALAR_26_LOC = 0x6920;
+uint256 internal constant BATCH_SCALAR_27_LOC = 0x6940;
+uint256 internal constant BATCH_SCALAR_28_LOC = 0x6960;
+uint256 internal constant BATCH_SCALAR_29_LOC = 0x6980;
+uint256 internal constant BATCH_SCALAR_30_LOC = 0x69a0;
+uint256 internal constant BATCH_SCALAR_31_LOC = 0x69c0;
+uint256 internal constant BATCH_SCALAR_32_LOC = 0x69e0;
+uint256 internal constant BATCH_SCALAR_33_LOC = 0x6a00;
+uint256 internal constant BATCH_SCALAR_34_LOC = 0x6a20;
+uint256 internal constant BATCH_SCALAR_35_LOC = 0x6a40;
+uint256 internal constant BATCH_SCALAR_36_LOC = 0x6a60;
+uint256 internal constant BATCH_SCALAR_37_LOC = 0x6a80;
+uint256 internal constant BATCH_SCALAR_38_LOC = 0x6aa0;
+uint256 internal constant BATCH_SCALAR_39_LOC = 0x6ac0;
+uint256 internal constant BATCH_SCALAR_40_LOC = 0x6ae0;
+uint256 internal constant BATCH_SCALAR_41_LOC = 0x6b00;
+uint256 internal constant BATCH_SCALAR_42_LOC = 0x6b20;
+uint256 internal constant BATCH_SCALAR_43_LOC = 0x6b40;
+uint256 internal constant BATCH_SCALAR_44_LOC = 0x6b60;
+uint256 internal constant BATCH_SCALAR_45_LOC = 0x6b80;
+uint256 internal constant BATCH_SCALAR_46_LOC = 0x6ba0;
+uint256 internal constant BATCH_SCALAR_47_LOC = 0x6bc0;
+uint256 internal constant BATCH_SCALAR_48_LOC = 0x6be0;
+uint256 internal constant BATCH_SCALAR_49_LOC = 0x6c00;
+uint256 internal constant BATCH_SCALAR_50_LOC = 0x6c20;
+uint256 internal constant BATCH_SCALAR_51_LOC = 0x6c40;
+uint256 internal constant BATCH_SCALAR_52_LOC = 0x6c60;
+uint256 internal constant BATCH_SCALAR_53_LOC = 0x6c80;
+uint256 internal constant BATCH_SCALAR_54_LOC = 0x6ca0;
+uint256 internal constant BATCH_SCALAR_55_LOC = 0x6cc0;
+uint256 internal constant BATCH_SCALAR_56_LOC = 0x6ce0;
+uint256 internal constant BATCH_SCALAR_57_LOC = 0x6d00;
+uint256 internal constant BATCH_SCALAR_58_LOC = 0x6d20;
+uint256 internal constant BATCH_SCALAR_59_LOC = 0x6d40;
+uint256 internal constant BATCH_SCALAR_60_LOC = 0x6d60;
+uint256 internal constant BATCH_SCALAR_61_LOC = 0x6d80;
+uint256 internal constant BATCH_SCALAR_62_LOC = 0x6da0;
+uint256 internal constant BATCH_SCALAR_63_LOC = 0x6dc0;
+uint256 internal constant BATCH_SCALAR_64_LOC = 0x6de0;
+uint256 internal constant BATCH_SCALAR_65_LOC = 0x6e00;
+uint256 internal constant BATCH_SCALAR_66_LOC = 0x6e20;
+uint256 internal constant BATCH_SCALAR_67_LOC = 0x6e40;
+uint256 internal constant BATCH_SCALAR_68_LOC = 0x6e60;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                       SHPLEMINI - RUNTIME MEMORY - BATCH SCALARS COMPLETE                        */
@@ -889,152 +915,129 @@ uint256 internal constant BATCH_SCALAR_68_LOC = 0x57e0;
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                             SHPLEMINI - RUNTIME MEMORY - INVERSIONS                              */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_0_LOC = 0x100;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_1_LOC = 0x120;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_2_LOC = 0x140;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_3_LOC = 0x160;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_4_LOC = 0x180;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_5_LOC = 0x1a0;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_6_LOC = 0x1c0;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_7_LOC = 0x1e0;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_8_LOC = 0x200;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_9_LOC = 0x220;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_10_LOC = 0x240;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_11_LOC = 0x260;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_12_LOC = 0x280;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_13_LOC = 0x2a0;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_14_LOC = 0x2c0;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_15_LOC = 0x2e0;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_16_LOC = 0x300;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_17_LOC = 0x320;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_18_LOC = 0x340;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_19_LOC = 0x360;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_20_LOC = 0x380;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_21_LOC = 0x3a0;
-uint256 internal constant INVERTED_GEMINI_DENOMINATOR_22_LOC = 0x3c0;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_0_LOC = 0x3e0;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_1_LOC = 0x400;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_2_LOC = 0x420;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_3_LOC = 0x440;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_4_LOC = 0x460;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_5_LOC = 0x480;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_6_LOC = 0x4a0;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_7_LOC = 0x4c0;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_8_LOC = 0x4e0;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_9_LOC = 0x500;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_10_LOC = 0x520;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_11_LOC = 0x540;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_12_LOC = 0x560;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_13_LOC = 0x580;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_14_LOC = 0x5a0;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_15_LOC = 0x5c0;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_16_LOC = 0x5e0;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_17_LOC = 0x600;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_18_LOC = 0x620;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_19_LOC = 0x640;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_20_LOC = 0x660;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_21_LOC = 0x680;
+uint256 internal constant GEMINI_R_INV_LOC = 0x6e80;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_0_LOC = 0x6ea0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_1_LOC = 0x6ec0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_2_LOC = 0x6ee0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_3_LOC = 0x6f00;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_4_LOC = 0x6f20;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_5_LOC = 0x6f40;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_6_LOC = 0x6f60;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_7_LOC = 0x6f80;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_8_LOC = 0x6fa0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_9_LOC = 0x6fc0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_10_LOC = 0x6fe0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_11_LOC = 0x7000;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_12_LOC = 0x7020;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_13_LOC = 0x7040;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_14_LOC = 0x7060;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_15_LOC = 0x7080;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_16_LOC = 0x70a0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_17_LOC = 0x70c0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_18_LOC = 0x70e0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_19_LOC = 0x7100;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_20_LOC = 0x7120;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_21_LOC = 0x7140;
 
-uint256 internal constant BATCHED_EVALUATION_LOC = 0x6a0;
-uint256 internal constant CONSTANT_TERM_ACCUMULATOR_LOC = 0x6c0;
+uint256 internal constant CONSTANT_TERM_ACCUMULATOR_LOC = 0x7160;
 
-uint256 internal constant POS_INVERTED_DENOMINATOR = 0x6e0;
-uint256 internal constant NEG_INVERTED_DENOMINATOR = 0x700;
+uint256 internal constant POS_INVERTED_DENOMINATOR = 0x7180;
+uint256 internal constant NEG_INVERTED_DENOMINATOR = 0x71a0;
 
 // LOG_N challenge pow minus u
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_0_LOC = 0x720;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_1_LOC = 0x740;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_2_LOC = 0x760;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_3_LOC = 0x780;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_4_LOC = 0x7a0;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_5_LOC = 0x7c0;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_6_LOC = 0x7e0;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_7_LOC = 0x800;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_8_LOC = 0x820;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_9_LOC = 0x840;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_10_LOC = 0x860;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_11_LOC = 0x880;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_12_LOC = 0x8a0;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_13_LOC = 0x8c0;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_14_LOC = 0x8e0;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_15_LOC = 0x900;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_16_LOC = 0x920;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_17_LOC = 0x940;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_18_LOC = 0x960;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_19_LOC = 0x980;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_20_LOC = 0x9a0;
-uint256 internal constant INVERTED_CHALLENEGE_POW_MINUS_U_21_LOC = 0x9c0;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_0_LOC = 0x71c0;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_1_LOC = 0x71e0;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_2_LOC = 0x7200;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_3_LOC = 0x7220;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_4_LOC = 0x7240;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_5_LOC = 0x7260;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_6_LOC = 0x7280;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_7_LOC = 0x72a0;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_8_LOC = 0x72c0;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_9_LOC = 0x72e0;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_10_LOC = 0x7300;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_11_LOC = 0x7320;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_12_LOC = 0x7340;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_13_LOC = 0x7360;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_14_LOC = 0x7380;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_15_LOC = 0x73a0;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_16_LOC = 0x73c0;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_17_LOC = 0x73e0;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_18_LOC = 0x7400;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_19_LOC = 0x7420;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_20_LOC = 0x7440;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_21_LOC = 0x7460;
 
 // LOG_N pos_inverted_off
-uint256 internal constant POS_INVERTED_DENOM_0_LOC = 0x9e0;
-uint256 internal constant POS_INVERTED_DENOM_1_LOC = 0xa00;
-uint256 internal constant POS_INVERTED_DENOM_2_LOC = 0xa20;
-uint256 internal constant POS_INVERTED_DENOM_3_LOC = 0xa40;
-uint256 internal constant POS_INVERTED_DENOM_4_LOC = 0xa60;
-uint256 internal constant POS_INVERTED_DENOM_5_LOC = 0xa80;
-uint256 internal constant POS_INVERTED_DENOM_6_LOC = 0xaa0;
-uint256 internal constant POS_INVERTED_DENOM_7_LOC = 0xac0;
-uint256 internal constant POS_INVERTED_DENOM_8_LOC = 0xae0;
-uint256 internal constant POS_INVERTED_DENOM_9_LOC = 0xb00;
-uint256 internal constant POS_INVERTED_DENOM_10_LOC = 0xb20;
-uint256 internal constant POS_INVERTED_DENOM_11_LOC = 0xb40;
-uint256 internal constant POS_INVERTED_DENOM_12_LOC = 0xb60;
-uint256 internal constant POS_INVERTED_DENOM_13_LOC = 0xb80;
-uint256 internal constant POS_INVERTED_DENOM_14_LOC = 0xba0;
-uint256 internal constant POS_INVERTED_DENOM_15_LOC = 0xbc0;
-uint256 internal constant POS_INVERTED_DENOM_16_LOC = 0xbe0;
-uint256 internal constant POS_INVERTED_DENOM_17_LOC = 0xc00;
-uint256 internal constant POS_INVERTED_DENOM_18_LOC = 0xc20;
-uint256 internal constant POS_INVERTED_DENOM_19_LOC = 0xc40;
-uint256 internal constant POS_INVERTED_DENOM_20_LOC = 0xc60;
-uint256 internal constant POS_INVERTED_DENOM_21_LOC = 0xc80;
+uint256 internal constant POS_INVERTED_DENOM_0_LOC = 0x7480;
+uint256 internal constant POS_INVERTED_DENOM_1_LOC = 0x74a0;
+uint256 internal constant POS_INVERTED_DENOM_2_LOC = 0x74c0;
+uint256 internal constant POS_INVERTED_DENOM_3_LOC = 0x74e0;
+uint256 internal constant POS_INVERTED_DENOM_4_LOC = 0x7500;
+uint256 internal constant POS_INVERTED_DENOM_5_LOC = 0x7520;
+uint256 internal constant POS_INVERTED_DENOM_6_LOC = 0x7540;
+uint256 internal constant POS_INVERTED_DENOM_7_LOC = 0x7560;
+uint256 internal constant POS_INVERTED_DENOM_8_LOC = 0x7580;
+uint256 internal constant POS_INVERTED_DENOM_9_LOC = 0x75a0;
+uint256 internal constant POS_INVERTED_DENOM_10_LOC = 0x75c0;
+uint256 internal constant POS_INVERTED_DENOM_11_LOC = 0x75e0;
+uint256 internal constant POS_INVERTED_DENOM_12_LOC = 0x7600;
+uint256 internal constant POS_INVERTED_DENOM_13_LOC = 0x7620;
+uint256 internal constant POS_INVERTED_DENOM_14_LOC = 0x7640;
+uint256 internal constant POS_INVERTED_DENOM_15_LOC = 0x7660;
+uint256 internal constant POS_INVERTED_DENOM_16_LOC = 0x7680;
+uint256 internal constant POS_INVERTED_DENOM_17_LOC = 0x76a0;
+uint256 internal constant POS_INVERTED_DENOM_18_LOC = 0x76c0;
+uint256 internal constant POS_INVERTED_DENOM_19_LOC = 0x76e0;
+uint256 internal constant POS_INVERTED_DENOM_20_LOC = 0x7700;
+uint256 internal constant POS_INVERTED_DENOM_21_LOC = 0x7720;
 
 // LOG_N neg_inverted_off
-uint256 internal constant NEG_INVERTED_DENOM_0_LOC = 0xca0;
-uint256 internal constant NEG_INVERTED_DENOM_1_LOC = 0xcc0;
-uint256 internal constant NEG_INVERTED_DENOM_2_LOC = 0xce0;
-uint256 internal constant NEG_INVERTED_DENOM_3_LOC = 0xd00;
-uint256 internal constant NEG_INVERTED_DENOM_4_LOC = 0xd20;
-uint256 internal constant NEG_INVERTED_DENOM_5_LOC = 0xd40;
-uint256 internal constant NEG_INVERTED_DENOM_6_LOC = 0xd60;
-uint256 internal constant NEG_INVERTED_DENOM_7_LOC = 0xd80;
-uint256 internal constant NEG_INVERTED_DENOM_8_LOC = 0xda0;
-uint256 internal constant NEG_INVERTED_DENOM_9_LOC = 0xdc0;
-uint256 internal constant NEG_INVERTED_DENOM_10_LOC = 0xde0;
-uint256 internal constant NEG_INVERTED_DENOM_11_LOC = 0xe00;
-uint256 internal constant NEG_INVERTED_DENOM_12_LOC = 0xe20;
-uint256 internal constant NEG_INVERTED_DENOM_13_LOC = 0xe40;
-uint256 internal constant NEG_INVERTED_DENOM_14_LOC = 0xe60;
-uint256 internal constant NEG_INVERTED_DENOM_15_LOC = 0xe80;
-uint256 internal constant NEG_INVERTED_DENOM_16_LOC = 0xea0;
-uint256 internal constant NEG_INVERTED_DENOM_17_LOC = 0xec0;
-uint256 internal constant NEG_INVERTED_DENOM_18_LOC = 0xee0;
-uint256 internal constant NEG_INVERTED_DENOM_19_LOC = 0xf00;
-uint256 internal constant NEG_INVERTED_DENOM_20_LOC = 0xf20;
-uint256 internal constant NEG_INVERTED_DENOM_21_LOC = 0xf40;
+uint256 internal constant NEG_INVERTED_DENOM_0_LOC = 0x7740;
+uint256 internal constant NEG_INVERTED_DENOM_1_LOC = 0x7760;
+uint256 internal constant NEG_INVERTED_DENOM_2_LOC = 0x7780;
+uint256 internal constant NEG_INVERTED_DENOM_3_LOC = 0x77a0;
+uint256 internal constant NEG_INVERTED_DENOM_4_LOC = 0x77c0;
+uint256 internal constant NEG_INVERTED_DENOM_5_LOC = 0x77e0;
+uint256 internal constant NEG_INVERTED_DENOM_6_LOC = 0x7800;
+uint256 internal constant NEG_INVERTED_DENOM_7_LOC = 0x7820;
+uint256 internal constant NEG_INVERTED_DENOM_8_LOC = 0x7840;
+uint256 internal constant NEG_INVERTED_DENOM_9_LOC = 0x7860;
+uint256 internal constant NEG_INVERTED_DENOM_10_LOC = 0x7880;
+uint256 internal constant NEG_INVERTED_DENOM_11_LOC = 0x78a0;
+uint256 internal constant NEG_INVERTED_DENOM_12_LOC = 0x78c0;
+uint256 internal constant NEG_INVERTED_DENOM_13_LOC = 0x78e0;
+uint256 internal constant NEG_INVERTED_DENOM_14_LOC = 0x7900;
+uint256 internal constant NEG_INVERTED_DENOM_15_LOC = 0x7920;
+uint256 internal constant NEG_INVERTED_DENOM_16_LOC = 0x7940;
+uint256 internal constant NEG_INVERTED_DENOM_17_LOC = 0x7960;
+uint256 internal constant NEG_INVERTED_DENOM_18_LOC = 0x7980;
+uint256 internal constant NEG_INVERTED_DENOM_19_LOC = 0x79a0;
+uint256 internal constant NEG_INVERTED_DENOM_20_LOC = 0x79c0;
+uint256 internal constant NEG_INVERTED_DENOM_21_LOC = 0x79e0;
 
-uint256 internal constant FOLD_POS_EVALUATIONS_0_LOC = 0xf60;
-uint256 internal constant FOLD_POS_EVALUATIONS_1_LOC = 0xf80;
-uint256 internal constant FOLD_POS_EVALUATIONS_2_LOC = 0xfa0;
-uint256 internal constant FOLD_POS_EVALUATIONS_3_LOC = 0xfc0;
-uint256 internal constant FOLD_POS_EVALUATIONS_4_LOC = 0xfe0;
-uint256 internal constant FOLD_POS_EVALUATIONS_5_LOC = 0x1000;
-uint256 internal constant FOLD_POS_EVALUATIONS_6_LOC = 0x1020;
-uint256 internal constant FOLD_POS_EVALUATIONS_7_LOC = 0x1040;
-uint256 internal constant FOLD_POS_EVALUATIONS_8_LOC = 0x1060;
-uint256 internal constant FOLD_POS_EVALUATIONS_9_LOC = 0x1080;
-uint256 internal constant FOLD_POS_EVALUATIONS_10_LOC = 0x10a0;
-uint256 internal constant FOLD_POS_EVALUATIONS_11_LOC = 0x10c0;
-uint256 internal constant FOLD_POS_EVALUATIONS_12_LOC = 0x10e0;
-uint256 internal constant FOLD_POS_EVALUATIONS_13_LOC = 0x1100;
-uint256 internal constant FOLD_POS_EVALUATIONS_14_LOC = 0x1120;
-uint256 internal constant FOLD_POS_EVALUATIONS_15_LOC = 0x1140;
-uint256 internal constant FOLD_POS_EVALUATIONS_16_LOC = 0x1160;
-uint256 internal constant FOLD_POS_EVALUATIONS_17_LOC = 0x1180;
-uint256 internal constant FOLD_POS_EVALUATIONS_18_LOC = 0x11a0;
-uint256 internal constant FOLD_POS_EVALUATIONS_19_LOC = 0x11c0;
-uint256 internal constant FOLD_POS_EVALUATIONS_20_LOC = 0x11e0;
-uint256 internal constant FOLD_POS_EVALUATIONS_21_LOC = 0x1200;
+uint256 internal constant FOLD_POS_EVALUATIONS_0_LOC = 0x7a00;
+uint256 internal constant FOLD_POS_EVALUATIONS_1_LOC = 0x7a20;
+uint256 internal constant FOLD_POS_EVALUATIONS_2_LOC = 0x7a40;
+uint256 internal constant FOLD_POS_EVALUATIONS_3_LOC = 0x7a60;
+uint256 internal constant FOLD_POS_EVALUATIONS_4_LOC = 0x7a80;
+uint256 internal constant FOLD_POS_EVALUATIONS_5_LOC = 0x7aa0;
+uint256 internal constant FOLD_POS_EVALUATIONS_6_LOC = 0x7ac0;
+uint256 internal constant FOLD_POS_EVALUATIONS_7_LOC = 0x7ae0;
+uint256 internal constant FOLD_POS_EVALUATIONS_8_LOC = 0x7b00;
+uint256 internal constant FOLD_POS_EVALUATIONS_9_LOC = 0x7b20;
+uint256 internal constant FOLD_POS_EVALUATIONS_10_LOC = 0x7b40;
+uint256 internal constant FOLD_POS_EVALUATIONS_11_LOC = 0x7b60;
+uint256 internal constant FOLD_POS_EVALUATIONS_12_LOC = 0x7b80;
+uint256 internal constant FOLD_POS_EVALUATIONS_13_LOC = 0x7ba0;
+uint256 internal constant FOLD_POS_EVALUATIONS_14_LOC = 0x7bc0;
+uint256 internal constant FOLD_POS_EVALUATIONS_15_LOC = 0x7be0;
+uint256 internal constant FOLD_POS_EVALUATIONS_16_LOC = 0x7c00;
+uint256 internal constant FOLD_POS_EVALUATIONS_17_LOC = 0x7c20;
+uint256 internal constant FOLD_POS_EVALUATIONS_18_LOC = 0x7c40;
+uint256 internal constant FOLD_POS_EVALUATIONS_19_LOC = 0x7c60;
+uint256 internal constant FOLD_POS_EVALUATIONS_20_LOC = 0x7c80;
+uint256 internal constant FOLD_POS_EVALUATIONS_21_LOC = 0x7ca0;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                         SHPLEMINI RUNTIME MEMORY - INVERSIONS - COMPLETE                         */
@@ -1044,84 +1047,266 @@ uint256 internal constant FOLD_POS_EVALUATIONS_21_LOC = 0x1200;
 /*                               SHPLEMINI RUNTIME MEMORY - COMPLETE                                */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-uint256 internal constant LATER_SCRATCH_SPACE = 0x5800;
+uint256 internal constant BARYCENTRIC_TEMP_0_LOC = 0x7cc0;
+uint256 internal constant BARYCENTRIC_TEMP_1_LOC = 0x7ce0;
+uint256 internal constant BARYCENTRIC_TEMP_2_LOC = 0x7d00;
+uint256 internal constant BARYCENTRIC_TEMP_3_LOC = 0x7d20;
+uint256 internal constant BARYCENTRIC_TEMP_4_LOC = 0x7d40;
+uint256 internal constant BARYCENTRIC_TEMP_5_LOC = 0x7d60;
+uint256 internal constant BARYCENTRIC_TEMP_6_LOC = 0x7d80;
+uint256 internal constant BARYCENTRIC_TEMP_7_LOC = 0x7da0;
+uint256 internal constant BARYCENTRIC_TEMP_8_LOC = 0x7dc0;
+uint256 internal constant BARYCENTRIC_TEMP_9_LOC = 0x7de0;
+uint256 internal constant BARYCENTRIC_TEMP_10_LOC = 0x7e00;
+uint256 internal constant BARYCENTRIC_TEMP_11_LOC = 0x7e20;
+uint256 internal constant BARYCENTRIC_TEMP_12_LOC = 0x7e40;
+uint256 internal constant BARYCENTRIC_TEMP_13_LOC = 0x7e60;
+uint256 internal constant BARYCENTRIC_TEMP_14_LOC = 0x7e80;
+uint256 internal constant BARYCENTRIC_TEMP_15_LOC = 0x7ea0;
+uint256 internal constant BARYCENTRIC_TEMP_16_LOC = 0x7ec0;
+uint256 internal constant BARYCENTRIC_TEMP_17_LOC = 0x7ee0;
+uint256 internal constant BARYCENTRIC_TEMP_18_LOC = 0x7f00;
+uint256 internal constant BARYCENTRIC_TEMP_19_LOC = 0x7f20;
+uint256 internal constant BARYCENTRIC_TEMP_20_LOC = 0x7f40;
+uint256 internal constant BARYCENTRIC_TEMP_21_LOC = 0x7f60;
+uint256 internal constant BARYCENTRIC_TEMP_22_LOC = 0x7f80;
+uint256 internal constant BARYCENTRIC_TEMP_23_LOC = 0x7fa0;
+uint256 internal constant BARYCENTRIC_TEMP_24_LOC = 0x7fc0;
+uint256 internal constant BARYCENTRIC_TEMP_25_LOC = 0x7fe0;
+uint256 internal constant BARYCENTRIC_TEMP_26_LOC = 0x8000;
+uint256 internal constant BARYCENTRIC_TEMP_27_LOC = 0x8020;
+uint256 internal constant BARYCENTRIC_TEMP_28_LOC = 0x8040;
+uint256 internal constant BARYCENTRIC_TEMP_29_LOC = 0x8060;
+uint256 internal constant BARYCENTRIC_TEMP_30_LOC = 0x8080;
+uint256 internal constant BARYCENTRIC_TEMP_31_LOC = 0x80a0;
+uint256 internal constant BARYCENTRIC_TEMP_32_LOC = 0x80c0;
+uint256 internal constant BARYCENTRIC_TEMP_33_LOC = 0x80e0;
+uint256 internal constant BARYCENTRIC_TEMP_34_LOC = 0x8100;
+uint256 internal constant BARYCENTRIC_TEMP_35_LOC = 0x8120;
+uint256 internal constant BARYCENTRIC_TEMP_36_LOC = 0x8140;
+uint256 internal constant BARYCENTRIC_TEMP_37_LOC = 0x8160;
+uint256 internal constant BARYCENTRIC_TEMP_38_LOC = 0x8180;
+uint256 internal constant BARYCENTRIC_TEMP_39_LOC = 0x81a0;
+uint256 internal constant BARYCENTRIC_TEMP_40_LOC = 0x81c0;
+uint256 internal constant BARYCENTRIC_TEMP_41_LOC = 0x81e0;
+uint256 internal constant BARYCENTRIC_TEMP_42_LOC = 0x8200;
+uint256 internal constant BARYCENTRIC_TEMP_43_LOC = 0x8220;
+uint256 internal constant BARYCENTRIC_TEMP_44_LOC = 0x8240;
+uint256 internal constant BARYCENTRIC_TEMP_45_LOC = 0x8260;
+uint256 internal constant BARYCENTRIC_TEMP_46_LOC = 0x8280;
+uint256 internal constant BARYCENTRIC_TEMP_47_LOC = 0x82a0;
+uint256 internal constant BARYCENTRIC_TEMP_48_LOC = 0x82c0;
+uint256 internal constant BARYCENTRIC_TEMP_49_LOC = 0x82e0;
+uint256 internal constant BARYCENTRIC_TEMP_50_LOC = 0x8300;
+uint256 internal constant BARYCENTRIC_TEMP_51_LOC = 0x8320;
+uint256 internal constant BARYCENTRIC_TEMP_52_LOC = 0x8340;
+uint256 internal constant BARYCENTRIC_TEMP_53_LOC = 0x8360;
+uint256 internal constant BARYCENTRIC_TEMP_54_LOC = 0x8380;
+uint256 internal constant BARYCENTRIC_TEMP_55_LOC = 0x83a0;
+uint256 internal constant BARYCENTRIC_TEMP_56_LOC = 0x83c0;
+uint256 internal constant BARYCENTRIC_TEMP_57_LOC = 0x83e0;
+uint256 internal constant BARYCENTRIC_TEMP_58_LOC = 0x8400;
+uint256 internal constant BARYCENTRIC_TEMP_59_LOC = 0x8420;
+uint256 internal constant BARYCENTRIC_TEMP_60_LOC = 0x8440;
+uint256 internal constant BARYCENTRIC_TEMP_61_LOC = 0x8460;
+uint256 internal constant BARYCENTRIC_TEMP_62_LOC = 0x8480;
+uint256 internal constant BARYCENTRIC_TEMP_63_LOC = 0x84a0;
+uint256 internal constant BARYCENTRIC_TEMP_64_LOC = 0x84c0;
+uint256 internal constant BARYCENTRIC_TEMP_65_LOC = 0x84e0;
+uint256 internal constant BARYCENTRIC_TEMP_66_LOC = 0x8500;
+uint256 internal constant BARYCENTRIC_TEMP_67_LOC = 0x8520;
+uint256 internal constant BARYCENTRIC_TEMP_68_LOC = 0x8540;
+uint256 internal constant BARYCENTRIC_TEMP_69_LOC = 0x8560;
+uint256 internal constant BARYCENTRIC_TEMP_70_LOC = 0x8580;
+uint256 internal constant BARYCENTRIC_TEMP_71_LOC = 0x85a0;
+uint256 internal constant BARYCENTRIC_TEMP_72_LOC = 0x85c0;
+uint256 internal constant BARYCENTRIC_TEMP_73_LOC = 0x85e0;
+uint256 internal constant BARYCENTRIC_TEMP_74_LOC = 0x8600;
+uint256 internal constant BARYCENTRIC_TEMP_75_LOC = 0x8620;
+uint256 internal constant BARYCENTRIC_TEMP_76_LOC = 0x8640;
+uint256 internal constant BARYCENTRIC_TEMP_77_LOC = 0x8660;
+uint256 internal constant BARYCENTRIC_TEMP_78_LOC = 0x8680;
+uint256 internal constant BARYCENTRIC_TEMP_79_LOC = 0x86a0;
+uint256 internal constant BARYCENTRIC_TEMP_80_LOC = 0x86c0;
+uint256 internal constant BARYCENTRIC_TEMP_81_LOC = 0x86e0;
+uint256 internal constant BARYCENTRIC_TEMP_82_LOC = 0x8700;
+uint256 internal constant BARYCENTRIC_TEMP_83_LOC = 0x8720;
+uint256 internal constant BARYCENTRIC_TEMP_84_LOC = 0x8740;
+uint256 internal constant BARYCENTRIC_TEMP_85_LOC = 0x8760;
+uint256 internal constant BARYCENTRIC_TEMP_86_LOC = 0x8780;
+uint256 internal constant BARYCENTRIC_TEMP_87_LOC = 0x87a0;
+uint256 internal constant BARYCENTRIC_TEMP_88_LOC = 0x87c0;
+uint256 internal constant BARYCENTRIC_TEMP_89_LOC = 0x87e0;
+uint256 internal constant BARYCENTRIC_TEMP_90_LOC = 0x8800;
+uint256 internal constant BARYCENTRIC_TEMP_91_LOC = 0x8820;
+uint256 internal constant BARYCENTRIC_TEMP_92_LOC = 0x8840;
+uint256 internal constant BARYCENTRIC_TEMP_93_LOC = 0x8860;
+uint256 internal constant BARYCENTRIC_TEMP_94_LOC = 0x8880;
+uint256 internal constant BARYCENTRIC_TEMP_95_LOC = 0x88a0;
+uint256 internal constant BARYCENTRIC_TEMP_96_LOC = 0x88c0;
+uint256 internal constant BARYCENTRIC_TEMP_97_LOC = 0x88e0;
+uint256 internal constant BARYCENTRIC_TEMP_98_LOC = 0x8900;
+uint256 internal constant BARYCENTRIC_TEMP_99_LOC = 0x8920;
+uint256 internal constant BARYCENTRIC_TEMP_100_LOC = 0x8940;
+uint256 internal constant BARYCENTRIC_TEMP_101_LOC = 0x8960;
+uint256 internal constant BARYCENTRIC_TEMP_102_LOC = 0x8980;
+uint256 internal constant BARYCENTRIC_TEMP_103_LOC = 0x89a0;
+uint256 internal constant BARYCENTRIC_TEMP_104_LOC = 0x89c0;
+uint256 internal constant BARYCENTRIC_TEMP_105_LOC = 0x89e0;
+uint256 internal constant BARYCENTRIC_TEMP_106_LOC = 0x8a00;
+uint256 internal constant BARYCENTRIC_TEMP_107_LOC = 0x8a20;
+uint256 internal constant BARYCENTRIC_TEMP_108_LOC = 0x8a40;
+uint256 internal constant BARYCENTRIC_TEMP_109_LOC = 0x8a60;
+uint256 internal constant BARYCENTRIC_TEMP_110_LOC = 0x8a80;
+uint256 internal constant BARYCENTRIC_TEMP_111_LOC = 0x8aa0;
+uint256 internal constant BARYCENTRIC_TEMP_112_LOC = 0x8ac0;
+uint256 internal constant BARYCENTRIC_TEMP_113_LOC = 0x8ae0;
+uint256 internal constant BARYCENTRIC_TEMP_114_LOC = 0x8b00;
+uint256 internal constant BARYCENTRIC_TEMP_115_LOC = 0x8b20;
+uint256 internal constant BARYCENTRIC_TEMP_116_LOC = 0x8b40;
+uint256 internal constant BARYCENTRIC_TEMP_117_LOC = 0x8b60;
+uint256 internal constant BARYCENTRIC_TEMP_118_LOC = 0x8b80;
+uint256 internal constant BARYCENTRIC_TEMP_119_LOC = 0x8ba0;
+uint256 internal constant BARYCENTRIC_TEMP_120_LOC = 0x8bc0;
+uint256 internal constant BARYCENTRIC_TEMP_121_LOC = 0x8be0;
+uint256 internal constant BARYCENTRIC_TEMP_122_LOC = 0x8c00;
+uint256 internal constant BARYCENTRIC_TEMP_123_LOC = 0x8c20;
+uint256 internal constant BARYCENTRIC_TEMP_124_LOC = 0x8c40;
+uint256 internal constant BARYCENTRIC_TEMP_125_LOC = 0x8c60;
+uint256 internal constant BARYCENTRIC_TEMP_126_LOC = 0x8c80;
+uint256 internal constant BARYCENTRIC_TEMP_127_LOC = 0x8ca0;
+uint256 internal constant BARYCENTRIC_TEMP_128_LOC = 0x8cc0;
+uint256 internal constant BARYCENTRIC_TEMP_129_LOC = 0x8ce0;
+uint256 internal constant BARYCENTRIC_TEMP_130_LOC = 0x8d00;
+uint256 internal constant BARYCENTRIC_TEMP_131_LOC = 0x8d20;
+uint256 internal constant BARYCENTRIC_TEMP_132_LOC = 0x8d40;
+uint256 internal constant BARYCENTRIC_TEMP_133_LOC = 0x8d60;
+uint256 internal constant BARYCENTRIC_TEMP_134_LOC = 0x8d80;
+uint256 internal constant BARYCENTRIC_TEMP_135_LOC = 0x8da0;
+uint256 internal constant BARYCENTRIC_TEMP_136_LOC = 0x8dc0;
+uint256 internal constant BARYCENTRIC_TEMP_137_LOC = 0x8de0;
+uint256 internal constant BARYCENTRIC_TEMP_138_LOC = 0x8e00;
+uint256 internal constant BARYCENTRIC_TEMP_139_LOC = 0x8e20;
+uint256 internal constant BARYCENTRIC_TEMP_140_LOC = 0x8e40;
+uint256 internal constant BARYCENTRIC_TEMP_141_LOC = 0x8e60;
+uint256 internal constant BARYCENTRIC_TEMP_142_LOC = 0x8e80;
+uint256 internal constant BARYCENTRIC_TEMP_143_LOC = 0x8ea0;
+uint256 internal constant BARYCENTRIC_TEMP_144_LOC = 0x8ec0;
+uint256 internal constant BARYCENTRIC_TEMP_145_LOC = 0x8ee0;
+uint256 internal constant BARYCENTRIC_TEMP_146_LOC = 0x8f00;
+uint256 internal constant BARYCENTRIC_TEMP_147_LOC = 0x8f20;
+uint256 internal constant BARYCENTRIC_TEMP_148_LOC = 0x8f40;
+uint256 internal constant BARYCENTRIC_TEMP_149_LOC = 0x8f60;
+uint256 internal constant BARYCENTRIC_TEMP_150_LOC = 0x8f80;
+uint256 internal constant BARYCENTRIC_TEMP_151_LOC = 0x8fa0;
+uint256 internal constant BARYCENTRIC_TEMP_152_LOC = 0x8fc0;
+uint256 internal constant BARYCENTRIC_TEMP_153_LOC = 0x8fe0;
+uint256 internal constant BARYCENTRIC_TEMP_154_LOC = 0x9000;
+uint256 internal constant BARYCENTRIC_TEMP_155_LOC = 0x9020;
+uint256 internal constant BARYCENTRIC_TEMP_156_LOC = 0x9040;
+uint256 internal constant BARYCENTRIC_TEMP_157_LOC = 0x9060;
+uint256 internal constant BARYCENTRIC_TEMP_158_LOC = 0x9080;
+uint256 internal constant BARYCENTRIC_TEMP_159_LOC = 0x90a0;
+uint256 internal constant BARYCENTRIC_TEMP_160_LOC = 0x90c0;
+uint256 internal constant BARYCENTRIC_TEMP_161_LOC = 0x90e0;
+uint256 internal constant BARYCENTRIC_TEMP_162_LOC = 0x9100;
+uint256 internal constant BARYCENTRIC_TEMP_163_LOC = 0x9120;
+uint256 internal constant BARYCENTRIC_TEMP_164_LOC = 0x9140;
+uint256 internal constant BARYCENTRIC_TEMP_165_LOC = 0x9160;
+uint256 internal constant BARYCENTRIC_TEMP_166_LOC = 0x9180;
+uint256 internal constant BARYCENTRIC_TEMP_167_LOC = 0x91a0;
+uint256 internal constant BARYCENTRIC_TEMP_168_LOC = 0x91c0;
+uint256 internal constant BARYCENTRIC_TEMP_169_LOC = 0x91e0;
+uint256 internal constant BARYCENTRIC_TEMP_170_LOC = 0x9200;
+uint256 internal constant BARYCENTRIC_TEMP_171_LOC = 0x9220;
+uint256 internal constant BARYCENTRIC_TEMP_172_LOC = 0x9240;
+uint256 internal constant BARYCENTRIC_TEMP_173_LOC = 0x9260;
+uint256 internal constant BARYCENTRIC_TEMP_174_LOC = 0x9280;
+uint256 internal constant BARYCENTRIC_TEMP_175_LOC = 0x92a0;
+uint256 internal constant PUBLIC_INPUTS_DENOM_TEMP_LOC = 0x92c0;
+uint256 internal constant GEMINI_R_INV_TEMP_LOC = 0x92e0;
+uint256 internal constant BATCH_PRODUCT_TEMP_LOC = 0x9300;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                                         Temporary space                                          */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant TEMP_0_LOC = 0x5820;
-uint256 internal constant TEMP_1_LOC = 0x5840;
-uint256 internal constant TEMP_2_LOC = 0x5860;
-uint256 internal constant TEMP_3_LOC = 0x5880;
-uint256 internal constant TEMP_4_LOC = 0x58a0;
-uint256 internal constant TEMP_5_LOC = 0x58c0;
-uint256 internal constant TEMP_6_LOC = 0x58e0;
-uint256 internal constant TEMP_7_LOC = 0x5900;
-uint256 internal constant TEMP_8_LOC = 0x5920;
-uint256 internal constant TEMP_9_LOC = 0x5940;
-uint256 internal constant TEMP_10_LOC = 0x5960;
-uint256 internal constant TEMP_11_LOC = 0x5980;
-uint256 internal constant TEMP_12_LOC = 0x59a0;
-uint256 internal constant TEMP_13_LOC = 0x59c0;
-uint256 internal constant TEMP_14_LOC = 0x59e0;
-uint256 internal constant TEMP_15_LOC = 0x5a00;
-uint256 internal constant TEMP_16_LOC = 0x5a20;
-uint256 internal constant TEMP_17_LOC = 0x5a40;
-uint256 internal constant TEMP_18_LOC = 0x5a60;
-uint256 internal constant TEMP_19_LOC = 0x5a80;
-uint256 internal constant TEMP_20_LOC = 0x5aa0;
-uint256 internal constant TEMP_21_LOC = 0x5ac0;
-uint256 internal constant TEMP_22_LOC = 0x5ae0;
-uint256 internal constant TEMP_23_LOC = 0x5b00;
-uint256 internal constant TEMP_24_LOC = 0x5b20;
-uint256 internal constant TEMP_25_LOC = 0x5b40;
-uint256 internal constant TEMP_26_LOC = 0x5b60;
-uint256 internal constant TEMP_27_LOC = 0x5b80;
-uint256 internal constant TEMP_28_LOC = 0x5ba0;
-uint256 internal constant TEMP_29_LOC = 0x5bc0;
-uint256 internal constant TEMP_30_LOC = 0x5be0;
-uint256 internal constant TEMP_31_LOC = 0x5c00;
-uint256 internal constant TEMP_32_LOC = 0x5c20;
-uint256 internal constant TEMP_33_LOC = 0x5c40;
-uint256 internal constant TEMP_34_LOC = 0x5c60;
-uint256 internal constant TEMP_35_LOC = 0x5c80;
-uint256 internal constant TEMP_36_LOC = 0x5ca0;
-uint256 internal constant TEMP_37_LOC = 0x5cc0;
-uint256 internal constant TEMP_38_LOC = 0x5ce0;
-uint256 internal constant TEMP_39_LOC = 0x5d00;
-uint256 internal constant TEMP_40_LOC = 0x5d20;
-uint256 internal constant TEMP_41_LOC = 0x5d40;
-uint256 internal constant TEMP_42_LOC = 0x5d60;
-uint256 internal constant TEMP_43_LOC = 0x5d80;
-uint256 internal constant TEMP_44_LOC = 0x5da0;
-uint256 internal constant TEMP_45_LOC = 0x5dc0;
-uint256 internal constant TEMP_46_LOC = 0x5de0;
-uint256 internal constant TEMP_47_LOC = 0x5e00;
-uint256 internal constant TEMP_48_LOC = 0x5e20;
-uint256 internal constant TEMP_49_LOC = 0x5e40;
-uint256 internal constant TEMP_50_LOC = 0x5e60;
-uint256 internal constant TEMP_51_LOC = 0x5e80;
-uint256 internal constant TEMP_52_LOC = 0x5ea0;
-uint256 internal constant TEMP_53_LOC = 0x5ec0;
-uint256 internal constant TEMP_54_LOC = 0x5ee0;
-uint256 internal constant TEMP_55_LOC = 0x5f00;
-uint256 internal constant TEMP_56_LOC = 0x5f20;
-uint256 internal constant TEMP_57_LOC = 0x5f40;
-uint256 internal constant TEMP_58_LOC = 0x5f60;
-uint256 internal constant TEMP_59_LOC = 0x5f80;
-uint256 internal constant TEMP_60_LOC = 0x5fa0;
-uint256 internal constant TEMP_61_LOC = 0x5fc0;
-uint256 internal constant TEMP_62_LOC = 0x5fe0;
-uint256 internal constant TEMP_63_LOC = 0x6000;
-uint256 internal constant TEMP_64_LOC = 0x6020;
-uint256 internal constant TEMP_65_LOC = 0x6040;
+uint256 internal constant TEMP_0_LOC = 0x9320;
+uint256 internal constant TEMP_1_LOC = 0x9340;
+uint256 internal constant TEMP_2_LOC = 0x9360;
+uint256 internal constant TEMP_3_LOC = 0x9380;
+uint256 internal constant TEMP_4_LOC = 0x93a0;
+uint256 internal constant TEMP_5_LOC = 0x93c0;
+uint256 internal constant TEMP_6_LOC = 0x93e0;
+uint256 internal constant TEMP_7_LOC = 0x9400;
+uint256 internal constant TEMP_8_LOC = 0x9420;
+uint256 internal constant TEMP_9_LOC = 0x9440;
+uint256 internal constant TEMP_10_LOC = 0x9460;
+uint256 internal constant TEMP_11_LOC = 0x9480;
+uint256 internal constant TEMP_12_LOC = 0x94a0;
+uint256 internal constant TEMP_13_LOC = 0x94c0;
+uint256 internal constant TEMP_14_LOC = 0x94e0;
+uint256 internal constant TEMP_15_LOC = 0x9500;
+uint256 internal constant TEMP_16_LOC = 0x9520;
+uint256 internal constant TEMP_17_LOC = 0x9540;
+uint256 internal constant TEMP_18_LOC = 0x9560;
+uint256 internal constant TEMP_19_LOC = 0x9580;
+uint256 internal constant TEMP_20_LOC = 0x95a0;
+uint256 internal constant TEMP_21_LOC = 0x95c0;
+uint256 internal constant TEMP_22_LOC = 0x95e0;
+uint256 internal constant TEMP_23_LOC = 0x9600;
+uint256 internal constant TEMP_24_LOC = 0x9620;
+uint256 internal constant TEMP_25_LOC = 0x9640;
+uint256 internal constant TEMP_26_LOC = 0x9660;
+uint256 internal constant TEMP_27_LOC = 0x9680;
+uint256 internal constant TEMP_28_LOC = 0x96a0;
+uint256 internal constant TEMP_29_LOC = 0x96c0;
+uint256 internal constant TEMP_30_LOC = 0x96e0;
+uint256 internal constant TEMP_31_LOC = 0x9700;
+uint256 internal constant TEMP_32_LOC = 0x9720;
+uint256 internal constant TEMP_33_LOC = 0x9740;
+uint256 internal constant TEMP_34_LOC = 0x9760;
+uint256 internal constant TEMP_35_LOC = 0x9780;
+uint256 internal constant TEMP_36_LOC = 0x97a0;
+uint256 internal constant TEMP_37_LOC = 0x97c0;
+uint256 internal constant TEMP_38_LOC = 0x97e0;
+uint256 internal constant TEMP_39_LOC = 0x9800;
+uint256 internal constant TEMP_40_LOC = 0x9820;
+uint256 internal constant TEMP_41_LOC = 0x9840;
+uint256 internal constant TEMP_42_LOC = 0x9860;
+uint256 internal constant TEMP_43_LOC = 0x9880;
+uint256 internal constant TEMP_44_LOC = 0x98a0;
+uint256 internal constant TEMP_45_LOC = 0x98c0;
+uint256 internal constant TEMP_46_LOC = 0x98e0;
+uint256 internal constant TEMP_47_LOC = 0x9900;
+uint256 internal constant TEMP_48_LOC = 0x9920;
+uint256 internal constant TEMP_49_LOC = 0x9940;
+uint256 internal constant TEMP_50_LOC = 0x9960;
+uint256 internal constant TEMP_51_LOC = 0x9980;
+uint256 internal constant TEMP_52_LOC = 0x99a0;
+uint256 internal constant TEMP_53_LOC = 0x99c0;
+uint256 internal constant TEMP_54_LOC = 0x99e0;
+uint256 internal constant TEMP_55_LOC = 0x9a00;
+uint256 internal constant TEMP_56_LOC = 0x9a20;
+uint256 internal constant TEMP_57_LOC = 0x9a40;
+uint256 internal constant TEMP_58_LOC = 0x9a60;
+uint256 internal constant TEMP_59_LOC = 0x9a80;
+uint256 internal constant TEMP_60_LOC = 0x9aa0;
+uint256 internal constant TEMP_61_LOC = 0x9ac0;
+uint256 internal constant TEMP_62_LOC = 0x9ae0;
+uint256 internal constant TEMP_63_LOC = 0x9b00;
+uint256 internal constant TEMP_64_LOC = 0x9b20;
+uint256 internal constant TEMP_65_LOC = 0x9b40;
+uint256 internal constant LATER_SCRATCH_SPACE = 0x9b60;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                                    Temporary space - COMPLETE                                    */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
 // Aliases for scratch space
-// TODO: work out the stack scheduling for these
+// Scratch space aliases at 0x00-0x40
+// Phase 1 (sumcheck rounds): CHALL_POW_LOC, SUMCHECK_U_LOC, GEMINI_A_LOC
+// Phase 2 (shplemini batch scalars): SS_POS_INV_DENOM_LOC, SS_NEG_INV_DENOM_LOC, SS_GEMINI_EVALS_LOC
+// These phases do not overlap in execution time.
 uint256 internal constant CHALL_POW_LOC = 0;
 uint256 internal constant SUMCHECK_U_LOC = 0x20;
 uint256 internal constant GEMINI_A_LOC = 0x40;
@@ -1131,8 +1316,6 @@ uint256 internal constant SS_NEG_INV_DENOM_LOC = 0x20;
 uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
 
 
-// Aliases
-// Aliases for wire values (Elliptic curve gadget)
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                                    SUMCHECK - MEMORY ALIASES                                     */
@@ -1160,12 +1343,12 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
 
     // Auxiliary relation constants
     // In the Non Native Field Arithmetic Relation, large field elements are broken up into 4 LIMBs of 68 `LIMB_SIZE` bits each.
-    uint256 internal constant LIMB_SIZE = 0x100000000000000000; // 2<<68
+    uint256 internal constant LIMB_SIZE = 0x100000000000000000; // 1<<68
 
     // In the Delta Range Check Relation, there is a range checking relation that can validate 14-bit range checks with only 1
     // extra relation in the execution trace.
     // For large range checks, we decompose them into a collection of 14-bit range checks.
-    uint256 internal constant SUBLIMB_SHIFT = 0x4000; // 2<<14
+    uint256 internal constant SUBLIMB_SHIFT = 0x4000; // 1<<14
 
     // Poseidon2 internal constants
     // https://github.com/HorizenLabs/poseidon2/blob/main/poseidon2_rust_params.sage - derivation code
@@ -1180,7 +1363,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
 
     // Constants inspecting proof components
     uint256 internal constant NUMBER_OF_UNSHIFTED_ENTITIES = 36;
-    // Shifted columns are columes that are duplicates of existing columns but right-shifted by 1
+    // Shifted columns are columns that are duplicates of existing columns but right-shifted by 1
     uint256 internal constant NUMBER_OF_SHIFTED_ENTITIES = 5;
     uint256 internal constant TOTAL_NUMBER_OF_ENTITIES = 41;
 
@@ -1203,10 +1386,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
     uint256 internal constant P_SUB_1 = 21888242871839275222246405745257275088548364400416034343698204186575808495616;
     uint256 internal constant P_SUB_2 = 21888242871839275222246405745257275088548364400416034343698204186575808495615;
     uint256 internal constant P_SUB_3 = 21888242871839275222246405745257275088548364400416034343698204186575808495614;
-    uint256 internal constant P_SUB_4 = 21888242871839275222246405745257275088548364400416034343698204186575808495613;
-    uint256 internal constant P_SUB_5 = 21888242871839275222246405745257275088548364400416034343698204186575808495612;
-    uint256 internal constant P_SUB_6 = 21888242871839275222246405745257275088548364400416034343698204186575808495611;
-    uint256 internal constant P_SUB_7 = 21888242871839275222246405745257275088548364400416034343698204186575808495610;
 
     // Barycentric evaluation constants
     uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_0 =
@@ -1514,10 +1693,10 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 }
 
                 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
-                /*             GENERATE BETA and GAMMAA  CHALLENGE            */
+                /*             GENERATE BETA and GAMMA  CHALLENGE            */
                 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-                // Generate Beta and Gamma Chalenges
+                // Generate Beta and Gamma Challenges
                 // - prevChallenge
                 // - LOOKUP_READ_COUNTS
                 // - LOOKUP_READ_TAGS
@@ -1537,8 +1716,8 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
                 // Generate Alpha challenges - non-linearise the gate contributions
                 //
-                // There are 26 total subrelations in this honk relation, we do not need to non linearise the first sub relation.
-                // There are 25 total gate contributions, a gate contribution is analogous to
+                // There are 28 total subrelations in this honk relation, we do not need to non linearise the first sub relation.
+                // There are 27 total gate contributions, a gate contribution is analogous to
                 // a custom gate, it is an expression which must evaluate to zero for each
                 // row in the constraint matrix
                 //
@@ -1547,7 +1726,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
 
                 mcopy(0x20, LOOKUP_INVERSES_X_LOC, 0x80)
 
-                // Generate single alpha challenge and compute its powers
                 prev_challenge := mod(keccak256(0x00, 0xa0), p)
                 mstore(0x00, prev_challenge)
                 let alpha := and(prev_challenge, LOWER_127_MASK)
@@ -1716,7 +1894,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
             /*                     PUBLIC INPUT DELTA                     */
             /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
             /**
-             * Generate public inputa delta
+             * Generate public inputs delta
              *
              * The public inputs delta leverages plonk's copy constraints in order to
              * evaluate public inputs.
@@ -1757,7 +1935,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 // numerator_acc = gamma + (beta * (PERMUTATION_ARGUMENT_VALUE_SEPARATOR + offset))
                 let numerator_acc :=
                     addmod(gamma, mulmod(beta, add(PERMUTATION_ARGUMENT_VALUE_SEPARATOR, pub_off), p_clone), p_clone)
-                // demonimator_acc = gamma - (beta * (offset + 1))
+                // denominator_acc = gamma - (beta * (offset + 1))
                 let beta_x_off := mulmod(beta, add(pub_off, 1), p_clone)
                 let denominator_acc := addmod(gamma, sub(p_clone, beta_x_off), p_clone)
 
@@ -1805,24 +1983,8 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 mstore(PUBLIC_INPUTS_DELTA_NUMERATOR_CHALLENGE, numerator_value)
                 mstore(PUBLIC_INPUTS_DELTA_DENOMINATOR_CHALLENGE, denominator_value)
 
-                // TODO: batch with barycentric inverses
-                let dom_inverse := 0
-                {
-                    mstore(0, 0x20)
-                    mstore(0x20, 0x20)
-                    mstore(0x40, 0x20)
-                    mstore(0x60, denominator_value)
-                    mstore(0x80, P_SUB_2)
-                    mstore(0xa0, p)
-                    if iszero(staticcall(gas(), 0x05, 0x00, 0xc0, 0x00, 0x20)) {
-                        mstore(0x00, MODEXP_FAILED_SELECTOR)
-                        revert(0x00, 0x04)
-                    }
-                    // 1 / (0 . 1 . 2 . 3 . 4 . 5 . 6 . 7)
-                    dom_inverse := mload(0x00)
-                }
-                // Calculate the public inputs delta
-                mstore(PUBLIC_INPUTS_DELTA_NUMERATOR_CHALLENGE, mulmod(numerator_value, dom_inverse, p))
+                // PI delta denominator inversion is deferred to the barycentric
+                // batch inversion below.
             }
             /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
             /*             PUBLIC INPUT DELTA - complete                  */
@@ -1889,7 +2051,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                     // This requires the barycentric inverses to be computed for each round
                     // Write all of the non inverted barycentric denominators into memory
                     let accumulator := 1
-                    let temp := LATER_SCRATCH_SPACE
+                    let temp := FOLD_POS_EVALUATIONS_21_LOC // we use fold pos evaluations as we add 0x20 immediately to get to `BARYCENTRIC_TEMP_0_LOC`
                     let bary_centric_inverses_off := BARYCENTRIC_DENOMINATOR_INVERSES_0_0_LOC
                     {
                         let round_challenge_off := SUM_U_CHALLENGE_0
@@ -1897,7 +2059,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                             let round_challenge := mload(round_challenge_off)
                             let bary_lagrange_denominator_off := BARYCENTRIC_LAGRANGE_DENOMINATOR_0_LOC
 
-                            // Unrolled as this loop as it only has 8 iterations
+                            // Unrolled as this loop as it only has 8 iterations - somehow this saves >10k gas
                             {
                                 let bary_lagrange_denominator := mload(bary_lagrange_denominator_off)
                                 let pre_inv :=
@@ -1917,7 +2079,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
 
                                 // barycentric_index = 1
                                 bary_lagrange_denominator := mload(bary_lagrange_denominator_off)
-                                pre_inv := mulmod(bary_lagrange_denominator, addmod(round_challenge, P_SUB_1, p), p)
+                                pre_inv := mulmod(bary_lagrange_denominator, addmod(round_challenge, sub(p, 1), p), p)
                                 mstore(bary_centric_inverses_off, pre_inv)
                                 temp := add(temp, 0x20)
                                 mstore(temp, accumulator)
@@ -1929,7 +2091,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
 
                                 // barycentric_index = 2
                                 bary_lagrange_denominator := mload(bary_lagrange_denominator_off)
-                                pre_inv := mulmod(bary_lagrange_denominator, addmod(round_challenge, P_SUB_2, p), p)
+                                pre_inv := mulmod(bary_lagrange_denominator, addmod(round_challenge, sub(p, 2), p), p)
                                 mstore(bary_centric_inverses_off, pre_inv)
                                 temp := add(temp, 0x20)
                                 mstore(temp, accumulator)
@@ -1941,7 +2103,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
 
                                 // barycentric_index = 3
                                 bary_lagrange_denominator := mload(bary_lagrange_denominator_off)
-                                pre_inv := mulmod(bary_lagrange_denominator, addmod(round_challenge, P_SUB_3, p), p)
+                                pre_inv := mulmod(bary_lagrange_denominator, addmod(round_challenge, sub(p, 3), p), p)
                                 mstore(bary_centric_inverses_off, pre_inv)
                                 temp := add(temp, 0x20)
                                 mstore(temp, accumulator)
@@ -1953,7 +2115,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
 
                                 // barycentric_index = 4
                                 bary_lagrange_denominator := mload(bary_lagrange_denominator_off)
-                                pre_inv := mulmod(bary_lagrange_denominator, addmod(round_challenge, P_SUB_4, p), p)
+                                pre_inv := mulmod(bary_lagrange_denominator, addmod(round_challenge, sub(p, 4), p), p)
                                 mstore(bary_centric_inverses_off, pre_inv)
                                 temp := add(temp, 0x20)
                                 mstore(temp, accumulator)
@@ -1965,7 +2127,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
 
                                 // barycentric_index = 5
                                 bary_lagrange_denominator := mload(bary_lagrange_denominator_off)
-                                pre_inv := mulmod(bary_lagrange_denominator, addmod(round_challenge, P_SUB_5, p), p)
+                                pre_inv := mulmod(bary_lagrange_denominator, addmod(round_challenge, sub(p, 5), p), p)
                                 mstore(bary_centric_inverses_off, pre_inv)
                                 temp := add(temp, 0x20)
                                 mstore(temp, accumulator)
@@ -1977,7 +2139,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
 
                                 // barycentric_index = 6
                                 bary_lagrange_denominator := mload(bary_lagrange_denominator_off)
-                                pre_inv := mulmod(bary_lagrange_denominator, addmod(round_challenge, P_SUB_6, p), p)
+                                pre_inv := mulmod(bary_lagrange_denominator, addmod(round_challenge, sub(p, 6), p), p)
                                 mstore(bary_centric_inverses_off, pre_inv)
                                 temp := add(temp, 0x20)
                                 mstore(temp, accumulator)
@@ -1989,7 +2151,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
 
                                 // barycentric_index = 7
                                 bary_lagrange_denominator := mload(bary_lagrange_denominator_off)
-                                pre_inv := mulmod(bary_lagrange_denominator, addmod(round_challenge, P_SUB_7, p), p)
+                                pre_inv := mulmod(bary_lagrange_denominator, addmod(round_challenge, sub(p, 7), p), p)
                                 mstore(bary_centric_inverses_off, pre_inv)
                                 temp := add(temp, 0x20)
                                 mstore(temp, accumulator)
@@ -2003,7 +2165,568 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         }
                     }
 
-                    // Invert all of the barycentric denominators as a single batch
+                    // Append PI delta denominator to the batch inversion
+                    {
+                        let pi_denom := mload(PUBLIC_INPUTS_DELTA_DENOMINATOR_CHALLENGE)
+                        mstore(PUBLIC_INPUTS_DENOM_TEMP_LOC, accumulator)
+                        accumulator := mulmod(accumulator, pi_denom, p)
+                    }
+
+                    // --- Phase 2: Shplemini forward pass ---
+                    // Compute shplemini denominators and accumulate into the running product.
+                    // Pre-inversion values stored in shplemini runtime memory
+                    {
+                        // Compute powers of evaluation challenge: gemini_r^{2^i}
+                        let cache := mload(GEMINI_R_CHALLENGE)
+                        mstore(POWERS_OF_EVALUATION_CHALLENGE_0_LOC, cache)
+                        /// {{ UNROLL_SECTION_START POWERS_OF_EVALUATION_COMPUTATION }}
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_1_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_2_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_3_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_4_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_5_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_6_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_7_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_8_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_9_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_10_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_11_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_12_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_13_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_14_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_15_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_16_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_17_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_18_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_19_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_20_LOC, cache)
+                   cache := mulmod(cache, cache, p)
+                   mstore(POWERS_OF_EVALUATION_CHALLENGE_21_LOC, cache)
+/// {{ UNROLL_SECTION_END POWERS_OF_EVALUATION_COMPUTATION }}
+
+                        // Element 0: gemini_r (seed)
+                        {
+                            let val := mload(GEMINI_R_CHALLENGE)
+                            mstore(GEMINI_R_INV_TEMP_LOC, accumulator)
+                            accumulator := mulmod(accumulator, val, p)
+                        }
+
+                        // Elements 1..LOG_N: INVERTED_CHALLENGE_POW_MINUS_U
+                        /// {{ UNROLL_SECTION_START ACCUMULATE_INVERSES }}
+                       // INVERTED_CHALLENGE_POW_MINUS_U_0
+                       {
+                           let u := mload(SUM_U_CHALLENGE_0)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_0_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_0_LOC, val)
+                           mstore(TEMP_0_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_1
+                       {
+                           let u := mload(SUM_U_CHALLENGE_1)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_1_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_1_LOC, val)
+                           mstore(TEMP_1_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_2
+                       {
+                           let u := mload(SUM_U_CHALLENGE_2)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_2_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_2_LOC, val)
+                           mstore(TEMP_2_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_3
+                       {
+                           let u := mload(SUM_U_CHALLENGE_3)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_3_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_3_LOC, val)
+                           mstore(TEMP_3_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_4
+                       {
+                           let u := mload(SUM_U_CHALLENGE_4)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_4_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_4_LOC, val)
+                           mstore(TEMP_4_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_5
+                       {
+                           let u := mload(SUM_U_CHALLENGE_5)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_5_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_5_LOC, val)
+                           mstore(TEMP_5_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_6
+                       {
+                           let u := mload(SUM_U_CHALLENGE_6)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_6_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_6_LOC, val)
+                           mstore(TEMP_6_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_7
+                       {
+                           let u := mload(SUM_U_CHALLENGE_7)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_7_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_7_LOC, val)
+                           mstore(TEMP_7_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_8
+                       {
+                           let u := mload(SUM_U_CHALLENGE_8)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_8_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_8_LOC, val)
+                           mstore(TEMP_8_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_9
+                       {
+                           let u := mload(SUM_U_CHALLENGE_9)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_9_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_9_LOC, val)
+                           mstore(TEMP_9_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_10
+                       {
+                           let u := mload(SUM_U_CHALLENGE_10)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_10_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_10_LOC, val)
+                           mstore(TEMP_10_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_11
+                       {
+                           let u := mload(SUM_U_CHALLENGE_11)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_11_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_11_LOC, val)
+                           mstore(TEMP_11_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_12
+                       {
+                           let u := mload(SUM_U_CHALLENGE_12)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_12_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_12_LOC, val)
+                           mstore(TEMP_12_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_13
+                       {
+                           let u := mload(SUM_U_CHALLENGE_13)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_13_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_13_LOC, val)
+                           mstore(TEMP_13_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_14
+                       {
+                           let u := mload(SUM_U_CHALLENGE_14)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_14_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_14_LOC, val)
+                           mstore(TEMP_14_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_15
+                       {
+                           let u := mload(SUM_U_CHALLENGE_15)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_15_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_15_LOC, val)
+                           mstore(TEMP_15_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_16
+                       {
+                           let u := mload(SUM_U_CHALLENGE_16)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_16_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_16_LOC, val)
+                           mstore(TEMP_16_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_17
+                       {
+                           let u := mload(SUM_U_CHALLENGE_17)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_17_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_17_LOC, val)
+                           mstore(TEMP_17_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_18
+                       {
+                           let u := mload(SUM_U_CHALLENGE_18)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_18_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_18_LOC, val)
+                           mstore(TEMP_18_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_19
+                       {
+                           let u := mload(SUM_U_CHALLENGE_19)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_19_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_19_LOC, val)
+                           mstore(TEMP_19_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_20
+                       {
+                           let u := mload(SUM_U_CHALLENGE_20)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_20_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_20_LOC, val)
+                           mstore(TEMP_20_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       // INVERTED_CHALLENGE_POW_MINUS_U_21
+                       {
+                           let u := mload(SUM_U_CHALLENGE_21)
+                           let challPow := mload(POWERS_OF_EVALUATION_CHALLENGE_21_LOC)
+                           let val := addmod(mulmod(challPow, addmod(1, sub(p, u), p), p), u, p)
+                           mstore(INVERTED_CHALLENGE_POW_MINUS_U_21_LOC, val)
+                           mstore(TEMP_21_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+
+                     // Accumulate pos inverted denom
+                       // Elements LOG_N+1..2*LOG_N: POS_INVERTED_DENOM
+                       let eval_challenge := mload(SHPLONK_Z_CHALLENGE)
+                    // POS_INVERTED_DENOM_0
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_0_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_0_LOC, val)
+                        mstore(TEMP_22_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_1
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_1_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_1_LOC, val)
+                        mstore(TEMP_23_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_2
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_2_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_2_LOC, val)
+                        mstore(TEMP_24_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_3
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_3_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_3_LOC, val)
+                        mstore(TEMP_25_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_4
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_4_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_4_LOC, val)
+                        mstore(TEMP_26_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_5
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_5_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_5_LOC, val)
+                        mstore(TEMP_27_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_6
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_6_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_6_LOC, val)
+                        mstore(TEMP_28_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_7
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_7_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_7_LOC, val)
+                        mstore(TEMP_29_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_8
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_8_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_8_LOC, val)
+                        mstore(TEMP_30_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_9
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_9_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_9_LOC, val)
+                        mstore(TEMP_31_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_10
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_10_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_10_LOC, val)
+                        mstore(TEMP_32_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_11
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_11_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_11_LOC, val)
+                        mstore(TEMP_33_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_12
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_12_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_12_LOC, val)
+                        mstore(TEMP_34_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_13
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_13_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_13_LOC, val)
+                        mstore(TEMP_35_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_14
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_14_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_14_LOC, val)
+                        mstore(TEMP_36_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_15
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_15_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_15_LOC, val)
+                        mstore(TEMP_37_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_16
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_16_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_16_LOC, val)
+                        mstore(TEMP_38_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_17
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_17_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_17_LOC, val)
+                        mstore(TEMP_39_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_18
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_18_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_18_LOC, val)
+                        mstore(TEMP_40_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_19
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_19_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_19_LOC, val)
+                        mstore(TEMP_41_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_20
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_20_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_20_LOC, val)
+                        mstore(TEMP_42_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+                    // POS_INVERTED_DENOM_21
+                    {
+                        let val := addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_21_LOC))        , p)
+                        mstore(POS_INVERTED_DENOM_21_LOC, val)
+                        mstore(TEMP_43_LOC, accumulator)
+                        accumulator := mulmod(accumulator, val, p)
+                    }
+
+                     // Accumulate neg inverted denom
+                       // Elements 2*LOG_N+1..3*LOG_N: NEG_INVERTED_DENOM
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_0_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_0_LOC, val)
+                           mstore(TEMP_44_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_1_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_1_LOC, val)
+                           mstore(TEMP_45_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_2_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_2_LOC, val)
+                           mstore(TEMP_46_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_3_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_3_LOC, val)
+                           mstore(TEMP_47_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_4_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_4_LOC, val)
+                           mstore(TEMP_48_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_5_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_5_LOC, val)
+                           mstore(TEMP_49_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_6_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_6_LOC, val)
+                           mstore(TEMP_50_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_7_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_7_LOC, val)
+                           mstore(TEMP_51_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_8_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_8_LOC, val)
+                           mstore(TEMP_52_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_9_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_9_LOC, val)
+                           mstore(TEMP_53_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_10_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_10_LOC, val)
+                           mstore(TEMP_54_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_11_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_11_LOC, val)
+                           mstore(TEMP_55_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_12_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_12_LOC, val)
+                           mstore(TEMP_56_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_13_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_13_LOC, val)
+                           mstore(TEMP_57_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_14_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_14_LOC, val)
+                           mstore(TEMP_58_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_15_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_15_LOC, val)
+                           mstore(TEMP_59_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_16_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_16_LOC, val)
+                           mstore(TEMP_60_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_17_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_17_LOC, val)
+                           mstore(TEMP_61_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_18_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_18_LOC, val)
+                           mstore(TEMP_62_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_19_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_19_LOC, val)
+                           mstore(TEMP_63_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_20_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_20_LOC, val)
+                           mstore(TEMP_64_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+                       {
+                           let val := addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_21_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_21_LOC, val)
+                           mstore(TEMP_65_LOC, accumulator)
+                           accumulator := mulmod(accumulator, val, p)
+                       }
+/// {{ UNROLL_SECTION_END ACCUMULATE_INVERSES }}
+
+                    // Invert all elements (barycentric + PI delta + shplemini) as a single batch
                     {
                         {
                             mstore(0, 0x20)
@@ -2018,6 +2741,435 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                             }
 
                             accumulator := mload(0x00)
+                            if iszero(accumulator) {
+                                mstore(0x00, MODEXP_FAILED_SELECTOR)
+                                revert(0x00, 0x04)
+                            }
+                        }
+
+                        // --- Shplemini backward pass ---
+                        // Extract shplemini inverses in strict reverse order.
+                        /// {{ UNROLL_SECTION_START COLLECT_INVERSES }}
+                       // i = 22
+                       // NEG_INVERTED_DENOM (LOG_N elements, reverse) -- last group appended
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_65_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_21_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_21_LOC, tmp)
+                   }
+            // i = 21
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_64_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_20_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_20_LOC, tmp)
+                   }
+            // i = 20
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_63_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_19_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_19_LOC, tmp)
+                   }
+            // i = 19
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_62_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_18_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_18_LOC, tmp)
+                   }
+            // i = 18
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_61_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_17_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_17_LOC, tmp)
+                   }
+            // i = 17
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_60_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_16_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_16_LOC, tmp)
+                   }
+            // i = 16
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_59_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_15_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_15_LOC, tmp)
+                   }
+            // i = 15
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_58_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_14_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_14_LOC, tmp)
+                   }
+            // i = 14
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_57_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_13_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_13_LOC, tmp)
+                   }
+            // i = 13
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_56_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_12_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_12_LOC, tmp)
+                   }
+            // i = 12
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_55_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_11_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_11_LOC, tmp)
+                   }
+            // i = 11
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_54_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_10_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_10_LOC, tmp)
+                   }
+            // i = 10
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_53_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_9_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_9_LOC, tmp)
+                   }
+            // i = 9
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_52_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_8_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_8_LOC, tmp)
+                   }
+            // i = 8
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_51_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_7_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_7_LOC, tmp)
+                   }
+            // i = 7
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_50_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_6_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_6_LOC, tmp)
+                   }
+            // i = 6
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_49_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_5_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_5_LOC, tmp)
+                   }
+            // i = 5
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_48_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_4_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_4_LOC, tmp)
+                   }
+            // i = 4
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_47_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_3_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_3_LOC, tmp)
+                   }
+            // i = 3
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_46_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_2_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_2_LOC, tmp)
+                   }
+            // i = 2
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_45_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_1_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_1_LOC, tmp)
+                   }
+            // i = 1
+                       {
+                           let tmp := mulmod(accumulator, mload(TEMP_44_LOC), p)
+                           accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_0_LOC), p)
+                           mstore(NEG_INVERTED_DENOM_0_LOC, tmp)
+                   }
+
+            // Unrolled for LOG_N = 22
+            // i = 22
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_43_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_21_LOC), p)
+                mstore(POS_INVERTED_DENOM_21_LOC, tmp)
+            }
+            // i = 21
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_42_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_20_LOC), p)
+                mstore(POS_INVERTED_DENOM_20_LOC, tmp)
+            }
+            // i = 20
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_41_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_19_LOC), p)
+                mstore(POS_INVERTED_DENOM_19_LOC, tmp)
+            }
+            // i = 19
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_40_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_18_LOC), p)
+                mstore(POS_INVERTED_DENOM_18_LOC, tmp)
+            }
+            // i = 18
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_39_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_17_LOC), p)
+                mstore(POS_INVERTED_DENOM_17_LOC, tmp)
+            }
+            // i = 17
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_38_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_16_LOC), p)
+                mstore(POS_INVERTED_DENOM_16_LOC, tmp)
+            }
+            // i = 16
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_37_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_15_LOC), p)
+                mstore(POS_INVERTED_DENOM_15_LOC, tmp)
+            }
+            // i = 15
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_36_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_14_LOC), p)
+                mstore(POS_INVERTED_DENOM_14_LOC, tmp)
+            }
+            // i = 14
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_35_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_13_LOC), p)
+                mstore(POS_INVERTED_DENOM_13_LOC, tmp)
+            }
+            // i = 13
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_34_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_12_LOC), p)
+                mstore(POS_INVERTED_DENOM_12_LOC, tmp)
+            }
+            // i = 12
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_33_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_11_LOC), p)
+                mstore(POS_INVERTED_DENOM_11_LOC, tmp)
+            }
+            // i = 11
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_32_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_10_LOC), p)
+                mstore(POS_INVERTED_DENOM_10_LOC, tmp)
+            }
+            // i = 10
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_31_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_9_LOC), p)
+                mstore(POS_INVERTED_DENOM_9_LOC, tmp)
+            }
+            // i = 9
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_30_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_8_LOC), p)
+                mstore(POS_INVERTED_DENOM_8_LOC, tmp)
+            }
+            // i = 8
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_29_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_7_LOC), p)
+                mstore(POS_INVERTED_DENOM_7_LOC, tmp)
+            }
+            // i = 7
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_28_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_6_LOC), p)
+                mstore(POS_INVERTED_DENOM_6_LOC, tmp)
+            }
+            // i = 6
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_27_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_5_LOC), p)
+                mstore(POS_INVERTED_DENOM_5_LOC, tmp)
+            }
+            // i = 5
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_26_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_4_LOC), p)
+                mstore(POS_INVERTED_DENOM_4_LOC, tmp)
+            }
+            // i = 4
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_25_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_3_LOC), p)
+                mstore(POS_INVERTED_DENOM_3_LOC, tmp)
+            }
+            // i = 3
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_24_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_2_LOC), p)
+                mstore(POS_INVERTED_DENOM_2_LOC, tmp)
+            }
+            // i = 2
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_23_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_1_LOC), p)
+                mstore(POS_INVERTED_DENOM_1_LOC, tmp)
+            }
+            // i = 1
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_22_LOC), p)
+                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_0_LOC), p)
+                mstore(POS_INVERTED_DENOM_0_LOC, tmp)
+            }
+
+            // i = 22
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_21_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_21_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_21_LOC, tmp)
+            }
+            // i = 21
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_20_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_20_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_20_LOC, tmp)
+            }
+            // i = 20
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_19_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_19_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_19_LOC, tmp)
+            }
+            // i = 19
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_18_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_18_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_18_LOC, tmp)
+            }
+            // i = 18
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_17_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_17_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_17_LOC, tmp)
+            }
+            // i = 17
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_16_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_16_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_16_LOC, tmp)
+            }
+            // i = 16
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_15_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_15_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_15_LOC, tmp)
+            }
+            // i = 15
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_14_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_14_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_14_LOC, tmp)
+            }
+            // i = 14
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_13_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_13_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_13_LOC, tmp)
+            }
+            // i = 13
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_12_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_12_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_12_LOC, tmp)
+            }
+            // i = 12
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_11_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_11_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_11_LOC, tmp)
+            }
+            // i = 11
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_10_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_10_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_10_LOC, tmp)
+            }
+            // i = 10
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_9_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_9_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_9_LOC, tmp)
+            }
+            // i = 9
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_8_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_8_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_8_LOC, tmp)
+            }
+            // i = 8
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_7_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_7_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_7_LOC, tmp)
+            }
+            // i = 7
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_6_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_6_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_6_LOC, tmp)
+            }
+            // i = 6
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_5_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_5_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_5_LOC, tmp)
+            }
+            // i = 5
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_4_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_4_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_4_LOC, tmp)
+            }
+            // i = 4
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_3_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_3_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_3_LOC, tmp)
+            }
+            // i = 3
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_2_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_2_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_2_LOC, tmp)
+            }
+            // i = 2
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_1_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_1_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_1_LOC, tmp)
+            }
+            // i = 1
+            {
+                let tmp := mulmod(accumulator, mload(TEMP_0_LOC), p)
+                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENGE_POW_MINUS_U_0_LOC), p)
+                mstore(INVERTED_CHALLENGE_POW_MINUS_U_0_LOC, tmp)
+            }
+/// {{ UNROLL_SECTION_END COLLECT_INVERSES }}
+
+                            // gemini_r inverse (staging[0])
+                            {
+                                let tmp := mulmod(accumulator, mload(GEMINI_R_INV_TEMP_LOC), p)
+                                accumulator := mulmod(accumulator, mload(GEMINI_R_CHALLENGE), p)
+                                mstore(GEMINI_R_INV_LOC, tmp) // 1/gemini_r at staging[0]
+                            }
+                        }
+
+                        // Extract PI delta denominator inverse from the batch
+                        {
+                            let pi_delta_inv := mulmod(accumulator, mload(PUBLIC_INPUTS_DENOM_TEMP_LOC), p)
+                            accumulator := mulmod(accumulator, mload(PUBLIC_INPUTS_DELTA_DENOMINATOR_CHALLENGE), p)
+
+                            // Finalize: public_inputs_delta = numerator * (1/denominator)
+                            mstore(
+                                PUBLIC_INPUTS_DELTA_NUMERATOR_CHALLENGE,
+                                mulmod(mload(PUBLIC_INPUTS_DELTA_NUMERATOR_CHALLENGE), pi_delta_inv, p)
+                            )
                         }
 
                         // Normalise as last loop will have incremented the offset
@@ -2052,13 +3204,13 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
 
                     // Compute next target sum
                     let numerator_value := round_challenge
-                    numerator_value := mulmod(numerator_value, addmod(round_challenge, P_SUB_1, p), p)
-                    numerator_value := mulmod(numerator_value, addmod(round_challenge, P_SUB_2, p), p)
-                    numerator_value := mulmod(numerator_value, addmod(round_challenge, P_SUB_3, p), p)
-                    numerator_value := mulmod(numerator_value, addmod(round_challenge, P_SUB_4, p), p)
-                    numerator_value := mulmod(numerator_value, addmod(round_challenge, P_SUB_5, p), p)
-                    numerator_value := mulmod(numerator_value, addmod(round_challenge, P_SUB_6, p), p)
-                    numerator_value := mulmod(numerator_value, addmod(round_challenge, P_SUB_7, p), p)
+                    numerator_value := mulmod(numerator_value, addmod(round_challenge, sub(p, 1), p), p)
+                    numerator_value := mulmod(numerator_value, addmod(round_challenge, sub(p, 2), p), p)
+                    numerator_value := mulmod(numerator_value, addmod(round_challenge, sub(p, 3), p), p)
+                    numerator_value := mulmod(numerator_value, addmod(round_challenge, sub(p, 4), p), p)
+                    numerator_value := mulmod(numerator_value, addmod(round_challenge, sub(p, 5), p), p)
+                    numerator_value := mulmod(numerator_value, addmod(round_challenge, sub(p, 6), p), p)
+                    numerator_value := mulmod(numerator_value, addmod(round_challenge, sub(p, 7), p), p)
 
                     // // Compute the next round target
                     round_target := 0
@@ -2076,7 +3228,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
 
                     // Partially evaluate POW
                     let gate_challenge := mload(gate_challenge_off)
-                    let gate_challenge_minus_one := sub(gate_challenge, 1)
+                    let gate_challenge_minus_one := addmod(gate_challenge, sub(p, 1), p)
 
                     let univariate_evaluation := addmod(1, mulmod(round_challenge, gate_challenge_minus_one, p), p)
 
@@ -2098,7 +3250,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 mstore(FINAL_ROUND_TARGET_LOC, round_target)
 
                 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
-                /*                        LOGUP RELATION                      */
+                /*                    ARITHMETIC RELATION                     */
                 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
                 {
                     /**
@@ -2147,7 +3299,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         mulmod(
                             mulmod(
                                 mulmod(mulmod(mload(W1_EVAL_LOC), mload(W2_EVAL_LOC), p), mload(QM_EVAL_LOC), p),
-                                addmod(q_arith, P_SUB_3, p),
+                                addmod(q_arith, sub(p, 3), p),
                                 p
                             ),
                             NEG_HALF_MODULO_P,
@@ -2168,7 +3320,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                     // α * (q_arith - 2) * (w_1 + w_4 - w_1_omega + q_m)
                     let extra_small_addition_gate_identity :=
                         mulmod(
-                            addmod(q_arith, P_SUB_2, p),
+                            addmod(q_arith, sub(p, 2), p),
                             addmod(
                                 mload(QM_EVAL_LOC),
                                 addmod(
@@ -2183,11 +3335,11 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
 
                     // Split up the two relations
                     let contribution_0 :=
-                        addmod(identity, mulmod(addmod(q_arith, P_SUB_1, p), mload(W4_SHIFT_EVAL_LOC), p), p)
+                        addmod(identity, mulmod(addmod(q_arith, sub(p, 1), p), mload(W4_SHIFT_EVAL_LOC), p), p)
                     contribution_0 := mulmod(mulmod(contribution_0, q_arith, p), mload(POW_PARTIAL_EVALUATION_LOC), p)
                     mstore(SUBRELATION_EVAL_0_LOC, contribution_0)
 
-                    let contribution_1 := mulmod(extra_small_addition_gate_identity, addmod(q_arith, P_SUB_1, p), p)
+                    let contribution_1 := mulmod(extra_small_addition_gate_identity, addmod(q_arith, sub(p, 1), p), p)
                     contribution_1 := mulmod(contribution_1, q_arith, p)
                     contribution_1 := mulmod(contribution_1, mload(POW_PARTIAL_EVALUATION_LOC), p)
                     mstore(SUBRELATION_EVAL_1_LOC, contribution_1)
@@ -2205,7 +3357,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                      * t2 = (W3 + gamma + beta * ID3) * (W4 + gamma + beta * ID4)
                      * gp_numerator = t1 * t2
                      * t1 = (W1 + gamma + beta * sigma_1_eval) * (W2 + gamma + beta * sigma_2_eval)
-                     * t2 = (W2 + gamma + beta * sigma_3_eval) * (W3 + gamma + beta * sigma_4_eval)
+                     * t2 = (W3 + gamma + beta * sigma_3_eval) * (W4 + gamma + beta * sigma_4_eval)
                      * gp_denominator = t1 * t2
                      */
                     let t1 :=
@@ -2328,7 +3480,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                     )
 
                     let read_tag := mload(LOOKUP_READ_TAGS_EVAL_LOC)
-                    let read_tag_boolean_relation := mulmod(read_tag, addmod(read_tag, P_SUB_1, p), p)
+                    let read_tag_boolean_relation := mulmod(read_tag, addmod(read_tag, sub(p, 1), p), p)
                     read_tag_boolean_relation := mulmod(read_tag_boolean_relation, mload(POW_PARTIAL_EVALUATION_LOC), p)
 
                     mstore(SUBRELATION_EVAL_4_LOC, accumulator_none)
@@ -2340,7 +3492,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 /*                   DELTA RANGE RELATION                     */
                 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
                 {
-                    // TODO(md): optimise the calculations
                     let minus_one := P_SUB_1
                     let minus_two := P_SUB_2
                     let minus_three := P_SUB_3
@@ -2534,7 +3685,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                          *
                          * memory_record_check -= w_4;
                          */
-                        // TODO(md): update these - formula has changed with lower degree
                         let memory_record_check := mulmod(mload(W3_EVAL_LOC), mload(ETA_THREE_CHALLENGE), p)
                         memory_record_check := addmod(
                             memory_record_check,
@@ -2784,7 +3934,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                      *            \_                                                                               _/
                      *
                      * limb_subproduct = w_1 . w_2_shift + w_1_shift . w_2
-                     * non_native_field_gate_2 = w_1 * w_4 + w_4 * w_3 - w_3_shift
+                     * non_native_field_gate_2 = w_1 * w_4 + w_2 * w_3 - w_3_shift
                      * non_native_field_gate_2 = non_native_field_gate_2 * limb_size
                      * non_native_field_gate_2 -= w_4_shift
                      * non_native_field_gate_2 += limb_subproduct
@@ -3194,720 +4344,29 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
             /*                       SHPLEMINI                            */
             /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-            // Compute powers of evaluation challenge
-            let cache := mload(GEMINI_R_CHALLENGE)
-            let off := POWERS_OF_EVALUATION_CHALLENGE_0_LOC
-            mstore(off, cache)
-
-            for { let i := 1 } lt(i, LOG_N) { i := add(i, 1) } {
-                off := add(off, 0x20)
-                cache := mulmod(cache, cache, p)
-                mstore(off, cache)
-            }
-
-            // Compute Inverted Gemini Denominators
-            let eval_challenge := mload(SHPLONK_Z_CHALLENGE)
-
-            // TO be inverted in the batch invert below
-            // TODO: maybe not needed to go in memory
-            mstore(
-                INVERTED_GEMINI_DENOMINATOR_0_LOC,
-                addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_0_LOC)), p)
-            )
-
-            mstore(
-                POS_INVERTED_DENOM_0_LOC,
-                addmod(eval_challenge, sub(p, mload(POWERS_OF_EVALUATION_CHALLENGE_0_LOC)), p)
-            )
-            mstore(NEG_INVERTED_DENOM_0_LOC, addmod(eval_challenge, mload(POWERS_OF_EVALUATION_CHALLENGE_0_LOC), p))
-
-            // Compute Fold Pos Evaluatios
-
-            // In order to compute fold pos evaluations we need
-            let store_off := INVERTED_CHALLENEGE_POW_MINUS_U_21_LOC
-            let pow_off := POWERS_OF_EVALUATION_CHALLENGE_21_LOC
-            let sumcheck_u_off := SUM_U_CHALLENGE_21
-
-            // TODO: challengePower * (ONE - u) can be cached - measure performance
-            for { let i := LOG_N } gt(i, 0) { i := sub(i, 1) } {
-                let u := mload(sumcheck_u_off)
-
-                let challPowerMulMinusU := mulmod(mload(pow_off), addmod(1, sub(p, u), p), p)
-
-                mstore(store_off, addmod(challPowerMulMinusU, u, p))
-
-                store_off := sub(store_off, 0x20)
-                pow_off := sub(pow_off, 0x20)
-                sumcheck_u_off := sub(sumcheck_u_off, 0x20)
-            }
-
-            // Compute
-            {
-                let pos_inverted_off := POS_INVERTED_DENOM_1_LOC
-                let neg_inverted_off := NEG_INVERTED_DENOM_1_LOC
-                pow_off := POWERS_OF_EVALUATION_CHALLENGE_1_LOC
-
-                let shplonk_z := mload(SHPLONK_Z_CHALLENGE)
-                for { let i := 0 } lt(i, sub(LOG_N, 1)) { i := add(i, 1) } {
-                    let pow := mload(pow_off)
-
-                    let pos_inv := addmod(shplonk_z, sub(p, pow), p)
-                    mstore(pos_inverted_off, pos_inv)
-
-                    let neg_inv := addmod(shplonk_z, pow, p)
-                    mstore(neg_inverted_off, neg_inv)
-
-                    pow_off := add(pow_off, 0x20)
-                    pos_inverted_off := add(pos_inverted_off, 0x20)
-                    neg_inverted_off := add(neg_inverted_off, 0x20)
-                }
-            }
-
-            // To be inverted
-            // From: computeFoldPosEvaluations
-            // Series of challengePower * (ONE - u)
-            // gemini r challenge
-            // Inverted denominators
-            // (shplonkZ - powers of evaluaion challenge[i + 1])
-            // (shplonkZ + powers of evaluation challenge[i + 1])
-
-            // Use scratch space for temps
-
-            let accumulator := mload(GEMINI_R_CHALLENGE)
-
-            /// {{ UNROLL_SECTION_START ACCUMULATE_INVERSES }}
-            // i = 0
-            mstore(TEMP_0_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_0_LOC), p)
-            // i = 1
-            mstore(TEMP_1_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_1_LOC), p)
-            // i = 2
-            mstore(TEMP_2_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_2_LOC), p)
-            // i = 3
-            mstore(TEMP_3_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_3_LOC), p)
-            // i = 4
-            mstore(TEMP_4_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_4_LOC), p)
-            // i = 5
-            mstore(TEMP_5_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_5_LOC), p)
-            // i = 6
-            mstore(TEMP_6_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_6_LOC), p)
-            // i = 7
-            mstore(TEMP_7_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_7_LOC), p)
-            // i = 8
-            mstore(TEMP_8_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_8_LOC), p)
-            // i = 9
-            mstore(TEMP_9_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_9_LOC), p)
-            // i = 10
-            mstore(TEMP_10_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_10_LOC), p)
-            // i = 11
-            mstore(TEMP_11_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_11_LOC), p)
-            // i = 12
-            mstore(TEMP_12_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_12_LOC), p)
-            // i = 13
-            mstore(TEMP_13_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_13_LOC), p)
-            // i = 14
-            mstore(TEMP_14_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_14_LOC), p)
-            // i = 15
-            mstore(TEMP_15_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_15_LOC), p)
-            // i = 16
-            mstore(TEMP_16_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_16_LOC), p)
-            // i = 17
-            mstore(TEMP_17_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_17_LOC), p)
-            // i = 18
-            mstore(TEMP_18_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_18_LOC), p)
-            // i = 19
-            mstore(TEMP_19_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_19_LOC), p)
-            // i = 20
-            mstore(TEMP_20_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_20_LOC), p)
-            // i = 21
-            mstore(TEMP_21_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_21_LOC), p)
-
-            // Accumulate pos inverted denom
-            // i = 0
-            mstore(TEMP_22_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_0_LOC), p)
-            // i = 1
-            mstore(TEMP_23_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_1_LOC), p)
-            // i = 2
-            mstore(TEMP_24_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_2_LOC), p)
-            // i = 3
-            mstore(TEMP_25_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_3_LOC), p)
-            // i = 4
-            mstore(TEMP_26_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_4_LOC), p)
-            // i = 5
-            mstore(TEMP_27_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_5_LOC), p)
-            // i = 6
-            mstore(TEMP_28_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_6_LOC), p)
-            // i = 7
-            mstore(TEMP_29_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_7_LOC), p)
-            // i = 8
-            mstore(TEMP_30_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_8_LOC), p)
-            // i = 9
-            mstore(TEMP_31_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_9_LOC), p)
-            // i = 10
-            mstore(TEMP_32_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_10_LOC), p)
-            // i = 11
-            mstore(TEMP_33_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_11_LOC), p)
-            // i = 12
-            mstore(TEMP_34_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_12_LOC), p)
-            // i = 13
-            mstore(TEMP_35_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_13_LOC), p)
-            // i = 14
-            mstore(TEMP_36_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_14_LOC), p)
-            // i = 15
-            mstore(TEMP_37_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_15_LOC), p)
-            // i = 16
-            mstore(TEMP_38_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_16_LOC), p)
-            // i = 17
-            mstore(TEMP_39_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_17_LOC), p)
-            // i = 18
-            mstore(TEMP_40_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_18_LOC), p)
-            // i = 19
-            mstore(TEMP_41_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_19_LOC), p)
-            // i = 20
-            mstore(TEMP_42_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_20_LOC), p)
-            // i = 21
-            mstore(TEMP_43_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_21_LOC), p)
-
-            // Accumulate neg inverted denom
-            // i = 0
-            mstore(TEMP_44_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_0_LOC), p)
-            // i = 1
-            mstore(TEMP_45_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_1_LOC), p)
-            // i = 2
-            mstore(TEMP_46_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_2_LOC), p)
-            // i = 3
-            mstore(TEMP_47_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_3_LOC), p)
-            // i = 4
-            mstore(TEMP_48_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_4_LOC), p)
-            // i = 5
-            mstore(TEMP_49_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_5_LOC), p)
-            // i = 6
-            mstore(TEMP_50_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_6_LOC), p)
-            // i = 7
-            mstore(TEMP_51_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_7_LOC), p)
-            // i = 8
-            mstore(TEMP_52_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_8_LOC), p)
-            // i = 9
-            mstore(TEMP_53_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_9_LOC), p)
-            // i = 10
-            mstore(TEMP_54_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_10_LOC), p)
-            // i = 11
-            mstore(TEMP_55_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_11_LOC), p)
-            // i = 12
-            mstore(TEMP_56_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_12_LOC), p)
-            // i = 13
-            mstore(TEMP_57_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_13_LOC), p)
-            // i = 14
-            mstore(TEMP_58_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_14_LOC), p)
-            // i = 15
-            mstore(TEMP_59_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_15_LOC), p)
-            // i = 16
-            mstore(TEMP_60_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_16_LOC), p)
-            // i = 17
-            mstore(TEMP_61_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_17_LOC), p)
-            // i = 18
-            mstore(TEMP_62_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_18_LOC), p)
-            // i = 19
-            mstore(TEMP_63_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_19_LOC), p)
-            // i = 20
-            mstore(TEMP_64_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_20_LOC), p)
-            // i = 21
-            mstore(TEMP_65_LOC, accumulator)
-            accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_21_LOC), p)
-/// {{UNROLL_SECTION_END ACCUMULATE_INVERSES }}
-
-            {
-                mstore(0, 0x20)
-                mstore(0x20, 0x20)
-                mstore(0x40, 0x20)
-                mstore(0x60, accumulator)
-                mstore(0x80, P_SUB_2)
-                mstore(0xa0, p)
-                if iszero(staticcall(gas(), 0x05, 0x00, 0xc0, 0x00, 0x20)) {
-                    mstore(0x00, MODEXP_FAILED_SELECTOR)
-                    revert(0x00, 0x04)
-                }
-                accumulator := mload(0x00)
-            }
-
-            /// {{ UNROLL_SECTION_START COLLECT_INVERSES }}
-            // i = 22
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_65_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_21_LOC), p)
-                mstore(NEG_INVERTED_DENOM_21_LOC, tmp)
-            }
-            // i = 21
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_64_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_20_LOC), p)
-                mstore(NEG_INVERTED_DENOM_20_LOC, tmp)
-            }
-            // i = 20
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_63_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_19_LOC), p)
-                mstore(NEG_INVERTED_DENOM_19_LOC, tmp)
-            }
-            // i = 19
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_62_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_18_LOC), p)
-                mstore(NEG_INVERTED_DENOM_18_LOC, tmp)
-            }
-            // i = 18
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_61_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_17_LOC), p)
-                mstore(NEG_INVERTED_DENOM_17_LOC, tmp)
-            }
-            // i = 17
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_60_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_16_LOC), p)
-                mstore(NEG_INVERTED_DENOM_16_LOC, tmp)
-            }
-            // i = 16
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_59_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_15_LOC), p)
-                mstore(NEG_INVERTED_DENOM_15_LOC, tmp)
-            }
-            // i = 15
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_58_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_14_LOC), p)
-                mstore(NEG_INVERTED_DENOM_14_LOC, tmp)
-            }
-            // i = 14
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_57_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_13_LOC), p)
-                mstore(NEG_INVERTED_DENOM_13_LOC, tmp)
-            }
-            // i = 13
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_56_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_12_LOC), p)
-                mstore(NEG_INVERTED_DENOM_12_LOC, tmp)
-            }
-            // i = 12
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_55_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_11_LOC), p)
-                mstore(NEG_INVERTED_DENOM_11_LOC, tmp)
-            }
-            // i = 11
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_54_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_10_LOC), p)
-                mstore(NEG_INVERTED_DENOM_10_LOC, tmp)
-            }
-            // i = 10
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_53_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_9_LOC), p)
-                mstore(NEG_INVERTED_DENOM_9_LOC, tmp)
-            }
-            // i = 9
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_52_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_8_LOC), p)
-                mstore(NEG_INVERTED_DENOM_8_LOC, tmp)
-            }
-            // i = 8
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_51_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_7_LOC), p)
-                mstore(NEG_INVERTED_DENOM_7_LOC, tmp)
-            }
-            // i = 7
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_50_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_6_LOC), p)
-                mstore(NEG_INVERTED_DENOM_6_LOC, tmp)
-            }
-            // i = 6
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_49_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_5_LOC), p)
-                mstore(NEG_INVERTED_DENOM_5_LOC, tmp)
-            }
-            // i = 5
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_48_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_4_LOC), p)
-                mstore(NEG_INVERTED_DENOM_4_LOC, tmp)
-            }
-            // i = 4
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_47_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_3_LOC), p)
-                mstore(NEG_INVERTED_DENOM_3_LOC, tmp)
-            }
-            // i = 3
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_46_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_2_LOC), p)
-                mstore(NEG_INVERTED_DENOM_2_LOC, tmp)
-            }
-            // i = 2
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_45_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_1_LOC), p)
-                mstore(NEG_INVERTED_DENOM_1_LOC, tmp)
-            }
-            // i = 1
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_44_LOC), p)
-                accumulator := mulmod(accumulator, mload(NEG_INVERTED_DENOM_0_LOC), p)
-                mstore(NEG_INVERTED_DENOM_0_LOC, tmp)
-            }
-
-            // Unrolled for LOG_N = 22
-            // i = 22
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_43_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_21_LOC), p)
-                mstore(POS_INVERTED_DENOM_21_LOC, tmp)
-            }
-            // i = 21
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_42_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_20_LOC), p)
-                mstore(POS_INVERTED_DENOM_20_LOC, tmp)
-            }
-            // i = 20
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_41_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_19_LOC), p)
-                mstore(POS_INVERTED_DENOM_19_LOC, tmp)
-            }
-            // i = 19
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_40_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_18_LOC), p)
-                mstore(POS_INVERTED_DENOM_18_LOC, tmp)
-            }
-            // i = 18
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_39_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_17_LOC), p)
-                mstore(POS_INVERTED_DENOM_17_LOC, tmp)
-            }
-            // i = 17
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_38_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_16_LOC), p)
-                mstore(POS_INVERTED_DENOM_16_LOC, tmp)
-            }
-            // i = 16
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_37_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_15_LOC), p)
-                mstore(POS_INVERTED_DENOM_15_LOC, tmp)
-            }
-            // i = 15
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_36_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_14_LOC), p)
-                mstore(POS_INVERTED_DENOM_14_LOC, tmp)
-            }
-            // i = 14
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_35_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_13_LOC), p)
-                mstore(POS_INVERTED_DENOM_13_LOC, tmp)
-            }
-            // i = 13
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_34_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_12_LOC), p)
-                mstore(POS_INVERTED_DENOM_12_LOC, tmp)
-            }
-            // i = 12
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_33_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_11_LOC), p)
-                mstore(POS_INVERTED_DENOM_11_LOC, tmp)
-            }
-            // i = 11
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_32_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_10_LOC), p)
-                mstore(POS_INVERTED_DENOM_10_LOC, tmp)
-            }
-            // i = 10
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_31_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_9_LOC), p)
-                mstore(POS_INVERTED_DENOM_9_LOC, tmp)
-            }
-            // i = 9
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_30_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_8_LOC), p)
-                mstore(POS_INVERTED_DENOM_8_LOC, tmp)
-            }
-            // i = 8
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_29_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_7_LOC), p)
-                mstore(POS_INVERTED_DENOM_7_LOC, tmp)
-            }
-            // i = 7
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_28_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_6_LOC), p)
-                mstore(POS_INVERTED_DENOM_6_LOC, tmp)
-            }
-            // i = 6
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_27_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_5_LOC), p)
-                mstore(POS_INVERTED_DENOM_5_LOC, tmp)
-            }
-            // i = 5
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_26_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_4_LOC), p)
-                mstore(POS_INVERTED_DENOM_4_LOC, tmp)
-            }
-            // i = 4
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_25_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_3_LOC), p)
-                mstore(POS_INVERTED_DENOM_3_LOC, tmp)
-            }
-            // i = 3
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_24_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_2_LOC), p)
-                mstore(POS_INVERTED_DENOM_2_LOC, tmp)
-            }
-            // i = 2
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_23_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_1_LOC), p)
-                mstore(POS_INVERTED_DENOM_1_LOC, tmp)
-            }
-            // i = 1
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_22_LOC), p)
-                accumulator := mulmod(accumulator, mload(POS_INVERTED_DENOM_0_LOC), p)
-                mstore(POS_INVERTED_DENOM_0_LOC, tmp)
-            }
-
-            // i = 22
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_21_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_21_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_21_LOC, tmp)
-            }
-            // i = 21
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_20_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_20_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_20_LOC, tmp)
-            }
-            // i = 20
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_19_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_19_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_19_LOC, tmp)
-            }
-            // i = 19
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_18_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_18_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_18_LOC, tmp)
-            }
-            // i = 18
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_17_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_17_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_17_LOC, tmp)
-            }
-            // i = 17
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_16_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_16_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_16_LOC, tmp)
-            }
-            // i = 16
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_15_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_15_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_15_LOC, tmp)
-            }
-            // i = 15
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_14_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_14_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_14_LOC, tmp)
-            }
-            // i = 14
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_13_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_13_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_13_LOC, tmp)
-            }
-            // i = 13
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_12_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_12_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_12_LOC, tmp)
-            }
-            // i = 12
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_11_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_11_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_11_LOC, tmp)
-            }
-            // i = 11
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_10_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_10_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_10_LOC, tmp)
-            }
-            // i = 10
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_9_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_9_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_9_LOC, tmp)
-            }
-            // i = 9
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_8_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_8_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_8_LOC, tmp)
-            }
-            // i = 8
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_7_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_7_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_7_LOC, tmp)
-            }
-            // i = 7
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_6_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_6_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_6_LOC, tmp)
-            }
-            // i = 6
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_5_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_5_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_5_LOC, tmp)
-            }
-            // i = 5
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_4_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_4_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_4_LOC, tmp)
-            }
-            // i = 4
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_3_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_3_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_3_LOC, tmp)
-            }
-            // i = 3
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_2_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_2_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_2_LOC, tmp)
-            }
-            // i = 2
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_1_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_1_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_1_LOC, tmp)
-            }
-            // i = 1
-            {
-                let tmp := mulmod(accumulator, mload(TEMP_0_LOC), p)
-                accumulator := mulmod(accumulator, mload(INVERTED_CHALLENEGE_POW_MINUS_U_0_LOC), p)
-                mstore(INVERTED_CHALLENEGE_POW_MINUS_U_0_LOC, tmp)
-            }
-// {{ UNROLL_SECTION_END COLLECT_INVERSES }}
-
+            // ============= SHPLEMINI INVERSES ==============
+            // Inverses were computed in the unified batch inversion above.
             let unshifted_scalar := 0
             let shifted_scalar := 0
             {
+                // staging[0] = 1/gemini_r -- needed for shifted_scalar computation
+                let gemini_r_inv := mload(GEMINI_R_INV_LOC)
+
+                // staging[1..3*LOG_N] maps contiguously to:
+                //   INVERTED_CHALLENGE_POW_MINUS_U_0..14
+                //   POS_INVERTED_DENOM_0..14
+                //   NEG_INVERTED_DENOM_0..14
+                // Total: 3*LOG_N
+
+                // Compute unshifted_scalar and shifted_scalar using the copied inverses
                 let pos_inverted_denominator := mload(POS_INVERTED_DENOM_0_LOC)
                 let neg_inverted_denominator := mload(NEG_INVERTED_DENOM_0_LOC)
                 let shplonk_nu := mload(SHPLONK_NU_CHALLENGE)
 
                 unshifted_scalar := addmod(pos_inverted_denominator, mulmod(shplonk_nu, neg_inverted_denominator, p), p)
 
-                // accumulator takes the value of `INVERTED_GEMINI_DENOMINATOR_0` here
                 shifted_scalar := mulmod(
-                    accumulator, // (1 / gemini_r_challenge)
+                    gemini_r_inv, // (1 / gemini_r_challenge) from staging[0]
                     // (inverse_vanishing_evals[0]) - (shplonk_nu * inverse_vanishing_evals[1])
                     addmod(
                         pos_inverted_denominator,
@@ -3919,8 +4378,13 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 )
             }
 
-            // TODO: Write a comment that describes the process of accumulating commitments and scalars
-            // into one large value that will be used on the rhs of the pairing check
+            // Commitment Accumulation (MSM via sequential ecAdd/ecMul):
+            // For each commitment C_i with batch scalar s_i, we compute:
+            //   accumulator += s_i * C_i
+            // The commitments include: shplonk_Q, VK points, wire commitments,
+            // lookup commitments, Z_PERM, gemini fold univariates.
+            // The KZG quotient is handled separately.
+            // The final accumulator is the LHS of the pairing equation.
 
             // Accumulators
             let batching_challenge := 1
@@ -3929,7 +4393,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
             let neg_unshifted_scalar := sub(p, unshifted_scalar)
             let neg_shifted_scalar := sub(p, shifted_scalar)
 
-            mstore(BATCH_SCALAR_0_LOC, 1)
             let rho := mload(RHO_CHALLENGE)
 
             // Unrolled for the loop below - where NUMBER_UNSHIFTED = 36
@@ -4203,16 +4666,13 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
             )
             batching_challenge := mulmod(batching_challenge, rho, p)
 
-            mstore(BATCHED_EVALUATION_LOC, batched_evaluation)
-
             // Compute fold pos evaluations
             {
-                // TODO: work out the stack here
                 mstore(CHALL_POW_LOC, POWERS_OF_EVALUATION_CHALLENGE_21_LOC)
                 mstore(SUMCHECK_U_LOC, SUM_U_CHALLENGE_21)
                 mstore(GEMINI_A_LOC, GEMINI_A_EVAL_21)
                 // Inversion of this value was included in batch inversion above
-                let inverted_chall_pow_minus_u_loc := INVERTED_CHALLENEGE_POW_MINUS_U_21_LOC
+                let inverted_chall_pow_minus_u_loc := INVERTED_CHALLENGE_POW_MINUS_U_21_LOC
                 let fold_pos_off := FOLD_POS_EVALUATIONS_21_LOC
 
                 let batchedEvalAcc := batched_evaluation
@@ -4256,7 +4716,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 let shplonk_nu := mload(SHPLONK_NU_CHALLENGE)
 
                 constant_term_acc := addmod(
-                    constant_term_acc,
+                   constant_term_acc,
                     mulmod(mload(GEMINI_A_EVAL_0), mulmod(shplonk_nu, mload(NEG_INVERTED_DENOM_0_LOC), p), p),
                     p
                 )
@@ -4264,7 +4724,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 let shplonk_nu_sqr := mulmod(shplonk_nu, shplonk_nu, p)
                 batching_challenge := shplonk_nu_sqr
 
-                // TODO: improve scheduling
                 mstore(SS_POS_INV_DENOM_LOC, POS_INVERTED_DENOM_1_LOC)
                 mstore(SS_NEG_INV_DENOM_LOC, NEG_INVERTED_DENOM_1_LOC)
 
@@ -4303,17 +4762,13 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
             let q := Q // EC group order
             {
                 // The initial accumulator = 1 * shplonk_q
-                // WORKTODO(md): we can ignore this accumulation as we are multiplying by 1,
-                // Just set the accumulator instead.
-                mstore(SCALAR_LOCATION, 0x1)
-                mcopy(G1_LOCATION, SHPLONK_Q_X_LOC, 0x40)
-                precomp_success_flag := staticcall(gas(), 7, G1_LOCATION, 0x60, ACCUMULATOR, 0x40)
+                mcopy(ACCUMULATOR, SHPLONK_Q_X_LOC, 0x40)
             }
 
             // Accumulate vk points
             loadVk()
             {
-                // Acumulator = acumulator + scalar[1] * vk[0]
+                // Accumulator = accumulator + scalar[1] * vk[0]
                 mcopy(G1_LOCATION, Q_M_X_LOC, 0x40)
                 mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_1_LOC))
                 precomp_success_flag := and(
@@ -4626,8 +5081,11 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 )
 
                 // Accumulator = accumulator + scalar[27] * vk[26]
+                // optimization - Lagrange first is always G - (1,2)
+                //                later on we are expected to multiply constant_term_accumulator by G - (1,2)
+                //                here we can add scalars together and skip a ecMul + ecAdd for each
                 mcopy(G1_LOCATION, LAGRANGE_FIRST_X_LOC, 0x40)
-                mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_27_LOC))
+                mstore(SCALAR_LOCATION, addmod(constant_term_acc, mload(BATCH_SCALAR_27_LOC), p))
                 precomp_success_flag := and(
                     precomp_success_flag,
                     staticcall(gas(), 7, G1_LOCATION, 0x60, ACCUMULATOR_2, 0x40)
@@ -4750,13 +5208,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 {
                     {
                         /// {{ UNROLL_SECTION_START ACCUMULATE_GEMINI_FOLD_UNIVARIATE }}
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_0_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_0_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_0_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_37_LOC))
                         precomp_success_flag :=
@@ -4764,13 +5215,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_1_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_1_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_1_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_38_LOC))
                         precomp_success_flag :=
@@ -4778,13 +5222,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_2_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_2_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_2_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_39_LOC))
                         precomp_success_flag :=
@@ -4792,13 +5229,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_3_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_3_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_3_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_40_LOC))
                         precomp_success_flag :=
@@ -4806,13 +5236,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_4_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_4_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_4_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_41_LOC))
                         precomp_success_flag :=
@@ -4820,13 +5243,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_5_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_5_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_5_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_42_LOC))
                         precomp_success_flag :=
@@ -4834,13 +5250,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_6_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_6_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_6_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_43_LOC))
                         precomp_success_flag :=
@@ -4848,13 +5257,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_7_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_7_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_7_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_44_LOC))
                         precomp_success_flag :=
@@ -4862,13 +5264,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_8_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_8_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_8_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_45_LOC))
                         precomp_success_flag :=
@@ -4876,13 +5271,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_9_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_9_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_9_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_46_LOC))
                         precomp_success_flag :=
@@ -4890,13 +5278,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_10_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_10_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_10_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_47_LOC))
                         precomp_success_flag :=
@@ -4904,13 +5285,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_11_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_11_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_11_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_48_LOC))
                         precomp_success_flag :=
@@ -4918,13 +5292,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_12_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_12_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_12_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_49_LOC))
                         precomp_success_flag :=
@@ -4932,13 +5299,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_13_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_13_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_13_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_50_LOC))
                         precomp_success_flag :=
@@ -4946,13 +5306,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_14_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_14_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_14_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_51_LOC))
                         precomp_success_flag :=
@@ -4960,13 +5313,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_15_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_15_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_15_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_52_LOC))
                         precomp_success_flag :=
@@ -4974,13 +5320,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_16_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_16_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_16_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_53_LOC))
                         precomp_success_flag :=
@@ -4988,13 +5327,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_17_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_17_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_17_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_54_LOC))
                         precomp_success_flag :=
@@ -5002,13 +5334,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_18_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_18_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_18_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_55_LOC))
                         precomp_success_flag :=
@@ -5016,13 +5341,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_19_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_19_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_19_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_56_LOC))
                         precomp_success_flag :=
@@ -5030,13 +5348,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         precomp_success_flag :=
                             and(precomp_success_flag, staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40))
 
-                        {
-                            let x := mload(GEMINI_FOLD_UNIVARIATE_20_X_LOC)
-                            let y := mload(GEMINI_FOLD_UNIVARIATE_20_Y_LOC)
-                            let xx := mulmod(x, x, q)
-                            // validate on curve
-                            precomp_success_flag := and(eq(mulmod(y, y, q), addmod(mulmod(x, xx, q), 3, q)), precomp_success_flag)
-                        }
                         mcopy(G1_LOCATION, GEMINI_FOLD_UNIVARIATE_20_X_LOC, 0x40)
                         mstore(SCALAR_LOCATION, mload(BATCH_SCALAR_57_LOC))
                         precomp_success_flag :=
@@ -5048,21 +5359,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 }
 
                 {
-                    // Accumulate the constant term accumulator
-                    // Accumulator = accumulator + 1 * costant term accumulator
-                    mstore(G1_LOCATION, 0x01)
-                    mstore(G1_Y_LOCATION, 0x02)
-                    mstore(SCALAR_LOCATION, constant_term_acc)
-                    precomp_success_flag := and(
-                        precomp_success_flag,
-                        staticcall(gas(), 7, G1_LOCATION, 0x60, ACCUMULATOR_2, 0x40)
-                    )
-                    precomp_success_flag := and(
-                        precomp_success_flag,
-                        staticcall(gas(), 6, ACCUMULATOR, 0x80, ACCUMULATOR, 0x40)
-                    )
-
-                    // Accumlate final quotient commitment into shplonk check
+                    // Accumulate final quotient commitment into shplonk check
                     // Accumulator = accumulator + shplonkZ * quotient commitment
                     mcopy(G1_LOCATION, KZG_QUOTIENT_X_LOC, 0x40)
 
