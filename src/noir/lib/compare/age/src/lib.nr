@@ -98,6 +98,6 @@ pub fn calculate_param_commitment_sha2(min_age_required: u8, max_age_required: u
     params[2] = len_bytes[1];
     params[3] = min_age_required;
     params[4] = max_age_required;
-    let hash = sha256::sha256_var(params, params.len() as u64);
+    let hash = sha256::sha256_var(params, params.len());
     utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

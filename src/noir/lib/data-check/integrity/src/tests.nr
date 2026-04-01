@@ -86,7 +86,7 @@ fn test_check_dg1_sha1_fail() {
 fn test_check_dg1_sha224() {
     let dg1 = SAMPLE_DG1;
     let mut e_content = [0; ECONTENT_LENGTH];
-    let dg1_hash = sha224_var(dg1, PASSPORT_DG1_LENGTH as u64);
+    let dg1_hash = sha224_var(dg1, PASSPORT_DG1_LENGTH);
     for i in 0..dg1_hash.len() {
         e_content[i + 100] = dg1_hash[i];
     }
@@ -98,7 +98,7 @@ fn test_check_dg1_sha224() {
 fn test_check_dg1_sha224_fail() {
     let dg1 = SAMPLE_DG1;
     let mut e_content = [0; ECONTENT_LENGTH];
-    let dg1_hash = sha224_var(dg1, PASSPORT_DG1_LENGTH as u64);
+    let dg1_hash = sha224_var(dg1, PASSPORT_DG1_LENGTH);
     for i in 0..dg1_hash.len() {
         e_content[i + 100] = dg1_hash[i];
     }
@@ -114,7 +114,7 @@ fn test_check_dg1_sha224_fail() {
 fn test_check_dg1_sha256() {
     let dg1 = SAMPLE_DG1;
     let mut e_content = [0; ECONTENT_LENGTH];
-    let dg1_hash = sha256_var(dg1, PASSPORT_DG1_LENGTH as u64);
+    let dg1_hash = sha256_var(dg1, PASSPORT_DG1_LENGTH);
     for i in 0..dg1_hash.len() {
         e_content[i + 100] = dg1_hash[i];
     }
@@ -126,7 +126,7 @@ fn test_check_dg1_sha256() {
 fn test_check_dg1_sha256_fail() {
     let dg1 = SAMPLE_DG1;
     let mut e_content = [0; ECONTENT_LENGTH];
-    let dg1_hash = sha256_var(dg1, PASSPORT_DG1_LENGTH as u64);
+    let dg1_hash = sha256_var(dg1, PASSPORT_DG1_LENGTH);
     for i in 0..dg1_hash.len() {
         e_content[i + 100] = dg1_hash[i];
     }
@@ -227,7 +227,7 @@ fn test_check_signed_attributes_sha224() {
     let mut signed_attributes = [0; SIGNED_ATTRS_LENGTH];
     let e_content = [0; ECONTENT_LENGTH];
     let e_content_size = 200;
-    let e_content_hash = sha224_var(e_content, e_content_size as u64);
+    let e_content_hash = sha224_var(e_content, e_content_size);
     for i in 0..e_content_hash.len() {
         signed_attributes[i] = e_content_hash[i];
     }
@@ -239,7 +239,7 @@ fn test_check_signed_attributes_sha224_fail() {
     let mut signed_attributes = [0; SIGNED_ATTRS_LENGTH];
     let e_content = [0; ECONTENT_LENGTH];
     let e_content_size = 200;
-    let e_content_hash = sha224_var(e_content, e_content_size as u64);
+    let e_content_hash = sha224_var(e_content, e_content_size);
     for i in 0..e_content_hash.len() {
         signed_attributes[i] = e_content_hash[i];
     }
@@ -255,7 +255,7 @@ fn test_check_signed_attributes_sha256() {
     let mut signed_attributes = [0; SIGNED_ATTRS_LENGTH];
     let e_content = [0; ECONTENT_LENGTH];
     let e_content_size = 200;
-    let e_content_hash = sha256_var(e_content, e_content_size as u64);
+    let e_content_hash = sha256_var(e_content, e_content_size);
     for i in 0..e_content_hash.len() {
         signed_attributes[i] = e_content_hash[i];
     }
@@ -267,7 +267,7 @@ fn test_check_signed_attributes_sha256_fail() {
     let mut signed_attributes = [0; SIGNED_ATTRS_LENGTH];
     let e_content = [0; ECONTENT_LENGTH];
     let e_content_size = 200;
-    let e_content_hash = sha256_var(e_content, e_content_size as u64);
+    let e_content_hash = sha256_var(e_content, e_content_size);
     for i in 0..e_content_hash.len() {
         signed_attributes[i] = e_content_hash[i];
     }

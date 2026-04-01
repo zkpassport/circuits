@@ -130,6 +130,6 @@ pub fn calculate_param_commitment_sha2(
     for i in 11..19 {
         params[i] = max_date_timestamp_bytes[i - 11];
     }
-    let hash = sha256::sha256_var(params, params.len() as u64);
+    let hash = sha256::sha256_var(params, params.len());
     utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

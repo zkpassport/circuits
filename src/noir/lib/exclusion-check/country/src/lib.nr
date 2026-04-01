@@ -256,6 +256,6 @@ pub fn calculate_param_commitment_sha2<let N: u32>(
         params[base_offset + i * 3 + 1] = ((country_list[i] >> 8) & 0xFF) as u8;
         params[base_offset + i * 3 + 2] = (country_list[i] & 0xFF) as u8;
     }
-    let hash = sha256::sha256_var(params, params.len() as u64);
+    let hash = sha256::sha256_var(params, params.len());
     utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

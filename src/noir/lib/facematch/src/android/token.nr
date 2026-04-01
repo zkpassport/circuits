@@ -258,7 +258,7 @@ pub fn verify_integrity_token_signature(
     // The actual signed payload is the concatenation of the JWS header and the token
     // i.e. <base64({"alg":"ES256"})>.<base64({token})>
     let (signed_payload, signed_payload_len) = concat_jws_header_and_token(token, token_len);
-    let msg_hash = sha256::sha256_var(signed_payload, signed_payload_len as u64);
+    let msg_hash = sha256::sha256_var(signed_payload, signed_payload_len);
     let (signature_r, signature_s) = split_array(signature);
     verify_nist_p256(
         public_key_x,
@@ -273,7 +273,7 @@ pub fn verify_nonce(nonce: [u8; 32], client_data_hash: [u8; 32], signature: [u8;
     // The nonce is the sha256 hash of the concatenation of the client data hash and signature
     // i.e. sha256(<client_data_hash><signature>)
     let nonce_data = client_data_hash.concat(signature);
-    let reconstructed_nonce = sha256::sha256_var(nonce_data, nonce_data.len() as u64);
+    let reconstructed_nonce = sha256::sha256_var(nonce_data, nonce_data.len());
     nonce == reconstructed_nonce
 }
 

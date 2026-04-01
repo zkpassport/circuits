@@ -107,7 +107,7 @@ pub global DG1_LENGTH: u32 = 95;
 // EContent length
 pub global ECONTENT_LENGTH: u32 = 700;
 // Signed attributes length
-pub global SIGNED_ATTRS_LENGTH: u32 = 220;
+pub global SIGNED_ATTRS_LENGTH: u32 = 256;
 // MAX MRZ length = ID card MRZ length
 pub global MAX_MRZ_LENGTH: u32 = ID_CARD_MRZ_LENGTH;
 

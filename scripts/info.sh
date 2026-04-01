@@ -4,4 +4,4 @@ package_name=$1
 time nargo compile --force --package $package_name
 
 # Compile the circuit and get the number of the gates
-time bb gates --scheme ultra_honk -b ./target/$package_name.json > ./info/$package_name.json
+time bb gates -t noir-recursive -b ./target/$package_name.json > ./info/$package_name.json

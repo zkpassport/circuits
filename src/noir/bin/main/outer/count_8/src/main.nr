@@ -32,7 +32,7 @@ use std::verify_proof_with_type;
 use utils::constants::{
     NON_SALTED_MOCK_NULLIFIER, NON_SALTED_NULLIFIER, SALTED_MOCK_NULLIFIER, SALTED_NULLIFIER,
 };
-global PROOF_TYPE_HONK_ZK: u32 = 7;
+global PROOF_TYPE_HONK_ZK: u32 = 6;
 
 fn verify_subproofs(
     // Root of the certificate merkle tree

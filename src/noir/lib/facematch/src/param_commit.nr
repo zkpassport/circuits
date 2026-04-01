@@ -52,6 +52,6 @@ pub fn calculate_param_commitment_sha2(
         params[base_offset + i] = integrity_public_key_hash_bytes[i];
     }
     params[params.len() - 1] = facematch_mode;
-    let hash = sha256::sha256_var(params, FACEMATCH_PARAM_COMMITMENT_EVM_BYTES as u64);
+    let hash = sha256::sha256_var(params, FACEMATCH_PARAM_COMMITMENT_EVM_BYTES);
     utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

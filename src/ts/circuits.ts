@@ -1,5 +1,5 @@
 import { CompiledCircuit, InputMap, Noir } from "@noir-lang/noir_js"
-import { UltraHonkBackend } from "@aztec/bb.js"
+import { Barretenberg, UltraHonkBackend } from "@aztec/bb.js"
 import fs from "fs"
 import path from "path"
 import os from "os"
@@ -15,6 +15,7 @@ const writeFileAsync = promisify(fs.writeFile)
 export class Circuit {
   private manifest: CompiledCircuit
   private name: string
+  private api?: Barretenberg
   public backend?: UltraHonkBackend
   public noir?: Noir
 
@@ -23,34 +24,36 @@ export class Circuit {
     this.name = name
   }
 
-  async init(recursive: boolean = false) {
-    if (!this.backend) {
-      this.backend = new UltraHonkBackend(
-        this.manifest.bytecode,
-        {
-          threads: BB_THREADS,
-        },
-        {
-          recursive,
-        },
-      )
-      if (!this.backend) throw new Error("Error initializing backend")
-    }
+  private async initNoir() {
     if (!this.noir) {
       this.noir = new Noir(this.manifest)
       if (!this.noir) throw new Error("Error initializing noir")
     }
   }
 
+  private async initBackend() {
+    if (!this.backend) {
+      this.api = await Barretenberg.new({ threads: BB_THREADS })
+      this.backend = new UltraHonkBackend(this.manifest.bytecode, this.api)
+      if (!this.backend) throw new Error("Error initializing backend")
+    }
+  }
+
+  async init(recursive: boolean = false) {
+    await this.initBackend()
+    await this.initNoir()
+  }
+
   async destroy() {
-    if (!this.backend) return
-    await this.backend!.destroy()
+    if (!this.api) return
+    await this.api.destroy()
+    this.api = undefined
     this.backend = undefined
   }
 
   async solve(inputs: InputMap, recursive: boolean = false): Promise<Uint8Array> {
     this.checkInputs(inputs)
-    await this.init(recursive)
+    await this.initNoir()
     const { witness } = await this.noir!.execute(inputs)
     if (!witness) throw new Error("Error solving witness")
     return witness
@@ -70,7 +73,6 @@ export class Circuit {
     },
   ): Promise<ProofData> {
     this.checkInputs(inputs)
-    await this.init(options?.recursive ?? false)
     const witness = options?.witness ?? (await this.solve(inputs, options?.recursive ?? false))
     let proof: ProofData
     if (options?.useCli) {
@@ -91,9 +93,8 @@ export class Circuit {
       await writeFileAsync(vkeyPath, vkeyBytes)
 
       // Generate proof
-      const proveCommand = `bb prove --scheme ultra_honk \
-        ${options?.evm ? "--oracle_hash keccak" : ""} \
-        ${options?.disableZK ? "--disable_zk" : ""} \
+      const verifierTarget = `${options?.evm ? "evm" : "noir-recursive"}${options?.disableZK ? "-no-zk" : ""}`
+      const proveCommand = `bb prove -t ${verifierTarget} \
         -b ${circuitPath} \
         -w ${witnessPath} \
         -k ${vkeyPath} \
@@ -116,6 +117,7 @@ export class Circuit {
         publicInputs: publicInputs.match(/.{1,64}/g)?.map((x) => `0x${x}`) ?? [],
       }
     } else {
+      await this.initBackend()
       if (options?.recursive) {
         //proof = await this.backend!.generateProofForRecursiveAggregation(witness)
         throw new Error("Recursive proof not supported")
@@ -158,8 +160,7 @@ export class Circuit {
       fs.mkdirSync(vkeyPath, { recursive: true })
 
       // Run bb write_vk command
-      const writeVkCommand = `bb write_vk --scheme ultra_honk \
-        ${evm ? " --oracle_hash keccak" : ""} \
+      const writeVkCommand = `bb write_vk -t ${evm ? "evm" : "noir-recursive"} \
         -b "${circuitPath}" \
         -o "${vkeyPath}"
       `
