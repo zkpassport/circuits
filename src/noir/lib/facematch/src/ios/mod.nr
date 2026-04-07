@@ -155,8 +155,7 @@ pub fn verify_auth_data_and_client_data<let CREDENTIAL_TBS_MAX_LEN: u32, let AUT
     for i in 0..CLIENT_DATA_HASH_LEN {
         concatenated[auth_data_len + i] = client_data_hash[i];
     }
-    let calculated_nonce =
-        sha256::sha256_var(concatenated, (auth_data_len + CLIENT_DATA_HASH_LEN) as u64);
+    let calculated_nonce = sha256::sha256_var(concatenated, (auth_data_len + CLIENT_DATA_HASH_LEN));
     let nonce = get_nonce_from_credential_tbs(credential_tbs);
     calculated_nonce == nonce
 }

@@ -1,6 +1,6 @@
 use poseidon::poseidon2::Poseidon2;
 
-global PROOF_SIZE: u32 = 508;
+global PROOF_SIZE: u32 = 500;
 global VKEY_SIZE: u32 = 115;
 
 pub fn prepare_integrity_check_inputs(

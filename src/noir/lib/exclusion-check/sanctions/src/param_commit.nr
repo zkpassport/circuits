@@ -39,6 +39,6 @@ pub fn calculate_param_commitment_sha2(root_hash: Field, is_strict: bool) -> Fie
         params[i] = root_hash_bytes[i - 3];
     }
     params[params.len() - 1] = is_strict as u8;
-    let hash = sha256::sha256_var(params, params.len() as u64);
+    let hash = sha256::sha256_var(params, params.len());
     utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

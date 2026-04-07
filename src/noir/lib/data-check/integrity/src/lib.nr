@@ -117,7 +117,7 @@ pub fn check_dg1_sha224(dg1: DG1Data, e_content: EContentData, e_content_size: u
     check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
-    let dg1_size: u64 = get_dg1_size(dg1) as u64;
+    let dg1_size = get_dg1_size(dg1);
 
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
@@ -142,7 +142,7 @@ pub fn check_signed_attributes_sha224<let SA_SIZE: u32>(
     e_content: EContentData,
     e_content_size: u32,
 ) {
-    let computed_final_hash = sha224_var(e_content, e_content_size as u64);
+    let computed_final_hash = sha224_var(e_content, e_content_size);
 
     // Check that the computed final hash is in the signed attributes
     assert(
@@ -159,7 +159,7 @@ pub fn check_dg1_sha256(dg1: DG1Data, e_content: EContentData, e_content_size: u
     check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
-    let dg1_size: u64 = get_dg1_size(dg1) as u64;
+    let dg1_size = get_dg1_size(dg1);
 
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
@@ -184,7 +184,7 @@ pub fn check_signed_attributes_sha256<let SA_SIZE: u32>(
     e_content: EContentData,
     e_content_size: u32,
 ) {
-    let computed_final_hash = sha256_var(e_content, e_content_size as u64);
+    let computed_final_hash = sha256_var(e_content, e_content_size);
 
     // Check that the computed final hash is in the signed attributes
     assert(

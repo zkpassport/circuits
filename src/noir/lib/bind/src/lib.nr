@@ -44,6 +44,6 @@ pub fn calculate_param_commitment_sha2(data: [u8; 509]) -> Field {
     for i in 3..params.len() {
         params[i] = data[i - 3];
     }
-    let hash = sha256::sha256_var(params, params.len() as u64);
+    let hash = sha256::sha256_var(params, params.len());
     utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }

@@ -29,7 +29,7 @@ use outer_lib::{
     prepare_disclosure_inputs, prepare_integrity_check_inputs,
 };
 use std::verify_proof_with_type;
-global PROOF_TYPE_HONK_ZK: u32 = 7;
+global PROOF_TYPE_HONK_ZK: u32 = 6;
 
 fn verify_subproofs(
     // Root of the certificate merkle tree

@@ -23,7 +23,7 @@ fn main(
     let signed_attributes_size =
         unsafe { utils::unsafe_get_asn1_element_length(signed_attributes) };
     assert(
-        verify_signature::<128, 0, 220, 48>(
+        verify_signature::<128, 0, 256, 48>(
             dsc_pubkey,
             sod_signature,
             dsc_pubkey_redc_param,

@@ -12,7 +12,7 @@ function ensureDirectoryExistence(filePath: string) {
   } catch (e) {}
 }
 
-const SIGNED_ATTRIBUTES_SIZE = 220
+const SIGNED_ATTRIBUTES_SIZE = 256
 
 const generatedCircuits: {
   name: string
@@ -663,7 +663,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     let param_commitment =
         ${evm ? "calculate_param_commitment_sha2" : "calculate_param_commitment"}(root_key_leaf, environment, app_id_hash, play_integrity_public_key_hash, facematch_mode);
 
-    // oprf_pk_hash is 0 since facematch doesn't do OPRF — other disclosure circuits provide it
+    // oprf_pk_hash is 0 since facematch doesn't do OPRF - other disclosure circuits provide it
     (param_commitment, nullifier_type, nullifier, 0)
 }
 `
@@ -704,7 +704,7 @@ use outer_lib::{
     prepare_disclosure_inputs, prepare_integrity_check_inputs,
 };
 use std::verify_proof_with_type;
-global PROOF_TYPE_HONK_ZK: u32 = 7;
+global PROOF_TYPE_HONK_ZK: u32 = 6;
 
 fn verify_subproofs(
     // Root of the certificate merkle tree

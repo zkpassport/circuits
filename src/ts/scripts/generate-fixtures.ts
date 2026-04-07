@@ -1,5 +1,5 @@
 import { poseidon2HashAsync } from "@zkpassport/poseidon2"
-import type { IntegrityToDisclosureSalts, PackagedCertificate, Query } from "@zkpassport/utils"
+import type { IntegrityToDisclosureSalts, PackagedCertificatesFile, Query } from "@zkpassport/utils"
 import {
   Binary,
   ProofType,
@@ -37,7 +37,7 @@ import { generateSod, wrapSodInContentInfo } from "../sod-generator"
 import { TestHelper } from "../test-helper"
 import { serializeAsn } from "../utils"
 import circuitManifest from "../tests/fixtures/circuit-manifest.json"
-import { numberToBytesBE } from "@noble/curves/utils"
+import { numberToBytesBE } from "@noble/ciphers/utils.js"
 import FIXTURES_FACEMATCH from "./fixtures/facematch"
 
 interface SubproofData {
@@ -50,7 +50,7 @@ interface SubproofData {
 
 class FixtureGenerator {
   private helper = new TestHelper()
-  private cscaCerts: PackagedCertificate[] = []
+  private packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
   private subproofs = new Map<number, SubproofData>()
   private readonly FIXTURES_PATH = path.join(__dirname, "..", "tests", "fixtures")
   private readonly DSC_KEYPAIR_PATH = path.join(this.FIXTURES_PATH, "dsc-keypair-rsa.json")
@@ -82,11 +82,11 @@ class FixtureGenerator {
 
     const { sod } = await generateSod(dg1, [dsc], "SHA-256")
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
-    this.cscaCerts.push(convertPemToPackagedCertificate(cscPem))
+    this.packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
 
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await this.helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
-    this.helper.setCertificates(this.cscaCerts)
+    this.helper.setCertificates(this.packagedCerts)
   }
 
   async generateBaseSubproofs() {
