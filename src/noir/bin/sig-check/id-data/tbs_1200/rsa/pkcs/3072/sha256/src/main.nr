@@ -17,7 +17,7 @@ fn main(
     exponent: u32,
     e_content: EContentData,
 ) -> pub Field {
-    verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate);
+    verify_rsa_pubkey_in_tbs(dsc_pubkey, exponent, tbs_certificate);
     // Get the length of signed_attributes by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid
     let signed_attributes_size =
