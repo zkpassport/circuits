@@ -29,6 +29,31 @@ pub unconstrained fn unsafe_get_index<let N: u32>(
     index
 }
 
+/// Check that the country list is correctly padded at the end with the empty
+/// country code (three null characters). Once an empty country code is encountered,
+/// all subsequent entries must also be empty. This prevents injection of country
+/// codes after the first padding entry.
+///
+/// # Arguments
+///
+/// * `country_list`: The list of countries
+pub fn check_country_list_padding<let N: u32>(country_list: [Alpha3CountryCode; N]) {
+    let empty = EMPTY_ALPHA3_COUNTRY_CODE.as_bytes();
+    let mut found_padding = false;
+    for i in 0..N {
+        let is_empty = country_list[i].as_bytes() == empty;
+        if is_empty {
+            found_padding = true;
+        }
+        if found_padding {
+            assert(
+                is_empty,
+                "Country list cannot contain country codes after the padding",
+            );
+        }
+    }
+}
+
 /// Check if the nationality from the MRZ is in the country list
 ///
 /// # Arguments
@@ -36,6 +61,10 @@ pub unconstrained fn unsafe_get_index<let N: u32>(
 /// * `dg1`: The MRZ
 /// * `country_list`: The list of countries
 pub fn check_nationality_inclusion<let N: u32>(dg1: DG1Data, country_list: [Alpha3CountryCode; N]) {
+    // Make sure the country list is properly padded with empty country codes at the end
+    // so that no additional country code can be injected after the first padding entry
+    check_country_list_padding(country_list);
+
     let nationality_bytes = get_nationality_from_mrz(dg1);
 
     // Safety: get the index of the country in the list from an unconstrained function
@@ -59,6 +88,10 @@ pub fn check_issuing_country_inclusion<let N: u32>(
     dg1: DG1Data,
     country_list: [Alpha3CountryCode; N],
 ) {
+    // Make sure the country list is properly padded with empty country codes at the end
+    // so that no additional country code can be injected after the first padding entry
+    check_country_list_padding(country_list);
+
     let issuing_country_bytes = get_issuing_country_from_mrz(dg1);
 
     // Safety: get the index of the country in the list from an unconstrained function
