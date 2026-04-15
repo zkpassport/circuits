@@ -14,12 +14,12 @@ pub fn ordered_mt_verify_inclusion(
     root: Field,
     inclusion_proof: SanctionsOrderedMerkleTreeInclusionProof,
 ) {
-    let path_in_bits: [u1; SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH] =
+    let path_in_bits: [bool; SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH] =
         inclusion_proof.leaf_index.to_be_bits::<SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH>();
 
     let mut current = inclusion_proof.leaf;
     for i in 0..SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH {
-        let (left, right) = if path_in_bits[SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH - i - 1] == 1 {
+        let (left, right) = if path_in_bits[SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH - i - 1] {
             (inclusion_proof.sibling_path[i], current)
         } else {
             (current, inclusion_proof.sibling_path[i])
