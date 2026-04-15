@@ -341,7 +341,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     e_content: EContentData,
     ${rsa_type === "pss" ? "pss_salt_len: u32," : ""}
 ) -> pub Field {
-    verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate);
+    verify_rsa_pubkey_in_tbs(dsc_pubkey, exponent, tbs_certificate);
     // Get the length of signed_attributes by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid
     let signed_attributes_size =
@@ -531,7 +531,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     ${intermediate_signature_algorithms[0].signature_algorithm === "ecdsa" ? `
     verify_ecdsa_pubkey_in_tbs(intermediate_1_key_x, intermediate_1_key_y, intermediate_1_tbs);
     ` : `
-    verify_rsa_pubkey_in_tbs(intermediate_1_key, intermediate_1_tbs);
+    verify_rsa_pubkey_in_tbs(intermediate_1_key, 65537, intermediate_1_tbs);
     `}
     let intermediate_1_tbs_len = unsafe { unsafe_get_asn1_element_length(intermediate_1_tbs) };
     ${root_signature_algorithm === "rsa" ? `
@@ -553,7 +553,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
       let (intermediate_${index + 1}_sig_r, intermediate_${index + 1}_sig_s) = split_array(intermediate_${index + 1}_sig);
       let intermediate_${index + 1}_tbs_hash = get_tbs_hash_${intermediate_signature_algorithms[index - 1].hash_algorithm}(intermediate_${index + 1}_tbs);
       ` : `
-      verify_rsa_pubkey_in_tbs(intermediate_${index + 1}_key, intermediate_${index + 1}_tbs);
+      verify_rsa_pubkey_in_tbs(intermediate_${index + 1}_key, 65537, intermediate_${index + 1}_tbs);
       let (intermediate_${index + 1}_sig_r, intermediate_${index + 1}_sig_s) = split_array(intermediate_${index + 1}_sig);
       let intermediate_${index + 1}_tbs_hash = get_tbs_hash_${intermediate_signature_algorithms[index - 1].hash_algorithm}(intermediate_${index + 1}_tbs);
       `;
