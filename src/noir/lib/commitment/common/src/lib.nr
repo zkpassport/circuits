@@ -60,7 +60,7 @@ pub fn has_value_in_tags<let BIT_SIZE: u32, let TAGS_LEN: u32>(
     let converted_value = (value_bytes[0] as u32 - START_ASCII_INDEX) * 26
         + (value_bytes[1] as u32 - START_ASCII_INDEX);
     let mut result = false;
-    let mut tags_bits: [[u1; BIT_SIZE]; TAGS_LEN] = [[0; BIT_SIZE]; TAGS_LEN];
+    let mut tags_bits: [[bool; BIT_SIZE]; TAGS_LEN] = [[false; BIT_SIZE]; TAGS_LEN];
     for i in 0..TAGS_LEN {
         tags[i].assert_max_bit_size::<BIT_SIZE>();
         tags_bits[i] = tags[i].to_le_bits();
@@ -68,7 +68,7 @@ pub fn has_value_in_tags<let BIT_SIZE: u32, let TAGS_LEN: u32>(
     for i in 0..TAGS_LEN {
         for j in 0..BIT_SIZE {
             let actual_index = (i * BIT_SIZE) + j;
-            let has_bit_in_tag = (tags_bits[i][j] != 0);
+            let has_bit_in_tag = tags_bits[i][j];
             if (has_bit_in_tag) & (actual_index == converted_value) {
                 result = true;
             }
@@ -219,9 +219,9 @@ pub fn hash_salt_country_signed_attr_dg1_e_content_private_nullifier(
             packed_e_content[i];
     }
     hash_inputs[3
-    + (SIGNED_ATTRS_LENGTH + 30) / 31
-    + ((DG1_LENGTH + 30) / 31)
-    + ((ECONTENT_LENGTH + 30) / 31)] = private_nullifier;
+        + (SIGNED_ATTRS_LENGTH + 30) / 31
+        + ((DG1_LENGTH + 30) / 31)
+        + ((ECONTENT_LENGTH + 30) / 31)] = private_nullifier;
 
     Poseidon2::hash(
         hash_inputs,
@@ -235,10 +235,10 @@ pub fn hash_salt_country_signed_attr_dg1_e_content_private_nullifier(
 // Returns the merkle root of the tree from the provided leaf, index and hash_path, using the Poseidon2 hash function
 // Arity is expected to be 2 and the the tree depth is equal to the hash_path array length
 pub fn compute_merkle_root<let N: u32>(leaf: Field, index: Field, hash_path: [Field; N]) -> Field {
-    let index_bits: [u1; N] = index.to_le_bits();
+    let index_bits: [bool; N] = index.to_le_bits();
     let mut current = leaf;
     for i in 0..N {
-        let path_bit = index_bits[i] == 1;
+        let path_bit = index_bits[i];
         let (hash_left, hash_right) = if path_bit {
             (hash_path[i], current)
         } else {

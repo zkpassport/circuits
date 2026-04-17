@@ -449,10 +449,10 @@ fn test_check_zero_padding_fail() {
 
 #[test]
 fn test_pack_be_bit_into_field() {
-    let mut x = [0 as u1; 90];
-    x[0] = 1;
-    x[1] = 1;
-    x[2] = 1;
+    let mut x = [false; 90];
+    x[0] = true;
+    x[1] = true;
+    x[2] = true;
     let result = pack_be_bit_into_field::<90>(x);
     assert_eq(result, 0x038000000000000000000000);
 }
