@@ -47,15 +47,15 @@ fn main(
     root_key: [u8; 96],
     // Intermediate certificates from up (root) to bottom (leaf/credential) of the chain
     intermediate_1_key: [u8; 64],
-    intermediate_1_tbs: [u8; 500],
+    intermediate_1_tbs: [u8; 700],
     // RSA signature from the root over the intermediate certificate #1 TBS
     intermediate_1_sig: [u8; 96],
     intermediate_2_key: [u8; 96],
-    intermediate_2_tbs: [u8; 500],
+    intermediate_2_tbs: [u8; 700],
     // ecdsa signature from the intermediate certificate #1 over the intermediate certificate #2 TBS
     intermediate_2_sig: [u8; 64],
     intermediate_3_key: [u8; 96],
-    intermediate_3_tbs: [u8; 500],
+    intermediate_3_tbs: [u8; 700],
     // ecdsa signature from the intermediate certificate #2 over the intermediate certificate #3 TBS
     intermediate_3_sig: [u8; 96],
     // This is the leaf certificate derived from the private key in the KeyStore

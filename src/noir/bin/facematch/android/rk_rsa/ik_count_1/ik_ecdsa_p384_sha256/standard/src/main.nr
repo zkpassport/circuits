@@ -48,7 +48,7 @@ fn main(
     root_key_redc_param: [u8; 513],
     // Intermediate certificates from up (root) to bottom (leaf/credential) of the chain
     intermediate_1_key: [u8; 96],
-    intermediate_1_tbs: [u8; 500],
+    intermediate_1_tbs: [u8; 700],
     // RSA signature from the root over the intermediate certificate #1 TBS
     intermediate_1_sig: [u8; 512],
     // This is the leaf certificate derived from the private key in the KeyStore

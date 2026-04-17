@@ -486,7 +486,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     ${signature_algorithm === "rsa" ? `
     intermediate_${index + 1}_key_redc_param: [u8; ${Math.ceil(bit_size / 8) + 1}],
     ` : ``}
-    intermediate_${index + 1}_tbs: [u8; ${signature_algorithm === "rsa" ? 1000 : 500}],
+    intermediate_${index + 1}_tbs: [u8; ${signature_algorithm === "rsa" ? 1000 : 700}],
     // ${index === 0 ? "RSA" : intermediate_signature_algorithms[index - 1].signature_algorithm} signature from the ${index === 0 ? "root" : `intermediate certificate #${index}`} over the intermediate certificate #${index + 1} TBS
     intermediate_${index + 1}_sig: [u8; ${index === 0 ? root_signature_algorithm === "rsa" ? 512 : 96 : intermediate_signature_algorithms[index - 1].signature_algorithm === "rsa" ? Math.ceil(intermediate_signature_algorithms[index - 1].bit_size / 8) : Math.ceil(intermediate_signature_algorithms[index - 1].bit_size / 4)}],
     `).join("")}

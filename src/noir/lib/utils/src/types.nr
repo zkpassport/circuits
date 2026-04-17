@@ -30,7 +30,7 @@ pub type SignedAttrsData = [u8; SIGNED_ATTRS_LENGTH];
 pub type Alpha3CountryCode = str<3>;
 pub type Alpha2CountryCode = str<2>;
 
-pub type DiscloseMask = [u1; MAX_MRZ_LENGTH];
+pub type DiscloseMask = [bool; MAX_MRZ_LENGTH];
 
 pub type SHA1Digest = [u8; SHA1_DIGEST_LENGTH];
 pub type SHA224Digest = [u8; SHA224_DIGEST_LENGTH];
