@@ -71,7 +71,11 @@ contract Deploy is Script {
     address admin = vm.envAddress("ROOT_VERIFIER_ADMIN_ADDRESS");
     address guardian = vm.envAddress("ROOT_VERIFIER_GUARDIAN_ADDRESS");
     IRootRegistry rootRegistry = IRootRegistry(vm.envAddress("ROOT_REGISTRY_ADDRESS"));
-    ZKPassportRootVerifier rootVerifier = new ZKPassportRootVerifier(admin, guardian, rootRegistry);
+    // Hash of the global default OPRF public key; defaults to zero if unset so it can be
+    // populated later via `rootVerifier.setDefaultOprfPubKeyHash(...)` once the DKG key is known.
+    bytes32 defaultOprfPubKeyHash = vm.envOr("DEFAULT_OPRF_PUB_KEY_HASH", bytes32(0));
+    ZKPassportRootVerifier rootVerifier =
+      new ZKPassportRootVerifier(admin, guardian, rootRegistry, defaultOprfPubKeyHash);
     console.log("ZKPassportRootVerifier deployed at:", address(rootVerifier));
 
     // Deploy the sub verifier

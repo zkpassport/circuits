@@ -144,8 +144,7 @@ contract ZKPassportSubVerifier {
     view
   {
     require(
-      _rootRegistry.isRootValid(RegistryID.CERTIFICATE, certificateRoot, timestamp),
-      "Invalid certificate registry root"
+      _rootRegistry.isRootValid(RegistryID.CERTIFICATE, certificateRoot, timestamp), "Invalid certificate registry root"
     );
   }
 
@@ -225,8 +224,7 @@ contract ZKPassportSubVerifier {
     );
 
     require(
-      nullifierType == NullifierType.NON_SALTED_NULLIFIER
-        || nullifierType == NullifierType.SALTED_NULLIFIER
+      nullifierType == NullifierType.NON_SALTED_NULLIFIER || nullifierType == NullifierType.SALTED_NULLIFIER
         || params.serviceConfig.devMode,
       "Unsupported nullifier type"
     );
@@ -235,8 +233,9 @@ contract ZKPassportSubVerifier {
     isValid =
       IProofVerifier(verifier).verify(params.proofVerificationData.proof, params.proofVerificationData.publicInputs);
 
-    // Get the unique identifier from the public inputs
-    uint256 uniqueIdentifierIndex = params.proofVerificationData.publicInputs.length - 1;
+    // Get the unique identifier (scoped_nullifier) from the public inputs.
+    // Trailing public inputs (in order): [length-3] nullifier_type, [length-2] scoped_nullifier, [length-1] oprf_pk_hash.
+    uint256 uniqueIdentifierIndex = params.proofVerificationData.publicInputs.length - 2;
     uniqueIdentifier = params.proofVerificationData.publicInputs[uniqueIdentifierIndex];
 
     // Return the validity of the proof verification and the unique identifier
