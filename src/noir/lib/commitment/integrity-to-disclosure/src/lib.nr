@@ -5,27 +5,10 @@ use common::{
 use utils::{get_expiry_date_from_mrz, types::{DG1Data, EContentData, SaltedValue, SignedAttrsData}};
 
 /*
-############################################################
-# Circuit C
-############################################################
+# Sub-circuit C: Integrity to Disclosure
 # Verifies the integrity of the ePassport data
-############################################################
-
-# Inputs/Outputs
-############################################################
-current_date
-comm_in                 `assert comm_in == H(salt, country, signed_attr, sod_sig)`
-salt
-id_data
-private_nullifier       `assert private_nullifier == H(dg1, sod_sig)`
-comm_out                `H(salt, dg1, private_nullifier)`
-
-# Checks
-############################################################
-- Check that passport expiry date <= current date
-- Checks that the dg1 hash is present in e_content
-- Checks that the hash of e_content is present in signed_attr
 */
+
 pub fn commit_to_disclosure<let DG2_HASH_SIZE: u32>(
     comm_in: Field,
     salt_in: Field,

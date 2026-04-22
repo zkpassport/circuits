@@ -5,24 +5,8 @@ use common::{
 use utils::types::{DG1Data, EContentData, SignedAttrsData};
 
 /*
-############################################################
-# Circuit B
-############################################################
-# Verifies the DSC signed the ePassport
-############################################################
-
-# Inputs/Outputs
-############################################################
-comm_in         `assert comm_in == H(salt, country, dsc_pubkey)`
-salt
-id_data
-dsc_data
-sod_sig
-comm_out        `H(salt, country, signed_attr, sod_sig)`
-
-# Checks
-############################################################
-- Check that sod_sig is the signature of dsc_pubkey over signed_attr
+# Sub-circuit B: DSC to ID Data
+# Verifies the DSC (document signing certificate) signed the ePassport / National ID
 */
 
 pub fn commit_to_id<let TBS_MAX_SIZE: u32, let SIG_SIZE: u32>(

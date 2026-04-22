@@ -4,28 +4,8 @@ use common::{
 use utils::types::Alpha3CountryCode;
 
 /*
-############################################################
-# Circuit A
-############################################################
-# Verifies the CSC signed the DSC
-############################################################
-
-# Inputs/Outputs
-############################################################
-certificate_registry_root (public)
-certificate_registry
-salt
-country
-csc_pubkey
-dsc_pubkey
-dsc_data
-comm_out                `H(salt, country, dsc_pubkey)`
-
-# Checks
-############################################################
-- Check that leaf `H(registry_id, cert_type, country, csc_pubkey)` exists in tree with root certificate_registry_root
-- Check that dsc_pubkey exists in dsc_tbs at offset dsc_tbs_pubkey_offset
-- Check that dsc_sig is the signature of csc_pubkey over dsc_tbs
+# Sub-circuit A: CSC to DSC
+# Verifies the CSCA signed the DSC, and the CSCA certificate is in the Certificate Registry
 */
 
 pub fn commit_to_dsc<let CSC_KEY_SIZE: u32, let HASH_PATH_SIZE: u32, let TBS_CERT_SIZE: u32>(
