@@ -1,6 +1,4 @@
-use common::{
-    calculate_certificate_registry_leaf, compute_merkle_root, CSC_CERT_TYPE, hash_salt_country_tbs,
-};
+use common::{calculate_certificate_root_using_hash_path_v0, CSC_CERT_TYPE, hash_salt_country_tbs};
 use utils::types::Alpha3CountryCode;
 
 /*
@@ -19,10 +17,11 @@ pub fn commit_to_dsc<let CSC_KEY_SIZE: u32, let HASH_PATH_SIZE: u32, let TBS_CER
     csc_pubkey: [u8; CSC_KEY_SIZE],
 ) -> Field {
     // Verify csc_pubkey exists in certificate registry
-    let leaf: Field =
-        calculate_certificate_registry_leaf(certificate_tags, CSC_CERT_TYPE, country, csc_pubkey);
-    let root = compute_merkle_root(
-        leaf,
+    let root = calculate_certificate_root_using_hash_path_v0(
+        certificate_tags,
+        CSC_CERT_TYPE,
+        country,
+        csc_pubkey,
         certificate_registry_index,
         certificate_registry_hash_path,
     );

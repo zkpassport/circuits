@@ -77,7 +77,7 @@ pub fn has_value_in_tags<let BIT_SIZE: u32, let TAGS_LEN: u32>(
     result
 }
 
-pub fn calculate_certificate_registry_leaf<let N: u32>(
+pub fn calculate_certificate_registry_leaf_v0<let N: u32>(
     tags: [Field; 3],
     cert_type: u8,
     country: Alpha3CountryCode,
@@ -98,6 +98,23 @@ pub fn calculate_certificate_registry_leaf<let N: u32>(
         hash_inputs[4 + i] = packed_pubkey[i] as Field;
     }
     Poseidon2::hash(hash_inputs, hash_inputs.len())
+}
+
+pub fn calculate_certificate_root_using_hash_path_v0<let N: u32, let HASH_PATH_SIZE: u32>(
+    certificate_tags: [Field; 3],
+    cert_type: u8,
+    country: Alpha3CountryCode,
+    public_key: [u8; N],
+    certificate_registry_index: Field,
+    certificate_registry_hash_path: [Field; HASH_PATH_SIZE],
+) -> Field {
+    let leaf: Field =
+        calculate_certificate_registry_leaf_v0(certificate_tags, cert_type, country, public_key);
+    compute_merkle_root(
+        leaf,
+        certificate_registry_index,
+        certificate_registry_hash_path,
+    )
 }
 
 pub fn get_country_from_dg1(dg1: DG1Data) -> Alpha3CountryCode {
