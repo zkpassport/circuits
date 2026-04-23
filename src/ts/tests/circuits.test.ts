@@ -48,6 +48,7 @@ import {
   getFacematchParameterCommitment,
   getFacematchEvmParameterCommitment,
   packLeBytesAndHashPoseidon2,
+  OPRF_ZERO_PROOF,
 } from "@zkpassport/utils"
 import type { IntegrityToDisclosureSalts, PackagedCertificatesFile, Query } from "@zkpassport/utils"
 import { beforeAll, afterAll, describe, expect, test } from "@jest/globals"
@@ -1476,6 +1477,7 @@ describe("subcircuits - RSA PKCS", () => {
         undefined,
         undefined,
         nowTimestamp,
+        OPRF_ZERO_PROOF,
         sanctions,
       )
 
@@ -1627,6 +1629,7 @@ describe("subcircuits - RSA PKCS", () => {
         undefined,
         undefined,
         nowTimestamp,
+        OPRF_ZERO_PROOF,
         sanctions,
       )
       if (!inputs) throw new Error("Unable to generate sanctions circuit inputs")
@@ -2557,7 +2560,7 @@ describe("subcircuits - RSA PKCS", () => {
       const scope = 12345n
       const subscope = 67890n
       let inputs = await getDiscloseCircuitInputs(
-        helper.passport as any,
+        state.helper.passport as any,
         query,
         INTEGRITY_TO_DISCLOSURE_SALTS,
         0n, // nullifier_secret placeholder - will be overridden
@@ -2567,11 +2570,15 @@ describe("subcircuits - RSA PKCS", () => {
       )
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
 
-      // Get the private_nullifier from the circuit inputs and compute OPRF with it as the input
+      // Get the private_nullifier from the circuit inputs and compute OPRF with it as the input.
+      // blindingFactor and auth are unused when options.mock is true.
       const privateNullifier = BigInt(inputs.salted_private_nullifier.value as string)
-      const { oprfProof, oprfOutput, publicKey } = await evaluateOPRF(privateNullifier, {
-        mock: true
-      })
+      const { oprfProof, oprfOutput, publicKey } = await evaluateOPRF(
+        privateNullifier,
+        0n,
+        {} as any,
+        { mock: true },
+      )
 
       // Override nullifier_secret and oprf_proof
       inputs.nullifier_secret = `0x${oprfOutput.toString(16)}`
@@ -2792,6 +2799,7 @@ describe("subcircuits - RSA PKCS - German passport", () => {
         undefined,
         undefined,
         nowTimestamp,
+        undefined, // oprfProof — defaults to OPRF_ZERO_PROOF for non-salted
         sanctions,
       )
 
