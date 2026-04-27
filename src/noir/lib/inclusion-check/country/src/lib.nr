@@ -46,10 +46,7 @@ pub fn check_country_list_padding<let N: u32>(country_list: [Alpha3CountryCode; 
             found_padding = true;
         }
         if found_padding {
-            assert(
-                is_empty,
-                "Country list cannot contain country codes after the padding",
-            );
+            assert(is_empty, "Country list cannot contain country codes after the padding");
         }
     }
 }
