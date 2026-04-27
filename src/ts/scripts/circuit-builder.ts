@@ -122,6 +122,10 @@ const STATIC_CIRCUITS = [
     name: "facematch_ios_evm",
     path: "./src/noir/bin/facematch/ios/evm",
   },
+  {
+    name: "oprf_auth",
+    path: "./src/noir/bin/oprf-auth",
+  },
 ]
 
 const LIB_CIRCUITS = [
@@ -341,7 +345,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     e_content: EContentData,
     ${rsa_type === "pss" ? "pss_salt_len: u32," : ""}
 ) -> pub Field {
-    verify_rsa_pubkey_in_tbs(dsc_pubkey, tbs_certificate);
+    verify_rsa_pubkey_in_tbs(dsc_pubkey, exponent, tbs_certificate);
     // Get the length of signed_attributes by parsing the ASN.1
     // Safety: This is safe because the length must be correct for the hash and signature to be valid
     let signed_attributes_size =
@@ -516,7 +520,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     nullifier_secret: Field,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub (Field, Field, Field) {
+) -> pub (Field, Field, Field, Field) {
     // Check the ID is not expired
     check_expiry_from_date(salted_expiry_date.value, current_date);
 
@@ -531,7 +535,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     ${intermediate_signature_algorithms[0].signature_algorithm === "ecdsa" ? `
     verify_ecdsa_pubkey_in_tbs(intermediate_1_key_x, intermediate_1_key_y, intermediate_1_tbs);
     ` : `
-    verify_rsa_pubkey_in_tbs(intermediate_1_key, intermediate_1_tbs);
+    verify_rsa_pubkey_in_tbs(intermediate_1_key, 65537, intermediate_1_tbs);
     `}
     let intermediate_1_tbs_len = unsafe { unsafe_get_asn1_element_length(intermediate_1_tbs) };
     ${root_signature_algorithm === "rsa" ? `
@@ -553,7 +557,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
       let (intermediate_${index + 1}_sig_r, intermediate_${index + 1}_sig_s) = split_array(intermediate_${index + 1}_sig);
       let intermediate_${index + 1}_tbs_hash = get_tbs_hash_${intermediate_signature_algorithms[index - 1].hash_algorithm}(intermediate_${index + 1}_tbs);
       ` : `
-      verify_rsa_pubkey_in_tbs(intermediate_${index + 1}_key, intermediate_${index + 1}_tbs);
+      verify_rsa_pubkey_in_tbs(intermediate_${index + 1}_key, 65537, intermediate_${index + 1}_tbs);
       let (intermediate_${index + 1}_sig_r, intermediate_${index + 1}_sig_s) = split_array(intermediate_${index + 1}_sig);
       let intermediate_${index + 1}_tbs_hash = get_tbs_hash_${intermediate_signature_algorithms[index - 1].hash_algorithm}(intermediate_${index + 1}_tbs);
       `;
@@ -632,7 +636,16 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         "Failed to verify nonce from integrity token",
     );
 
-    let (nullifier, nullifier_type) = nullify(
+    // Facematch circuit does not use OPRF proof. Pass a zero OPRF proof so nullify skips OPRF verification.
+    let zero_oprf_proof = commitment::OPRFProof {
+        pk: commitment::BabyJubJubPoint { x: 0, y: 0 },
+        dlog_e: 0,
+        dlog_s: 0,
+        response_blinded: commitment::BabyJubJubPoint { x: 0, y: 0 },
+        response: commitment::BabyJubJubPoint { x: 0, y: 0 },
+        beta: 0,
+    };
+    let (nullifier, nullifier_type, _oprf_pk_hash) = nullify(
         comm_in,
         salted_dg1,
         salted_expiry_date,
@@ -641,7 +654,8 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         salted_private_nullifier,
         service_scope,
         service_subscope,
-        nullifier_secret,
+        nullifier_secret, // should be 0 for facematch circuit
+        zero_oprf_proof,
     );
 
     let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
@@ -649,7 +663,8 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     let param_commitment =
         ${evm ? "calculate_param_commitment_sha2" : "calculate_param_commitment"}(root_key_leaf, environment, app_id_hash, play_integrity_public_key_hash, facematch_mode);
 
-    (param_commitment, nullifier_type, nullifier)
+    // oprf_pk_hash is 0 since facematch doesn't do OPRF - other disclosure circuits provide it
+    (param_commitment, nullifier_type, nullifier, 0)
 }
 `
 
@@ -688,7 +703,6 @@ use outer_lib::{
     CSCtoDSCProof, DisclosureProof, DSCtoIDDataProof, IntegrityCheckProof, poseidon2_hash,
     prepare_disclosure_inputs, prepare_integrity_check_inputs,
 };
-use utils::constants::{NON_SALTED_NULLIFIER, SALTED_NULLIFIER, NON_SALTED_MOCK_NULLIFIER, SALTED_MOCK_NULLIFIER};
 use std::verify_proof_with_type;
 global PROOF_TYPE_HONK_ZK: u32 = 6;
 
@@ -709,6 +723,8 @@ fn verify_subproofs(
     nullifier_type: Field,
     // The scoped nullifier: H(private_nullifier,service_scope,service_subscope)
     scoped_nullifier: Field,
+    // The hash of the OPRF public key used for salted nullifiers (0 if non-salted)
+    oprf_pk_hash: Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
     integrity_check_proof: IntegrityCheckProof,
@@ -763,10 +779,6 @@ fn verify_subproofs(
         assert_eq(poseidon2_hash(disclosure_proofs[i].vkey), disclosure_proofs[i].key_hash, "Disclosure proof vkey hash mismatch");
     }
 
-    // Assert that the nullifier type is not the salted nullifier
-    // as the salted nullifier is not allowed for now
-    // Mock proof salted nullifiers are allowed though
-    assert(nullifier_type != SALTED_NULLIFIER, "Salted nullifiers are not allowed for now");
     assert(scoped_nullifier != 0, "Scoped nullifier must be non-zero");
 
     verify_proof_with_type(
@@ -831,6 +843,7 @@ fn verify_subproofs(
                 service_subscope,
                 nullifier_type,
                 disclosure_proofs[i].public_inputs[1], // scoped nullifier
+                oprf_pk_hash,
             ),
             disclosure_proofs[i].key_hash,
             PROOF_TYPE_HONK_ZK,
@@ -851,6 +864,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     param_commitments: pub [Field; ${disclosure_proofs_count}],
     nullifier_type: pub Field,
     scoped_nullifier: pub Field,
+    oprf_pk_hash: pub Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
     integrity_check_proof: IntegrityCheckProof,
@@ -865,6 +879,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         service_subscope,
         nullifier_type,
         scoped_nullifier,
+        oprf_pk_hash,
         csc_to_dsc_proof,
         dsc_to_id_data_proof,
         integrity_check_proof,
@@ -1282,7 +1297,7 @@ const generateWorkspaceToml = () => {
 
 // Maximum number of concurrent circuit compilations via `nargo compile`
 // Default value that can be overridden via CLI using --concurrency=x
-const DEFAULT_CONCURRENCY = 2
+const DEFAULT_CONCURRENCY = 10
 
 // Promise pool for controlled concurrency
 class PromisePool {

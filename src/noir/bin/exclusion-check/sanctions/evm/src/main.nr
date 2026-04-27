@@ -19,16 +19,17 @@ fn main(
     proofs: SanctionsOrderedMerkleTreeProofs,
     is_strict: bool,
     nullifier_secret: Field,
+    oprf_proof: commitment::OPRFProof,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub (Field, Field, Field) {
+) -> pub (Field, Field, Field, Field) {
     // Check the ID is not expired
     check_expiry(salted_dg1.value, current_date);
 
     let trees = SanctionsSparseMerkleTrees::new(root);
     // Check that nationality of the passport holder is not in the list of countries
     trees.check_sanctions_exclusion(salted_dg1.value, proofs, is_strict);
-    let (nullifier, nullifier_type) = nullify(
+    let (nullifier, nullifier_type, oprf_pk_hash) = nullify(
         comm_in,
         salted_dg1,
         salted_expiry_date,
@@ -38,7 +39,8 @@ fn main(
         service_scope,
         service_subscope,
         nullifier_secret,
+        oprf_proof,
     );
     let param_commitment = calculate_param_commitment_sha2(root, is_strict);
-    (param_commitment, nullifier_type, nullifier)
+    (param_commitment, nullifier_type, nullifier, oprf_pk_hash)
 }

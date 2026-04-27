@@ -14,7 +14,7 @@ let barretenberg: Barretenberg
 const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
 const PACKAGED_CIRCUITS_DIR = path.join(TARGET_DIR, "packaged/circuits")
-const MAX_CONCURRENT_PROCESSES = 5
+const MAX_CONCURRENT_PROCESSES = 40
 const DEPLOY_SOL_PATH = "src/solidity/script/Deploy.s.sol"
 const DEPLOY_SUB_VERIFIER_SOL_PATH = "src/solidity/script/DeploySubVerifier.s.sol"
 const DEPLOY_PROOF_VERIFIERS_SOL_PATH = "src/solidity/script/DeployProofVerifiers.s.sol"

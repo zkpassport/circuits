@@ -42,11 +42,13 @@ import {
   getCountryWeightedSum,
   rightPadArrayWithZeros,
   getNullifierTypeFromDisclosureProof,
+  getOprfPkHashFromDisclosureProof,
   NullifierType,
   getFacematchCircuitInputs,
   getFacematchParameterCommitment,
   getFacematchEvmParameterCommitment,
   packLeBytesAndHashPoseidon2,
+  OPRF_ZERO_PROOF,
 } from "@zkpassport/utils"
 import type { IntegrityToDisclosureSalts, PackagedCertificatesFile, Query } from "@zkpassport/utils"
 import { beforeAll, afterAll, describe, expect, test } from "@jest/globals"
@@ -58,6 +60,8 @@ import { wrapSodInContentInfo } from "../sod-generator"
 import { generateSod } from "../sod-generator"
 import { serializeAsn, createUTCDate } from "../utils"
 import { Circuit } from "../circuits"
+import { evaluateOPRF } from "@zkpassport/utils"
+import { poseidon2HashAsync } from "@zkpassport/poseidon2"
 import fs from "fs"
 import FIXTURES_FACEMATCH from "./fixtures/facematch"
 import { AlgorithmIdentifier } from "@peculiar/asn1-x509"
@@ -1102,6 +1106,8 @@ describe("subcircuits - RSA PKCS", () => {
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const nullifierType = getNullifierTypeFromDisclosureProof(proof)
       expect(nullifierType).toEqual(NullifierType.NON_SALTED)
+      const oprfPkHash = getOprfPkHashFromDisclosureProof(proof)
+      expect(oprfPkHash).toEqual(0n)
       const commitmentIn = getCommitmentInFromDisclosureProof(proof)
       expect(commitmentIn).toEqual(state.integrityCheckCommitment)
       const currentDate = getCurrentDateFromDisclosureProof(proof)
@@ -1471,6 +1477,7 @@ describe("subcircuits - RSA PKCS", () => {
         undefined,
         undefined,
         nowTimestamp,
+        OPRF_ZERO_PROOF,
         sanctions,
       )
 
@@ -1622,6 +1629,7 @@ describe("subcircuits - RSA PKCS", () => {
         undefined,
         undefined,
         nowTimestamp,
+        OPRF_ZERO_PROOF,
         sanctions,
       )
       if (!inputs) throw new Error("Unable to generate sanctions circuit inputs")
@@ -2535,6 +2543,66 @@ describe("subcircuits - RSA PKCS", () => {
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
     })
   })
+
+  describe("salted OPRF nullifier", () => {
+    let circuit: Circuit
+    beforeAll(async () => {
+      circuit = Circuit.from("disclose_bytes")
+    })
+    afterAll(async () => {
+      await circuit.destroy()
+    })
+
+    test("should produce valid proof with OPRF-based salted nullifier", async () => {
+      const query: Query = {
+        nationality: { disclose: true },
+      }
+      const scope = 12345n
+      const subscope = 67890n
+      let inputs = await getDiscloseCircuitInputs(
+        state.helper.passport as any,
+        query,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
+        0n, // nullifier_secret placeholder - will be overridden
+        scope,
+        subscope,
+        nowTimestamp,
+      )
+      if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
+
+      // Get the private_nullifier from the circuit inputs and compute OPRF with it as the input.
+      // blindingFactor and auth are unused when options.mock is true.
+      const privateNullifier = BigInt(inputs.salted_private_nullifier.value as string)
+      const { oprfProof, oprfOutput, publicKey } = await evaluateOPRF(
+        privateNullifier,
+        0n,
+        {} as any,
+        { mock: true },
+      )
+
+      // Override nullifier_secret and oprf_proof
+      inputs.nullifier_secret = `0x${oprfOutput.toString(16)}`
+      inputs.oprf_proof = oprfProof
+
+      const proof = await circuit.prove(inputs, {
+        witness: await circuit.solve(inputs),
+        useCli: true,
+        circuitName: `disclose_bytes`,
+      })
+      expect(proof).toBeDefined()
+
+      const nullifierType = getNullifierTypeFromDisclosureProof(proof)
+      expect(nullifierType).toEqual(NullifierType.SALTED)
+
+      const nullifier = getNullifierFromDisclosureProof(proof)
+      expect(nullifier).not.toEqual(0n)
+
+      // Verify oprf_pk_hash matches poseidon2Hash([pk.x, pk.y])
+      const oprfPkHash = getOprfPkHashFromDisclosureProof(proof)
+      const expectedPkHash = await poseidon2HashAsync([publicKey.x, publicKey.y])
+      expect(oprfPkHash).toEqual(expectedPkHash)
+    })
+  })
 })
 
 describe("subcircuits - RSA PKCS - ZKR Mock Issuer", () => {
@@ -2731,6 +2799,7 @@ describe("subcircuits - RSA PKCS - German passport", () => {
         undefined,
         undefined,
         nowTimestamp,
+        undefined, // oprfProof — defaults to OPRF_ZERO_PROOF for non-salted
         sanctions,
       )
 

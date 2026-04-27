@@ -23,9 +23,10 @@ fn main(
     // If the maximum date timestamp is 0, it is not checked
     max_date: u64,
     nullifier_secret: Field,
+    oprf_proof: commitment::OPRFProof,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub (Field, Field, Field) {
+) -> pub (Field, Field, Field, Field) {
     // Check the ID is not expired
     check_expiry(salted_dg1.value, current_date);
 
@@ -33,7 +34,7 @@ fn main(
     // Verify the birthdate of the ID holder
     // Uses 1900 as the epoch year because birthdates can be before 1970 (the usual unix epoch)
     compare_date(birthdate, min_date, max_date, 1900);
-    let (nullifier, nullifier_type) = nullify(
+    let (nullifier, nullifier_type, oprf_pk_hash) = nullify(
         comm_in,
         salted_dg1,
         salted_expiry_date,
@@ -43,8 +44,9 @@ fn main(
         service_scope,
         service_subscope,
         nullifier_secret,
+        oprf_proof,
     );
     // Use Poseidon2 to calculate the parameter commitment so the prover has less work to do
     let param_commitment = calculate_param_commitment(PROOF_TYPE_BIRTHDATE, min_date, max_date);
-    (param_commitment, nullifier_type, nullifier)
+    (param_commitment, nullifier_type, nullifier, oprf_pk_hash)
 }

@@ -40,6 +40,7 @@ import {
   getFacematchCircuitInputs,
   packLeBytesAndHashPoseidon2,
   getFacematchEvmParameterCommitment,
+  getOprfPkHashFromOuterProof,
 } from "@zkpassport/utils"
 import * as path from "path"
 import * as fs from "fs"
@@ -310,6 +311,8 @@ describe("outer proof", () => {
       expect(nullifier).toEqual(
         2650684516642119190462868389024749567829027632273482260700375874186000116367n,
       )
+      const oprfPkHash = getOprfPkHashFromOuterProof(proof)
+      expect(oprfPkHash).toEqual(0n)
       const certificateRegistryRootFromProof = getCertificateRegistryRootFromOuterProof(proof)
       expect(certificateRegistryRoot).toEqual(certificateRegistryRootFromProof)
       const paramCommitmentsFromProof = getParamCommitmentsFromOuterProof(proof)

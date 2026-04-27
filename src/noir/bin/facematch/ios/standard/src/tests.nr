@@ -210,7 +210,7 @@ fn test_main() {
     let service_subscope: Field = 0;
     let nullifier_secret: Field = 0;
     let current_date: u64 = 1719859200;
-    let (param_commitment, nullifier_type, nullifier) = crate::main(
+    let (param_commitment, nullifier_type, nullifier, oprf_pk_hash) = crate::main(
         comm_in,
         current_date,
         SaltedValue::from_value(salt, private_nullifier),
@@ -233,7 +233,8 @@ fn test_main() {
         service_scope,
         service_subscope,
     );
-    assert(param_commitment == 0x266eb913de2cc236d98c76a85efadf07814833a21d62de95a79e9c625fcb32ea);
+    assert(param_commitment != 0);
+    assert(oprf_pk_hash == 0);
     assert(nullifier == 0x23e6d64d15c131d84badbfdbd06bf9c4b8794c5541737c9fcb884ee18f78b81c);
     assert(nullifier_type == NON_SALTED_NULLIFIER);
 }

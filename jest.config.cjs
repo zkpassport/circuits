@@ -28,5 +28,5 @@ module.exports = {
       },
     ],
   },
-  transformIgnorePatterns: ["node_modules/(?!(\\.bun|@zkpassport|@noble)/)"],
+  transformIgnorePatterns: ["node_modules/(?!(\\.bun|\\.pnpm|@zkpassport|@noble|@taceo)/)"],
 }

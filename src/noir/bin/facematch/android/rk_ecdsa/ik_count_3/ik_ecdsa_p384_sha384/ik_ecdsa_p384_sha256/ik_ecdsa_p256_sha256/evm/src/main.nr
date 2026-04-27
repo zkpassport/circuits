@@ -88,7 +88,7 @@ fn main(
     nullifier_secret: Field,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub (Field, Field, Field) {
+) -> pub (Field, Field, Field, Field) {
     // Check the ID is not expired
     check_expiry_from_date(salted_expiry_date.value, current_date);
 
@@ -246,7 +246,16 @@ fn main(
         "Failed to verify nonce from integrity token",
     );
 
-    let (nullifier, nullifier_type) = nullify(
+    // Facematch circuit does not use OPRF proof. Pass a zero OPRF proof so nullify skips OPRF verification.
+    let zero_oprf_proof = commitment::OPRFProof {
+        pk: commitment::BabyJubJubPoint { x: 0, y: 0 },
+        dlog_e: 0,
+        dlog_s: 0,
+        response_blinded: commitment::BabyJubJubPoint { x: 0, y: 0 },
+        response: commitment::BabyJubJubPoint { x: 0, y: 0 },
+        beta: 0,
+    };
+    let (nullifier, nullifier_type, _oprf_pk_hash) = nullify(
         comm_in,
         salted_dg1,
         salted_expiry_date,
@@ -255,7 +264,8 @@ fn main(
         salted_private_nullifier,
         service_scope,
         service_subscope,
-        nullifier_secret,
+        nullifier_secret, // should be 0 for facematch circuit
+        zero_oprf_proof,
     );
 
     let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
@@ -269,5 +279,6 @@ fn main(
         facematch_mode,
     );
 
-    (param_commitment, nullifier_type, nullifier)
+    // oprf_pk_hash is 0 since facematch doesn't do OPRF - other disclosure circuits provide it
+    (param_commitment, nullifier_type, nullifier, 0)
 }
