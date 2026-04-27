@@ -75,7 +75,8 @@ enum OS {
 // │       ├── [4] service_subscope           // Field - struct.serviceSubscope
 // │       ├── [5:5+N] param_commitments      // Field[N] - PublicInputsCast.getParamCommitment(array, index)
 // │       ├── [5+N] nullifier_type           // u8 - PublicInputsCast.getNullifierType(array, paramCount)
-// │       └── [6+N] scoped_nullifier         // Field - PublicInputsCast.getScopedNullifier(array, paramCount)
+// │       ├── [6+N] scoped_nullifier         // Field - PublicInputsCast.getScopedNullifier(array, paramCount)
+// │       └── [7+N] oprf_pk_hash             // Field - Hash of the OPRF public key (0 if non-salted)
 // │
 // ├── bytes committedInputs              // Preimages of param_commitments
 // │

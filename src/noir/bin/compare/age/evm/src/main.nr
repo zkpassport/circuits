@@ -22,9 +22,10 @@ fn main(
     // If the maximum age is 0, it is not checked
     max_age_required: u8,
     nullifier_secret: Field,
+    oprf_proof: commitment::OPRFProof,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub (Field, Field, Field) {
+) -> pub (Field, Field, Field, Field) {
     // Check the ID is not expired
     check_expiry(salted_dg1.value, current_date);
 
@@ -35,7 +36,7 @@ fn main(
         max_age_required,
         current_date,
     );
-    let (nullifier, nullifier_type) = nullify(
+    let (nullifier, nullifier_type, oprf_pk_hash) = nullify(
         comm_in,
         salted_dg1,
         salted_expiry_date,
@@ -45,9 +46,10 @@ fn main(
         service_scope,
         service_subscope,
         nullifier_secret,
+        oprf_proof,
     );
     // Use SHA2-256 to calculate the parameter commitment so the parameter commitment can be
     // reconstructed by verifiers on EVM chains
     let param_commitment = calculate_param_commitment_sha2(min_age_required, max_age_required);
-    (param_commitment, nullifier_type, nullifier)
+    (param_commitment, nullifier_type, nullifier, oprf_pk_hash)
 }

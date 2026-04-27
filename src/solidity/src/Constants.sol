@@ -46,7 +46,7 @@ library PublicInput {
   uint256 constant SUBSCOPE_INDEX = 4;
   uint256 constant PARAM_COMMITMENTS_INDEX = 5;
   // The length of the public inputs excluding the param commitments
-  uint256 constant PUBLIC_INPUTS_EXCLUDING_PARAM_COMMITMENTS_LENGTH = 7;
+  uint256 constant PUBLIC_INPUTS_EXCLUDING_PARAM_COMMITMENTS_LENGTH = 8;
 }
 
 // Gather all the MRZ indices in one place

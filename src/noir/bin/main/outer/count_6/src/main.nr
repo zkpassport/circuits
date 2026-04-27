@@ -29,9 +29,6 @@ use outer_lib::{
     prepare_disclosure_inputs, prepare_integrity_check_inputs,
 };
 use std::verify_proof_with_type;
-use utils::constants::{
-    NON_SALTED_MOCK_NULLIFIER, NON_SALTED_NULLIFIER, SALTED_MOCK_NULLIFIER, SALTED_NULLIFIER,
-};
 global PROOF_TYPE_HONK_ZK: u32 = 6;
 
 fn verify_subproofs(
@@ -51,6 +48,8 @@ fn verify_subproofs(
     nullifier_type: Field,
     // The scoped nullifier: H(private_nullifier,service_scope,service_subscope)
     scoped_nullifier: Field,
+    // The hash of the OPRF public key used for salted nullifiers (0 if non-salted)
+    oprf_pk_hash: Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
     integrity_check_proof: IntegrityCheckProof,
@@ -121,10 +120,6 @@ fn verify_subproofs(
         );
     }
 
-    // Assert that the nullifier type is not the salted nullifier
-    // as the salted nullifier is not allowed for now
-    // Mock proof salted nullifiers are allowed though
-    assert(nullifier_type != SALTED_NULLIFIER, "Salted nullifiers are not allowed for now");
     assert(scoped_nullifier != 0, "Scoped nullifier must be non-zero");
 
     verify_proof_with_type(
@@ -208,6 +203,7 @@ fn verify_subproofs(
                 service_subscope,
                 nullifier_type,
                 disclosure_proofs[i].public_inputs[1], // scoped nullifier
+                oprf_pk_hash,
             ),
             disclosure_proofs[i].key_hash,
             PROOF_TYPE_HONK_ZK,
@@ -228,6 +224,7 @@ fn main(
     param_commitments: pub [Field; 3],
     nullifier_type: pub Field,
     scoped_nullifier: pub Field,
+    oprf_pk_hash: pub Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
     integrity_check_proof: IntegrityCheckProof,
@@ -242,6 +239,7 @@ fn main(
         service_subscope,
         nullifier_type,
         scoped_nullifier,
+        oprf_pk_hash,
         csc_to_dsc_proof,
         dsc_to_id_data_proof,
         integrity_check_proof,

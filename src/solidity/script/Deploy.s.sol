@@ -35,25 +35,25 @@ contract Deploy is Script {
 
   bytes32[] public vkeyHashes = [
     // Outer (4 subproofs)
-    bytes32(hex"0a3390816e5af7359b589b74a49a0210ca7f8024c497af8eca6081e4cbc1505c"),
+    bytes32(hex"072583d991a1ef614353daed3b3e3fe5f94e5274966437a9fc9d77da19a306ca"),
     // Outer (5 subproofs)
-    bytes32(hex"287292eb9eace872ef64278a828b54d51b79e1ddd159e6582bf8826d1cc860ba"),
+    bytes32(hex"04ff20501e4bdd02871cc1429f70d496b4281bac97aece4544ffaedf156c7eef"),
     // Outer (6 subproofs)
-    bytes32(hex"156252c4c996e9fb3e77f4787dae33e73f9d5c6f06b57c12e87ebdaf35c9edab"),
+    bytes32(hex"1212298562eaa813d58ea4aaaf2a4117c6f02a72f3b9c64a21b1dbc6e5fab0b9"),
     // Outer (7 subproofs)
-    bytes32(hex"252dbc42921b3236ad115da32541c953bd20a09043e575df2e9ed274448bb093"),
+    bytes32(hex"0b769026390dcfb778e3e38af7b45382abcad3b2784d62b84f44ec8fecba8d3a"),
     // Outer (8 subproofs)
-    bytes32(hex"257869d29c689652f48f8957a22c398490410858eb881967a9b8caab7b86b8bb"),
+    bytes32(hex"09f506d0e46238c664160fceec1bd2dec6ef39c0b584f12c316f80aff92d3c42"),
     // Outer (9 subproofs)
-    bytes32(hex"0fb22360a2d0c81a4ebf0a55c474df97c053ae406980dcf0047c7c451d893401"),
+    bytes32(hex"2cc2ff165f1e5a7b51d654669c5fb129384dd4c36341aeeafd5cfa8e2647e681"),
     // Outer (10 subproofs)
-    bytes32(hex"2efa10b806e2e7edba75c35cd2659dc2d74e8f0f040876eb014ae6f5056e3dc0"),
+    bytes32(hex"0f069d864ffc03a6696d0ae37e8708dea13c7c3802ce95839c8110381684a5b1"),
     // Outer (11 subproofs)
-    bytes32(hex"03cb373a16d51d7b462e9a21f6d2f34fc1009da12f0cfd6f1041e0afffcf8acc"),
+    bytes32(hex"26be2379e1555cab19cd37061f32342d09b0a4891e84d4f1a363c93c87c7ba25"),
     // Outer (12 subproofs)
-    bytes32(hex"2b5579a92c9a4b48a8c60ed14395bf1d2f965ebd469c096a182fa8fe8285d0bd"),
+    bytes32(hex"16828fad756bb212bd1887e291c51cffd5bbe23acbdb96768b6a174d682224f6"),
     // Outer (13 subproofs)
-    bytes32(hex"1e3076a5fc04a825e4a817320106b943e848c2d04f703091d0e0fee3df900ef5")
+    bytes32(hex"0e165d27cf39d8b4e569e218dedbf60abc5badcfd936bdc54030669c382c802c")
   ];
   address[] public proofVerifiers = new address[](10);
 
@@ -71,7 +71,11 @@ contract Deploy is Script {
     address admin = vm.envAddress("ROOT_VERIFIER_ADMIN_ADDRESS");
     address guardian = vm.envAddress("ROOT_VERIFIER_GUARDIAN_ADDRESS");
     IRootRegistry rootRegistry = IRootRegistry(vm.envAddress("ROOT_REGISTRY_ADDRESS"));
-    ZKPassportRootVerifier rootVerifier = new ZKPassportRootVerifier(admin, guardian, rootRegistry);
+    // Hash of the global default OPRF public key; defaults to zero if unset so it can be
+    // populated later via `rootVerifier.setDefaultOprfPubKeyHash(...)` once the DKG key is known.
+    bytes32 defaultOprfPubKeyHash = vm.envOr("DEFAULT_OPRF_PUB_KEY_HASH", bytes32(0));
+    ZKPassportRootVerifier rootVerifier =
+      new ZKPassportRootVerifier(admin, guardian, rootRegistry, defaultOprfPubKeyHash);
     console.log("ZKPassportRootVerifier deployed at:", address(rootVerifier));
 
     // Deploy the sub verifier

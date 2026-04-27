@@ -144,8 +144,7 @@ contract ZKPassportSubVerifier {
     view
   {
     require(
-      _rootRegistry.isRootValid(RegistryID.CERTIFICATE, certificateRoot, timestamp),
-      "Invalid certificate registry root"
+      _rootRegistry.isRootValid(RegistryID.CERTIFICATE, certificateRoot, timestamp), "Invalid certificate registry root"
     );
   }
 
@@ -207,12 +206,12 @@ contract ZKPassportSubVerifier {
     _verifyCommittedInputs(
       // Extracts the commitments from the public inputs
       params.proofVerificationData
-      .publicInputs[PublicInput.PARAM_COMMITMENTS_INDEX:params.proofVerificationData.publicInputs.length - 2],
+      .publicInputs[PublicInput.PARAM_COMMITMENTS_INDEX:params.proofVerificationData.publicInputs.length - 3],
       params.committedInputs
     );
 
     NullifierType nullifierType = NullifierType(
-      uint256(params.proofVerificationData.publicInputs[params.proofVerificationData.publicInputs.length - 2])
+      uint256(params.proofVerificationData.publicInputs[params.proofVerificationData.publicInputs.length - 3])
     );
 
     // Allow mock proofs in dev mode
@@ -224,20 +223,19 @@ contract ZKPassportSubVerifier {
       "Mock proofs are only allowed in dev mode"
     );
 
-    // For now, only non-salted nullifiers are supported
-    // but salted nullifiers can be used in dev mode
-    // They will be later once a proper registration mechanism is implemented
     require(
-      nullifierType == NullifierType.NON_SALTED_NULLIFIER || params.serviceConfig.devMode,
-      "Salted nullifiers are not supported for now"
+      nullifierType == NullifierType.NON_SALTED_NULLIFIER || nullifierType == NullifierType.SALTED_NULLIFIER
+        || params.serviceConfig.devMode,
+      "Unsupported nullifier type"
     );
 
     // Call the proof verifier for the given Outer Circuit to verify if the actual proof is valid
     isValid =
       IProofVerifier(verifier).verify(params.proofVerificationData.proof, params.proofVerificationData.publicInputs);
 
-    // Get the unique identifier from the public inputs
-    uint256 uniqueIdentifierIndex = params.proofVerificationData.publicInputs.length - 1;
+    // Get the unique identifier (scoped_nullifier) from the public inputs.
+    // Trailing public inputs (in order): [length-3] nullifier_type, [length-2] scoped_nullifier, [length-1] oprf_pk_hash.
+    uint256 uniqueIdentifierIndex = params.proofVerificationData.publicInputs.length - 2;
     uniqueIdentifier = params.proofVerificationData.publicInputs[uniqueIdentifierIndex];
 
     // Return the validity of the proof verification and the unique identifier

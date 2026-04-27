@@ -21,8 +21,9 @@ pub fn prepare_disclosure_inputs(
     service_subscope: Field,
     nullifier_type: Field,
     scoped_nullifier: Field,
-) -> [Field; 7] {
-    let mut result: [Field; 7] = [0; 7];
+    oprf_pk_hash: Field,
+) -> [Field; 8] {
+    let mut result: [Field; 8] = [0; 8];
     result[0] = comm_in;
     result[1] = current_date as Field;
     result[2] = service_scope;
@@ -30,6 +31,7 @@ pub fn prepare_disclosure_inputs(
     result[4] = param_commitment;
     result[5] = nullifier_type;
     result[6] = scoped_nullifier;
+    result[7] = oprf_pk_hash;
     result
 }
 

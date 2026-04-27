@@ -31,6 +31,18 @@ import {
 } from "@zkpassport/utils"
 import * as path from "path"
 import * as fs from "fs"
+
+// Zero OPRF proof for non-salted nullifier fixtures.
+// The disclose/bind/facematch/etc. circuits now take `oprf_proof` as a required input;
+// we pass this placeholder because fixtures here are all NON_SALTED (nullifier_secret = 0).
+const OPRF_ZERO_PROOF = {
+  pk: { x: "0", y: "0" },
+  dlog_e: "0",
+  dlog_s: "0",
+  response_blinded: { x: "0", y: "0" },
+  response: { x: "0", y: "0" },
+  beta: "0",
+}
 import { Circuit } from "../circuits"
 import { generateSigningCertificates, loadKeypairFromFile, signSod } from "../passport-generator"
 import { generateSod, wrapSodInContentInfo } from "../sod-generator"
@@ -181,7 +193,7 @@ class FixtureGenerator {
     )
     if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
 
-    const proof = await discloseCircuit.prove(inputs, {
+    const proof = await discloseCircuit.prove({ ...inputs, oprf_proof: OPRF_ZERO_PROOF }, {
       recursive: true,
       useCli: true,
       circuitName: `disclose_bytes_evm`,
@@ -237,7 +249,7 @@ class FixtureGenerator {
     if (!inputs) throw new Error("Unable to generate bind circuit inputs")
 
     const bindCircuit = Circuit.from("bind_evm")
-    const proof = await bindCircuit.prove(inputs, {
+    const proof = await bindCircuit.prove({ ...inputs, oprf_proof: OPRF_ZERO_PROOF }, {
       recursive: true,
       useCli: true,
       circuitName: `bind_evm`,
@@ -282,7 +294,7 @@ class FixtureGenerator {
     )
     if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
 
-    const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH }
+    const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH, oprf_proof: OPRF_ZERO_PROOF }
     const facematchProof = await facematchCircuit.prove(combinedInputs, {
       useCli: true,
       recursive: true,
@@ -341,7 +353,7 @@ class FixtureGenerator {
       const inputs = await inputsGetter()
       if (!inputs) throw new Error(`Unable to generate ${circuitName} inputs`)
 
-      const proof = await circuit.prove(inputs, {
+      const proof = await circuit.prove({ ...inputs, oprf_proof: OPRF_ZERO_PROOF }, {
         recursive: true,
         useCli: true,
         circuitName,
@@ -623,7 +635,8 @@ class FixtureGenerator {
       circuitManifest.root,
     )
 
-    const proof = await circuit.prove(inputs, {
+    // Outer circuit now takes oprf_pk_hash as a top-level input; 0 for NON_SALTED fixtures.
+    const proof = await circuit.prove({ ...inputs, oprf_pk_hash: "0x0" }, {
       useCli: true,
       circuitName: evmCircuitName,
       recursive: false,
