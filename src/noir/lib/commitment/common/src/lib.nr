@@ -219,9 +219,9 @@ pub fn hash_salt_country_signed_attr_dg1_e_content_private_nullifier(
             packed_e_content[i];
     }
     hash_inputs[3
-    + (SIGNED_ATTRS_LENGTH + 30) / 31
-    + ((DG1_LENGTH + 30) / 31)
-    + ((ECONTENT_LENGTH + 30) / 31)] = private_nullifier;
+        + (SIGNED_ATTRS_LENGTH + 30) / 31
+        + ((DG1_LENGTH + 30) / 31)
+        + ((ECONTENT_LENGTH + 30) / 31)] = private_nullifier;
 
     Poseidon2::hash(
         hash_inputs,
