@@ -77,7 +77,7 @@ pub fn has_value_in_tags<let BIT_SIZE: u32, let TAGS_LEN: u32>(
     result
 }
 
-pub fn calculate_certificate_registry_leaf<let N: u32>(
+pub fn calculate_certificate_registry_leaf_v0<let N: u32>(
     tags: [Field; 3],
     cert_type: u8,
     country: Alpha3CountryCode,
@@ -98,6 +98,119 @@ pub fn calculate_certificate_registry_leaf<let N: u32>(
         hash_inputs[4 + i] = packed_pubkey[i] as Field;
     }
     Poseidon2::hash(hash_inputs, hash_inputs.len())
+}
+
+pub fn calculate_certificate_root_using_hash_path_v0<let N: u32, let HASH_PATH_SIZE: u32>(
+    certificate_tags: [Field; 3],
+    cert_type: u8,
+    country: Alpha3CountryCode,
+    public_key: [u8; N],
+    certificate_registry_index: Field,
+    certificate_registry_hash_path: [Field; HASH_PATH_SIZE],
+) -> Field {
+    let leaf: Field =
+        calculate_certificate_registry_leaf_v0(certificate_tags, cert_type, country, public_key);
+    compute_merkle_root(
+        leaf,
+        certificate_registry_index,
+        certificate_registry_hash_path,
+    )
+}
+
+// Certificate registry certificate tree leaf (version 1)
+pub struct CertificateTreeLeaf<let PUB_KEY_SIZE: u32> {
+    // Tag bit-flags. 3 limbs of up to 253 bits each (see `tagsArrayToBitsFlag` in zkpassport-utils/registry/index.ts).
+    pub tags: [Field; 3],
+    // Certificate type, e.g. `CSC_CERT_TYPE` or `DSC_CERT_TYPE`.
+    pub cert_type: u8,
+    // ISO 3166-1 alpha-3 issuing country code.
+    pub country: Alpha3CountryCode,
+    // Certificate public key bytes, as serialised by `publicKeyToBytes` in zkpassport-utils.
+    pub public_key: [u8; PUB_KEY_SIZE],
+    // Certificate `validity.not_after` Unix timestamp.
+    pub expiry: u32,
+    // Certificate fingerprint (Poseidon2 hash of the certificate DER bytes).
+    pub fingerprint: Field,
+}
+
+// Calculate certificate registry certificate tree leaf hash (version 1)
+//
+//   certificate_tree_leaf = Poseidon2(
+//       tags[0], tags[1], tags[2],
+//       pack_be_bytes_into_field(cert_type[1] || country[3] || expiry[BE u32]),
+//       fingerprint,
+//       ...pack_be_bytes_into_fields(public_key, 31),
+//   )
+pub fn calculate_certificate_registry_leaf_v1<let N: u32>(leaf: CertificateTreeLeaf<N>) -> Field {
+    // Pack certificate type, country code, and 4-byte BE expiry into a single field
+    let country_bytes: [u8; 3] = leaf.country.as_bytes();
+    let unpacked_bytes: [u8; 8] = [
+        leaf.cert_type,
+        country_bytes[0],
+        country_bytes[1],
+        country_bytes[2],
+        (leaf.expiry >> 24) as u8,
+        (leaf.expiry >> 16) as u8,
+        (leaf.expiry >> 8) as u8,
+        leaf.expiry as u8,
+    ];
+    // Prepare and hash Poseidon2 inputs:
+    // tags[3 fields] + packed(cert_type || country || expiry)[1 field] + fingerprint[1 field] + packed_pubkey[(N + 30) / 31 fields]
+    let mut hash_inputs: [Field; 5 + (N + 30) / 31] = std::mem::zeroed();
+    hash_inputs[0] = leaf.tags[0];
+    hash_inputs[1] = leaf.tags[1];
+    hash_inputs[2] = leaf.tags[2];
+    hash_inputs[3] = utils::pack_be_bytes_into_field::<8, 31>(unpacked_bytes);
+    hash_inputs[4] = leaf.fingerprint;
+    let packed_pubkey = utils::pack_be_bytes_into_fields::<N, (N + 30) / 31, 31>(leaf.public_key);
+    for i in 0..packed_pubkey.len() {
+        hash_inputs[5 + i] = packed_pubkey[i] as Field;
+    }
+    Poseidon2::hash(hash_inputs, hash_inputs.len())
+}
+
+// Compute the certificate tree merkle root (version 1) from a leaf and its hash path
+pub fn compute_certificate_tree_root_using_hash_path_v1<let N: u32, let HASH_PATH_SIZE: u32>(
+    leaf: CertificateTreeLeaf<N>,
+    certificate_tree_index: Field,
+    certificate_tree_hash_path: [Field; HASH_PATH_SIZE],
+) -> Field {
+    let leaf_hash: Field = calculate_certificate_registry_leaf_v1(leaf);
+    compute_merkle_root(
+        leaf_hash,
+        certificate_tree_index,
+        certificate_tree_hash_path,
+    )
+}
+
+// Calculate the certificate root (version 1)
+//
+//   state_root       = Poseidon2(certificate_tree_root, revocation_tree_root, masterlist_tree_root)
+//   certificate_root = Poseidon2(pack_be_bytes_into_field(schema_version[BE u16] || timestamp[BE u32]), state_root)
+//
+pub fn calculate_certificate_root_v1(
+    schema_version: u16,
+    timestamp: u32,
+    certificate_tree_root: Field,
+    revocation_tree_root: Field,
+    masterlist_tree_root: Field,
+) -> Field {
+    // 6 BE bytes: 2 for schema version, 4 for timestamp; packed into a single 31-byte field
+    let meta_bytes: [u8; 6] = [
+        (schema_version >> 8) as u8,
+        schema_version as u8,
+        (timestamp >> 24) as u8,
+        (timestamp >> 16) as u8,
+        (timestamp >> 8) as u8,
+        timestamp as u8,
+    ];
+    let packed_meta = pack_be_bytes_into_field::<6, 31>(meta_bytes);
+    let state_root = Poseidon2::hash(
+        [certificate_tree_root, revocation_tree_root, masterlist_tree_root],
+        3,
+    );
+
+    Poseidon2::hash([packed_meta, state_root], 2)
 }
 
 pub fn get_country_from_dg1(dg1: DG1Data) -> Alpha3CountryCode {

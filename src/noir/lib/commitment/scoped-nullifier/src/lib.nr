@@ -22,28 +22,9 @@ global DS_OPRF: Field = 1330664006;
 global DS_DLOG: Field = 1523098184080632582082867317389990410064981862;
 
 /*
-############################################################
-# Circuit D
-############################################################
-# Generates a scoped nullifier that is scoped by service
-# Allows selective disclosure of dg1 via a reveal bitmask
-############################################################
-
-# Inputs/Outputs
-############################################################
-comm_in             `assert comm_in == H(salt, dg1, private_nullifier)`
-salt
-dg1
-private_nullifier
-service_scope       `H(<domain_name>)`
-service_subscope    `H(<purpose>)` (Service-specific subscope)
-scoped_nullifier    `H(private_nullifier, service_scope, service_subscope)`
-
-# Checks
-############################################################
-- Checks that dg1_reveal is the correct reveal of dg1 for the given dg1_mask
-- Constrains scoped_nullifier to be `H(private_nullifier, service_scope, service_subscope)`
+# Sub-circuit D: Disclosure Circuit
 */
+
 pub fn nullify(
     comm_in: Field,
     salted_dg1: SaltedValue<DG1Data>,
