@@ -2,7 +2,7 @@ import * as fs from "fs"
 import * as path from "path"
 import { exec, execSync } from "child_process"
 import { compileCircuit } from "../utils"
-import { CERTIFICATE_REGISTRY_HEIGHT } from "@zkpassport/utils"
+import { CERTIFICATE_MERKLE_TREE_HEIGHT } from "@zkpassport/utils"
 import { sign } from "crypto"
 
 // Function to ensure directory exists
@@ -181,13 +181,19 @@ use utils::{split_array, types::Alpha3CountryCode};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
-    certificate_registry_index: Field,
-    certificate_registry_hash_path: [Field; ${CERTIFICATE_REGISTRY_HEIGHT}],
+    schema_version: u16,
+    timestamp: u32,
+    certificate_tree_index: Field,
+    certificate_tree_hash_path: [Field; ${CERTIFICATE_MERKLE_TREE_HEIGHT}],
     certificate_tags: [Field; 3],
     salt: Field,
     country: Alpha3CountryCode,
     csc_pubkey_x: [u8; ${Math.ceil(bit_size / 8)}],
     csc_pubkey_y: [u8; ${Math.ceil(bit_size / 8)}],
+    csc_expiry: u32,
+    csc_fingerprint: Field,
+    revocation_tree_root: Field,
+    masterlist_tree_root: Field,
     dsc_signature: [u8; ${Math.ceil(bit_size / 8) * 2}],
     tbs_certificate: [u8; ${tbs_max_len}],
 ) -> pub Field {
@@ -200,13 +206,19 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     assert(verify_${curve_family}_${curve_name}(csc_pubkey_x, csc_pubkey_y, r, s, msg_hash), "ECDSA signature verification failed");
     let comm_out = commit_to_dsc(
         certificate_registry_root,
-        certificate_registry_index,
-        certificate_registry_hash_path,
+        schema_version,
+        timestamp,
+        certificate_tree_index,
+        certificate_tree_hash_path,
         certificate_tags,
         country,
         tbs_certificate,
         salt,
         csc_pubkey_x.concat(csc_pubkey_y),
+        csc_expiry,
+        csc_fingerprint,
+        revocation_tree_root,
+        masterlist_tree_root,
     );
     comm_out
 }
@@ -225,11 +237,17 @@ use utils::types::Alpha3CountryCode;
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
-    certificate_registry_index: Field,
-    certificate_registry_hash_path: [Field; ${CERTIFICATE_REGISTRY_HEIGHT}],
+    schema_version: u16,
+    timestamp: u32,
+    certificate_tree_index: Field,
+    certificate_tree_hash_path: [Field; ${CERTIFICATE_MERKLE_TREE_HEIGHT}],
     certificate_tags: [Field; 3],
     salt: Field,
     country: Alpha3CountryCode,
+    csc_expiry: u32,
+    csc_fingerprint: Field,
+    revocation_tree_root: Field,
+    masterlist_tree_root: Field,
     tbs_certificate: [u8; ${tbs_max_len}],
     csc_pubkey: [u8; ${Math.ceil(bit_size / 8)}],
     csc_pubkey_redc_param: [u8; ${Math.ceil(bit_size / 8) + 1}],
@@ -254,13 +272,19 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     ), "RSA signature verification failed");
     let comm_out = commit_to_dsc(
         certificate_registry_root,
-        certificate_registry_index,
-        certificate_registry_hash_path,
+        schema_version,
+        timestamp,
+        certificate_tree_index,
+        certificate_tree_hash_path,
         certificate_tags,
         country,
         tbs_certificate,
         salt,
         csc_pubkey,
+        csc_expiry,
+        csc_fingerprint,
+        revocation_tree_root,
+        masterlist_tree_root,
     );
     comm_out
 }
@@ -684,7 +708,7 @@ const OUTER_CIRCUIT_TEMPLATE = (
 
 # Inputs/Outputs
 ############################################################
-certificate_registry_root -> The root of the certificate registry merkle tree
+certificate_registry_root -> The published Certificate Registry root (v1: H(packed(schema_version || timestamp), state_root))
 circuit_registry_root -> The root of the circuit registry merkle tree
 current_date -> The current date as a string, e.g. 20241103 (used by the integrity check subproof)
 service_scope -> The service scope
@@ -707,7 +731,7 @@ use std::verify_proof_with_type;
 global PROOF_TYPE_HONK_ZK: u32 = 6;
 
 fn verify_subproofs(
-    // Root of the certificate merkle tree
+    // Root of the Certificate Registry (v1 composed root)
     certificate_registry_root: Field,
     // Root of the circuit registry merkle tree
     circuit_registry_root: Field,
@@ -854,7 +878,7 @@ fn verify_subproofs(
 }
 
 ${unconstrained ? "unconstrained " : ""}fn main(
-    // Root of the certificate registry merkle tree
+    // Root of the Certificate Registry (v1 composed root)
     certificate_registry_root: pub Field,
     // Root of the circuit registry merkle tree
     circuit_registry_root: pub Field,

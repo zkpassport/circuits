@@ -69,6 +69,8 @@ enum OS {
 // │   └── bytes32[] publicInputs             // Array of public inputs (7+ elements)
 // │       │                                  // Use PublicInputsCast.asStruct() for structured access:
 // │       ├── [0] certificate_registry_root  // Field - struct.certificateRegistryRoot
+// │       │                                  //   v1: H(packed(schema_version || timestamp), state_root)
+// │       │                                  //   state_root = H(cert_tree_root, revocation_tree_root, masterlist_tree_root)
 // │       ├── [1] circuit_registry_root      // Field - struct.circuitRegistryRoot
 // │       ├── [2] current_date               // u64 - PublicInputsCast.getCurrentDate(struct)
 // │       ├── [3] service_scope              // Field - struct.serviceScope
