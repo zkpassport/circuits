@@ -7,10 +7,24 @@ import {
   getIntegrityCheckCircuitInputs,
   getNowTimestamp,
   PassportReader,
+  packLeBytesAndHashPoseidon2,
+  getCertificateIssuerCountry,
+  getSignatureAlgorithmType,
+  getRSAInfo,
+  getECDSAInfo,
+  getKeySize,
+  getAuthorityKeyId,
+  getSubjectKeyId,
+  getPrivateKeyUsagePeriod,
+  countryCodeAlpha2ToAlpha3,
+  OIDS_TO_PUBKEY_TYPE,
+  type PackagedCertificate,
   type PackagedCertificatesFile,
   type PassportViewModel,
   type Query,
 } from "@zkpassport/utils"
+import { AsnParser } from "@peculiar/asn1-schema"
+import { Certificate as X509Certificate } from "@peculiar/asn1-x509"
 import fs from "fs/promises"
 import path from "path"
 
@@ -91,4 +105,71 @@ export class TestHelper {
 
 export function utcDateToUnixTimestamp(year: number, month: number, day: number) {
   return Math.floor(Date.UTC(year, month - 1, day) / 1000)
+}
+
+function pemToDer(pem: string): Uint8Array {
+  const b64 = pem.replace(/-----(BEGIN|END) CERTIFICATE-----/g, "").replace(/\s+/g, "")
+  return new Uint8Array(Buffer.from(b64, "base64"))
+}
+
+// Build a v1 PackagedCertificate from a PEM-encoded x509 cert.
+export async function convertPemToPackagedCertificateV1(
+  pem: string,
+): Promise<PackagedCertificate> {
+  const der = pemToDer(pem)
+  const x509 = AsnParser.parse(der, X509Certificate)
+  const fingerprintBig = await packLeBytesAndHashPoseidon2(der)
+  const fingerprint = `0x${fingerprintBig.toString(16).padStart(64, "0")}`
+
+  const validity = x509.tbsCertificate.validity
+  const notBefore = Math.floor(validity.notBefore.getTime().getTime() / 1000)
+  const notAfter = Math.floor(validity.notAfter.getTime().getTime() / 1000)
+
+  const countryAlpha2 = getCertificateIssuerCountry(x509)
+  if (!countryAlpha2 || countryAlpha2.length !== 2)
+    throw new Error(`Invalid country code on cert: ${countryAlpha2}`)
+  const country = countryCodeAlpha2ToAlpha3(countryAlpha2)
+
+  const publicKeyOID = x509.tbsCertificate.subjectPublicKeyInfo.algorithm.algorithm
+  const publicKeyType =
+    OIDS_TO_PUBKEY_TYPE[publicKeyOID as keyof typeof OIDS_TO_PUBKEY_TYPE] ?? publicKeyOID
+
+  const common = {
+    country,
+    signature_algorithm: getSignatureAlgorithmType(x509),
+    validity: { not_before: notBefore, not_after: notAfter },
+    authority_key_identifier: getAuthorityKeyId(x509),
+    subject_key_identifier: getSubjectKeyId(x509),
+    private_key_usage_period: getPrivateKeyUsagePeriod(x509),
+    fingerprint,
+  }
+
+  if (publicKeyType === "rsaEncryption" || publicKeyType === "rsassa-pss") {
+    const rsa = getRSAInfo(x509.tbsCertificate.subjectPublicKeyInfo)
+    return {
+      ...common,
+      public_key: {
+        type: "RSA",
+        modulus: `0x${rsa.modulus.toString(16)}`,
+        exponent: Number(rsa.exponent),
+        key_size: getKeySize(x509.tbsCertificate.subjectPublicKeyInfo),
+      },
+    } as PackagedCertificate
+  }
+  if (publicKeyType === "ecPublicKey") {
+    const ec = getECDSAInfo(x509.tbsCertificate.subjectPublicKeyInfo)
+    const half = ec.publicKey.length / 2
+    return {
+      ...common,
+      public_key: {
+        type: "EC",
+        curve: ec.curve,
+        key_size: ec.keySize,
+        // Strip uncompressed-point 0x04 prefix
+        public_key_x: `0x${Buffer.from(ec.publicKey.slice(1, half + 1)).toString("hex")}`,
+        public_key_y: `0x${Buffer.from(ec.publicKey.slice(half + 1)).toString("hex")}`,
+      },
+    } as PackagedCertificate
+  }
+  throw new Error(`Unsupported public key type for test cert: ${publicKeyType}`)
 }
