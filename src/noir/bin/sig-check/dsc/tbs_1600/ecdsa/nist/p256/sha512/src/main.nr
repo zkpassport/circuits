@@ -6,13 +6,19 @@ use utils::{split_array, types::Alpha3CountryCode};
 
 fn main(
     certificate_registry_root: pub Field,
-    certificate_registry_index: Field,
-    certificate_registry_hash_path: [Field; 16],
+    schema_version: u16,
+    timestamp: u32,
+    certificate_tree_index: Field,
+    certificate_tree_hash_path: [Field; 16],
     certificate_tags: [Field; 3],
     salt: Field,
     country: Alpha3CountryCode,
     csc_pubkey_x: [u8; 32],
     csc_pubkey_y: [u8; 32],
+    csc_expiry: u32,
+    csc_fingerprint: Field,
+    revocation_tree_root: Field,
+    masterlist_tree_root: Field,
     dsc_signature: [u8; 64],
     tbs_certificate: [u8; 1600],
 ) -> pub Field {
@@ -27,13 +33,19 @@ fn main(
     );
     let comm_out = commit_to_dsc(
         certificate_registry_root,
-        certificate_registry_index,
-        certificate_registry_hash_path,
+        schema_version,
+        timestamp,
+        certificate_tree_index,
+        certificate_tree_hash_path,
         certificate_tags,
         country,
         tbs_certificate,
         salt,
         csc_pubkey_x.concat(csc_pubkey_y),
+        csc_expiry,
+        csc_fingerprint,
+        revocation_tree_root,
+        masterlist_tree_root,
     );
     comm_out
 }

@@ -9,7 +9,7 @@
 
 # Inputs/Outputs
 ############################################################
-certificate_registry_root -> The root of the certificate registry merkle tree
+certificate_registry_root -> The published Certificate Registry root (v1: H(packed(schema_version || timestamp), state_root))
 circuit_registry_root -> The root of the circuit registry merkle tree
 current_date -> The current date as a string, e.g. 20241103 (used by the integrity check subproof)
 service_scope -> The service scope
@@ -32,7 +32,7 @@ use std::verify_proof_with_type;
 global PROOF_TYPE_HONK_ZK: u32 = 6;
 
 fn verify_subproofs(
-    // Root of the certificate merkle tree
+    // Root of the Certificate Registry (v1 composed root)
     certificate_registry_root: Field,
     // Root of the circuit registry merkle tree
     circuit_registry_root: Field,
@@ -214,7 +214,7 @@ fn verify_subproofs(
 }
 
 fn main(
-    // Root of the certificate registry merkle tree
+    // Root of the Certificate Registry (v1 composed root)
     certificate_registry_root: pub Field,
     // Root of the circuit registry merkle tree
     circuit_registry_root: pub Field,
