@@ -1,6 +1,6 @@
 import {
   Binary,
-  convertPemToPackagedCertificate,
+  calculatePackagedCertificatesRoot,
   getNationalityInclusionCircuitInputs,
   getNationalityExclusionCircuitInputs,
   getAgeCircuitInputs,
@@ -53,7 +53,7 @@ import {
 import type { IntegrityToDisclosureSalts, PackagedCertificatesFile, Query } from "@zkpassport/utils"
 import { beforeAll, afterAll, describe, expect, test } from "@jest/globals"
 import * as path from "path"
-import { TestHelper } from "../test-helper"
+import { TestHelper, convertPemToPackagedCertificateV1 } from "../test-helper"
 import { generateSigningCertificates, signSod, type HashAlgorithm } from "../passport-generator"
 import { loadKeypairFromFile } from "../passport-generator"
 import { wrapSodInContentInfo } from "../sod-generator"
@@ -103,7 +103,14 @@ interface TestState {
 function createTestState(): TestState {
   return {
     helper: new TestHelper(),
-    packagedCerts: { version: 0, timestamp: 0, root: "", certificates: [] },
+    packagedCerts: {
+      version: 1,
+      timestamp: 0,
+      root: "",
+      certificates: [],
+      masterlists: [],
+      revocations: [],
+    },
     dscCommitment: 0n,
     idDataCommitment: 0n,
     integrityCheckCommitment: 0n,
@@ -139,7 +146,10 @@ async function setupPassport(state: TestState, config: PassportSetupConfig) {
   const { sod } = await generateSod(dg1, [dsc], config.sodHash, config.sodAlgorithm)
   const { sod: signedSod } = await signSod(sod, dscKeys, config.signSodHash)
 
-  state.packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
+  state.packagedCerts.certificates.push(await convertPemToPackagedCertificateV1(cscPem))
+  state.packagedCerts.timestamp = Math.floor(Date.UTC(2026, 0, 1) / 1000)
+  state.packagedCerts.root = await calculatePackagedCertificatesRoot(state.packagedCerts)
+
   const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
   await state.helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
   state.helper.setCertificates(state.packagedCerts)

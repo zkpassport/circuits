@@ -3,7 +3,7 @@ import type { IntegrityToDisclosureSalts, PackagedCertificatesFile, Query } from
 import {
   Binary,
   ProofType,
-  convertPemToPackagedCertificate,
+  calculatePackagedCertificatesRoot,
   formatBoundData,
   getAgeCircuitInputs,
   getBindCircuitInputs,
@@ -46,7 +46,7 @@ const OPRF_ZERO_PROOF = {
 import { Circuit } from "../circuits"
 import { generateSigningCertificates, loadKeypairFromFile, signSod } from "../passport-generator"
 import { generateSod, wrapSodInContentInfo } from "../sod-generator"
-import { TestHelper } from "../test-helper"
+import { TestHelper, convertPemToPackagedCertificateV1 } from "../test-helper"
 import { serializeAsn } from "../utils"
 import circuitManifest from "../tests/fixtures/circuit-manifest.json"
 import { numberToBytesBE } from "@noble/ciphers/utils.js"
@@ -62,7 +62,7 @@ interface SubproofData {
 
 class FixtureGenerator {
   private helper = new TestHelper()
-  private packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
+  private packagedCerts: PackagedCertificatesFile = { version: 1, timestamp: 0, root: "", certificates: [], masterlists: [], revocations: [] }
   private subproofs = new Map<number, SubproofData>()
   private readonly FIXTURES_PATH = path.join(__dirname, "..", "tests", "fixtures")
   private readonly DSC_KEYPAIR_PATH = path.join(this.FIXTURES_PATH, "dsc-keypair-rsa.json")
@@ -94,7 +94,9 @@ class FixtureGenerator {
 
     const { sod } = await generateSod(dg1, [dsc], "SHA-256")
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
-    this.packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
+    this.packagedCerts.certificates.push(await convertPemToPackagedCertificateV1(cscPem))
+    this.packagedCerts.timestamp = Math.floor(Date.UTC(2026, 0, 1) / 1000)
+    this.packagedCerts.root = await calculatePackagedCertificatesRoot(this.packagedCerts)
 
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await this.helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))

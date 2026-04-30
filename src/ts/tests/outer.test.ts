@@ -4,7 +4,7 @@ import type { IntegrityToDisclosureSalts, PackagedCertificatesFile, Query } from
 import {
   Binary,
   DisclosedData,
-  convertPemToPackagedCertificate,
+  calculatePackagedCertificatesRoot,
   getAgeCircuitInputs,
   getBindCircuitInputs,
   getBirthdateCircuitInputs,
@@ -47,7 +47,7 @@ import * as fs from "fs"
 import { Circuit } from "../circuits"
 import { generateSigningCertificates, loadKeypairFromFile, signSod } from "../passport-generator"
 import { generateSod, wrapSodInContentInfo } from "../sod-generator"
-import { TestHelper } from "../test-helper"
+import { TestHelper, convertPemToPackagedCertificateV1 } from "../test-helper"
 import { createUTCDate, serializeAsn } from "../utils"
 import circuitManifest from "./fixtures/circuit-manifest.json"
 import FIXTURES_FACEMATCH from "./fixtures/facematch"
@@ -64,7 +64,7 @@ const INTEGRITY_TO_DISCLOSURE_SALTS: IntegrityToDisclosureSalts = {
 
 describe("outer proof", () => {
   const helper = new TestHelper()
-  const packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
+  const packagedCerts: PackagedCertificatesFile = { version: 1, timestamp: 0, root: "", certificates: [], masterlists: [], revocations: [] }
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-rsa.json")
   const MAX_TBS_LENGTH = 700
@@ -104,7 +104,9 @@ describe("outer proof", () => {
     }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
-    packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
+    packagedCerts.certificates.push(await convertPemToPackagedCertificateV1(cscPem))
+    packagedCerts.timestamp = Math.floor(Date.UTC(2026, 0, 1) / 1000)
+    packagedCerts.root = await calculatePackagedCertificatesRoot(packagedCerts)
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
@@ -482,7 +484,7 @@ describe("outer proof", () => {
 
 describe("outer proof - evm optimised", () => {
   const helper = new TestHelper()
-  const packagedCerts: PackagedCertificatesFile = { version: 0, timestamp: 0, root: "", certificates: [] }
+  const packagedCerts: PackagedCertificatesFile = { version: 1, timestamp: 0, root: "", certificates: [], masterlists: [], revocations: [] }
   const FIXTURES_PATH = path.join(__dirname, "fixtures")
   const DSC_KEYPAIR_PATH = path.join(FIXTURES_PATH, "dsc-keypair-rsa.json")
   const MAX_TBS_LENGTH = 700
@@ -522,7 +524,9 @@ describe("outer proof - evm optimised", () => {
     }))
     const { sod: signedSod } = await signSod(sod, dscKeys, "SHA-256")
     // Add newly generated CSC to masterlist
-    packagedCerts.certificates.push(convertPemToPackagedCertificate(cscPem))
+    packagedCerts.certificates.push(await convertPemToPackagedCertificateV1(cscPem))
+    packagedCerts.timestamp = Math.floor(Date.UTC(2026, 0, 1) / 1000)
+    packagedCerts.root = await calculatePackagedCertificatesRoot(packagedCerts)
     // Load passport data into helper
     const contentInfoWrappedSod = serializeAsn(wrapSodInContentInfo(signedSod))
     await helper.loadPassport(dg1, Binary.from(contentInfoWrappedSod))
