@@ -85,6 +85,7 @@ contract DeploySubVerifier is DeployBase {
     bytes32 defaultOPRFPubKeyHash = vm.envOr("DEFAULT_OPRF_PUB_KEY_HASH", bytes32(0));
 
     uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+    address deployer = vm.addr(deployerPrivateKey);
     vm.startBroadcast(deployerPrivateKey);
 
     // Deploy the 10 UltraHonk proof verifiers.
@@ -105,7 +106,7 @@ contract DeploySubVerifier is DeployBase {
 
     // Deploy the SubVerifier with the broadcaster as temporary admin.
     console.log("Deploying SubVerifier...");
-    SubVerifier subVerifier = new SubVerifier(msg.sender, rootVerifier);
+    SubVerifier subVerifier = new SubVerifier(deployer, rootVerifier);
     console.log("SubVerifier deployed at:", address(subVerifier));
 
     // Wire proof verifiers (admin-only on SubVerifier).
