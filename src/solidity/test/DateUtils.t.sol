@@ -9,7 +9,7 @@
 
 pragma solidity ^0.8.30;
 
-import {DateUtils} from "../src/DateUtils.sol";
+import {DateUtils} from "@zkpassport/registry-contracts/lib/DateUtils.sol";
 import {ZKPassportTest} from "./Utils.t.sol";
 
 contract DateUtilsTest is ZKPassportTest {

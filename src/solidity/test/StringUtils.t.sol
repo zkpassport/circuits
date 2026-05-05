@@ -10,7 +10,7 @@
 pragma solidity ^0.8.30;
 
 import {Test} from "forge-std/Test.sol";
-import {StringUtils} from "../src/StringUtils.sol";
+import {StringUtils} from "@zkpassport/registry-contracts/lib/StringUtils.sol";
 import {ZKPassportTest} from "./Utils.t.sol";
 
 contract StringUtilsTest is ZKPassportTest {

@@ -15,9 +15,7 @@ const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
 const PACKAGED_CIRCUITS_DIR = path.join(TARGET_DIR, "packaged/circuits")
 const MAX_CONCURRENT_PROCESSES = 40
-const DEPLOY_SOL_PATH = "src/solidity/script/Deploy.s.sol"
 const DEPLOY_SUB_VERIFIER_SOL_PATH = "src/solidity/script/DeploySubVerifier.s.sol"
-const DEPLOY_PROOF_VERIFIERS_SOL_PATH = "src/solidity/script/DeployProofVerifiers.s.sol"
 
 /**
  * Calculates the IPFS CIDv0 of the given data
@@ -339,12 +337,8 @@ const processFiles = async () => {
     await pool.drain()
   }
 
-  // Update Deploy.s.sol with the vkey hashes
-  updateVkeyHashesInSolidityDeployScript(DEPLOY_SOL_PATH)
-  // Update DeployWithExistingVerifiers.s.sol with the vkey hashes
-  // updateVkeyHashesInSolidityDeployScript(DEPLOY_SUB_VERIFIER_SOL_PATH)
-  // Update DeployProofVerifiers.s.sol with the vkey hashes
-  // updateVkeyHashesInSolidityDeployScript(DEPLOY_PROOF_VERIFIERS_SOL_PATH)
+  // Update DeploySubVerifier.s.sol with the vkey hashes
+  updateVkeyHashesInSolidityDeployScript(DEPLOY_SUB_VERIFIER_SOL_PATH)
 
   // Exit with error code if any file failed to process
   if (hasErrors) {

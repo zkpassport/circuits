@@ -9,13 +9,13 @@
 
 pragma solidity ^0.8.30;
 
-import {ZKPassportRootVerifier} from "./ZKPassportRootVerifier.sol";
-import {ZKPassportHelper} from "./ZKPassportHelper.sol";
-import {DisclosedData, ProofVerificationParams} from "./Types.sol";
+import {RootVerifier} from "@zkpassport/registry-contracts/RootVerifier.sol";
+import {VerifierHelper} from "@zkpassport/registry-contracts/VerifierHelper.sol";
+import {DisclosedData, ProofVerificationParams} from "@zkpassport/registry-contracts/lib/Types.sol";
 
 contract SampleContract {
   // ZKPassport Verifier contract
-  ZKPassportRootVerifier public zkPassportVerifier;
+  RootVerifier public zkPassportVerifier;
 
   // Unique identifier => whether it was verified or not
   mapping(bytes32 => bool) public isVerified;
@@ -31,11 +31,6 @@ contract SampleContract {
 
   // Replace with your usage scope (e.g. "registration")
   string internal constant validScope = "bigproof";
-
-  // Set to a non-zero value to require proofs to be generated with a specific
-  // custom OPRF key (whose public key hashes to this value). Leave as bytes32(0)
-  // to fall back to the root verifier's `defaultOprfPubKeyHash()`.
-  bytes32 internal constant customOprfPubKeyHash = bytes32(0);
 
   // Errors
   error InvalidProof();
@@ -68,7 +63,7 @@ contract SampleContract {
   // Pass the address of the ZKPassport Root Verifier
   constructor(address _zkPassportVerifier) {
     require(_zkPassportVerifier != address(0), "ZKPassport Root Verifier cannot be zero address");
-    zkPassportVerifier = ZKPassportRootVerifier(_zkPassportVerifier);
+    zkPassportVerifier = RootVerifier(_zkPassportVerifier);
   }
 
   /**
@@ -86,24 +81,12 @@ contract SampleContract {
   ) public returns (bytes32) {
 
     // Verify the proof
-    (bool verified, bytes32 uniqueIdentifier, ZKPassportHelper helper) = zkPassportVerifier.verify(params);
+    (bool verified, bytes32 uniqueIdentifier, VerifierHelper helper) = zkPassportVerifier.verify(params);
     require(verified, "Proof is invalid");
     require(!isVerified[uniqueIdentifier], "User already verified");
 
     // Verify the proof was generated for the correct domain name
     require(helper.verifyScopes(params.proofVerificationData.publicInputs, validDomain, validScope), "Invalid domain or scope");
-
-    // If the proof uses a salted (OPRF-derived) nullifier, verify the OPRF public key hash.
-    // Apps with their own OPRF key set `customOprfPubKeyHash` to the hash of their key.
-    // Otherwise we fall back to the global default published by the root verifier.
-    if (helper.isSaltedNullifier(params.proofVerificationData.publicInputs)) {
-      bytes32 expectedOprfPubKeyHash =
-        customOprfPubKeyHash != bytes32(0) ? customOprfPubKeyHash : zkPassportVerifier.defaultOprfPubKeyHash();
-      require(
-        helper.verifyOprfPubKeyHash(params.proofVerificationData.publicInputs, expectedOprfPubKeyHash),
-        "Invalid OPRF public key"
-      );
-    }
 
     // Verify the age is above or equal to the minimum age
     require(helper.isAgeAboveOrEqual(MIN_AGE, params.committedInputs), "Age is not 18+");

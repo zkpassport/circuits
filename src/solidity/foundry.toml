@@ -9,6 +9,11 @@ optimizer = true
 optimizer_runs = 200
 # Ensure deterministic init code hash
 bytecode_hash = "none"
+# Map the registry-contracts namespace to the canonical Solidity protocol contracts in
+# zkpassport-packages/registry-contracts
+remappings = [
+  "@zkpassport/registry-contracts/=lib/zkpassport-packages/packages/registry-contracts/src/",
+]
 # File system permissions
 fs_permissions = [{ access = "read-write", path = "./"}]
 
@@ -20,7 +25,6 @@ tab_width = 2
 ignore = [
   "src/ultra-honk-verifiers",
   "src/SampleContract.sol",
-  "src/Constants.sol",
   "test/Constants.t.sol",
 ]
 

@@ -10,7 +10,7 @@
 pragma solidity ^0.8.30;
 
 import {Test, console} from "forge-std/Test.sol";
-import {IProofVerifier} from "../src/IProofVerifier.sol";
+import {IProofVerifier} from "@zkpassport/registry-contracts/IProofVerifier.sol";
 import {HonkVerifier} from "../src/ultra-honk-verifiers/OuterCount5.sol";
 import {ZKPassportTest} from "./Utils.t.sol";
 

@@ -11,11 +11,11 @@ pragma solidity ^0.8.30;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ZKPassportTest} from "./Utils.t.sol";
-import {ZKPassportRootVerifier} from "../src/ZKPassportRootVerifier.sol";
-import {IRootRegistry} from "../src/IRootRegistry.sol";
-import {ZKPassportSubVerifier} from "../src/ZKPassportSubVerifier.sol";
-import {ZKPassportHelper} from "../src/ZKPassportHelper.sol";
-import {CommittedInputLen} from "../src/Constants.sol";
+import {RootVerifier} from "@zkpassport/registry-contracts/RootVerifier.sol";
+import {RootRegistry} from "@zkpassport/registry-contracts/RootRegistry.sol";
+import {SubVerifier} from "@zkpassport/registry-contracts/SubVerifier.sol";
+import {VerifierHelper} from "@zkpassport/registry-contracts/VerifierHelper.sol";
+import {CommittedInputLen} from "@zkpassport/registry-contracts/lib/Constants.sol";
 import {
   DisclosedData,
   BoundData,
@@ -25,11 +25,11 @@ import {
   OS,
   ProofType,
   ProofVerificationParams
-} from "../src/Types.sol";
+} from "@zkpassport/registry-contracts/lib/Types.sol";
 
-contract ZKPassportRootVerifierTest is ZKPassportTest {
-  ZKPassportRootVerifier public rootVerifier;
-  ZKPassportSubVerifier public subVerifier;
+contract RootVerifierTest is ZKPassportTest {
+  RootVerifier public rootVerifier;
+  SubVerifier public subVerifier;
 
   // Use labeled test accounts
   address public admin = makeAddr("admin");
@@ -55,13 +55,17 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       }),
       committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
+        validityPeriodInSeconds: 7 days,
+        domain: "zkpassport.id",
+        scope: "bigproof",
+        devMode: false,
+        oprfPubKeyHash: bytes32(0)
       })
     });
 
-    vm.startSnapshotGas("ZKPassportRootVerifier.verify");
-    (bool result, bytes32 scopedNullifier, ZKPassportHelper helper) = rootVerifier.verify(params);
-    logGas("ZKPassportRootVerifier.verify");
+    vm.startSnapshotGas("RootVerifier.verify");
+    (bool result, bytes32 scopedNullifier, VerifierHelper helper) = rootVerifier.verify(params);
+    logGas("RootVerifier.verify");
     uint256 proofTimestamp = helper.getProofTimestamp(params.proofVerificationData.publicInputs);
     assertEq(proofTimestamp, currentDate);
 
@@ -72,9 +76,9 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       "Scoped nullifier should match"
     );
 
-    vm.startSnapshotGas("ZKPassportHelper.getDisclosedData");
+    vm.startSnapshotGas("VerifierHelper.getDisclosedData");
     DisclosedData memory disclosedData = helper.getDisclosedData(params.committedInputs, false);
-    logGas("ZKPassportHelper.getDisclosedData");
+    logGas("VerifierHelper.getDisclosedData");
 
     assertEq(disclosedData.name, "SILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<");
     assertEq(disclosedData.nationality, "AUS");
@@ -96,10 +100,14 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       }),
       committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
+        validityPeriodInSeconds: 7 days,
+        domain: "zkpassport.id",
+        scope: "bigproof",
+        devMode: false,
+        oprfPubKeyHash: bytes32(0)
       })
     });
-    (bool result, bytes32 scopedNullifier, ZKPassportHelper helper) = rootVerifier.verify(params);
+    (bool result, bytes32 scopedNullifier, VerifierHelper helper) = rootVerifier.verify(params);
     assertEq(result, true, "Proof should verify successfully");
     assertEq(
       scopedNullifier,
@@ -107,9 +115,9 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       "Scoped nullifier should match"
     );
 
-    vm.startSnapshotGas("ZKPassportHelper.getBoundData");
+    vm.startSnapshotGas("VerifierHelper.getBoundData");
     BoundData memory boundData = helper.getBoundData(params.committedInputs);
-    logGas("ZKPassportHelper.getBoundData");
+    logGas("VerifierHelper.getBoundData");
 
     assertEq(boundData.senderAddress, 0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8, "Bound sender address should match");
     assertEq(boundData.chainId, 31337, "Bound chain ID should match");
@@ -129,13 +137,17 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       }),
       committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
+        validityPeriodInSeconds: 7 days,
+        domain: "zkpassport.id",
+        scope: "bigproof",
+        devMode: false,
+        oprfPubKeyHash: bytes32(0)
       })
     });
 
-    vm.startSnapshotGas("ZKPassportRootVerifier.verify");
-    (bool result, bytes32 scopedNullifier, ZKPassportHelper helper) = rootVerifier.verify(params);
-    logGas("ZKPassportRootVerifier.verify");
+    vm.startSnapshotGas("RootVerifier.verify");
+    (bool result, bytes32 scopedNullifier, VerifierHelper helper) = rootVerifier.verify(params);
+    logGas("RootVerifier.verify");
     assertEq(result, true, "Proof should verify successfully");
     assertEq(
       scopedNullifier,
@@ -143,27 +155,27 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       "Scoped nullifier should match"
     );
 
-    vm.startSnapshotGas("ZKPassportHelper.isAgeAboveOrEqual");
+    vm.startSnapshotGas("VerifierHelper.isAgeAboveOrEqual");
     assertEq(helper.isAgeAboveOrEqual(18, params.committedInputs), true, "isAgeAboveOrEqual should return true");
-    logGas("ZKPassportHelper.isAgeAboveOrEqual");
+    logGas("VerifierHelper.isAgeAboveOrEqual");
 
-    vm.startSnapshotGas("ZKPassportHelper.isNationalityIn");
+    vm.startSnapshotGas("VerifierHelper.isNationalityIn");
     string[] memory countryList = new string[](4);
     countryList[0] = "AUS";
     countryList[1] = "FRA";
     countryList[2] = "USA";
     countryList[3] = "GBR";
     bool isNationalityIn = helper.isNationalityIn(countryList, params.committedInputs);
-    logGas("ZKPassportHelper.isNationalityIn");
+    logGas("VerifierHelper.isNationalityIn");
     assertEq(isNationalityIn, true, "isNationalityIn should return true");
 
-    vm.startSnapshotGas("ZKPassportHelper.isIssuingCountryOut");
+    vm.startSnapshotGas("VerifierHelper.isIssuingCountryOut");
     string[] memory exclusionCountryList = new string[](3);
     exclusionCountryList[0] = "ESP";
     exclusionCountryList[1] = "ITA";
     exclusionCountryList[2] = "PRT";
     bool isIssuingCountryOut = helper.isIssuingCountryOut(exclusionCountryList, params.committedInputs);
-    logGas("ZKPassportHelper.isIssuingCountryOut");
+    logGas("VerifierHelper.isIssuingCountryOut");
     assertEq(isIssuingCountryOut, true, "isIssuingCountryOut should return true");
   }
 
@@ -179,10 +191,14 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       }),
       committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
+        validityPeriodInSeconds: 7 days,
+        domain: "zkpassport.id",
+        scope: "bigproof",
+        devMode: false,
+        oprfPubKeyHash: bytes32(0)
       })
     });
-    (bool result, bytes32 scopedNullifier, ZKPassportHelper helper) = rootVerifier.verify(params);
+    (bool result, bytes32 scopedNullifier, VerifierHelper helper) = rootVerifier.verify(params);
     assertEq(result, true, "Proof should verify successfully");
     assertEq(
       scopedNullifier,
@@ -190,40 +206,40 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       "Scoped nullifier should match"
     );
 
-    vm.startSnapshotGas("ZKPassportHelper.isBirthdateBeforeOrEqual");
+    vm.startSnapshotGas("VerifierHelper.isBirthdateBeforeOrEqual");
     bool isBirthdateBeforeOrEqual = helper.isBirthdateBeforeOrEqual(currentDate, params.committedInputs);
-    logGas("ZKPassportHelper.isBirthdateBeforeOrEqual");
+    logGas("VerifierHelper.isBirthdateBeforeOrEqual");
     assertEq(isBirthdateBeforeOrEqual, true, "isBirthdateBeforeOrEqual should return true");
 
     {
-      vm.startSnapshotGas("ZKPassportHelper.isExpiryDateAfterOrEqual");
+      vm.startSnapshotGas("VerifierHelper.isExpiryDateAfterOrEqual");
       bool isExpiryDateAfterOrEqual = helper.isExpiryDateAfterOrEqual(currentDate, params.committedInputs);
-      logGas("ZKPassportHelper.isExpiryDateAfterOrEqual");
+      logGas("VerifierHelper.isExpiryDateAfterOrEqual");
       assertEq(isExpiryDateAfterOrEqual, true, "isExpiryDateAfterOrEqual should return true");
     }
     {
-      vm.startSnapshotGas("ZKPassportHelper.isIssuingCountryIn");
+      vm.startSnapshotGas("VerifierHelper.isIssuingCountryIn");
       string[] memory countryList = new string[](4);
       countryList[0] = "AUS";
       countryList[1] = "FRA";
       countryList[2] = "USA";
       countryList[3] = "GBR";
       bool isIssuingCountryIn = helper.isIssuingCountryIn(countryList, params.committedInputs);
-      logGas("ZKPassportHelper.isIssuingCountryIn");
+      logGas("VerifierHelper.isIssuingCountryIn");
       assertEq(isIssuingCountryIn, true, "isIssuingCountryIn should return true");
     }
 
     {
-      vm.startSnapshotGas("ZKPassportHelper.enforceSanctionsRoot");
+      vm.startSnapshotGas("VerifierHelper.enforceSanctionsRoot");
       bool isSanctionsRootValid = helper.isSanctionsRootValid(currentDate, true, params.committedInputs);
       assertEq(isSanctionsRootValid, true, "isSanctionsRootValid should return true");
-      logGas("ZKPassportHelper.enforceSanctionsRoot");
+      logGas("VerifierHelper.enforceSanctionsRoot");
     }
 
     {
-      vm.startSnapshotGas("ZKPassportHelper.isFaceMatchVerified");
+      vm.startSnapshotGas("VerifierHelper.isFaceMatchVerified");
       bool isFacematchVerified = helper.isFaceMatchVerified(FaceMatchMode.REGULAR, OS.IOS, params.committedInputs);
-      logGas("ZKPassportHelper.isFaceMatchVerified");
+      logGas("VerifierHelper.isFaceMatchVerified");
       assertEq(isFacematchVerified, true, "isFaceMatchVerified should return true");
       // Should be false because the facematch mode is not strict but regular
       assertEq(
@@ -290,7 +306,11 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       }),
       committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
+        validityPeriodInSeconds: 7 days,
+        domain: "zkpassport.id",
+        scope: "bigproof",
+        devMode: false,
+        oprfPubKeyHash: bytes32(0)
       })
     });
 
@@ -304,7 +324,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testAddSubVerifier() public {
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
     bytes32 newVersion = bytes32(uint256(2));
 
     // Admin adds new subverifier
@@ -316,7 +336,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testOnlyAdminCanAddSubVerifier() public {
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
     bytes32 newVersion = bytes32(uint256(2));
 
     // User tries to add subverifier
@@ -331,7 +351,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testCannotAddSubVerifierToZeroVersion() public {
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
 
     // Admin tries to add subverifier to version 0
     vm.prank(admin);
@@ -343,11 +363,11 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     // Admin tries to add zero address as subverifier
     vm.prank(admin);
     vm.expectRevert("Subverifier cannot be zero address");
-    rootVerifier.addSubVerifier(bytes32(uint256(2)), ZKPassportSubVerifier(address(0)));
+    rootVerifier.addSubVerifier(bytes32(uint256(2)), SubVerifier(address(0)));
   }
 
   function testCannotAddSubVerifierToExistingVersion() public {
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
 
     // Admin tries to add subverifier to version 1 (already exists from setUp)
     vm.prank(admin);
@@ -356,7 +376,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testUpdateSubVerifier() public {
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
     address oldSubVerifier = rootVerifier.getSubVerifier(VERIFIER_VERSION);
 
     // Admin updates subverifier
@@ -369,7 +389,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testOnlyAdminCanUpdateSubVerifier() public {
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
 
     // User tries to update subverifier
     vm.prank(user);
@@ -390,7 +410,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testCannotUpdateNonExistentSubVerifier() public {
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
 
     // Admin tries to update non-existent subverifier
     vm.prank(admin);
@@ -400,7 +420,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
 
   function testRemoveSubVerifier() public {
     // Add a new subverifier first
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
     bytes32 newVersion = bytes32(uint256(2));
     vm.prank(admin);
     rootVerifier.addSubVerifier(newVersion, newSubVerifier);
@@ -436,8 +456,8 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testAddHelper() public {
-    IRootRegistry rootRegistry = IRootRegistry(address(0x1234));
-    ZKPassportHelper newHelper = new ZKPassportHelper(rootRegistry);
+    RootRegistry rootRegistry = RootRegistry(address(0x1234));
+    VerifierHelper newHelper = new VerifierHelper(rootRegistry);
     bytes32 newVersion = bytes32(uint256(2));
 
     // Admin adds new helper
@@ -451,8 +471,8 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testOnlyAdminCanAddHelper() public {
-    IRootRegistry rootRegistry = IRootRegistry(address(0x1234));
-    ZKPassportHelper newHelper = new ZKPassportHelper(rootRegistry);
+    RootRegistry rootRegistry = RootRegistry(address(0x1234));
+    VerifierHelper newHelper = new VerifierHelper(rootRegistry);
     bytes32 newVersion = bytes32(uint256(2));
 
     // User tries to add helper
@@ -467,8 +487,8 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testCannotAddHelperToZeroVersion() public {
-    IRootRegistry rootRegistry = IRootRegistry(address(0x1234));
-    ZKPassportHelper newHelper = new ZKPassportHelper(rootRegistry);
+    RootRegistry rootRegistry = RootRegistry(address(0x1234));
+    VerifierHelper newHelper = new VerifierHelper(rootRegistry);
 
     // Admin tries to add helper to version 0
     vm.prank(admin);
@@ -484,8 +504,8 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testCannotAddHelperToExistingVersion() public {
-    IRootRegistry rootRegistry = IRootRegistry(address(0x1234));
-    ZKPassportHelper newHelper = new ZKPassportHelper(rootRegistry);
+    RootRegistry rootRegistry = RootRegistry(address(0x1234));
+    VerifierHelper newHelper = new VerifierHelper(rootRegistry);
 
     // Admin tries to add helper to version 1 (already exists from setUp)
     vm.prank(admin);
@@ -494,22 +514,22 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testUpdateHelper() public {
-    IRootRegistry rootRegistry = IRootRegistry(address(0x1234));
-    ZKPassportHelper newHelper = new ZKPassportHelper(rootRegistry);
+    RootRegistry rootRegistry = RootRegistry(address(0x1234));
+    VerifierHelper newHelper = new VerifierHelper(rootRegistry);
 
     // Admin updates helper
     vm.prank(admin);
     rootVerifier.updateHelper(VERIFIER_VERSION, address(newHelper));
 
     // Verify update by checking we can update again (different helper)
-    ZKPassportHelper anotherHelper = new ZKPassportHelper(rootRegistry);
+    VerifierHelper anotherHelper = new VerifierHelper(rootRegistry);
     vm.prank(admin);
     rootVerifier.updateHelper(VERIFIER_VERSION, address(anotherHelper));
   }
 
   function testOnlyAdminCanUpdateHelper() public {
-    IRootRegistry rootRegistry = IRootRegistry(address(0x1234));
-    ZKPassportHelper newHelper = new ZKPassportHelper(rootRegistry);
+    RootRegistry rootRegistry = RootRegistry(address(0x1234));
+    VerifierHelper newHelper = new VerifierHelper(rootRegistry);
 
     // User tries to update helper
     vm.prank(user);
@@ -530,8 +550,8 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testCannotUpdateNonExistentHelper() public {
-    IRootRegistry rootRegistry = IRootRegistry(address(0x1234));
-    ZKPassportHelper newHelper = new ZKPassportHelper(rootRegistry);
+    RootRegistry rootRegistry = RootRegistry(address(0x1234));
+    VerifierHelper newHelper = new VerifierHelper(rootRegistry);
 
     // Admin tries to update non-existent helper
     vm.prank(admin);
@@ -541,8 +561,8 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
 
   function testRemoveHelper() public {
     // Add a new helper first
-    IRootRegistry rootRegistry = IRootRegistry(address(0x1234));
-    ZKPassportHelper newHelper = new ZKPassportHelper(rootRegistry);
+    RootRegistry rootRegistry = RootRegistry(address(0x1234));
+    VerifierHelper newHelper = new VerifierHelper(rootRegistry);
     bytes32 newVersion = bytes32(uint256(2));
     vm.prank(admin);
     rootVerifier.addHelper(newVersion, address(newHelper));
@@ -584,12 +604,12 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     assertEq(rootVerifier.admin(), user);
 
     // New admin should be able to add subverifier
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
     vm.prank(user);
     rootVerifier.addSubVerifier(bytes32(uint256(2)), newSubVerifier);
 
     // Old admin should no longer be able to add subverifier
-    ZKPassportSubVerifier anotherSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    SubVerifier anotherSubVerifier = new SubVerifier(admin, rootVerifier);
     vm.prank(admin);
     vm.expectRevert("Not authorized: admin only");
     rootVerifier.addSubVerifier(bytes32(uint256(3)), anotherSubVerifier);
@@ -742,14 +762,14 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     assertEq(rootVerifier.subverifierCount(), 1);
 
     // Add a new subverifier
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
     bytes32 newVersion = bytes32(uint256(2));
     vm.prank(admin);
     rootVerifier.addSubVerifier(newVersion, newSubVerifier);
     assertEq(rootVerifier.subverifierCount(), 2);
 
     // Add another subverifier
-    ZKPassportSubVerifier anotherSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    SubVerifier anotherSubVerifier = new SubVerifier(admin, rootVerifier);
     bytes32 anotherVersion = bytes32(uint256(3));
     vm.prank(admin);
     rootVerifier.addSubVerifier(anotherVersion, anotherSubVerifier);
@@ -771,15 +791,15 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     assertEq(rootVerifier.helperCount(), 1);
 
     // Add a new helper
-    IRootRegistry rootRegistry = IRootRegistry(address(0x1234));
-    ZKPassportHelper newHelper = new ZKPassportHelper(rootRegistry);
+    RootRegistry rootRegistry = RootRegistry(address(0x1234));
+    VerifierHelper newHelper = new VerifierHelper(rootRegistry);
     bytes32 newVersion = bytes32(uint256(2));
     vm.prank(admin);
     rootVerifier.addHelper(newVersion, address(newHelper));
     assertEq(rootVerifier.helperCount(), 2);
 
     // Add another helper
-    ZKPassportHelper anotherHelper = new ZKPassportHelper(rootRegistry);
+    VerifierHelper anotherHelper = new VerifierHelper(rootRegistry);
     bytes32 anotherVersion = bytes32(uint256(3));
     vm.prank(admin);
     rootVerifier.addHelper(anotherVersion, address(anotherHelper));

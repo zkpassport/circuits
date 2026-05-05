@@ -12,13 +12,13 @@ pragma solidity ^0.8.30;
 import {Test, console} from "forge-std/Test.sol";
 import {StdConstants} from "forge-std/StdConstants.sol";
 import {stdJson} from "forge-std/StdJson.sol";
-import {ZKPassportRootVerifier} from "../src/ZKPassportRootVerifier.sol";
-import {ZKPassportSubVerifier} from "../src/ZKPassportSubVerifier.sol";
-import {ZKPassportHelper} from "../src/ZKPassportHelper.sol";
+import {RootVerifier} from "@zkpassport/registry-contracts/RootVerifier.sol";
+import {SubVerifier} from "@zkpassport/registry-contracts/SubVerifier.sol";
+import {VerifierHelper} from "@zkpassport/registry-contracts/VerifierHelper.sol";
+import {RootRegistry} from "@zkpassport/registry-contracts/RootRegistry.sol";
 import {HonkVerifier as OuterVerifier5} from "../src/ultra-honk-verifiers/OuterCount5.sol";
 import {HonkVerifier as OuterVerifier13} from "../src/ultra-honk-verifiers/OuterCount13.sol";
-import {ProofVerifier} from "../src/Types.sol";
-import {IRootRegistry} from "../src/IRootRegistry.sol";
+import {ProofVerifier} from "@zkpassport/registry-contracts/lib/Types.sol";
 import {MockRootRegistry} from "./MockRootRegistry.sol";
 
 abstract contract ZKPassportTest is Test {
@@ -68,16 +68,16 @@ abstract contract ZKPassportTest is Test {
     });
   }
 
-  function deployZKPassport() internal returns (ZKPassportRootVerifier, ZKPassportSubVerifier) {
+  function deployZKPassport() internal returns (RootVerifier, SubVerifier) {
     // Use labeled test accounts
     address admin = makeAddr("admin");
     address guardian = makeAddr("guardian");
     // Deploy mock root registry
-    IRootRegistry rootRegistry = new MockRootRegistry();
-    // Deploy root verifier with a placeholder default OPRF public key hash
-    ZKPassportRootVerifier rootVerifier = new ZKPassportRootVerifier(admin, guardian, rootRegistry, bytes32(0));
+    RootRegistry rootRegistry = RootRegistry(address(new MockRootRegistry()));
+    // Deploy root verifier
+    RootVerifier rootVerifier = new RootVerifier(admin, guardian, rootRegistry);
     // Deploy sub verifier
-    ZKPassportSubVerifier subVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    SubVerifier subVerifier = new SubVerifier(admin, rootVerifier);
     // Add sub verifier to root verifier
     vm.prank(admin);
     rootVerifier.addSubVerifier(VERIFIER_VERSION, subVerifier);
@@ -90,7 +90,7 @@ abstract contract ZKPassportTest is Test {
     vm.prank(admin);
     subVerifier.addProofVerifiers(proofVerifiers);
     // Deploy helper
-    ZKPassportHelper helper = new ZKPassportHelper(rootRegistry);
+    VerifierHelper helper = new VerifierHelper(rootRegistry);
     // Add helper to root verifier
     vm.prank(admin);
     rootVerifier.addHelper(VERIFIER_VERSION, address(helper));
