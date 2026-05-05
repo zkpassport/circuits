@@ -74,10 +74,10 @@ abstract contract ZKPassportTest is Test {
     address guardian = makeAddr("guardian");
     // Deploy mock root registry
     IRootRegistry rootRegistry = new MockRootRegistry();
-    // Deploy root verifier with a placeholder default OPRF public key hash
-    ZKPassportRootVerifier rootVerifier = new ZKPassportRootVerifier(admin, guardian, rootRegistry, bytes32(0));
-    // Deploy sub verifier
-    ZKPassportSubVerifier subVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    // Deploy root verifier
+    ZKPassportRootVerifier rootVerifier = new ZKPassportRootVerifier(admin, guardian, rootRegistry);
+    // Deploy sub verifier with a placeholder default OPRF public key hash
+    ZKPassportSubVerifier subVerifier = new ZKPassportSubVerifier(admin, rootVerifier, bytes32(0));
     // Add sub verifier to root verifier
     vm.prank(admin);
     rootVerifier.addSubVerifier(VERIFIER_VERSION, subVerifier);

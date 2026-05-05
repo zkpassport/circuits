@@ -55,7 +55,11 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       }),
       committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
+        validityPeriodInSeconds: 7 days,
+        domain: "zkpassport.id",
+        scope: "bigproof",
+        devMode: false,
+        oprfPubKeyHash: bytes32(0)
       })
     });
 
@@ -96,7 +100,11 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       }),
       committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
+        validityPeriodInSeconds: 7 days,
+        domain: "zkpassport.id",
+        scope: "bigproof",
+        devMode: false,
+        oprfPubKeyHash: bytes32(0)
       })
     });
     (bool result, bytes32 scopedNullifier, ZKPassportHelper helper) = rootVerifier.verify(params);
@@ -129,7 +137,11 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       }),
       committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
+        validityPeriodInSeconds: 7 days,
+        domain: "zkpassport.id",
+        scope: "bigproof",
+        devMode: false,
+        oprfPubKeyHash: bytes32(0)
       })
     });
 
@@ -179,7 +191,11 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       }),
       committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
+        validityPeriodInSeconds: 7 days,
+        domain: "zkpassport.id",
+        scope: "bigproof",
+        devMode: false,
+        oprfPubKeyHash: bytes32(0)
       })
     });
     (bool result, bytes32 scopedNullifier, ZKPassportHelper helper) = rootVerifier.verify(params);
@@ -290,7 +306,11 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
       }),
       committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
+        validityPeriodInSeconds: 7 days,
+        domain: "zkpassport.id",
+        scope: "bigproof",
+        devMode: false,
+        oprfPubKeyHash: bytes32(0)
       })
     });
 
@@ -304,7 +324,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testAddSubVerifier() public {
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier, bytes32(0));
     bytes32 newVersion = bytes32(uint256(2));
 
     // Admin adds new subverifier
@@ -316,7 +336,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testOnlyAdminCanAddSubVerifier() public {
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier, bytes32(0));
     bytes32 newVersion = bytes32(uint256(2));
 
     // User tries to add subverifier
@@ -331,7 +351,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testCannotAddSubVerifierToZeroVersion() public {
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier, bytes32(0));
 
     // Admin tries to add subverifier to version 0
     vm.prank(admin);
@@ -347,7 +367,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testCannotAddSubVerifierToExistingVersion() public {
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier, bytes32(0));
 
     // Admin tries to add subverifier to version 1 (already exists from setUp)
     vm.prank(admin);
@@ -356,7 +376,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testUpdateSubVerifier() public {
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier, bytes32(0));
     address oldSubVerifier = rootVerifier.getSubVerifier(VERIFIER_VERSION);
 
     // Admin updates subverifier
@@ -369,7 +389,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testOnlyAdminCanUpdateSubVerifier() public {
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier, bytes32(0));
 
     // User tries to update subverifier
     vm.prank(user);
@@ -390,7 +410,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
   }
 
   function testCannotUpdateNonExistentSubVerifier() public {
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier, bytes32(0));
 
     // Admin tries to update non-existent subverifier
     vm.prank(admin);
@@ -400,7 +420,7 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
 
   function testRemoveSubVerifier() public {
     // Add a new subverifier first
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier, bytes32(0));
     bytes32 newVersion = bytes32(uint256(2));
     vm.prank(admin);
     rootVerifier.addSubVerifier(newVersion, newSubVerifier);
@@ -584,12 +604,12 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     assertEq(rootVerifier.admin(), user);
 
     // New admin should be able to add subverifier
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier, bytes32(0));
     vm.prank(user);
     rootVerifier.addSubVerifier(bytes32(uint256(2)), newSubVerifier);
 
     // Old admin should no longer be able to add subverifier
-    ZKPassportSubVerifier anotherSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    ZKPassportSubVerifier anotherSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier, bytes32(0));
     vm.prank(admin);
     vm.expectRevert("Not authorized: admin only");
     rootVerifier.addSubVerifier(bytes32(uint256(3)), anotherSubVerifier);
@@ -742,14 +762,14 @@ contract ZKPassportRootVerifierTest is ZKPassportTest {
     assertEq(rootVerifier.subverifierCount(), 1);
 
     // Add a new subverifier
-    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    ZKPassportSubVerifier newSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier, bytes32(0));
     bytes32 newVersion = bytes32(uint256(2));
     vm.prank(admin);
     rootVerifier.addSubVerifier(newVersion, newSubVerifier);
     assertEq(rootVerifier.subverifierCount(), 2);
 
     // Add another subverifier
-    ZKPassportSubVerifier anotherSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier);
+    ZKPassportSubVerifier anotherSubVerifier = new ZKPassportSubVerifier(admin, rootVerifier, bytes32(0));
     bytes32 anotherVersion = bytes32(uint256(3));
     vm.prank(admin);
     rootVerifier.addSubVerifier(anotherVersion, anotherSubVerifier);

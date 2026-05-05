@@ -105,6 +105,8 @@ struct ServiceConfig {
   string domain;
   string scope;
   bool devMode;
+  // Leave as bytes32(0) to use the global default.
+  bytes32 oprfPubKeyHash;
 }
 
 struct DisclosedData {

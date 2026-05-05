@@ -32,11 +32,6 @@ contract SampleContract {
   // Replace with your usage scope (e.g. "registration")
   string internal constant validScope = "bigproof";
 
-  // Set to a non-zero value to require proofs to be generated with a specific
-  // custom OPRF key (whose public key hashes to this value). Leave as bytes32(0)
-  // to fall back to the root verifier's `defaultOprfPubKeyHash()`.
-  bytes32 internal constant customOprfPubKeyHash = bytes32(0);
-
   // Errors
   error InvalidProof();
   error InvalidScope();
@@ -92,18 +87,6 @@ contract SampleContract {
 
     // Verify the proof was generated for the correct domain name
     require(helper.verifyScopes(params.proofVerificationData.publicInputs, validDomain, validScope), "Invalid domain or scope");
-
-    // If the proof uses a salted (OPRF-derived) nullifier, verify the OPRF public key hash.
-    // Apps with their own OPRF key set `customOprfPubKeyHash` to the hash of their key.
-    // Otherwise we fall back to the global default published by the root verifier.
-    if (helper.isSaltedNullifier(params.proofVerificationData.publicInputs)) {
-      bytes32 expectedOprfPubKeyHash =
-        customOprfPubKeyHash != bytes32(0) ? customOprfPubKeyHash : zkPassportVerifier.defaultOprfPubKeyHash();
-      require(
-        helper.verifyOprfPubKeyHash(params.proofVerificationData.publicInputs, expectedOprfPubKeyHash),
-        "Invalid OPRF public key"
-      );
-    }
 
     // Verify the age is above or equal to the minimum age
     require(helper.isAgeAboveOrEqual(MIN_AGE, params.committedInputs), "Age is not 18+");

@@ -39,11 +39,6 @@ contract ZKPassportRootVerifier {
   // Config mapping
   mapping(bytes32 key => bytes32 value) public config;
 
-  // Hash of the OPRF public key for the global default OPRF key.
-  // Apps that use SALTED nullifiers without supplying a custom OPRF key expect the proof's
-  // oprf_pk_hash public input to match this value. Apps with a custom OPRF key ignore it.
-  bytes32 public defaultOprfPubKeyHash;
-
   // Events
   event RootVerifierDeployed(address admin, address guardian, address rootRegistry);
   event AdminUpdated(address indexed oldAdmin, address indexed newAdmin);
@@ -57,23 +52,19 @@ contract ZKPassportRootVerifier {
   event HelperUpdated(bytes32 indexed version, address indexed oldHelper, address indexed newHelper);
   event PausedStatusChanged(bool paused);
   event ConfigUpdated(bytes32 indexed key, bytes32 oldValue, bytes32 newValue);
-  event DefaultOprfPubKeyHashUpdated(bytes32 oldHash, bytes32 newHash);
 
   /**
    * @notice Constructor
    * @param _admin The admin address
    * @param _guardian The guardian address
    * @param _rootRegistry The root registry address
-   * @param _defaultOprfPubKeyHash Hash of the global default OPRF public key
    */
-  constructor(address _admin, address _guardian, IRootRegistry _rootRegistry, bytes32 _defaultOprfPubKeyHash) {
+  constructor(address _admin, address _guardian, IRootRegistry _rootRegistry) {
     require(_admin != address(0), "Admin cannot be zero address");
     admin = _admin;
     guardian = _guardian;
     rootRegistry = _rootRegistry;
-    defaultOprfPubKeyHash = _defaultOprfPubKeyHash;
     emit RootVerifierDeployed(admin, guardian, address(_rootRegistry));
-    emit DefaultOprfPubKeyHashUpdated(bytes32(0), _defaultOprfPubKeyHash);
   }
 
   /**
@@ -243,16 +234,6 @@ contract ZKPassportRootVerifier {
     bytes32 oldValue = config[key];
     config[key] = value;
     emit ConfigUpdated(key, oldValue, value);
-  }
-
-  /**
-   * @notice Update the default OPRF public key hash
-   * @param newHash The new default OPRF public key hash
-   */
-  function setDefaultOprfPubKeyHash(bytes32 newHash) external onlyAdmin {
-    bytes32 oldHash = defaultOprfPubKeyHash;
-    defaultOprfPubKeyHash = newHash;
-    emit DefaultOprfPubKeyHashUpdated(oldHash, newHash);
   }
 
   /**

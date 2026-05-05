@@ -43,7 +43,11 @@ contract SampleContractTest is ZKPassportTest {
       }),
       committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
+        validityPeriodInSeconds: 7 days,
+        domain: "zkpassport.id",
+        scope: "bigproof",
+        devMode: false,
+        oprfPubKeyHash: bytes32(0)
       })
     });
 

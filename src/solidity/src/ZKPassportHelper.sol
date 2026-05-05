@@ -14,7 +14,7 @@ import {DateUtils} from "./DateUtils.sol";
 import {StringUtils} from "./StringUtils.sol";
 import {InputsExtractor} from "./InputsExtractor.sol";
 import {SECONDS_BETWEEN_1900_AND_1970, PublicInput, AppAttest, RegistryID} from "./Constants.sol";
-import {ProofType, DisclosedData, BoundData, FaceMatchMode, Environment, OS, NullifierType} from "./Types.sol";
+import {ProofType, DisclosedData, BoundData, FaceMatchMode, Environment, OS} from "./Types.sol";
 
 contract ZKPassportHelper {
   IRootRegistry public immutable rootRegistry;
@@ -474,51 +474,5 @@ contract ZKPassportHelper {
     bytes32 subscopeHash = StringUtils.isEmpty(subscope) ? bytes32(0) : sha256(abi.encodePacked(subscope)) >> 8;
     return
       publicInputs[PublicInput.SCOPE_INDEX] == scopeHash && publicInputs[PublicInput.SUBSCOPE_INDEX] == subscopeHash;
-  }
-
-  /**
-   * @notice Reads the nullifier type from the proof's public inputs
-   * @param publicInputs The public inputs of the proof
-   * @return The nullifier type
-   */
-  function getNullifierType(bytes32[] calldata publicInputs) public pure returns (NullifierType) {
-    return NullifierType(uint256(publicInputs[publicInputs.length - 3]));
-  }
-
-  /**
-   * @notice Returns true if the proof uses a salted (OPRF-derived) nullifier
-   * @param publicInputs The public inputs of the proof
-   * @return True if SALTED_NULLIFIER or SALTED_MOCK_NULLIFIER
-   */
-  function isSaltedNullifier(bytes32[] calldata publicInputs) external pure returns (bool) {
-    NullifierType t = getNullifierType(publicInputs);
-    return t == NullifierType.SALTED_NULLIFIER || t == NullifierType.SALTED_MOCK_NULLIFIER;
-  }
-
-  /**
-   * @notice Extracts the OPRF public key hash that was used to derive the salted nullifier
-   * @dev Returns bytes32(0) for non-salted nullifiers
-   * @param publicInputs The public inputs of the proof
-   * @return The OPRF public key hash committed to by the proof
-   */
-  function getOprfPubKeyHash(bytes32[] calldata publicInputs) external pure returns (bytes32) {
-    return publicInputs[publicInputs.length - 1];
-  }
-
-  /**
-   * @notice Verifies the proof's OPRF public key hash matches the expected hash
-   * @dev App contracts should call this when consuming a SALTED nullifier, passing either
-   *      their own custom OPRF key's hash or the root verifier's `defaultOprfPubKeyHash()`.
-   *      For non-salted nullifiers, callers should skip this check (or pass bytes32(0))
-   * @param publicInputs The public inputs of the proof
-   * @param expectedOprfPubKeyHash The expected OPRF public key hash
-   * @return True if the hash in the proof matches the expected hash
-   */
-  function verifyOprfPubKeyHash(bytes32[] calldata publicInputs, bytes32 expectedOprfPubKeyHash)
-    external
-    pure
-    returns (bool)
-  {
-    return publicInputs[publicInputs.length - 1] == expectedOprfPubKeyHash;
   }
 }
