@@ -1,0 +1,8 @@
+{
+  "lib/zkpassport-packages": {
+    "branch": {
+      "name": "saleel/sol-sync",
+      "rev": "3a16128fd66a8564b9276d6641d9cade22abb2bc"
+    }
+  }
+}
