@@ -1,4 +1,4 @@
 [submodule "src/solidity/lib/zkpassport-packages"]
 	path = src/solidity/lib/zkpassport-packages
 	url = git@github.com:zkpassport/zkpassport-packages.git
-	branch = saleel/sol-sync
+	branch = main
