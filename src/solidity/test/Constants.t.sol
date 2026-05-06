@@ -10,7 +10,7 @@
 pragma solidity ^0.8.30;
 
 import {Test} from "forge-std/Test.sol";
-import {CommittedInputLen} from "../src/Constants.sol";
+import {CommittedInputLen} from "@zkpassport/registry-contracts/lib/Constants.sol";
 import {ZKPassportTest} from "./Utils.t.sol";
 
 contract ConstantsTest is ZKPassportTest {

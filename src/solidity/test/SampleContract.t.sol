@@ -10,8 +10,12 @@
 pragma solidity ^0.8.30;
 
 import {console} from "forge-std/Test.sol";
-import {ZKPassportRootVerifier} from "../src/ZKPassportRootVerifier.sol";
-import {ServiceConfig, ProofVerificationParams, ProofVerificationData} from "../src/Types.sol";
+import {RootVerifier} from "@zkpassport/registry-contracts/RootVerifier.sol";
+import {
+  ServiceConfig,
+  ProofVerificationParams,
+  ProofVerificationData
+} from "@zkpassport/registry-contracts/lib/Types.sol";
 import {SampleContract} from "../src/SampleContract.sol";
 import {ZKPassportTest} from "./Utils.t.sol";
 
@@ -19,7 +23,7 @@ contract SampleContractTest is ZKPassportTest {
   SampleContract public sampleContract;
 
   function setUp() public {
-    (ZKPassportRootVerifier verifier,) = deployZKPassport();
+    (RootVerifier verifier,) = deployZKPassport();
     sampleContract = new SampleContract(address(verifier));
   }
 
@@ -43,7 +47,11 @@ contract SampleContractTest is ZKPassportTest {
       }),
       committedInputs: data.committedInputs,
       serviceConfig: ServiceConfig({
-        validityPeriodInSeconds: 7 days, domain: "zkpassport.id", scope: "bigproof", devMode: false
+        validityPeriodInSeconds: 7 days,
+        domain: "zkpassport.id",
+        scope: "bigproof",
+        devMode: false,
+        oprfPubKeyHash: bytes32(0)
       })
     });
 
