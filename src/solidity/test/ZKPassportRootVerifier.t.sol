@@ -15,11 +15,12 @@ import {RootVerifier} from "@zkpassport/registry-contracts/RootVerifier.sol";
 import {RootRegistry} from "@zkpassport/registry-contracts/RootRegistry.sol";
 import {SubVerifier} from "@zkpassport/registry-contracts/SubVerifier.sol";
 import {VerifierHelper} from "@zkpassport/registry-contracts/VerifierHelper.sol";
-import {CommittedInputLen} from "@zkpassport/registry-contracts/lib/Constants.sol";
+import {CommittedInputLen, PublicInput} from "@zkpassport/registry-contracts/lib/Constants.sol";
 import {
   DisclosedData,
   BoundData,
   FaceMatchMode,
+  NullifierType,
   ProofVerificationData,
   ServiceConfig,
   OS,
@@ -260,6 +261,107 @@ contract RootVerifierTest is ZKPassportTest {
         "isFaceMatchVerified should return true"
       );
     }
+  }
+
+  function _saltedParams(FixtureData memory data, bytes32 serviceOprfPubKeyHash)
+    internal
+    view
+    returns (ProofVerificationParams memory)
+  {
+    return ProofVerificationParams({
+      version: VERIFIER_VERSION,
+      proofVerificationData: ProofVerificationData({
+        vkeyHash: fixtures.salted.vkeyHash, proof: data.proof, publicInputs: data.publicInputs
+      }),
+      committedInputs: data.committedInputs,
+      serviceConfig: ServiceConfig({
+        validityPeriodInSeconds: 7 days,
+        domain: "zkpassport.id",
+        scope: "bigproof",
+        devMode: false,
+        oprfPubKeyHash: serviceOprfPubKeyHash
+      })
+    });
+  }
+
+  function test_VerifySalted_GlobalOPRFKey_Success() public {
+    FixtureData memory data = loadFixture(fixtures.salted);
+    bytes32 oprfPkHash = data.publicInputs[data.publicInputs.length - 1];
+    assertNotEq(oprfPkHash, bytes32(0), "Salted fixture must carry a non-zero oprf_pk_hash");
+
+    // Configure the SubVerifier's protocol-default OPRF key to match the proof's hash.
+    vm.prank(admin);
+    subVerifier.setDefaultOPRFPubKeyHash(oprfPkHash);
+
+    // Service leaves oprfPubKeyHash = bytes32(0), so the verifier falls back to the global default.
+    vm.warp(uint256(data.publicInputs[PublicInput.CURRENT_DATE_INDEX]));
+    ProofVerificationParams memory params = _saltedParams(data, bytes32(0));
+
+    (bool result, bytes32 scopedNullifier, ) = rootVerifier.verify(params);
+    assertEq(result, true, "Salted proof should verify under global OPRF key");
+    assertNotEq(scopedNullifier, bytes32(0), "Scoped nullifier should be non-zero");
+    // nullifier_type at [length-3] must be SALTED_NULLIFIER (=1).
+    assertEq(
+      uint256(data.publicInputs[data.publicInputs.length - 3]),
+      uint256(NullifierType.SALTED_NULLIFIER),
+      "Salted fixture must report SALTED_NULLIFIER"
+    );
+  }
+
+  function test_VerifySalted_ServiceOPRFKey_Success() public {
+    FixtureData memory data = loadFixture(fixtures.salted);
+    bytes32 oprfPkHash = data.publicInputs[data.publicInputs.length - 1];
+
+    // defaultOPRFPubKeyHash stays at bytes32(0); service supplies the expected hash directly.
+    vm.warp(uint256(data.publicInputs[PublicInput.CURRENT_DATE_INDEX]));
+    ProofVerificationParams memory params = _saltedParams(data, oprfPkHash);
+
+    (bool result, , ) = rootVerifier.verify(params);
+    assertEq(result, true, "Salted proof should verify under per-service OPRF key");
+  }
+
+  function test_VerifySalted_ServiceOverridesGlobal_Success() public {
+    FixtureData memory data = loadFixture(fixtures.salted);
+    bytes32 oprfPkHash = data.publicInputs[data.publicInputs.length - 1];
+
+    // Global default is set to a wrong value — the per-service override should win.
+    vm.prank(admin);
+    subVerifier.setDefaultOPRFPubKeyHash(keccak256("wrong-global-key"));
+
+    vm.warp(uint256(data.publicInputs[PublicInput.CURRENT_DATE_INDEX]));
+    ProofVerificationParams memory params = _saltedParams(data, oprfPkHash);
+
+    (bool result, , ) = rootVerifier.verify(params);
+    assertEq(result, true, "Per-service OPRF key must override the global default");
+  }
+
+  function test_RevertWhenSalted_WrongGlobalKey() public {
+    FixtureData memory data = loadFixture(fixtures.salted);
+
+    // Misconfigure the global default; service leaves its override at zero.
+    vm.prank(admin);
+    subVerifier.setDefaultOPRFPubKeyHash(keccak256("wrong-global-key"));
+
+    vm.warp(uint256(data.publicInputs[PublicInput.CURRENT_DATE_INDEX]));
+    ProofVerificationParams memory params = _saltedParams(data, bytes32(0));
+
+    vm.expectRevert("Invalid OPRF public key");
+    rootVerifier.verify(params);
+  }
+
+  function test_RevertWhenSalted_WrongServiceKey() public {
+    FixtureData memory data = loadFixture(fixtures.salted);
+    bytes32 correctHash = data.publicInputs[data.publicInputs.length - 1];
+
+    // Set the global default correctly to prove the per-service value is what's actually checked.
+    vm.prank(admin);
+    subVerifier.setDefaultOPRFPubKeyHash(correctHash);
+
+    vm.warp(uint256(data.publicInputs[PublicInput.CURRENT_DATE_INDEX]));
+    ProofVerificationParams memory params = _saltedParams(data, keccak256("wrong-service-key"));
+
+    vm.expectRevert("Invalid OPRF public key");
+    rootVerifier.verify(params);
   }
 
   function testOnlyAdminOrGuardianCanPause() public {

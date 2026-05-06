@@ -44,6 +44,7 @@ abstract contract ZKPassportTest is Test {
   struct Fixtures {
     FixtureConfig valid;
     FixtureConfig allSubproofs;
+    FixtureConfig salted;
   }
 
   Fixtures fixtures;
@@ -65,6 +66,15 @@ abstract contract ZKPassportTest is Test {
       proof: fixturesJson.readString(".all_subproofs.proof"),
       publicInputs: fixturesJson.readString(".all_subproofs.public_inputs"),
       committedInputs: fixturesJson.readString(".all_subproofs.committed_inputs")
+    });
+
+    fixtures.salted = FixtureConfig({
+      vkeyHash: fixturesJson.readBytes32(".salted.vkey_hash"),
+      // Reuses the OuterCount5 verifier deployed for `fixtures.valid` (same vkey).
+      verifier: fixtures.valid.verifier,
+      proof: fixturesJson.readString(".salted.proof"),
+      publicInputs: fixturesJson.readString(".salted.public_inputs"),
+      committedInputs: fixturesJson.readString(".salted.committed_inputs")
     });
   }
 
