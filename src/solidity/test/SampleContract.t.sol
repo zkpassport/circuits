@@ -50,8 +50,8 @@ contract SampleContractTest is ZKPassportTest {
         validityPeriodInSeconds: 7 days,
         domain: "zkpassport.id",
         scope: "bigproof",
-        devMode: false,
-        oprfPubKeyHash: bytes32(0)
+        devMode: false
+        // oprfPubKeyHash: bytes32(0)
       })
     });
 
