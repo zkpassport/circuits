@@ -178,11 +178,23 @@ fn verify_subproofs(
             disclosure_proofs[i].public_inputs[0],
             "Commitment out from integrity check circuit != commitment in from disclosure circuit",
         );
-        // The scoped nullifier of each disclosure circuit must be either 0 or the expected scoped nullifier
+        // Each disclosure subproof must either non-participate (== 0) OR agree with the top-level
+        // value, for scoped_nullifier, nullifier_type, and oprf_pk_hash. This allows circuits like
+        // facematch (which always emits 0 for these) to coexist with salted-participating circuits.
         assert(
             (disclosure_proofs[i].public_inputs[1] == 0)
                 | (disclosure_proofs[i].public_inputs[1] == scoped_nullifier),
             "Disclosure proof scoped nullifier must be either 0 or the expected scoped nullifier",
+        );
+        assert(
+            (disclosure_proofs[i].public_inputs[2] == 0)
+                | (disclosure_proofs[i].public_inputs[2] == nullifier_type),
+            "Disclosure proof nullifier type must be either 0 or the expected nullifier type",
+        );
+        assert(
+            (disclosure_proofs[i].public_inputs[3] == 0)
+                | (disclosure_proofs[i].public_inputs[3] == oprf_pk_hash),
+            "Disclosure proof oprf_pk_hash must be either 0 or the expected oprf_pk_hash",
         );
         // But at least one disclosure proof must have the expected scoped nullifier
         if (
@@ -201,9 +213,9 @@ fn verify_subproofs(
                 param_commitments[i],
                 service_scope,
                 service_subscope,
-                nullifier_type,
-                disclosure_proofs[i].public_inputs[1], // scoped nullifier
-                oprf_pk_hash,
+                disclosure_proofs[i].public_inputs[2], // nullifier_type (per-subproof: 0 or matches top-level)
+                disclosure_proofs[i].public_inputs[1], // scoped nullifier (per-subproof: 0 or matches top-level)
+                disclosure_proofs[i].public_inputs[3], // oprf_pk_hash (per-subproof: 0 or matches top-level)
             ),
             disclosure_proofs[i].key_hash,
             PROOF_TYPE_HONK_ZK,
