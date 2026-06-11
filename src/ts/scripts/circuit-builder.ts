@@ -669,7 +669,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         response: commitment::BabyJubJubPoint { x: 0, y: 0 },
         beta: 0,
     };
-    let (nullifier, nullifier_type, _oprf_pk_hash) = nullify(
+    let (nullifier, nullifier_type, oprf_pk_hash) = nullify(
         comm_in,
         salted_dg1,
         salted_expiry_date,
@@ -678,7 +678,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         salted_private_nullifier,
         service_scope,
         service_subscope,
-        nullifier_secret, // should be 0 for facematch circuit
+        nullifier_secret,
         zero_oprf_proof,
     );
 
@@ -687,8 +687,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     let param_commitment =
         ${evm ? "calculate_param_commitment_sha2" : "calculate_param_commitment"}(root_key_leaf, environment, app_id_hash, play_integrity_public_key_hash, facematch_mode);
 
-    // oprf_pk_hash is 0 since facematch doesn't do OPRF - other disclosure circuits provide it
-    (param_commitment, nullifier_type, nullifier, 0)
+    (param_commitment, nullifier_type, nullifier, oprf_pk_hash)
 }
 `
 
