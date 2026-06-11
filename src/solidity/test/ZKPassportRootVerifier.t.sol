@@ -59,8 +59,8 @@ contract RootVerifierTest is ZKPassportTest {
         validityPeriodInSeconds: 7 days,
         domain: "zkpassport.id",
         scope: "bigproof",
-        devMode: false,
-        oprfPubKeyHash: bytes32(0)
+        devMode: false
+        // oprfPubKeyHash: bytes32(0)
       })
     });
 
@@ -104,8 +104,8 @@ contract RootVerifierTest is ZKPassportTest {
         validityPeriodInSeconds: 7 days,
         domain: "zkpassport.id",
         scope: "bigproof",
-        devMode: false,
-        oprfPubKeyHash: bytes32(0)
+        devMode: false
+        // oprfPubKeyHash: bytes32(0)
       })
     });
     (bool result, bytes32 scopedNullifier, VerifierHelper helper) = rootVerifier.verify(params);
@@ -141,8 +141,8 @@ contract RootVerifierTest is ZKPassportTest {
         validityPeriodInSeconds: 7 days,
         domain: "zkpassport.id",
         scope: "bigproof",
-        devMode: false,
-        oprfPubKeyHash: bytes32(0)
+        devMode: false
+        // oprfPubKeyHash: bytes32(0)
       })
     });
 
@@ -195,8 +195,8 @@ contract RootVerifierTest is ZKPassportTest {
         validityPeriodInSeconds: 7 days,
         domain: "zkpassport.id",
         scope: "bigproof",
-        devMode: false,
-        oprfPubKeyHash: bytes32(0)
+        devMode: false
+        // oprfPubKeyHash: bytes32(0)
       })
     });
     (bool result, bytes32 scopedNullifier, VerifierHelper helper) = rootVerifier.verify(params);
@@ -411,8 +411,8 @@ contract RootVerifierTest is ZKPassportTest {
         validityPeriodInSeconds: 7 days,
         domain: "zkpassport.id",
         scope: "bigproof",
-        devMode: false,
-        oprfPubKeyHash: bytes32(0)
+        devMode: false
+        // oprfPubKeyHash: bytes32(0)
       })
     });
 

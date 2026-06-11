@@ -1,9 +1,9 @@
 {
   "sub_verifier_versions": {
     "0.18.0": {
-      "address": "0x06A13AE9d0BF8AfC1701D82c2EB0c1040B07a467",
+      "address": "0x299FF8e315C1482DD58dd35CEA76d0C69A9e9A42",
       "admin": "0x2000ab040a899f914D6DfD2457C3dFBB22d4c762",
-      "deployed_at": 1778063015,
+      "deployed_at": 1778166767,
       "proof_verifiers": {
         "outer_count_10": "0x2b80Be1a98d48a2986dF59c9e7a3DF728165F311",
         "outer_count_11": "0x1887a01437Ddbee7Dc7cFdA666eEfAd441d671BD",
