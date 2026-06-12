@@ -87,7 +87,7 @@ abstract contract ZKPassportTest is Test {
     // Deploy root verifier
     RootVerifier rootVerifier = new RootVerifier(admin, guardian, rootRegistry);
     // Deploy sub verifier
-    SubVerifier subVerifier = new SubVerifier(admin, rootVerifier);
+    SubVerifier subVerifier = new SubVerifier(admin, rootVerifier, bytes32(0));
     // Add sub verifier to root verifier
     vm.prank(admin);
     rootVerifier.addSubVerifier(VERIFIER_VERSION, subVerifier);
