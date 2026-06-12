@@ -14,8 +14,8 @@ use types::{
 use utils::{
     array_concat_as_field,
     constants::{ASCII_CODE_FOR_LESS_THAN, PASSPORT_MRZ_NAME_LENGTH},
-    find_subarray_index_strict,
     find_subarray_index_after_index_strict,
+    find_subarray_index_strict,
     get_dob_from_mrz,
     get_document_number_from_mrz,
     get_name_from_mrz,

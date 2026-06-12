@@ -496,6 +496,9 @@ pub fn find_subarray_index_after_index_strict<let NEEDLE_SIZE: u32, let HAYSTACK
     haystack: [u8; HAYSTACK_SIZE],
     start_index: u32,
 ) -> u32 {
+    // Safety: the hint is fully re-verified below. The match at the claimed offset
+    // is checked, and every earlier candidate is constrained to mismatch, so the
+    // prover cannot supply an arbitrary or non-first offset.
     let offset_unchecked =
         unsafe { find_subarray_index_after_index_unsafe(needle, haystack, start_index) };
     let mut offset = offset_unchecked;
