@@ -263,7 +263,7 @@ contract RootVerifierTest is ZKPassportTest {
     }
   }
 
-  function _saltedParams(FixtureData memory data, bytes32 serviceOprfPubKeyHash)
+  function _saltedParams(FixtureData memory data)
     internal
     view
     returns (ProofVerificationParams memory)
@@ -278,8 +278,7 @@ contract RootVerifierTest is ZKPassportTest {
         validityPeriodInSeconds: 7 days,
         domain: "zkpassport.id",
         scope: "bigproof",
-        devMode: false,
-        oprfPubKeyHash: serviceOprfPubKeyHash
+        devMode: false
       })
     });
   }
@@ -291,11 +290,10 @@ contract RootVerifierTest is ZKPassportTest {
 
     // Configure the SubVerifier's protocol-default OPRF key to match the proof's hash.
     vm.prank(admin);
-    subVerifier.setDefaultOPRFPubKeyHash(oprfPkHash);
+    subVerifier.setGlobalOPRFPubKeyHash(oprfPkHash);
 
-    // Service leaves oprfPubKeyHash = bytes32(0), so the verifier falls back to the global default.
     vm.warp(uint256(data.publicInputs[PublicInput.CURRENT_DATE_INDEX]));
-    ProofVerificationParams memory params = _saltedParams(data, bytes32(0));
+    ProofVerificationParams memory params = _saltedParams(data);
 
     (bool result, bytes32 scopedNullifier, ) = rootVerifier.verify(params);
     assertEq(result, true, "Salted proof should verify under global OPRF key");
@@ -308,57 +306,15 @@ contract RootVerifierTest is ZKPassportTest {
     );
   }
 
-  function test_VerifySalted_ServiceOPRFKey_Success() public {
-    FixtureData memory data = loadFixture(fixtures.salted);
-    bytes32 oprfPkHash = data.publicInputs[data.publicInputs.length - 1];
-
-    // defaultOPRFPubKeyHash stays at bytes32(0); service supplies the expected hash directly.
-    vm.warp(uint256(data.publicInputs[PublicInput.CURRENT_DATE_INDEX]));
-    ProofVerificationParams memory params = _saltedParams(data, oprfPkHash);
-
-    (bool result, , ) = rootVerifier.verify(params);
-    assertEq(result, true, "Salted proof should verify under per-service OPRF key");
-  }
-
-  function test_VerifySalted_ServiceOverridesGlobal_Success() public {
-    FixtureData memory data = loadFixture(fixtures.salted);
-    bytes32 oprfPkHash = data.publicInputs[data.publicInputs.length - 1];
-
-    // Global default is set to a wrong value — the per-service override should win.
-    vm.prank(admin);
-    subVerifier.setDefaultOPRFPubKeyHash(keccak256("wrong-global-key"));
-
-    vm.warp(uint256(data.publicInputs[PublicInput.CURRENT_DATE_INDEX]));
-    ProofVerificationParams memory params = _saltedParams(data, oprfPkHash);
-
-    (bool result, , ) = rootVerifier.verify(params);
-    assertEq(result, true, "Per-service OPRF key must override the global default");
-  }
-
   function test_RevertWhenSalted_WrongGlobalKey() public {
     FixtureData memory data = loadFixture(fixtures.salted);
 
-    // Misconfigure the global default; service leaves its override at zero.
+    // Misconfigure the global default — the proof's oprf_pk_hash will no longer match.
     vm.prank(admin);
-    subVerifier.setDefaultOPRFPubKeyHash(keccak256("wrong-global-key"));
+    subVerifier.setGlobalOPRFPubKeyHash(keccak256("wrong-global-key"));
 
     vm.warp(uint256(data.publicInputs[PublicInput.CURRENT_DATE_INDEX]));
-    ProofVerificationParams memory params = _saltedParams(data, bytes32(0));
-
-    vm.expectRevert("Invalid OPRF public key");
-    rootVerifier.verify(params);
-  }
-
-  function test_RevertWhenSalted_WrongServiceKey() public {
-    FixtureData memory data = loadFixture(fixtures.salted);
-    bytes32 correctHash = data.publicInputs[data.publicInputs.length - 1];
-
-    // Set the global default correctly to prove the per-service value is what's actually checked.
-    vm.prank(admin);
-    subVerifier.setDefaultOPRFPubKeyHash(correctHash);
-
-    vm.warp(uint256(data.publicInputs[PublicInput.CURRENT_DATE_INDEX]));
-    ProofVerificationParams memory params = _saltedParams(data, keccak256("wrong-service-key"));
+    ProofVerificationParams memory params = _saltedParams(data);
 
     vm.expectRevert("Invalid OPRF public key");
     rootVerifier.verify(params);
@@ -426,7 +382,7 @@ contract RootVerifierTest is ZKPassportTest {
   }
 
   function testAddSubVerifier() public {
-    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier, bytes32(0));
     bytes32 newVersion = bytes32(uint256(2));
 
     // Admin adds new subverifier
@@ -438,7 +394,7 @@ contract RootVerifierTest is ZKPassportTest {
   }
 
   function testOnlyAdminCanAddSubVerifier() public {
-    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier, bytes32(0));
     bytes32 newVersion = bytes32(uint256(2));
 
     // User tries to add subverifier
@@ -453,7 +409,7 @@ contract RootVerifierTest is ZKPassportTest {
   }
 
   function testCannotAddSubVerifierToZeroVersion() public {
-    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier, bytes32(0));
 
     // Admin tries to add subverifier to version 0
     vm.prank(admin);
@@ -469,7 +425,7 @@ contract RootVerifierTest is ZKPassportTest {
   }
 
   function testCannotAddSubVerifierToExistingVersion() public {
-    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier, bytes32(0));
 
     // Admin tries to add subverifier to version 1 (already exists from setUp)
     vm.prank(admin);
@@ -478,7 +434,7 @@ contract RootVerifierTest is ZKPassportTest {
   }
 
   function testUpdateSubVerifier() public {
-    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier, bytes32(0));
     address oldSubVerifier = rootVerifier.getSubVerifier(VERIFIER_VERSION);
 
     // Admin updates subverifier
@@ -491,7 +447,7 @@ contract RootVerifierTest is ZKPassportTest {
   }
 
   function testOnlyAdminCanUpdateSubVerifier() public {
-    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier, bytes32(0));
 
     // User tries to update subverifier
     vm.prank(user);
@@ -512,7 +468,7 @@ contract RootVerifierTest is ZKPassportTest {
   }
 
   function testCannotUpdateNonExistentSubVerifier() public {
-    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier, bytes32(0));
 
     // Admin tries to update non-existent subverifier
     vm.prank(admin);
@@ -522,7 +478,7 @@ contract RootVerifierTest is ZKPassportTest {
 
   function testRemoveSubVerifier() public {
     // Add a new subverifier first
-    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier, bytes32(0));
     bytes32 newVersion = bytes32(uint256(2));
     vm.prank(admin);
     rootVerifier.addSubVerifier(newVersion, newSubVerifier);
@@ -706,12 +662,12 @@ contract RootVerifierTest is ZKPassportTest {
     assertEq(rootVerifier.admin(), user);
 
     // New admin should be able to add subverifier
-    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier, bytes32(0));
     vm.prank(user);
     rootVerifier.addSubVerifier(bytes32(uint256(2)), newSubVerifier);
 
     // Old admin should no longer be able to add subverifier
-    SubVerifier anotherSubVerifier = new SubVerifier(admin, rootVerifier);
+    SubVerifier anotherSubVerifier = new SubVerifier(admin, rootVerifier, bytes32(0));
     vm.prank(admin);
     vm.expectRevert("Not authorized: admin only");
     rootVerifier.addSubVerifier(bytes32(uint256(3)), anotherSubVerifier);
@@ -864,14 +820,14 @@ contract RootVerifierTest is ZKPassportTest {
     assertEq(rootVerifier.subverifierCount(), 1);
 
     // Add a new subverifier
-    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier);
+    SubVerifier newSubVerifier = new SubVerifier(admin, rootVerifier, bytes32(0));
     bytes32 newVersion = bytes32(uint256(2));
     vm.prank(admin);
     rootVerifier.addSubVerifier(newVersion, newSubVerifier);
     assertEq(rootVerifier.subverifierCount(), 2);
 
     // Add another subverifier
-    SubVerifier anotherSubVerifier = new SubVerifier(admin, rootVerifier);
+    SubVerifier anotherSubVerifier = new SubVerifier(admin, rootVerifier, bytes32(0));
     bytes32 anotherVersion = bytes32(uint256(3));
     vm.prank(admin);
     rootVerifier.addSubVerifier(anotherVersion, anotherSubVerifier);

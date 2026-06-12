@@ -11,7 +11,7 @@
  * registration is performed by the RootVerifier admin (a Safe multisig) outside this script.
  *
  * The broadcaster is the temporary admin during deployment so it can call admin-only setup
- * functions (addProofVerifiers, setDefaultOPRFPubKeyHash). Admin is transferred to
+ * functions (addProofVerifiers, setGlobalOPRFPubKeyHash). Admin is transferred to
  * ADMIN_ADDRESS at the end of the script.
  *
  * Required env vars:
@@ -22,8 +22,8 @@
  * Optional env vars:
  *   SUB_VERIFIER_VERSION      - bytes32 semver key. Recorded in the addresses JSON only.
  *                                Defaults to bytes32(0) (rendered as "unversioned").
- *   DEFAULT_OPRF_PUB_KEY_HASH - protocol-default OPRF pubkey hash. When non-zero, set via
- *                                setDefaultOPRFPubKeyHash. Otherwise admin can set later.
+ *   GLOBAL_OPRF_PUB_KEY_HASH - protocol-default OPRF pubkey hash. When non-zero, set via
+ *                                setGlobalOPRFPubKeyHash. Otherwise admin can set later.
  */
 
 pragma solidity ^0.8.30;
@@ -82,7 +82,7 @@ contract DeploySubVerifier is DeployBase {
     require(adminAddress != address(0), "ADMIN_ADDRESS must be set");
     RootVerifier rootVerifier = RootVerifier(vm.envAddress("ROOT_VERIFIER_ADDRESS"));
     require(address(rootVerifier) != address(0), "ROOT_VERIFIER_ADDRESS must be set");
-    bytes32 defaultOPRFPubKeyHash = vm.envOr("DEFAULT_OPRF_PUB_KEY_HASH", bytes32(0));
+    bytes32 globalOPRFPubKeyHash = vm.envOr("GLOBAL_OPRF_PUB_KEY_HASH", bytes32(0));
 
     uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
     address deployer = vm.addr(deployerPrivateKey);
@@ -106,7 +106,7 @@ contract DeploySubVerifier is DeployBase {
 
     // Deploy the SubVerifier with the broadcaster as temporary admin.
     console.log("Deploying SubVerifier...");
-    SubVerifier subVerifier = new SubVerifier(deployer, rootVerifier);
+    SubVerifier subVerifier = new SubVerifier(deployer, rootVerifier, globalOPRFPubKeyHash);
     console.log("SubVerifier deployed at:", address(subVerifier));
 
     // Wire proof verifiers (admin-only on SubVerifier).
@@ -116,14 +116,6 @@ contract DeploySubVerifier is DeployBase {
     }
     subVerifier.addProofVerifiers(pvArray);
     console.log("Proof verifiers added");
-
-    // Set the OPRF pub key hash if provided (skip the no-op tx + event when unset).
-    if (defaultOPRFPubKeyHash != bytes32(0)) {
-      subVerifier.setDefaultOPRFPubKeyHash(defaultOPRFPubKeyHash);
-      console.log("Default OPRF pub key hash set");
-    } else {
-      console.log("DEFAULT_OPRF_PUB_KEY_HASH not provided; admin can set later");
-    }
 
     // Hand admin over to the final admin (e.g. multisig).
     subVerifier.transferAdmin(adminAddress);
