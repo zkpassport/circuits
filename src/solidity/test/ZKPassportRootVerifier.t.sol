@@ -142,7 +142,6 @@ contract RootVerifierTest is ZKPassportTest {
         domain: "zkpassport.id",
         scope: "bigproof",
         devMode: false
-        // oprfPubKeyHash: bytes32(0)
       })
     });
 
@@ -196,7 +195,6 @@ contract RootVerifierTest is ZKPassportTest {
         domain: "zkpassport.id",
         scope: "bigproof",
         devMode: false
-        // oprfPubKeyHash: bytes32(0)
       })
     });
     (bool result, bytes32 scopedNullifier, VerifierHelper helper) = rootVerifier.verify(params);
@@ -317,6 +315,24 @@ contract RootVerifierTest is ZKPassportTest {
     ProofVerificationParams memory params = _saltedParams(data);
 
     vm.expectRevert("Invalid OPRF public key");
+    rootVerifier.verify(params);
+  }
+
+  function test_RevertWhenSalted_GlobalKeyUnset() public {
+    FixtureData memory data = loadFixture(fixtures.salted);
+
+    // globalOPRFPubKeyHash is left unset
+    assertEq(subVerifier.globalOPRFPubKeyHash(), bytes32(0), "global OPRF key should start unset");
+    assertEq(
+      uint256(data.publicInputs[data.publicInputs.length - 3]),
+      uint256(NullifierType.SALTED_NULLIFIER),
+      "Salted fixture must report SALTED_NULLIFIER"
+    );
+
+    vm.warp(uint256(data.publicInputs[PublicInput.CURRENT_DATE_INDEX]));
+    ProofVerificationParams memory params = _saltedParams(data);
+
+    vm.expectRevert("globalOPRFPubKeyHash hash not set");
     rootVerifier.verify(params);
   }
 
