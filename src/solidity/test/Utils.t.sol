@@ -44,6 +44,7 @@ abstract contract ZKPassportTest is Test {
   struct Fixtures {
     FixtureConfig valid;
     FixtureConfig allSubproofs;
+    FixtureConfig salted;
   }
 
   Fixtures fixtures;
@@ -66,6 +67,15 @@ abstract contract ZKPassportTest is Test {
       publicInputs: fixturesJson.readString(".all_subproofs.public_inputs"),
       committedInputs: fixturesJson.readString(".all_subproofs.committed_inputs")
     });
+
+    fixtures.salted = FixtureConfig({
+      vkeyHash: fixturesJson.readBytes32(".salted.vkey_hash"),
+      // Reuses the OuterCount5 verifier deployed for `fixtures.valid` (same vkey).
+      verifier: fixtures.valid.verifier,
+      proof: fixturesJson.readString(".salted.proof"),
+      publicInputs: fixturesJson.readString(".salted.public_inputs"),
+      committedInputs: fixturesJson.readString(".salted.committed_inputs")
+    });
   }
 
   function deployZKPassport() internal returns (RootVerifier, SubVerifier) {
@@ -77,7 +87,7 @@ abstract contract ZKPassportTest is Test {
     // Deploy root verifier
     RootVerifier rootVerifier = new RootVerifier(admin, guardian, rootRegistry);
     // Deploy sub verifier
-    SubVerifier subVerifier = new SubVerifier(admin, rootVerifier);
+    SubVerifier subVerifier = new SubVerifier(admin, rootVerifier, bytes32(0));
     // Add sub verifier to root verifier
     vm.prank(admin);
     rootVerifier.addSubVerifier(VERIFIER_VERSION, subVerifier);

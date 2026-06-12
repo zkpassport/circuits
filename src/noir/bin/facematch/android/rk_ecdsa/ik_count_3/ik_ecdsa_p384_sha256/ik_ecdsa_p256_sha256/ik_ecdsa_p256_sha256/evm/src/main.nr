@@ -255,7 +255,7 @@ fn main(
         response: commitment::BabyJubJubPoint { x: 0, y: 0 },
         beta: 0,
     };
-    let (nullifier, nullifier_type, _oprf_pk_hash) = nullify(
+    let (nullifier, nullifier_type, oprf_pk_hash) = nullify(
         comm_in,
         salted_dg1,
         salted_expiry_date,
@@ -264,7 +264,7 @@ fn main(
         salted_private_nullifier,
         service_scope,
         service_subscope,
-        nullifier_secret, // should be 0 for facematch circuit
+        nullifier_secret,
         zero_oprf_proof,
     );
 
@@ -279,6 +279,5 @@ fn main(
         facematch_mode,
     );
 
-    // oprf_pk_hash is 0 since facematch doesn't do OPRF - other disclosure circuits provide it
-    (param_commitment, nullifier_type, nullifier, 0)
+    (param_commitment, nullifier_type, nullifier, oprf_pk_hash)
 }

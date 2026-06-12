@@ -1,9 +1,11 @@
 import { poseidon2HashAsync } from "@zkpassport/poseidon2"
-import type { IntegrityToDisclosureSalts, PackagedCertificatesFile, Query } from "@zkpassport/utils"
+import type { IntegrityToDisclosureSalts, OPRFProof, PackagedCertificatesFile, Query } from "@zkpassport/utils"
 import {
   Binary,
   ProofType,
   calculatePackagedCertificatesRoot,
+  calculatePrivateNullifier,
+  evaluateOPRF,
   formatBoundData,
   getAgeCircuitInputs,
   getBindCircuitInputs,
@@ -23,26 +25,20 @@ import {
   getParameterCommitmentFromDisclosureProof,
   getServiceScopeHash,
   getServiceSubscopeHash,
+  hashOprfPublicKey,
+  processSodSignature,
   rightPadArrayWithZeros,
   getFacematchCircuitInputs,
   getFacematchEvmParameterCommitment,
   packLeBytesAndHashPoseidon2,
   ProofTypeLength,
+  DG1_INPUT_SIZE,
+  E_CONTENT_INPUT_SIZE,
 } from "@zkpassport/utils"
 import * as path from "path"
 import * as fs from "fs"
 
-// Zero OPRF proof for non-salted nullifier fixtures.
-// The disclose/bind/facematch/etc. circuits now take `oprf_proof` as a required input;
-// we pass this placeholder because fixtures here are all NON_SALTED (nullifier_secret = 0).
-const OPRF_ZERO_PROOF = {
-  pk: { x: "0", y: "0" },
-  dlog_e: "0",
-  dlog_s: "0",
-  response_blinded: { x: "0", y: "0" },
-  response: { x: "0", y: "0" },
-  beta: "0",
-}
+
 import { Circuit } from "../circuits"
 import { generateSigningCertificates, loadKeypairFromFile, signSod } from "../passport-generator"
 import { generateSod, wrapSodInContentInfo } from "../sod-generator"
@@ -59,6 +55,19 @@ interface SubproofData {
   vkeyHash: string
   paramCommitment?: bigint
 }
+
+// Zero OPRF proof for non-salted nullifier fixtures.
+const OPRF_ZERO_PROOF = {
+  pk: { x: "0", y: "0" },
+  dlog_e: "0",
+  dlog_s: "0",
+  response_blinded: { x: "0", y: "0" },
+  response: { x: "0", y: "0" },
+  beta: "0",
+}
+
+// Deterministic OPRF service secret used to mock the salted-nullifier fixture.
+const OPRF_TEST_SECRET_KEY = 0xb15ec0deb15ec0deb15ec0deb15ec0deb15ec0deb15ec0deb15ec0den
 
 class FixtureGenerator {
   private helper = new TestHelper()
@@ -252,6 +261,159 @@ class FixtureGenerator {
 
     const bindCircuit = Circuit.from("bind_evm")
     const proof = await bindCircuit.prove({ ...inputs, oprf_proof: OPRF_ZERO_PROOF }, {
+      recursive: true,
+      useCli: true,
+      circuitName: `bind_evm`,
+    })
+
+    const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+    const vkey = (await bindCircuit.getVerificationKey({ evm: false })).vkeyFields
+    const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
+
+    const committedInputs =
+      ProofType.BIND.toString(16).padStart(2, "0") + ProofTypeLength[ProofType.BIND].evm.toString(16).padStart(4, "0") +
+      rightPadArrayWithZeros(formatBoundData(bindQuery.bind!), 509)
+        .map((x) => x.toString(16).padStart(2, "0"))
+        .join("")
+
+    await bindCircuit.destroy()
+
+    return {
+      subproof: {
+        proof: proof.proof,
+        publicInputs: proof.publicInputs,
+        vkey,
+        vkeyHash,
+        paramCommitment,
+      },
+      committedInputs,
+    }
+  }
+
+  async computeOprfProof(): Promise<{
+    oprfProof: OPRFProof
+    nullifierSecret: bigint
+    oprfPkHash: string
+  }> {
+    console.log("Computing deterministic OPRF proof...")
+    const passport: any = this.helper.passport
+    // Inlined from the `getIDDataInputs` in @zkpassport/utils
+    const dg1Group = passport?.dataGroups.find((dg: any) => dg.groupNumber === 1)
+    const eContent = passport?.sod.encapContentInfo.eContent.bytes.toNumberArray()
+    const dg1Padded = rightPadArrayWithZeros(dg1Group?.value ?? [], DG1_INPUT_SIZE)
+    const eContentPadded = rightPadArrayWithZeros(eContent ?? [], E_CONTENT_INPUT_SIZE)
+
+    const privateNullifier = await calculatePrivateNullifier(
+      Binary.from(dg1Padded),
+      Binary.from(eContentPadded),
+      Binary.from(processSodSignature(passport.sod.signerInfo.signature.toNumberArray() ?? [], passport)),
+    )
+
+    // Mock OPRF proof. The circuit asserts `oprf_output == nullifier_secret`,
+    // so we propagate `oprfOutput` to the disclosure circuits as the nullifier_secret.
+    const { oprfProof, oprfOutput, publicKey } = await evaluateOPRF(
+      privateNullifier.toBigInt(),
+      0n,
+      {} as any,
+      { mock: { secretKey: OPRF_TEST_SECRET_KEY } },
+    )
+    const pkHash = await hashOprfPublicKey(publicKey)
+    return {
+      oprfProof,
+      nullifierSecret: oprfOutput,
+      oprfPkHash: `0x${pkHash.toString(16)}`,
+    }
+  }
+
+  async generateSaltedDiscloseProof(
+    oprfProof: OPRFProof,
+    nullifierSecret: bigint,
+  ): Promise<{ subproof: SubproofData; committedInputs: string }> {
+    console.log("Generating salted disclose proof...")
+
+    const discloseCircuit = Circuit.from("disclose_bytes_evm")
+    const query: Query = {
+      nationality: { disclose: true },
+      document_type: { disclose: true },
+      document_number: { disclose: true },
+      fullname: { disclose: true },
+      birthdate: { disclose: true },
+      gender: { disclose: true },
+    }
+
+    const inputs = await getDiscloseCircuitInputs(
+      this.helper.passport as any,
+      query,
+      this.INTEGRITY_TO_DISCLOSURE_SALTS,
+      nullifierSecret,
+      getServiceScopeHash("zkpassport.id"),
+      getServiceSubscopeHash("bigproof"),
+      this.nowTimestamp,
+      oprfProof,
+    )
+    if (!inputs) throw new Error("Unable to generate salted disclose circuit inputs")
+
+    const proof = await discloseCircuit.prove(inputs, {
+      recursive: true,
+      useCli: true,
+      circuitName: `disclose_bytes_evm`,
+    })
+
+    const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
+    const disclosedBytes = getDisclosedBytesFromMrzAndMask(
+      this.helper.passport.mrz,
+      inputs.disclose_mask,
+    )
+    const vkey = (await discloseCircuit.getVerificationKey({ evm: false })).vkeyFields
+    const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
+
+    const committedInputs =
+      ProofType.DISCLOSE.toString(16).padStart(2, "0") + ProofTypeLength[ProofType.DISCLOSE].evm.toString(16).padStart(4, "0") +
+      inputs.disclose_mask.map((x: number) => x.toString(16).padStart(2, "0")).join("") +
+      disclosedBytes.map((x: number) => x.toString(16).padStart(2, "0")).join("")
+
+    await discloseCircuit.destroy()
+
+    return {
+      subproof: {
+        proof: proof.proof,
+        publicInputs: proof.publicInputs,
+        vkey,
+        vkeyHash,
+        paramCommitment,
+      },
+      committedInputs,
+    }
+  }
+
+  async generateSaltedBindProof(
+    oprfProof: OPRFProof,
+    nullifierSecret: bigint,
+  ): Promise<{ subproof: SubproofData; committedInputs: string }> {
+    console.log("Generating salted bind proof...")
+
+    const bindQuery: Query = {
+      bind: {
+        user_address: "0x04Fb06E8BF44eC60b6A99D2F98551172b2F2dED8",
+        chain: "local",
+        custom_data: "email:test@test.com,customer_id:1234567890",
+      },
+    }
+
+    const inputs = await getBindCircuitInputs(
+      this.helper.passport as any,
+      bindQuery,
+      this.INTEGRITY_TO_DISCLOSURE_SALTS,
+      nullifierSecret,
+      getServiceScopeHash("zkpassport.id"),
+      getServiceSubscopeHash("bigproof"),
+      this.nowTimestamp,
+      oprfProof,
+    )
+    if (!inputs) throw new Error("Unable to generate salted bind circuit inputs")
+
+    const bindCircuit = Circuit.from("bind_evm")
+    const proof = await bindCircuit.prove(inputs, {
       recursive: true,
       useCli: true,
       circuitName: `bind_evm`,
@@ -589,8 +751,9 @@ class FixtureGenerator {
     subproofData: SubproofData[],
     circuitName: string,
     evmCircuitName: string,
+    oprfPkHash: string = "0x0",
   ) {
-    console.log(`Generating outer proof for ${circuitName}...`)
+    console.log(`Generating outer proof for ${circuitName} (oprf_pk_hash=${oprfPkHash})...`)
 
     const circuit = Circuit.from(circuitName)
     const merkleProofs = await Promise.all(
@@ -637,8 +800,9 @@ class FixtureGenerator {
       circuitManifest.root,
     )
 
-    // Outer circuit now takes oprf_pk_hash as a top-level input; 0 for NON_SALTED fixtures.
-    const proof = await circuit.prove({ ...inputs, oprf_pk_hash: "0x0" }, {
+    // Outer circuit takes oprf_pk_hash as a top-level input; 0 for NON_SALTED fixtures,
+    // Poseidon2(pk.x, pk.y) for SALTED fixtures.
+    const proof = await circuit.prove({ ...inputs, oprf_pk_hash: oprfPkHash }, {
       useCli: true,
       circuitName: evmCircuitName,
       recursive: false,
@@ -657,6 +821,9 @@ class FixtureGenerator {
     allSubproofsProof: string
     allSubproofsPublicInputs: string[]
     allSubproofsCommittedInputs: string
+    saltedProof: string
+    saltedPublicInputs: string[]
+    saltedCommittedInputs: string
   }) {
     const outputPath = path.join(__dirname, "..", "..", "solidity", "test", "fixtures")
 
@@ -669,6 +836,7 @@ class FixtureGenerator {
     // Write proof files (hex)
     fs.writeFileSync(path.join(outputPath, "valid_proof.hex"), fixtures.validProof)
     fs.writeFileSync(path.join(outputPath, "all_subproofs_proof.hex"), fixtures.allSubproofsProof)
+    fs.writeFileSync(path.join(outputPath, "salted_proof.hex"), fixtures.saltedProof)
 
     // Write public inputs files (JSON)
     fs.writeFileSync(
@@ -679,6 +847,10 @@ class FixtureGenerator {
       path.join(outputPath, "all_subproofs_public_inputs.json"),
       JSON.stringify({ inputs: fixtures.allSubproofsPublicInputs }, null, 2),
     )
+    fs.writeFileSync(
+      path.join(outputPath, "salted_public_inputs.json"),
+      JSON.stringify({ inputs: fixtures.saltedPublicInputs }, null, 2),
+    )
 
     // Write committed inputs files (hex)
     fs.writeFileSync(
@@ -688,6 +860,10 @@ class FixtureGenerator {
     fs.writeFileSync(
       path.join(outputPath, "all_subproofs_committed_inputs.hex"),
       fixtures.allSubproofsCommittedInputs,
+    )
+    fs.writeFileSync(
+      path.join(outputPath, "salted_committed_inputs.hex"),
+      fixtures.saltedCommittedInputs,
     )
 
     console.log("All fixtures written successfully!")
@@ -743,6 +919,28 @@ class FixtureGenerator {
       "outer_count_13",
     )
 
+    // Generate salted-nullifier fixture: same 5-subproof shape as `valid_*`,
+    const { oprfProof, nullifierSecret, oprfPkHash } = await this.computeOprfProof()
+    const { subproof: saltedDiscloseSubproof, committedInputs: saltedDiscloseCommittedInputs } =
+      await this.generateSaltedDiscloseProof(oprfProof, nullifierSecret)
+    const { subproof: saltedBindSubproof, committedInputs: saltedBindCommittedInputs } =
+      await this.generateSaltedBindProof(oprfProof, nullifierSecret)
+
+    const saltedSubproofsData = [
+      this.subproofs.get(0)!,
+      this.subproofs.get(1)!,
+      this.subproofs.get(2)!,
+      saltedDiscloseSubproof,
+      saltedBindSubproof,
+    ]
+
+    const outerProofSalted = await this.generateOuterProof(
+      saltedSubproofsData,
+      "outer_count_5",
+      "outer_count_5",
+      oprfPkHash,
+    )
+
     const fixtures = {
       validProof: outerProof5.proof.map((x) => x.replace("0x", "")).join(""),
       validPublicInputs: outerProof5.publicInputs,
@@ -750,6 +948,9 @@ class FixtureGenerator {
       allSubproofsProof: outerProof13.proof.map((x) => x.replace("0x", "")).join(""),
       allSubproofsPublicInputs: outerProof13.publicInputs,
       allSubproofsCommittedInputs: discloseCommittedInputs + additionalCommittedInputs + facematchCommittedInputs,
+      saltedProof: outerProofSalted.proof.map((x) => x.replace("0x", "")).join(""),
+      saltedPublicInputs: outerProofSalted.publicInputs,
+      saltedCommittedInputs: saltedDiscloseCommittedInputs + saltedBindCommittedInputs,
     }
 
     await this.writeFixturesToFiles(fixtures)

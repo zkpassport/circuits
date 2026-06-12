@@ -15,7 +15,11 @@ remappings = [
   "@zkpassport/registry-contracts/=lib/zkpassport-packages/packages/registry-contracts/src/",
 ]
 # File system permissions
-fs_permissions = [{ access = "read-write", path = "./"}]
+fs_permissions = [
+  { access = "read-write", path = "./" },
+  # Packaged outer-circuit manifests (vkey hashes) read by script/DeployAnvil.s.sol
+  { access = "read", path = "../../target/packaged/circuits" },
+]
 
 [lint]
 exclude_lints = ["screaming-snake-case-immutable", "unwrapped-modifier-logic"]
