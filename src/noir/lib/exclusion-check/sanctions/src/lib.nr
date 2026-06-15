@@ -14,8 +14,8 @@ use types::{
 use utils::{
     array_concat_as_field,
     constants::{ASCII_CODE_FOR_LESS_THAN, PASSPORT_MRZ_NAME_LENGTH},
-    find_subarray_index,
-    find_subarray_index_after_index,
+    find_subarray_index_after_index_strict,
+    find_subarray_index_strict,
     get_dob_from_mrz,
     get_document_number_from_mrz,
     get_name_from_mrz,
@@ -30,7 +30,7 @@ use utils::{
 pub fn process_name(name: MRZName) -> MRZName {
     let mut result = name;
     let full_name_separator = [ASCII_CODE_FOR_LESS_THAN, ASCII_CODE_FOR_LESS_THAN];
-    let full_name_separator_index = find_subarray_index(full_name_separator, name);
+    let full_name_separator_index = find_subarray_index_strict(full_name_separator, name);
     // This means the full name separator was not found, this can be the case in some rare cases
     // like with Malaysian passports
     let has_full_name_separator = full_name_separator_index < PASSPORT_MRZ_NAME_LENGTH
@@ -39,7 +39,8 @@ pub fn process_name(name: MRZName) -> MRZName {
         // This is to make sure this is not just the right padding of MRZ name
         & (name[full_name_separator_index + 2] != ASCII_CODE_FOR_LESS_THAN);
     if !has_full_name_separator {
-        let first_angular_bracket_index = find_subarray_index([ASCII_CODE_FOR_LESS_THAN], name);
+        let first_angular_bracket_index =
+            find_subarray_index_strict([ASCII_CODE_FOR_LESS_THAN], name);
         // If the first angular bracket index was found, we process the name to add an angular bracket right after the first one
         // so it meets the standard MRZ name formatting (i.e. LASTNAME<<FIRSTNAME)
         if first_angular_bracket_index < PASSPORT_MRZ_NAME_LENGTH {
@@ -84,7 +85,7 @@ pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName,
     // (e.g. Jean-Pierre Dupont -> DUPONT<<JEAN<PIERRE<<<<..., vs John Miller Doe -> DOE<<JOHN<MILLER<<<....)
     let single_name_separator = [ASCII_CODE_FOR_LESS_THAN];
     // Gets the index of where the last name ends (i.e. where we can find the first <<)
-    let last_name_end_index = find_subarray_index(full_name_separator, full_name);
+    let last_name_end_index = find_subarray_index_strict(full_name_separator, full_name);
     // Make sure the last name end index is valid
     assert_eq(
         full_name[last_name_end_index],
@@ -100,7 +101,7 @@ pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName,
     let first_name_start_index = last_name_end_index + full_name_separator.len();
 
     // Gets the index of where the second given name (or the second part of the first name) starts
-    let second_name_start_index = find_subarray_index_after_index(
+    let second_name_start_index = find_subarray_index_after_index_strict(
         single_name_separator,
         full_name,
         first_name_start_index,
@@ -144,7 +145,7 @@ pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName,
     }
 
     // Gets the index of where the third given name (or the third part of the first name) starts
-    let third_name_start_index = find_subarray_index_after_index(
+    let third_name_start_index = find_subarray_index_after_index_strict(
         single_name_separator,
         full_name,
         second_name_start_index,
@@ -195,7 +196,7 @@ pub fn get_last_name_and_first_name_from_mrz(dg1: DG1Data) -> (MRZName, MRZName,
     }
 
     // Gets the index of where the fourth given name (or the fourth part of the first name) starts
-    let fourth_name_start_index = find_subarray_index_after_index(
+    let fourth_name_start_index = find_subarray_index_after_index_strict(
         single_name_separator,
         full_name,
         third_name_start_index,

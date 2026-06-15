@@ -487,6 +487,56 @@ pub fn find_subarray_index_after_index<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: 
     offset
 }
 
+/// Strict variant of `find_subarray_index_after_index`.
+/// In addition to verifying that the needle matches at the returned offset, this
+/// enforces that the returned offset is the FIRST occurrence of the needle at or
+/// after `start_index`
+pub fn find_subarray_index_after_index_strict<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+    needle: [u8; NEEDLE_SIZE],
+    haystack: [u8; HAYSTACK_SIZE],
+    start_index: u32,
+) -> u32 {
+    // Safety: the hint is fully re-verified below. The match at the claimed offset
+    // is checked, and every earlier candidate is constrained to mismatch, so the
+    // prover cannot supply an arbitrary or non-first offset.
+    let offset_unchecked =
+        unsafe { find_subarray_index_after_index_unsafe(needle, haystack, start_index) };
+    let mut offset = offset_unchecked;
+    if (offset_unchecked < HAYSTACK_SIZE) & (offset_unchecked + NEEDLE_SIZE <= HAYSTACK_SIZE) {
+        for i in 0..NEEDLE_SIZE {
+            if haystack[i + offset_unchecked] != needle[i] {
+                offset = HAYSTACK_SIZE;
+            }
+        }
+    } else {
+        offset = HAYSTACK_SIZE;
+    }
+    // First-occurrence constraint: every candidate position before the returned
+    // offset (and within `start_index`) must fail to match. When `offset` is
+    // HAYSTACK_SIZE (not found), this scans the whole tail and enforces a genuine
+    // not-found, preventing the prover from hiding an existing match.
+    for k in 0..HAYSTACK_SIZE {
+        if (k >= start_index) & (k < offset) & (k + NEEDLE_SIZE <= HAYSTACK_SIZE) {
+            let mut any_mismatch = false;
+            for j in 0..NEEDLE_SIZE {
+                if haystack[k + j] != needle[j] {
+                    any_mismatch = true;
+                }
+            }
+            assert(any_mismatch, "Earlier subarray match exists");
+        }
+    }
+    offset
+}
+
+/// Strict variant of `find_subarray_index` (searches from index 0).
+pub fn find_subarray_index_strict<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
+    needle: [u8; NEEDLE_SIZE],
+    haystack: [u8; HAYSTACK_SIZE],
+) -> u32 {
+    find_subarray_index_after_index_strict(needle, haystack, 0)
+}
+
 /// Find the index of the first occurrence of the needle in the haystack
 /// Returns the index of the first occurrence of the needle in the haystack
 /// Returns HAYSTACK_SIZE if the needle is not found

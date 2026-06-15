@@ -1,7 +1,7 @@
 use crate::{
-    check_zero_padding, find_subarray_index, get_mrz_from_dg1, get_name_from_mrz,
-    pack_be_bytes_into_fields, pack_be_bytes_into_u128s, split_array,
-    unsafe_get_asn1_element_length,
+    check_zero_padding, find_subarray_index, find_subarray_index_after_index_strict,
+    find_subarray_index_strict, get_mrz_from_dg1, get_name_from_mrz, pack_be_bytes_into_fields,
+    pack_be_bytes_into_u128s, split_array, unsafe_get_asn1_element_length,
 };
 
 use super::constants::{
@@ -408,6 +408,39 @@ fn test_find_subarray_index_various_cases() {
     let haystack10 = [0x01, 0x02, 0x03, 0x05, 0x06, 0x07, 0x08, 0x09];
     let index10 = find_subarray_index(needle10, haystack10);
     assert_eq(index10, haystack10.len()); // Should equal haystack size
+}
+
+#[test]
+fn test_find_subarray_index_strict_returns_first_occurrence() {
+    // '<' = 0x3C. The needle "<<" occurs at index 1 (the canonical separator) and
+    // again at index 5 (trailing padding). The strict variant must return the first.
+    let needle = [0x3c, 0x3c];
+    let haystack = [0x41, 0x3c, 0x3c, 0x42, 0x43, 0x3c, 0x3c, 0x3c];
+    let index = find_subarray_index_strict(needle, haystack);
+    assert_eq(index, 1);
+
+    // Single-byte needle: first '<' is at index 1.
+    let needle_single = [0x3c];
+    let index_single = find_subarray_index_strict(needle_single, haystack);
+    assert_eq(index_single, 1);
+}
+
+#[test]
+fn test_find_subarray_index_strict_not_found() {
+    let needle = [0xff, 0xee];
+    let haystack = [0x01, 0x02, 0x03, 0x04, 0x05];
+    let index = find_subarray_index_strict(needle, haystack);
+    assert_eq(index, haystack.len());
+}
+
+#[test]
+fn test_find_subarray_index_after_index_strict_returns_first_after_start() {
+    // Occurrences of "<<" at index 1 and index 5. Starting the search at index 2
+    // must return the next occurrence (5), skipping the one before start_index.
+    let needle = [0x3c, 0x3c];
+    let haystack = [0x41, 0x3c, 0x3c, 0x42, 0x43, 0x3c, 0x3c, 0x3c];
+    let index = find_subarray_index_after_index_strict(needle, haystack, 2);
+    assert_eq(index, 5);
 }
 
 pub fn verify_subarray_in_array<let NEEDLE_SIZE: u32, let HAYSTACK_SIZE: u32>(
