@@ -7,8 +7,8 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]
 
 env:
-  NOIR_VERSION: "1.0.0-beta.20"
-  BB_VERSION: "4.2.0-aztecnr-rc.2"
+  NOIR_VERSION: "1.0.0-beta.22"
+  BB_VERSION: "5.0.0"
   NODE_VERSION: "24.3.0"
 
 jobs:
