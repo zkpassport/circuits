@@ -98,7 +98,8 @@ const files = fs
   .filter((file) => !file.endsWith(".vkey.json") && !file.endsWith(".size.json") && file.endsWith(".json"))
 
 // Promisify exec
-const execPromise = promisify(exec)
+const execAsync = promisify(exec)
+const execPromise = (cmd: string) => execAsync(cmd, { maxBuffer: 100 * 1024 * 1024 })
 
 // Process a single file
 const processFile = async (

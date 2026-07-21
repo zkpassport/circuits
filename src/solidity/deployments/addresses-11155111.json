@@ -1,20 +1,20 @@
 {
   "sub_verifier_versions": {
-    "0.19.0": {
-      "address": "0x177210B6c063a3492D44B4Ea736efA7c7dfa465e",
+    "0.20.0": {
+      "address": "0xEFC0426f0BF0737c3c04340076361b6979127195",
       "admin": "0x2000ab040a899f914D6DfD2457C3dFBB22d4c762",
-      "deployed_at": 1781808252,
+      "deployed_at": 1784013240,
       "proof_verifiers": {
-        "outer_count_10": "0xa0196270c8b020B52B080611C7756E9709f1bB79",
-        "outer_count_11": "0x744a049Ac569eaCb3369fbEAf35Fae978282d1C8",
-        "outer_count_12": "0x98349164153395Fa429e90492F166E3B77449348",
-        "outer_count_13": "0x6B6321EE38911aB45c97a25eEF4D45e10066Ce61",
-        "outer_count_4": "0xE0EAfA2939D0250C35ae56fF334ad19699E055cc",
-        "outer_count_5": "0xeD4DbfA00ff76c1696312Ac97E1676E627d76593",
-        "outer_count_6": "0x86d732C5eD188c48DE232d3b77acc7A786B90D0f",
-        "outer_count_7": "0xe96387936eF825e6130a891Da96E8054Ce11AfAC",
-        "outer_count_8": "0x1B51EE4dB9A408C9627d0950E59d0A2e7ADd271a",
-        "outer_count_9": "0x6758f0E43A2146Bda21dFec68e41c7BFeB28d7De"
+        "outer_count_10": "0x546bB291B3683d030932333A8d31EBa753837A5D",
+        "outer_count_11": "0xC86105FC0761108c8afd0e09D1Cd92d56a24A88c",
+        "outer_count_12": "0x83f096c4F7f6ad0411A13c6826C0673f67CA81f5",
+        "outer_count_13": "0x76D9B24ccb11e56D11F17801515a25800c1f799C",
+        "outer_count_4": "0x00C88Eca06D3C845B3E092f61062f4DbE2aBce58",
+        "outer_count_5": "0x98dc5743f3457f833D29E08a35A99B71bAB46582",
+        "outer_count_6": "0x8Be88b6B2c5d9b8A2Dd43a0Bc73b28821C960765",
+        "outer_count_7": "0x28c0b92cd20408528602B9A2c25D7a6bd7b74B30",
+        "outer_count_8": "0x08201450f64e60B79bFDCf687A2AD156Cb576d57",
+        "outer_count_9": "0x9Ad0E3634CEa5f876129167283470dcF51d55c83"
       },
       "root_verifier": "0x1D000001000EFD9a6371f4d90bB8920D5431c0D8"
     }

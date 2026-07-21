@@ -1,0 +1,8 @@
+{
+  "lib/zkpassport-packages": {
+    "branch": {
+      "name": "main",
+      "rev": "01bab06eb5fd48a82ec7f91d992823026e5675b2"
+    }
+  }
+}

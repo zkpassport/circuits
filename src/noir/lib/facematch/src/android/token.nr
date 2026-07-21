@@ -102,8 +102,16 @@ fn decode_nonce(nonce: BoundedVec<u8, 64>) -> BoundedVec<u8, 32> {
     // The token signed by Play Integrity API contains \u003d rather than = directly
     // in the nonce, so we need to remove the padding as the parsing will fail otherwise
     let padding_index = find_subarray_index(NONCE_PADDING, nonce.storage());
+    // Copy only the bytes before the padding into a zeroed buffer.
+    let storage = nonce.storage();
+    let mut nonce_bytes: [u8; 64] = [0; 64];
+    for i in 0..64 {
+        if i < padding_index {
+            nonce_bytes[i] = storage[i];
+        }
+    }
     // If we found the padding, we remove it, otherwise it will use the entire nonce as is
-    let nonce_without_padding = BoundedVec::from_parts(nonce.storage(), padding_index);
+    let nonce_without_padding = BoundedVec::from_parts(nonce_bytes, padding_index);
     // The nonce is a sha256 hash, so it is 32 bytes
     // Since we removed the padding, we use the decoder without padding
     let decoded_nonce: BoundedVec<u8, 32> = BASE64_URL_DECODER::decode_var(nonce_without_padding);
