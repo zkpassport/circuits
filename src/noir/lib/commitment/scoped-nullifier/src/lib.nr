@@ -5,7 +5,8 @@ pub use babyjubjub::BabyJubJubPoint;
 pub use utils::types::OPRFProof;
 use utils::{
     constants::{
-        NON_SALTED_MOCK_NULLIFIER, NON_SALTED_NULLIFIER, SALTED_MOCK_NULLIFIER, SALTED_NULLIFIER,
+        NON_SALTED_MOCK_NULLIFIER, NON_SALTED_NULLIFIER, NONE_NULLIFIER, SALTED_MOCK_NULLIFIER,
+        SALTED_NULLIFIER,
     },
     get_issuing_country_from_mrz,
     types::{DG1Data, MRZExpiryDate, SaltedValue},
@@ -49,6 +50,12 @@ pub fn nullify(
         "Commitment from 3rd subproof doesn't match in disclosure proof",
     );
 
+    // A salting secret is meaningless when the private nullifier is hidden
+    assert(
+        (salted_private_nullifier.value != 0) | (nullifier_secret == 0),
+        "Nullifier secret must be 0 when the private nullifier is hidden",
+    );
+
     let mut oprf_pk_hash: Field = 0;
 
     if nullifier_secret != 0 {
@@ -77,8 +84,11 @@ pub fn nullify(
         service_subscope,
         nullifier_secret,
     );
-    // Determine the nullifier type based on the secret
-    let mut nullifier_type = if nullifier_secret != 0 {
+    // Determine the nullifier type based on the private nullifier and the secret
+    let mut nullifier_type = if salted_private_nullifier.value == 0 {
+        // The private nullifier is hidden so the scoped nullifier is 0
+        NONE_NULLIFIER
+    } else if nullifier_secret != 0 {
         // Set the nullifier type to the salted nullifier type
         // as the secret was used to salt the nullifier
         SALTED_NULLIFIER
@@ -96,6 +106,7 @@ pub fn nullify(
         // and prevent the use of these proofs in production
         // Note: ZKPassport's registries on mainnet blockchains will not include
         // the ZKR certificates but still this distinction can be useful for testnets/devnets
+        // The mock type takes precedence over NONE_NULLIFIER so mock proofs stay detectable
         if nullifier_secret != 0 {
             // Set the nullifier type to the salted mock nullifier type
             // as the secret was used to salt the nullifier
