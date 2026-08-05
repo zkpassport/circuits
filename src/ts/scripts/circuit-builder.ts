@@ -724,7 +724,7 @@ disclosure_proofs -> The proofs of the disclosure circuits
 use common::compute_merkle_root;
 use outer_lib::{
     CSCtoDSCProof, DisclosureProof, DSCtoIDDataProof, IntegrityCheckProof, poseidon2_hash,
-    prepare_integrity_check_inputs,
+    prepare_disclosure_inputs, prepare_integrity_check_inputs,
 };
 use std::verify_proof_with_type;
 global PROOF_TYPE_HONK_ZK: u32 = 6;
@@ -851,26 +851,27 @@ fn verify_subproofs(
         // Each disclosure subproof must either non-participate (== 0) OR agree with the top-level
         // value, for scoped_nullifier, nullifier_type, and oprf_pk_hash. This allows circuits like
         // facematch (which always emits 0 for these) to coexist with salted-participating circuits.
-        assert((disclosure_proofs[i].public_inputs[6] == 0) | (disclosure_proofs[i].public_inputs[6] == scoped_nullifier), "Disclosure proof scoped nullifier must be either 0 or the expected scoped nullifier");
-        assert((disclosure_proofs[i].public_inputs[5] == 0) | (disclosure_proofs[i].public_inputs[5] == nullifier_type), "Disclosure proof nullifier type must be either 0 or the expected nullifier type");
-        assert((disclosure_proofs[i].public_inputs[7] == 0) | (disclosure_proofs[i].public_inputs[7] == oprf_pk_hash), "Disclosure proof oprf_pk_hash must be either 0 or the expected oprf_pk_hash");
-        // Scope and subscope: each must be 0 (a scope-less subproof, e.g. a cached facematch
-        // enrollment proof reused across services) or match the top-level value.
-        assert((disclosure_proofs[i].public_inputs[2] == 0) | (disclosure_proofs[i].public_inputs[2] == service_scope), "Disclosure proof service scope must be either 0 or the expected service scope");
-        assert((disclosure_proofs[i].public_inputs[3] == 0) | (disclosure_proofs[i].public_inputs[3] == service_subscope), "Disclosure proof service subscope must be either 0 or the expected service subscope");
-        assert((disclosure_proofs[i].public_inputs[6] == 0) | ((disclosure_proofs[i].public_inputs[2] == service_scope) & (disclosure_proofs[i].public_inputs[3] == service_subscope)), "Disclosure proof with a scoped nullifier must use the expected scope and subscope");
-        assert(((disclosure_proofs[i].public_inputs[2] == 0) & (disclosure_proofs[i].public_inputs[3] == 0) & (disclosure_proofs[i].public_inputs[6] == 0)) | (disclosure_proofs[i].public_inputs[1] == current_date as Field), "Disclosure proof current date must match the expected current date unless the proof is scope-less");
-        // Public inputs pass through verbatim, so the param commitment must be pinned to the outer's
-        assert_eq(disclosure_proofs[i].public_inputs[4], param_commitments[i], "Disclosure proof param commitment must match the expected param commitment");
+        assert((disclosure_proofs[i].public_inputs[1] == 0) | (disclosure_proofs[i].public_inputs[1] == scoped_nullifier), "Disclosure proof scoped nullifier must be either 0 or the expected scoped nullifier");
+        assert((disclosure_proofs[i].public_inputs[2] == 0) | (disclosure_proofs[i].public_inputs[2] == nullifier_type), "Disclosure proof nullifier type must be either 0 or the expected nullifier type");
+        assert((disclosure_proofs[i].public_inputs[3] == 0) | (disclosure_proofs[i].public_inputs[3] == oprf_pk_hash), "Disclosure proof oprf_pk_hash must be either 0 or the expected oprf_pk_hash");
         // But at least one disclosure proof must have the expected scoped nullifier
-        if (!found_valid_scoped_nullifier & (disclosure_proofs[i].public_inputs[6] == scoped_nullifier)) {
+        if (!found_valid_scoped_nullifier & (disclosure_proofs[i].public_inputs[1] == scoped_nullifier)) {
             found_valid_scoped_nullifier = true;
         }
 
         verify_proof_with_type(
             disclosure_proofs[i].vkey,
             disclosure_proofs[i].proof,
-            disclosure_proofs[i].public_inputs,
+            prepare_disclosure_inputs(
+                disclosure_proofs[i].public_inputs[0], // comm_in
+                current_date,
+                param_commitments[i],
+                service_scope,
+                service_subscope,
+                disclosure_proofs[i].public_inputs[2], // nullifier_type (per-subproof: 0 or matches top-level)
+                disclosure_proofs[i].public_inputs[1], // scoped nullifier (per-subproof: 0 or matches top-level)
+                disclosure_proofs[i].public_inputs[3], // oprf_pk_hash (per-subproof: 0 or matches top-level)
+            ),
             disclosure_proofs[i].key_hash,
             PROOF_TYPE_HONK_ZK,
         );

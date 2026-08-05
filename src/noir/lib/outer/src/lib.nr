@@ -13,6 +13,28 @@ pub fn prepare_integrity_check_inputs(
     result
 }
 
+pub fn prepare_disclosure_inputs(
+    comm_in: Field,
+    current_date: u64,
+    param_commitment: Field,
+    service_scope: Field,
+    service_subscope: Field,
+    nullifier_type: Field,
+    scoped_nullifier: Field,
+    oprf_pk_hash: Field,
+) -> [Field; 8] {
+    let mut result: [Field; 8] = [0; 8];
+    result[0] = comm_in;
+    result[1] = current_date as Field;
+    result[2] = service_scope;
+    result[3] = service_subscope;
+    result[4] = param_commitment;
+    result[5] = nullifier_type;
+    result[6] = scoped_nullifier;
+    result[7] = oprf_pk_hash;
+    result
+}
+
 pub fn poseidon2_hash<let INPUT_LEN: u32>(input: [Field; INPUT_LEN]) -> Field {
     Poseidon2::hash(input, INPUT_LEN)
 }
@@ -56,10 +78,7 @@ pub struct IntegrityCheckProof {
 pub struct DisclosureProof {
     pub vkey: [Field; VKEY_SIZE],
     pub proof: [Field; PROOF_SIZE],
-    // The disclosure circuits' public input order — a contract the outer mains assert on by index:
-    // [0] comm_in, [1] current_date, [2] service_scope, [3] service_subscope,
-    // [4] param_commitment, [5] nullifier_type, [6] scoped_nullifier, [7] oprf_pk_hash
-    pub public_inputs: [Field; 8],
+    pub public_inputs: [Field; 4],
     pub key_hash: Field,
     // Hash path for circuit D key hash in the sub-circuit merkle tree
     pub tree_hash_path: [Field; 12],
