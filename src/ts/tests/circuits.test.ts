@@ -487,7 +487,7 @@ const DISCLOSE_ALL_AUS_JOHNNY: DiscloseAllExpected = {
 }
 const DISCLOSE_ALL_AUS_JOHNNY_MATTHEW: DiscloseAllExpected = {
   issuingCountry: "AUS", nationality: "AUS",
-  name: "JOHNNY MATTHEW SILVERHAND", firstName: "JOHNNY MATTHEW", lastName: "SILVERHAND",
+  name: "JOHNNY MATTHEW SILVERHAND", firstName: "JOHNNY", lastName: "SILVERHAND",
 }
 const DISCLOSE_ALL_DE_JOHNNY: DiscloseAllExpected = {
   issuingCountry: "D<<", nationality: "D<<",

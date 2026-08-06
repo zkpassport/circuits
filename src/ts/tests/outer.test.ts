@@ -30,6 +30,11 @@ import {
   getNowTimestamp,
   getNullifierFromDisclosureProof,
   getNullifierFromOuterProof,
+  getNullifierTypeFromDisclosureProof,
+  getNullifierTypeFromOuterProof,
+  NullifierType,
+  getScopeFromOuterProof,
+  getSubscopeFromOuterProof,
   getSanctionsExclusionCheckCircuitInputs,
   getOuterCircuitInputs,
   getParamCommitmentsFromOuterProof,
@@ -479,6 +484,183 @@ describe("outer proof", () => {
       await outerProofCircuit.destroy()
     },
     60000 * 3,
+  )
+
+  test(
+    "5 subproofs - NONE nullifier type",
+    async () => {
+      const serviceScope = getServiceScopeHash("zkpassport.id")
+      const serviceSubscope = getServiceSubscopeHash("bigproof")
+
+      // Disclosure proof with a hidden private nullifier: it emits a zero
+      // scoped nullifier and the NONE nullifier type
+      const ageCircuit = Circuit.from("compare_age")
+      const ageInputs = await getAgeCircuitInputs(
+        helper.passport as any,
+        { age: { gte: 18 } },
+        INTEGRITY_TO_DISCLOSURE_SALTS,
+        0n,
+        serviceScope,
+        serviceSubscope,
+        nowTimestamp,
+        undefined,
+        true,
+      )
+      if (!ageInputs) throw new Error("Unable to generate compare-age greater than circuit inputs")
+      const ageProof = await ageCircuit.prove(ageInputs, {
+        recursive: true,
+        useCli: true,
+        circuitName: `compare_age`,
+      })
+      expect(ageProof).toBeDefined()
+      expect(getNullifierFromDisclosureProof(ageProof)).toEqual(0n)
+      expect(getNullifierTypeFromDisclosureProof(ageProof)).toEqual(NullifierType.NONE)
+      const ageParamCommitment = getParameterCommitmentFromDisclosureProof(ageProof)
+      const ageVkey = (await ageCircuit.getVerificationKey({ evm: false })).vkeyFields
+      const ageVkeyHash = `0x${(await poseidon2HashAsync(ageVkey.map((x) => BigInt(x)))).toString(
+        16,
+      )}`
+      await ageCircuit.destroy()
+
+      // Facematch proof with hidden sensitive inputs: it also emits a zero
+      // scoped nullifier and the NONE nullifier type
+      const facematchQuery: Query = { facematch: { mode: "regular" } }
+      const facematchInputs = await getFacematchCircuitInputs(
+        helper.passport as any,
+        facematchQuery,
+        INTEGRITY_TO_DISCLOSURE_SALTS,
+        0n,
+        serviceScope,
+        serviceSubscope,
+        nowTimestamp,
+        true,
+      )
+      const facematchCircuit = Circuit.from("facematch_ios")
+      const facematchProof = await facematchCircuit.prove(
+        { ...facematchInputs, ...FIXTURES_FACEMATCH.ios_regular_mode_dev },
+        {
+          useCli: true,
+          recursive: true,
+          circuitName: "facematch_ios",
+        },
+      )
+      expect(facematchProof).toBeDefined()
+      expect(getNullifierFromDisclosureProof(facematchProof)).toEqual(0n)
+      expect(getNullifierTypeFromDisclosureProof(facematchProof)).toEqual(NullifierType.NONE)
+      const facematchVkey = (await facematchCircuit.getVerificationKey({ evm: false })).vkeyFields
+      const facematchVkeyHash = `0x${(
+        await poseidon2HashAsync(facematchVkey.map((x) => BigInt(x)))
+      ).toString(16)}`
+      await facematchCircuit.destroy()
+
+      // Outer proof: every disclosure proof has a zero nullifier and the
+      // NONE nullifier type, which the top-level values must reflect
+      const outerProofCircuit = Circuit.from("outer_count_5")
+      const { path: cscToDscTreeHashPath, index: cscToDscTreeIndex } = await getCircuitMerkleProof(
+        subproofs.get(0)?.vkeyHash as string,
+        circuitManifest,
+      )
+      const { path: idDataToIntegrityTreeHashPath, index: idDataToIntegrityTreeIndex } =
+        await getCircuitMerkleProof(subproofs.get(1)?.vkeyHash as string, circuitManifest)
+      const { path: integrityCheckTreeHashPath, index: integrityCheckTreeIndex } =
+        await getCircuitMerkleProof(subproofs.get(2)?.vkeyHash as string, circuitManifest)
+      const { path: ageTreeHashPath, index: ageTreeIndex } = await getCircuitMerkleProof(
+        ageVkeyHash as string,
+        circuitManifest,
+      )
+      const { path: facematchTreeHashPath, index: facematchTreeIndex } =
+        await getCircuitMerkleProof(facematchVkeyHash as string, circuitManifest)
+      const inputs = await getOuterCircuitInputs(
+        {
+          proof: subproofs.get(0)?.proof as string[],
+          publicInputs: subproofs.get(0)?.publicInputs as string[],
+          vkey: subproofs.get(0)?.vkey as string[],
+          keyHash: subproofs.get(0)?.vkeyHash as string,
+          treeHashPath: cscToDscTreeHashPath,
+          treeIndex: cscToDscTreeIndex.toString(),
+        },
+        {
+          proof: subproofs.get(1)?.proof as string[],
+          publicInputs: subproofs.get(1)?.publicInputs as string[],
+          vkey: subproofs.get(1)?.vkey as string[],
+          keyHash: subproofs.get(1)?.vkeyHash as string,
+          treeHashPath: idDataToIntegrityTreeHashPath,
+          treeIndex: idDataToIntegrityTreeIndex.toString(),
+        },
+        {
+          proof: subproofs.get(2)?.proof as string[],
+          publicInputs: subproofs.get(2)?.publicInputs as string[],
+          vkey: subproofs.get(2)?.vkey as string[],
+          keyHash: subproofs.get(2)?.vkeyHash as string,
+          treeHashPath: integrityCheckTreeHashPath,
+          treeIndex: integrityCheckTreeIndex.toString(),
+        },
+        [
+          {
+            proof: ageProof.proof as string[],
+            publicInputs: ageProof.publicInputs as string[],
+            vkey: ageVkey,
+            keyHash: ageVkeyHash,
+            treeHashPath: ageTreeHashPath,
+            treeIndex: ageTreeIndex.toString(),
+          },
+          {
+            proof: facematchProof.proof as string[],
+            publicInputs: facematchProof.publicInputs as string[],
+            vkey: facematchVkey,
+            keyHash: facematchVkeyHash,
+            treeHashPath: facematchTreeHashPath,
+            treeIndex: facematchTreeIndex.toString(),
+          },
+        ],
+        circuitManifest.root,
+      )
+      expect(BigInt(inputs.scoped_nullifier)).toEqual(0n)
+      expect(BigInt(inputs.nullifier_type)).toEqual(BigInt(NullifierType.NONE))
+      const proof = await outerProofCircuit.prove(inputs, {
+        useCli: true,
+        circuitName: "outer_count_5",
+        recursive: true,
+      })
+      expect(proof).toBeDefined()
+      expect(getScopeFromOuterProof(proof)).toEqual(serviceScope)
+      expect(getSubscopeFromOuterProof(proof)).toEqual(serviceSubscope)
+      expect(getCurrentDateFromOuterProof(proof).getTime()).toEqual(nowTimestamp * 1000)
+      expect(getNullifierFromOuterProof(proof)).toEqual(0n)
+      expect(getNullifierTypeFromOuterProof(proof)).toEqual(NullifierType.NONE)
+      const paramCommitmentsFromProof = getParamCommitmentsFromOuterProof(proof)
+      expect(ageParamCommitment).toEqual(paramCommitmentsFromProof[0])
+      await outerProofCircuit.destroy()
+
+      // A zero scoped nullifier must not pass with a non-NONE nullifier type
+      const tamperedTypeCircuit = Circuit.from("outer_count_5")
+      await expect(
+        tamperedTypeCircuit.prove(
+          { ...inputs, nullifier_type: "0x0" },
+          {
+            useCli: true,
+            circuitName: "outer_count_5",
+            recursive: true,
+          },
+        ),
+      ).rejects.toThrow("Scoped nullifier must be non-zero unless the nullifier type is NONE")
+      await tamperedTypeCircuit.destroy()
+
+      // The NONE nullifier type must not pass with a non-zero scoped nullifier
+      const tamperedNullifierCircuit = Circuit.from("outer_count_5")
+      await expect(
+        tamperedNullifierCircuit.prove(
+          { ...inputs, scoped_nullifier: "0x1234" },
+          {
+            useCli: true,
+            circuitName: "outer_count_5",
+            recursive: true,
+          },
+        ),
+      ).rejects.toThrow("Scoped nullifier must be zero when the nullifier type is NONE")
+      await tamperedNullifierCircuit.destroy()
+    },
+    60000 * 5,
   )
 })
 

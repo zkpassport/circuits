@@ -3,8 +3,8 @@ use babyjubjub::BabyJubJubPoint;
 use common::hash_salt_dg1_dg2_hash_private_nullifier;
 use utils::{
     constants::{
-        ID_CARD_SAMPLE_DG1, NON_SALTED_MOCK_NULLIFIER, NON_SALTED_NULLIFIER, SALTED_MOCK_NULLIFIER,
-        SALTED_NULLIFIER, SAMPLE_DG1, SHA256_IDENTIFIER,
+        ID_CARD_SAMPLE_DG1, NON_SALTED_MOCK_NULLIFIER, NON_SALTED_NULLIFIER, NONE_NULLIFIER,
+        SALTED_MOCK_NULLIFIER, SALTED_NULLIFIER, SAMPLE_DG1, SHA256_IDENTIFIER,
     },
     get_expiry_date_from_mrz,
     types::{OPRFProof, SaltedValue},
@@ -179,4 +179,99 @@ fn test_nullify_salted() {
     // Salted mock nullifier should equal salted nullifier since
     // private_nullifier, service_scope, service_subscope, and nullifier_secret are the same
     assert_eq(salted_mock_scoped_nullifier, salted_scoped_nullifier);
+}
+
+#[test]
+fn test_nullify_hidden_nullifier() {
+    let private_nullifier = 1;
+    let service_scope = 2;
+    let service_subscope = 3;
+    let salt = 5;
+    let dg2_hash_normalized = 6;
+    let dg2_hash_type = SHA256_IDENTIFIER;
+
+    // The private nullifier is only known by its salted hash inside the circuit
+    let hidden_private_nullifier: SaltedValue<Field> =
+        SaltedValue::from_hash(SaltedValue::from_value(salt, private_nullifier).get_hash());
+
+    let comm_in = hash_salt_dg1_dg2_hash_private_nullifier(
+        SaltedValue::from_value(salt, SAMPLE_DG1),
+        SaltedValue::from_value(salt, get_expiry_date_from_mrz(SAMPLE_DG1)),
+        SaltedValue::from_value(salt, dg2_hash_normalized),
+        SaltedValue::from_value(salt, dg2_hash_type),
+        hidden_private_nullifier,
+    );
+    let mock_comm_in = hash_salt_dg1_dg2_hash_private_nullifier(
+        SaltedValue::from_value(salt, ID_CARD_SAMPLE_DG1),
+        SaltedValue::from_value(salt, get_expiry_date_from_mrz(ID_CARD_SAMPLE_DG1)),
+        SaltedValue::from_value(salt, dg2_hash_normalized),
+        SaltedValue::from_value(salt, dg2_hash_type),
+        hidden_private_nullifier,
+    );
+
+    // Hidden private nullifier: no scoped nullifier can be derived, type is NONE
+    let (scoped_nullifier, nullifier_type, oprf_pk_hash) = nullify(
+        comm_in,
+        SaltedValue::from_value(salt, SAMPLE_DG1),
+        SaltedValue::from_value(salt, get_expiry_date_from_mrz(SAMPLE_DG1)),
+        SaltedValue::from_value(salt, dg2_hash_normalized),
+        SaltedValue::from_value(salt, dg2_hash_type),
+        hidden_private_nullifier,
+        service_scope,
+        service_subscope,
+        0,
+        zero_oprf_proof(),
+    );
+    assert_eq(scoped_nullifier, 0);
+    assert_eq(nullifier_type, NONE_NULLIFIER);
+    assert_eq(oprf_pk_hash, 0);
+
+    // A ZKR ID keeps its mock type even with a hidden private nullifier
+    let (mock_scoped_nullifier, nullifier_type, oprf_pk_hash) = nullify(
+        mock_comm_in,
+        SaltedValue::from_value(salt, ID_CARD_SAMPLE_DG1),
+        SaltedValue::from_value(salt, get_expiry_date_from_mrz(ID_CARD_SAMPLE_DG1)),
+        SaltedValue::from_value(salt, dg2_hash_normalized),
+        SaltedValue::from_value(salt, dg2_hash_type),
+        hidden_private_nullifier,
+        service_scope,
+        service_subscope,
+        0,
+        zero_oprf_proof(),
+    );
+    assert_eq(mock_scoped_nullifier, 0);
+    assert_eq(nullifier_type, NON_SALTED_MOCK_NULLIFIER);
+    assert_eq(oprf_pk_hash, 0);
+}
+
+#[test(should_fail_with = "Nullifier secret must be 0 when the private nullifier is hidden")]
+fn test_nullify_hidden_nullifier_rejects_secret() {
+    let private_nullifier = 42;
+    let salt = 5;
+    let dg2_hash_normalized = 6;
+    let dg2_hash_type = SHA256_IDENTIFIER;
+
+    let hidden_private_nullifier: SaltedValue<Field> =
+        SaltedValue::from_hash(SaltedValue::from_value(salt, private_nullifier).get_hash());
+
+    let comm_in = hash_salt_dg1_dg2_hash_private_nullifier(
+        SaltedValue::from_value(salt, SAMPLE_DG1),
+        SaltedValue::from_value(salt, get_expiry_date_from_mrz(SAMPLE_DG1)),
+        SaltedValue::from_value(salt, dg2_hash_normalized),
+        SaltedValue::from_value(salt, dg2_hash_type),
+        hidden_private_nullifier,
+    );
+
+    let _ = nullify(
+        comm_in,
+        SaltedValue::from_value(salt, SAMPLE_DG1),
+        SaltedValue::from_value(salt, get_expiry_date_from_mrz(SAMPLE_DG1)),
+        SaltedValue::from_value(salt, dg2_hash_normalized),
+        SaltedValue::from_value(salt, dg2_hash_type),
+        hidden_private_nullifier,
+        2,
+        3,
+        SAMPLE_OPRF_OUTPUT,
+        sample_oprf_proof(),
+    );
 }

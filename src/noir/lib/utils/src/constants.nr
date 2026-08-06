@@ -145,6 +145,9 @@ pub global NON_SALTED_MOCK_NULLIFIER: Field = 2;
 // Nullifier derived from the private nullifier and the scopes with a secret
 // Used for mock proofs (i.e. ZKR)
 pub global SALTED_MOCK_NULLIFIER: Field = 3;
+// No nullifier: the private nullifier stays hidden so the scoped nullifier is always 0
+// Mock (ZKR) IDs keep their mock type even with a hidden private nullifier
+pub global NONE_NULLIFIER: Field = 4;
 
 // P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<<<
 pub global SAMPLE_DG1: [u8; DG1_LENGTH] = [
