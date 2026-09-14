@@ -3,7 +3,7 @@ use sha256::{sha224_var, sha256_var};
 use sha512::{sha384, sha512};
 use utils::{
     check_zero_padding,
-    constants::{ID_CARD_DG1_LENGTH, PASSPORT_DG1_LENGTH},
+    constants::{DG1_LENGTH, ID_CARD_DG1_LENGTH, PASSPORT_DG1_LENGTH},
     find_subarray_index,
     get_array_slice,
     is_id_card,
@@ -56,8 +56,22 @@ pub fn get_dg2_hash_from_econtent<let HASH_SIZE: u32>(
     dg2_hash
 }
 
-pub fn get_dg1_size(dg1: DG1Data) -> u32 {
-    if is_id_card(dg1) {
+/// Returns the authenticated DG1 length AND forces the unauthenticated tail
+/// (bytes past that length) to zero, so trailing padding can't be used to mint
+/// multiple nullifiers from a single passport.
+/// Only indices [PASSPORT_DG1_LENGTH, DG1_LENGTH) can ever be tail padding (a passport's
+/// signed DG1 is shorter than the array); an ID card fills the whole array and
+/// has every byte authenticated.
+pub fn get_checked_dg1_size(dg1: DG1Data) -> u32 {
+    let is_id = is_id_card(dg1);
+
+    if !is_id {
+        for i in PASSPORT_DG1_LENGTH..DG1_LENGTH {
+            assert_eq(dg1[i], 0, "DG1 padding must be zero");
+        }
+    }
+
+    if is_id {
         ID_CARD_DG1_LENGTH
     } else {
         PASSPORT_DG1_LENGTH
@@ -72,7 +86,7 @@ pub fn check_dg1_sha1(dg1: DG1Data, e_content: EContentData, e_content_size: u32
     check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
-    let dg1_size: u32 = get_dg1_size(dg1);
+    let dg1_size: u32 = get_checked_dg1_size(dg1);
 
     let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size);
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
@@ -117,7 +131,7 @@ pub fn check_dg1_sha224(dg1: DG1Data, e_content: EContentData, e_content_size: u
     check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
-    let dg1_size = get_dg1_size(dg1);
+    let dg1_size = get_checked_dg1_size(dg1);
 
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
@@ -159,7 +173,7 @@ pub fn check_dg1_sha256(dg1: DG1Data, e_content: EContentData, e_content_size: u
     check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
-    let dg1_size = get_dg1_size(dg1);
+    let dg1_size = get_checked_dg1_size(dg1);
 
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
     // within the circuit as this is the only data group we use to build the proof (age, country, etc.)
@@ -201,7 +215,7 @@ pub fn check_dg1_sha384(dg1: DG1Data, e_content: EContentData, e_content_size: u
     check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
-    let dg1_size: u32 = get_dg1_size(dg1);
+    let dg1_size: u32 = get_checked_dg1_size(dg1);
 
     let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size);
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
@@ -246,7 +260,7 @@ pub fn check_dg1_sha512(dg1: DG1Data, e_content: EContentData, e_content_size: u
     check_zero_padding(e_content, e_content_size);
 
     // For passports we ignore the last padding characters
-    let dg1_size: u32 = get_dg1_size(dg1);
+    let dg1_size: u32 = get_checked_dg1_size(dg1);
 
     let dg1_bounded_vec = BoundedVec::from_parts(dg1, dg1_size);
     // We only need to recompute the hash of the MRZ (or more accurately that of Data Group 1)
