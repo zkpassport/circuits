@@ -152,6 +152,25 @@ pub fn check_country_list_sorted<let N: u32>(country_list: [u32; N]) -> bool {
     result
 }
 
+/// Validate that a country list is well-formed before it is used for exclusion.
+///
+/// Enforces two invariants:
+/// - every entry is a 3-byte code (< 2^24). A country code is a weighted ASCII
+///   sum of 3 letters, so it never exceeds 2^24. Important since the `calculate_param_commitment_sha2`
+///   only uses 3 bytes
+/// - the list is sorted in ascending order (which also forbids duplicates and
+///   pins the zero padding), as required by the sorted-membership logic
+pub fn validate_country_list<let N: u32>(country_list: [u32; N]) {
+    for i in 0..N {
+        // Constrain each entry to 24 bits (a 3-byte country code)
+        (country_list[i] as Field).assert_max_bit_size::<24>();
+    }
+    assert(
+        check_country_list_sorted(country_list),
+        "Country list is not sorted in ascending order",
+    );
+}
+
 fn check_exclusion<let N: u32>(country_sum: u32, country_list: [u32; N]) {
     // Safety: since the list is assumed to be sorted in ascending order, we can get the index to check against
     // from an unconstrained function
@@ -173,16 +192,18 @@ fn check_exclusion<let N: u32>(country_sum: u32, country_list: [u32; N]) {
 /// which are the Alpha-3 codes of the countries with each letter ASCII code put together using a weighted sum.
 /// e.g. for "FRA", the sum is 70 * 2^16 (0x10000) + 82 * 2^8 (0x100) + 65 = 4587520 + 20992 + 65 = 4608577
 pub fn check_nationality_exclusion<let N: u32>(dg1: DG1Data, country_list: [u32; N]) {
-    // Check that the list is sorted in ascending order
-    assert(
-        check_country_list_sorted(country_list),
-        "Country list is not sorted in ascending order",
-    );
+    // Validate the list is well-formed (3-byte entries + sorted) before use
+    validate_country_list(country_list);
 
     let nationality_bytes = get_nationality_from_mrz(dg1);
     let nationality_sum: u32 = nationality_bytes[0] as u32 * 0x10000
         + nationality_bytes[1] as u32 * 0x100
         + nationality_bytes[2] as u32;
+
+    // A conformant document never has an empty nationality (sum 0). Reject it so a
+    // \0\0\0 nationality can't silently pass the "not in list" check on a malformed
+    // document and evade the denylist.
+    assert(nationality_sum != 0, "Nationality is empty");
 
     check_exclusion(nationality_sum, country_list);
 }
@@ -193,16 +214,18 @@ pub fn check_nationality_exclusion<let N: u32>(dg1: DG1Data, country_list: [u32;
 /// or from a previous in-circuit check that the list is sorted
 /// If the list is not sorted, the proof will fail to generate
 pub fn check_issuing_country_exclusion<let N: u32>(dg1: DG1Data, country_list: [u32; N]) {
-    // Check that the list is sorted in ascending order
-    assert(
-        check_country_list_sorted(country_list),
-        "Country list is not sorted in ascending order",
-    );
+    // Validate the list is well-formed (3-byte entries + sorted) before use
+    validate_country_list(country_list);
 
     let issuing_country_bytes = get_issuing_country_from_mrz(dg1);
     let issuing_country_sum: u32 = issuing_country_bytes[0] as u32 * 0x10000
         + issuing_country_bytes[1] as u32 * 0x100
         + issuing_country_bytes[2] as u32;
+
+    // A conformant document never has an empty issuing country (sum 0). Reject it so
+    // a \0\0\0 issuing country can't silently pass the "not in list" check on a
+    // malformed document and evade the denylist.
+    assert(issuing_country_sum != 0, "Issuing country is empty");
 
     check_exclusion(issuing_country_sum, country_list);
 }
