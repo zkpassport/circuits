@@ -2,7 +2,7 @@ use super::{
     check_dg1_sha1, check_dg1_sha224, check_dg1_sha256, check_dg1_sha384, check_dg1_sha512,
     check_signed_attributes_sha1, check_signed_attributes_sha224, check_signed_attributes_sha256,
     check_signed_attributes_sha384, check_signed_attributes_sha512, DG2_HASH_DER_IDENTIFIER,
-    get_dg1_size, get_dg2_hash_from_econtent,
+    get_checked_dg1_size, get_dg2_hash_from_econtent,
 };
 use sha1::sha1::sha1_var;
 use sha256::{sha224_var, sha256_var};
@@ -13,15 +13,54 @@ use utils::constants::{
 };
 
 #[test]
-fn test_get_dg1_size_passport() {
-    let dg1_size = get_dg1_size(SAMPLE_DG1);
+fn test_get_checked_dg1_size_passport() {
+    let dg1_size = get_checked_dg1_size(SAMPLE_DG1);
     assert_eq(dg1_size, PASSPORT_DG1_LENGTH);
 }
 
 #[test]
-fn test_get_dg1_size_id_card() {
-    let dg1_size = get_dg1_size(ID_CARD_SAMPLE_DG1);
+fn test_get_checked_dg1_size_id_card() {
+    let dg1_size = get_checked_dg1_size(ID_CARD_SAMPLE_DG1);
     assert_eq(dg1_size, ID_CARD_DG1_LENGTH);
+}
+
+// Regression: a passport's signed DG1 is only 93 bytes, so bytes 93/94 are an
+// unauthenticated tail. Left free they still feed private_nullifier, letting one
+// passport mint up to 511 distinct scoped nullifiers
+// Any nonzero tail byte in passport mode must now be rejected
+#[test(should_fail_with = "DG1 padding must be zero")]
+fn test_get_checked_dg1_size_rejects_nonzero_tail_93() {
+    let mut dg1: [u8; 95] = SAMPLE_DG1;
+    // byte 94 stays 0 -> is_id_card is false -> passport mode
+    dg1[93] = 5;
+    let _ = get_checked_dg1_size(dg1);
+}
+
+#[test(should_fail_with = "DG1 padding must be zero")]
+fn test_get_checked_dg1_size_rejects_nonzero_tail_94() {
+    let mut dg1: [u8; 95] = SAMPLE_DG1;
+    // byte 93 stays 0 -> is_id_card is false -> passport mode
+    dg1[94] = 5;
+    let _ = get_checked_dg1_size(dg1);
+}
+
+// Regression at the public entry point: the forgery condition exactly: the
+// signed 93-byte prefix (and therefore its digest in eContent) is unchanged, only
+// the unauthenticated tail differs
+#[test(should_fail_with = "DG1 padding must be zero")]
+fn test_check_dg1_sha256_rejects_forged_tail() {
+    let mut dg1 = SAMPLE_DG1;
+    let mut e_content = [0; ECONTENT_LENGTH];
+    // Digest covers only the authenticated 93-byte prefix, so the tail byte set
+    // below does not change it. A genuine passport digest with a forged tail.
+    let dg1_hash = sha256_var(dg1, PASSPORT_DG1_LENGTH);
+    for i in 0..dg1_hash.len() {
+        e_content[i + 100] = dg1_hash[i];
+    }
+    // Forge the unauthenticated tail (byte 93 stays 0 -> still passport mode)
+    dg1[94] = 0xAB;
+    let e_content_size = 200;
+    check_dg1_sha256(dg1, e_content, e_content_size);
 }
 
 #[test]

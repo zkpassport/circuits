@@ -1,7 +1,27 @@
 use super::{
-    check_country_list_sorted, check_exclusion, constrain_last_index, get_last_index,
-    unsafe_get_closest_index,
+    check_country_list_sorted, check_exclusion, check_nationality_exclusion, constrain_last_index,
+    get_last_index, unsafe_get_closest_index, validate_country_list,
 };
+use utils::constants::{DG1_TO_MRZ_OFFSET, PASSPORT_MRZ_NATIONALITY_INDEX, SAMPLE_DG1};
+
+// SAMPLE_DG1's nationality (AUS) is not in this list, so exclusion passes.
+#[test]
+fn test_check_nationality_exclusion_pass() {
+    let country_list: [u32; 6] = [4608577, 4608578, 4608579, 0, 0, 0];
+    check_nationality_exclusion(SAMPLE_DG1, country_list);
+}
+
+// Regression: a \0\0\0 nationality (sum 0) must be rejected rather than silently
+// passing the "not in list" check and evading the denylist.
+#[test(should_fail_with = "Nationality is empty")]
+fn test_check_nationality_exclusion_fail_empty_nationality() {
+    let mut dg1 = SAMPLE_DG1;
+    for i in 0..3 {
+        dg1[DG1_TO_MRZ_OFFSET + PASSPORT_MRZ_NATIONALITY_INDEX + i] = 0;
+    }
+    let country_list: [u32; 6] = [4608577, 4608578, 4608579, 0, 0, 0];
+    check_nationality_exclusion(dg1, country_list);
+}
 
 #[test]
 fn test_get_closest_index_before_first_item() {
@@ -134,6 +154,31 @@ fn test_country_list_sorting_fail_with_0_in_middle() {
 fn test_country_list_sorting_fail_with_0_in_middle_full_list() {
     let country_list: [u32; 6] = [4608577, 4608578, 4608579, 0, 4608580, 4608581];
     check_country_list_sorted(country_list);
+}
+
+#[test]
+fn test_validate_country_list_accepts_valid() {
+    let country_list: [u32; 6] = [4608577, 4608578, 4608579, 0, 0, 0];
+    validate_country_list(country_list);
+}
+
+// Regression: the top-byte smuggling attack against the 3-byte _sha2 parameter
+// commitment. Adding 2^24 to the maximal entry keeps the list sorted (so
+// check_country_list_sorted alone would accept it) and leaves the low 3 bytes -
+// and therefore the _sha2 commitment - unchanged, while making the u32 no longer
+// equal the holder's own country in check_exclusion.
+// validate_country_list must reject the out-of-domain entry
+#[test]
+fn test_smuggled_top_byte_list_is_still_sorted() {
+    // 4608579 + 2^24 = 21385795; still strictly greater than its predecessors
+    let country_list: [u32; 6] = [4608577, 4608578, 21385795, 0, 0, 0];
+    assert_eq(check_country_list_sorted(country_list), true);
+}
+
+#[test(should_fail)]
+fn test_validate_country_list_rejects_smuggled_top_byte() {
+    let country_list: [u32; 6] = [4608577, 4608578, 21385795, 0, 0, 0];
+    validate_country_list(country_list);
 }
 
 #[test(should_fail_with = "Country list cannot start with 0")]

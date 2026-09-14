@@ -2,7 +2,13 @@ use super::{
     check_country_list_padding, check_issuing_country_inclusion, check_nationality_inclusion,
     unsafe_get_index,
 };
-use utils::{constants::{EMPTY_ALPHA3_COUNTRY_CODE, SAMPLE_DG1}, types::Alpha3CountryCode};
+use utils::{
+    constants::{
+        DG1_TO_MRZ_OFFSET, EMPTY_ALPHA3_COUNTRY_CODE, PASSPORT_MRZ_ISSUING_COUNTRY_INDEX,
+        PASSPORT_MRZ_NATIONALITY_INDEX, SAMPLE_DG1,
+    },
+    types::Alpha3CountryCode,
+};
 
 fn pad_country_list<let N: u32>(country_list: [Alpha3CountryCode; N]) -> [Alpha3CountryCode; 200] {
     let mut padded_country_list: [Alpha3CountryCode; 200] = [EMPTY_ALPHA3_COUNTRY_CODE; 200];
@@ -39,6 +45,18 @@ fn test_check_nationality_inclusion_fail() {
     check_nationality_inclusion(SAMPLE_DG1, country_list);
 }
 
+// Regression: a \0\0\0 nationality must not "match" the list's empty padding and
+// thereby prove inclusion in any list.
+#[test(should_fail_with = "Nationality is empty")]
+fn test_check_nationality_inclusion_fail_empty_nationality() {
+    let mut dg1 = SAMPLE_DG1;
+    for i in 0..3 {
+        dg1[DG1_TO_MRZ_OFFSET + PASSPORT_MRZ_NATIONALITY_INDEX + i] = 0;
+    }
+    let country_list = pad_country_list(["AUS", "NZL", "USA"]);
+    check_nationality_inclusion(dg1, country_list);
+}
+
 #[test]
 fn test_check_issuing_country_inclusion() {
     let country_list = pad_country_list(["AUS", "NZL", "USA"]);
@@ -49,6 +67,17 @@ fn test_check_issuing_country_inclusion() {
 fn test_check_issuing_country_inclusion_fail() {
     let country_list = pad_country_list(["FRA", "NZL", "USA"]);
     check_issuing_country_inclusion(SAMPLE_DG1, country_list);
+}
+
+// Regression: a \0\0\0 issuing country must not "match" the list's empty padding.
+#[test(should_fail_with = "Issuing country is empty")]
+fn test_check_issuing_country_inclusion_fail_empty_issuing_country() {
+    let mut dg1 = SAMPLE_DG1;
+    for i in 0..3 {
+        dg1[DG1_TO_MRZ_OFFSET + PASSPORT_MRZ_ISSUING_COUNTRY_INDEX + i] = 0;
+    }
+    let country_list = pad_country_list(["AUS", "NZL", "USA"]);
+    check_issuing_country_inclusion(dg1, country_list);
 }
 
 #[test]
