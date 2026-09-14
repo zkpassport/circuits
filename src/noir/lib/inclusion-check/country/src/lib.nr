@@ -64,6 +64,11 @@ pub fn check_nationality_inclusion<let N: u32>(dg1: DG1Data, country_list: [Alph
 
     let nationality_bytes = get_nationality_from_mrz(dg1);
 
+    // A conformant document never has an empty nationality. Reject the empty code
+    // so a \0\0\0 nationality cannot trivially "match" one of the list's empty
+    // padding entries and prove inclusion in any list
+    assert(nationality_bytes != EMPTY_ALPHA3_COUNTRY_CODE.as_bytes(), "Nationality is empty");
+
     // Safety: get the index of the country in the list from an unconstrained function
     let country_index = unsafe { unsafe_get_index(country_list, nationality_bytes) };
     // Assert that the country was found
@@ -90,6 +95,14 @@ pub fn check_issuing_country_inclusion<let N: u32>(
     check_country_list_padding(country_list);
 
     let issuing_country_bytes = get_issuing_country_from_mrz(dg1);
+
+    // A conformant document never has an empty issuing country. Reject the empty
+    // code so a \0\0\0 issuing country cannot trivially "match" one of the list's
+    // empty padding entries and prove inclusion in any list
+    assert(
+        issuing_country_bytes != EMPTY_ALPHA3_COUNTRY_CODE.as_bytes(),
+        "Issuing country is empty",
+    );
 
     // Safety: get the index of the country in the list from an unconstrained function
     let country_index = unsafe { unsafe_get_index(country_list, issuing_country_bytes) };

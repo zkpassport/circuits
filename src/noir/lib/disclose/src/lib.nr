@@ -9,6 +9,16 @@ use utils::{
 
 pub mod tests;
 
+/// Returns the masked MRZ bytes exactly as they appear in DG1 - the RAW bytes,
+/// with no ICAO normalization applied.
+///
+/// Note for relying parties: the country-inclusion/exclusion circuits normalize
+/// certain issuer codes before comparison (e.g. a German passport encodes the
+/// nationality/issuing country as "D<<", which those circuits translate to the
+/// ISO code "DEU"). This disclose path does NOT translate - it reveals "D<<"
+/// verbatim. A verifier correlating a disclosure proof with a country proof over
+/// the same document must apply the same translation itself; the circuit does not
+/// enforce cross-consistency between the two.
 pub fn get_disclosed_bytes(dg1: DG1Data, mask: DiscloseMask) -> MRZData {
     let mut disclosed_bytes = [0 as u8; MAX_MRZ_LENGTH];
     let mrz = get_mrz_from_dg1(dg1);
