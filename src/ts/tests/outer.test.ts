@@ -50,8 +50,13 @@ import {
 import * as path from "path"
 import * as fs from "fs"
 import { Circuit } from "../circuits"
-import { generateSigningCertificates, loadKeypairFromFile, signSod } from "../passport-generator"
-import { generateSod, wrapSodInContentInfo } from "../sod-generator"
+import {
+  generateSigningCertificates,
+  generateSod,
+  loadKeypairFromFile,
+  signSod,
+  wrapSodInContentInfo,
+} from "@zkpassport/utils/passport-generator"
 import { TestHelper, convertPemToPackagedCertificateV1 } from "../test-helper"
 import { createUTCDate, serializeAsn } from "../utils"
 import circuitManifest from "./fixtures/circuit-manifest.json"

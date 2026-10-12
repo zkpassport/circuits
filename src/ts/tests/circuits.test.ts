@@ -54,10 +54,14 @@ import type { IntegrityToDisclosureSalts, PackagedCertificatesFile, Query } from
 import { beforeAll, afterAll, describe, expect, test } from "@jest/globals"
 import * as path from "path"
 import { TestHelper, convertPemToPackagedCertificateV1 } from "../test-helper"
-import { generateSigningCertificates, signSod, type HashAlgorithm } from "../passport-generator"
-import { loadKeypairFromFile } from "../passport-generator"
-import { wrapSodInContentInfo } from "../sod-generator"
-import { generateSod } from "../sod-generator"
+import {
+  generateSigningCertificates,
+  generateSod,
+  type HashAlgorithm,
+  loadKeypairFromFile,
+  signSod,
+  wrapSodInContentInfo,
+} from "@zkpassport/utils/passport-generator"
 import { serializeAsn, createUTCDate } from "../utils"
 import { Circuit } from "../circuits"
 import { evaluateOPRF } from "@zkpassport/utils"
@@ -490,7 +494,7 @@ const DISCLOSE_ALL_AUS_JOHNNY_MATTHEW: DiscloseAllExpected = {
   name: "JOHNNY MATTHEW SILVERHAND", firstName: "JOHNNY", lastName: "SILVERHAND",
 }
 const DISCLOSE_ALL_DE_JOHNNY: DiscloseAllExpected = {
-  issuingCountry: "D<<", nationality: "D<<",
+  issuingCountry: "DEU", nationality: "DEU",
   name: "JOHNNY SILVERHAND", firstName: "JOHNNY", lastName: "SILVERHAND",
 }
 
@@ -692,7 +696,7 @@ const suiteConfigs: SuiteConfig[] = [
     integrityCircuit: "data_check_integrity_sa_sha512_dg_sha512",
     integrityUseCli: false,
     discloseAll: DISCLOSE_ALL_DE_JOHNNY,
-    discloseSome: discloseSomeNationalityOnly("D<<"),
+    discloseSome: discloseSomeNationalityOnly("DEU"),
     discloseUseCli: false,
     inclusionCountries: ["DEU", "FRA", "USA", "GBR"],
     inclusionUseCli: false,
@@ -2777,8 +2781,8 @@ describe("subcircuits - RSA PKCS - German passport", () => {
       const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
       const nullifier = getNullifierFromDisclosureProof(proof)
       const nullifierType = getNullifierTypeFromDisclosureProof(proof)
-      expect(disclosedData.issuingCountry).toBe("D<<")
-      expect(disclosedData.nationality).toBe("D<<")
+      expect(disclosedData.issuingCountry).toBe("DEU")
+      expect(disclosedData.nationality).toBe("DEU")
       expect(disclosedData.documentType).toBe("other")
       expect(disclosedData.documentNumber).toBe("")
       expect(disclosedData.name).toBe("JOHANNES MUELLER")
