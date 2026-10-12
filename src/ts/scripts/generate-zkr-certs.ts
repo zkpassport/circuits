@@ -242,6 +242,9 @@ async function generateAndSignSod({
  */
 
 const fixturesDir = path.join(__dirname, "../tests/fixtures/zkr")
+// The mock passports' SODs go to the directory given as the first argument, such as
+// zkpassport-packages/packages/zkpassport-utils/src/mock-passports/sods
+const sodsDir = process.argv[2] ? path.resolve(process.argv[2]) : fixturesDir
 const cscaCountry = "ZK"
 const dscCountry = "ZK"
 const cscaSubject = "Zero Knowledge Republic CSCA"
@@ -306,7 +309,7 @@ await generateAndSignSod({
   signatureAlgorithm: new AlgorithmIdentifier({
     algorithm: id_sha256WithRSAEncryption,
   }),
-  filePath: path.join(fixturesDir, "john-miller-smith-rsa-2048-sha256.json"),
+  filePath: path.join(sodsDir, "john-miller-smith-rsa-2048-sha256.json"),
 })
 await generateAndSignSod({
   dg1: janeDG1,
@@ -316,7 +319,7 @@ await generateAndSignSod({
   signatureAlgorithm: new AlgorithmIdentifier({
     algorithm: id_sha384WithRSAEncryption,
   }),
-  filePath: path.join(fixturesDir, "jane-miller-smith-rsa-3072-sha384.json"),
+  filePath: path.join(sodsDir, "jane-miller-smith-rsa-3072-sha384.json"),
 })
 await generateAndSignSod({
   dg1: jackDG1,
@@ -326,7 +329,7 @@ await generateAndSignSod({
   signatureAlgorithm: new AlgorithmIdentifier({
     algorithm: id_sha512WithRSAEncryption,
   }),
-  filePath: path.join(fixturesDir, "jack-miller-smith-rsa-4096-sha512.json"),
+  filePath: path.join(sodsDir, "jack-miller-smith-rsa-4096-sha512.json"),
 })
 await generateAndSignSod({
   dg1: misterSanctionedDG1,
@@ -336,7 +339,7 @@ await generateAndSignSod({
   signatureAlgorithm: new AlgorithmIdentifier({
     algorithm: id_sha256WithRSAEncryption,
   }),
-  filePath: path.join(fixturesDir, "mister-sanctioned-rsa-2048-sha256.json"),
+  filePath: path.join(sodsDir, "mister-sanctioned-rsa-2048-sha256.json"),
 })
 
 const cscaEcdsa = await generateCSCA({
@@ -396,7 +399,7 @@ await generateAndSignSod({
   signatureAlgorithm: new AlgorithmIdentifier({
     algorithm: id_ecdsaWithSHA256,
   }),
-  filePath: path.join(fixturesDir, "mary-miller-smith-ecdsa-p256-sha256.json"),
+  filePath: path.join(sodsDir, "mary-miller-smith-ecdsa-p256-sha256.json"),
 })
 await generateAndSignSod({
   dg1: paulDG1,
@@ -406,7 +409,7 @@ await generateAndSignSod({
   signatureAlgorithm: new AlgorithmIdentifier({
     algorithm: id_ecdsaWithSHA384,
   }),
-  filePath: path.join(fixturesDir, "paul-miller-smith-ecdsa-p384-sha384.json"),
+  filePath: path.join(sodsDir, "paul-miller-smith-ecdsa-p384-sha384.json"),
 })
 await generateAndSignSod({
   dg1: stephanieDG1,
@@ -416,7 +419,7 @@ await generateAndSignSod({
   signatureAlgorithm: new AlgorithmIdentifier({
     algorithm: id_ecdsaWithSHA512,
   }),
-  filePath: path.join(fixturesDir, "stephanie-miller-smith-ecdsa-p521-sha512.json"),
+  filePath: path.join(sodsDir, "stephanie-miller-smith-ecdsa-p521-sha512.json"),
 })
 
 /*

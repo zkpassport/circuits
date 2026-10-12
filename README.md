@@ -93,3 +93,19 @@ The CSCA certificates are rotated every few years, usually between 3 and 5 years
 Each State is free to choose whichever signature algorithm it wants among RSA, DSA and ECDSA. This part of the protocol is rather flexible and makes it so that in order to verify the signature over the data of the passport, we need to support different types of signature algorithms with different possible parameters. But the most common one by far, like in many other sectors on the Internet, is RSA. For example, French passports have DSCs using RSA with a key size of 2048 bits and CSCA certificates with a key size of 4096 bits. You will notice here that the DSCs have a smaller key size than that of the CSCA certificates, which is logical considering the central role CSCA certificates play in the system. There are only a few of them issued by each State, and they are used to sign many certificates, not just DSCs. So they need to be more secure than the DSCs. A potential compromised DSC is much less costly than a compromised CSCA certificate.
 
 Apart from RSA, the ICAO allows States to also use ECDSA or DSA for their DSCs and CSCA certificates. ECDSA is the most common after RSA, and DSA is rarely used. Note that the ICAO recently added specifications for digital visas and digital entry/exit stamps to be included in the passport chip, and the signature algorithm that can be used for this is restricted to only ECDSA as many more certificates are needed to be stored in this part of the protocol, and ECDSA requires smaller key sizes than RSA for the same level of security. So this might push States to use ECDSA more often in the future for their DSCs and CSCA certificates.
+
+## Mock passports
+
+The Zero Knowledge Republic (ZKR) mock passports (John, Mary, Jane, Jack, Paul and Stephanie Miller
+Smith, and Mister Sanctioned) are published by `@zkpassport/utils/mock-passports`.
+`src/ts/scripts/generate-zkr-certs.ts` signs them:
+
+```sh
+bun src/ts/scripts/generate-zkr-certs.ts <zkpassport-packages>/packages/zkpassport-utils/src/mock-passports/sods
+```
+
+The script writes the ZKR CSCA and DSC certificates to `src/ts/tests/fixtures/zkr`, with new
+validity dates on every run, and the passports' SODs to the directory given as its argument. It
+needs the CSCA key pairs in `src/ts/tests/fixtures/zkr/keypairs`, which git ignores, and stops
+without them; a DSC whose key pair is missing gets a new one. Only SODs signed through these CSCAs
+verify against the testnet certificate registry, which holds the ZKR CSCAs.
