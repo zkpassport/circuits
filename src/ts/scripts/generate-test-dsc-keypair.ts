@@ -1,5 +1,9 @@
 import * as path from "path"
-import { generateRsaKeyPair, generateEcdsaKeyPair, saveKeypairToFile } from "../passport-generator"
+import {
+  generateEcdsaKeyPair,
+  generateRsaKeyPair,
+  saveKeypairToFile,
+} from "@zkpassport/utils/passport-generator"
 
 // Generate a new DSC keypair
 console.log("Generating DSC keypair...")
