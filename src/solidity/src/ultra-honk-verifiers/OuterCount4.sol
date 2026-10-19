@@ -9,7 +9,7 @@ interface IVerifier {
 
 
 
-uint256 constant NUMBER_OF_SUBRELATIONS = 29;
+uint256 constant NUMBER_OF_SUBRELATIONS = 31;
 uint256 constant BATCHED_RELATION_PARTIAL_LENGTH = 8;
 uint256 constant ZK_BATCHED_RELATION_PARTIAL_LENGTH = 9;
 uint256 constant NUMBER_OF_ENTITIES = 41;
@@ -17,7 +17,7 @@ uint256 constant NUMBER_UNSHIFTED = 36;
 uint256 constant NUMBER_TO_BE_SHIFTED = 5;
 uint256 constant PAIRING_POINTS_SIZE = 8;
 
-uint256 constant VK_HASH = 0x058d913150d1c605698f20ae3e4fc6cce00258c477684740da6327a22358a3d6;
+uint256 constant VK_HASH = 0x2ec6645d380ad60b9c7a4c752abdb49a82c443de4c441c975a1b9057730cdc18;
 uint256 constant CIRCUIT_SIZE = 4194304;
 uint256 constant LOG_N = 22;
 uint256 constant NUMBER_PUBLIC_INPUTS = 17;
@@ -42,8 +42,8 @@ contract HonkVerifier is IVerifier {
      *                    Proof: Gemini fold commitments (LOG_N-1 G1 points)
      *                    Proof: Gemini A evaluations (LOG_N field elements)
      *                    Proof: Shplonk Q + KZG quotient (2 G1 points)
-     *                    Challenges (eta..sum_u, alpha[0..26], gate + sum_u challenges)
-     *                    Subrelation evaluations (28 slots, used during sumcheck)
+     *                    Challenges (eta..sum_u, alpha[0..29], gate + sum_u challenges)
+     *                    Subrelation evaluations (31 slots, used during sumcheck)
      *                    Subrelation intermediates (7 slots: round target, pow, AUX)
      *                    Powers of evaluation challenge (LOG_N slots)
      *                    Batch scalars (69 slots, for MSM)
@@ -472,86 +472,89 @@ uint256 internal constant KZG_QUOTIENT_Y_LOC = 0x3de0;
 uint256 internal constant ETA_CHALLENGE = 0x3e00;
 uint256 internal constant ETA_TWO_CHALLENGE = 0x3e20;
 uint256 internal constant ETA_THREE_CHALLENGE = 0x3e40;
-uint256 internal constant BETA_CHALLENGE = 0x3e60;
-uint256 internal constant GAMMA_CHALLENGE = 0x3e80;
-uint256 internal constant RHO_CHALLENGE = 0x3ea0;
-uint256 internal constant GEMINI_R_CHALLENGE = 0x3ec0;
-uint256 internal constant SHPLONK_NU_CHALLENGE = 0x3ee0;
-uint256 internal constant SHPLONK_Z_CHALLENGE = 0x3f00;
-uint256 internal constant PUBLIC_INPUTS_DELTA_NUMERATOR_CHALLENGE = 0x3f20;
-uint256 internal constant PUBLIC_INPUTS_DELTA_DENOMINATOR_CHALLENGE = 0x3f40;
-uint256 internal constant ALPHA_CHALLENGE_0 = 0x3f60;
-uint256 internal constant ALPHA_CHALLENGE_1 = 0x3f80;
-uint256 internal constant ALPHA_CHALLENGE_2 = 0x3fa0;
-uint256 internal constant ALPHA_CHALLENGE_3 = 0x3fc0;
-uint256 internal constant ALPHA_CHALLENGE_4 = 0x3fe0;
-uint256 internal constant ALPHA_CHALLENGE_5 = 0x4000;
-uint256 internal constant ALPHA_CHALLENGE_6 = 0x4020;
-uint256 internal constant ALPHA_CHALLENGE_7 = 0x4040;
-uint256 internal constant ALPHA_CHALLENGE_8 = 0x4060;
-uint256 internal constant ALPHA_CHALLENGE_9 = 0x4080;
-uint256 internal constant ALPHA_CHALLENGE_10 = 0x40a0;
-uint256 internal constant ALPHA_CHALLENGE_11 = 0x40c0;
-uint256 internal constant ALPHA_CHALLENGE_12 = 0x40e0;
-uint256 internal constant ALPHA_CHALLENGE_13 = 0x4100;
-uint256 internal constant ALPHA_CHALLENGE_14 = 0x4120;
-uint256 internal constant ALPHA_CHALLENGE_15 = 0x4140;
-uint256 internal constant ALPHA_CHALLENGE_16 = 0x4160;
-uint256 internal constant ALPHA_CHALLENGE_17 = 0x4180;
-uint256 internal constant ALPHA_CHALLENGE_18 = 0x41a0;
-uint256 internal constant ALPHA_CHALLENGE_19 = 0x41c0;
-uint256 internal constant ALPHA_CHALLENGE_20 = 0x41e0;
-uint256 internal constant ALPHA_CHALLENGE_21 = 0x4200;
-uint256 internal constant ALPHA_CHALLENGE_22 = 0x4220;
-uint256 internal constant ALPHA_CHALLENGE_23 = 0x4240;
-uint256 internal constant ALPHA_CHALLENGE_24 = 0x4260;
-uint256 internal constant ALPHA_CHALLENGE_25 = 0x4280;
-uint256 internal constant ALPHA_CHALLENGE_26 = 0x42a0;
-uint256 internal constant ALPHA_CHALLENGE_27 = 0x42c0;
-uint256 internal constant GATE_CHALLENGE_0 = 0x42e0;
-uint256 internal constant GATE_CHALLENGE_1 = 0x4300;
-uint256 internal constant GATE_CHALLENGE_2 = 0x4320;
-uint256 internal constant GATE_CHALLENGE_3 = 0x4340;
-uint256 internal constant GATE_CHALLENGE_4 = 0x4360;
-uint256 internal constant GATE_CHALLENGE_5 = 0x4380;
-uint256 internal constant GATE_CHALLENGE_6 = 0x43a0;
-uint256 internal constant GATE_CHALLENGE_7 = 0x43c0;
-uint256 internal constant GATE_CHALLENGE_8 = 0x43e0;
-uint256 internal constant GATE_CHALLENGE_9 = 0x4400;
-uint256 internal constant GATE_CHALLENGE_10 = 0x4420;
-uint256 internal constant GATE_CHALLENGE_11 = 0x4440;
-uint256 internal constant GATE_CHALLENGE_12 = 0x4460;
-uint256 internal constant GATE_CHALLENGE_13 = 0x4480;
-uint256 internal constant GATE_CHALLENGE_14 = 0x44a0;
-uint256 internal constant GATE_CHALLENGE_15 = 0x44c0;
-uint256 internal constant GATE_CHALLENGE_16 = 0x44e0;
-uint256 internal constant GATE_CHALLENGE_17 = 0x4500;
-uint256 internal constant GATE_CHALLENGE_18 = 0x4520;
-uint256 internal constant GATE_CHALLENGE_19 = 0x4540;
-uint256 internal constant GATE_CHALLENGE_20 = 0x4560;
-uint256 internal constant GATE_CHALLENGE_21 = 0x4580;
-uint256 internal constant SUM_U_CHALLENGE_0 = 0x45a0;
-uint256 internal constant SUM_U_CHALLENGE_1 = 0x45c0;
-uint256 internal constant SUM_U_CHALLENGE_2 = 0x45e0;
-uint256 internal constant SUM_U_CHALLENGE_3 = 0x4600;
-uint256 internal constant SUM_U_CHALLENGE_4 = 0x4620;
-uint256 internal constant SUM_U_CHALLENGE_5 = 0x4640;
-uint256 internal constant SUM_U_CHALLENGE_6 = 0x4660;
-uint256 internal constant SUM_U_CHALLENGE_7 = 0x4680;
-uint256 internal constant SUM_U_CHALLENGE_8 = 0x46a0;
-uint256 internal constant SUM_U_CHALLENGE_9 = 0x46c0;
-uint256 internal constant SUM_U_CHALLENGE_10 = 0x46e0;
-uint256 internal constant SUM_U_CHALLENGE_11 = 0x4700;
-uint256 internal constant SUM_U_CHALLENGE_12 = 0x4720;
-uint256 internal constant SUM_U_CHALLENGE_13 = 0x4740;
-uint256 internal constant SUM_U_CHALLENGE_14 = 0x4760;
-uint256 internal constant SUM_U_CHALLENGE_15 = 0x4780;
-uint256 internal constant SUM_U_CHALLENGE_16 = 0x47a0;
-uint256 internal constant SUM_U_CHALLENGE_17 = 0x47c0;
-uint256 internal constant SUM_U_CHALLENGE_18 = 0x47e0;
-uint256 internal constant SUM_U_CHALLENGE_19 = 0x4800;
-uint256 internal constant SUM_U_CHALLENGE_20 = 0x4820;
-uint256 internal constant SUM_U_CHALLENGE_21 = 0x4840;
+uint256 internal constant ROM_LOGUP_GAMMA_CHALLENGE = 0x3e60;
+uint256 internal constant BETA_CHALLENGE = 0x3e80;
+uint256 internal constant GAMMA_CHALLENGE = 0x3ea0;
+uint256 internal constant RHO_CHALLENGE = 0x3ec0;
+uint256 internal constant GEMINI_R_CHALLENGE = 0x3ee0;
+uint256 internal constant SHPLONK_NU_CHALLENGE = 0x3f00;
+uint256 internal constant SHPLONK_Z_CHALLENGE = 0x3f20;
+uint256 internal constant PUBLIC_INPUTS_DELTA_NUMERATOR_CHALLENGE = 0x3f40;
+uint256 internal constant PUBLIC_INPUTS_DELTA_DENOMINATOR_CHALLENGE = 0x3f60;
+uint256 internal constant ALPHA_CHALLENGE_0 = 0x3f80;
+uint256 internal constant ALPHA_CHALLENGE_1 = 0x3fa0;
+uint256 internal constant ALPHA_CHALLENGE_2 = 0x3fc0;
+uint256 internal constant ALPHA_CHALLENGE_3 = 0x3fe0;
+uint256 internal constant ALPHA_CHALLENGE_4 = 0x4000;
+uint256 internal constant ALPHA_CHALLENGE_5 = 0x4020;
+uint256 internal constant ALPHA_CHALLENGE_6 = 0x4040;
+uint256 internal constant ALPHA_CHALLENGE_7 = 0x4060;
+uint256 internal constant ALPHA_CHALLENGE_8 = 0x4080;
+uint256 internal constant ALPHA_CHALLENGE_9 = 0x40a0;
+uint256 internal constant ALPHA_CHALLENGE_10 = 0x40c0;
+uint256 internal constant ALPHA_CHALLENGE_11 = 0x40e0;
+uint256 internal constant ALPHA_CHALLENGE_12 = 0x4100;
+uint256 internal constant ALPHA_CHALLENGE_13 = 0x4120;
+uint256 internal constant ALPHA_CHALLENGE_14 = 0x4140;
+uint256 internal constant ALPHA_CHALLENGE_15 = 0x4160;
+uint256 internal constant ALPHA_CHALLENGE_16 = 0x4180;
+uint256 internal constant ALPHA_CHALLENGE_17 = 0x41a0;
+uint256 internal constant ALPHA_CHALLENGE_18 = 0x41c0;
+uint256 internal constant ALPHA_CHALLENGE_19 = 0x41e0;
+uint256 internal constant ALPHA_CHALLENGE_20 = 0x4200;
+uint256 internal constant ALPHA_CHALLENGE_21 = 0x4220;
+uint256 internal constant ALPHA_CHALLENGE_22 = 0x4240;
+uint256 internal constant ALPHA_CHALLENGE_23 = 0x4260;
+uint256 internal constant ALPHA_CHALLENGE_24 = 0x4280;
+uint256 internal constant ALPHA_CHALLENGE_25 = 0x42a0;
+uint256 internal constant ALPHA_CHALLENGE_26 = 0x42c0;
+uint256 internal constant ALPHA_CHALLENGE_27 = 0x42e0;
+uint256 internal constant ALPHA_CHALLENGE_28 = 0x4300;
+uint256 internal constant ALPHA_CHALLENGE_29 = 0x4320;
+uint256 internal constant GATE_CHALLENGE_0 = 0x4340;
+uint256 internal constant GATE_CHALLENGE_1 = 0x4360;
+uint256 internal constant GATE_CHALLENGE_2 = 0x4380;
+uint256 internal constant GATE_CHALLENGE_3 = 0x43a0;
+uint256 internal constant GATE_CHALLENGE_4 = 0x43c0;
+uint256 internal constant GATE_CHALLENGE_5 = 0x43e0;
+uint256 internal constant GATE_CHALLENGE_6 = 0x4400;
+uint256 internal constant GATE_CHALLENGE_7 = 0x4420;
+uint256 internal constant GATE_CHALLENGE_8 = 0x4440;
+uint256 internal constant GATE_CHALLENGE_9 = 0x4460;
+uint256 internal constant GATE_CHALLENGE_10 = 0x4480;
+uint256 internal constant GATE_CHALLENGE_11 = 0x44a0;
+uint256 internal constant GATE_CHALLENGE_12 = 0x44c0;
+uint256 internal constant GATE_CHALLENGE_13 = 0x44e0;
+uint256 internal constant GATE_CHALLENGE_14 = 0x4500;
+uint256 internal constant GATE_CHALLENGE_15 = 0x4520;
+uint256 internal constant GATE_CHALLENGE_16 = 0x4540;
+uint256 internal constant GATE_CHALLENGE_17 = 0x4560;
+uint256 internal constant GATE_CHALLENGE_18 = 0x4580;
+uint256 internal constant GATE_CHALLENGE_19 = 0x45a0;
+uint256 internal constant GATE_CHALLENGE_20 = 0x45c0;
+uint256 internal constant GATE_CHALLENGE_21 = 0x45e0;
+uint256 internal constant SUM_U_CHALLENGE_0 = 0x4600;
+uint256 internal constant SUM_U_CHALLENGE_1 = 0x4620;
+uint256 internal constant SUM_U_CHALLENGE_2 = 0x4640;
+uint256 internal constant SUM_U_CHALLENGE_3 = 0x4660;
+uint256 internal constant SUM_U_CHALLENGE_4 = 0x4680;
+uint256 internal constant SUM_U_CHALLENGE_5 = 0x46a0;
+uint256 internal constant SUM_U_CHALLENGE_6 = 0x46c0;
+uint256 internal constant SUM_U_CHALLENGE_7 = 0x46e0;
+uint256 internal constant SUM_U_CHALLENGE_8 = 0x4700;
+uint256 internal constant SUM_U_CHALLENGE_9 = 0x4720;
+uint256 internal constant SUM_U_CHALLENGE_10 = 0x4740;
+uint256 internal constant SUM_U_CHALLENGE_11 = 0x4760;
+uint256 internal constant SUM_U_CHALLENGE_12 = 0x4780;
+uint256 internal constant SUM_U_CHALLENGE_13 = 0x47a0;
+uint256 internal constant SUM_U_CHALLENGE_14 = 0x47c0;
+uint256 internal constant SUM_U_CHALLENGE_15 = 0x47e0;
+uint256 internal constant SUM_U_CHALLENGE_16 = 0x4800;
+uint256 internal constant SUM_U_CHALLENGE_17 = 0x4820;
+uint256 internal constant SUM_U_CHALLENGE_18 = 0x4840;
+uint256 internal constant SUM_U_CHALLENGE_19 = 0x4860;
+uint256 internal constant SUM_U_CHALLENGE_20 = 0x4880;
+uint256 internal constant SUM_U_CHALLENGE_21 = 0x48a0;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                                      CHALLENGES - COMPLETE                                       */
@@ -564,190 +567,190 @@ uint256 internal constant SUM_U_CHALLENGE_21 = 0x4840;
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                             SUMCHECK - RUNTIME MEMORY - BARYCENTRIC                              */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_0_LOC = 0x4860;
-uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_1_LOC = 0x4880;
-uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_2_LOC = 0x48a0;
-uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_3_LOC = 0x48c0;
-uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_4_LOC = 0x48e0;
-uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_5_LOC = 0x4900;
-uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_6_LOC = 0x4920;
-uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_7_LOC = 0x4940;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_0_LOC = 0x4960;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_1_LOC = 0x4980;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_2_LOC = 0x49a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_3_LOC = 0x49c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_4_LOC = 0x49e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_5_LOC = 0x4a00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_6_LOC = 0x4a20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_7_LOC = 0x4a40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_0_LOC = 0x4a60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_1_LOC = 0x4a80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_2_LOC = 0x4aa0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_3_LOC = 0x4ac0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_4_LOC = 0x4ae0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_5_LOC = 0x4b00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_6_LOC = 0x4b20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_7_LOC = 0x4b40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_0_LOC = 0x4b60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_1_LOC = 0x4b80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_2_LOC = 0x4ba0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_3_LOC = 0x4bc0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_4_LOC = 0x4be0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_5_LOC = 0x4c00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_6_LOC = 0x4c20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_7_LOC = 0x4c40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_0_LOC = 0x4c60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_1_LOC = 0x4c80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_2_LOC = 0x4ca0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_3_LOC = 0x4cc0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_4_LOC = 0x4ce0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_5_LOC = 0x4d00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_6_LOC = 0x4d20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_7_LOC = 0x4d40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_0_LOC = 0x4d60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_1_LOC = 0x4d80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_2_LOC = 0x4da0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_3_LOC = 0x4dc0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_4_LOC = 0x4de0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_5_LOC = 0x4e00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_6_LOC = 0x4e20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_7_LOC = 0x4e40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_0_LOC = 0x4e60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_1_LOC = 0x4e80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_2_LOC = 0x4ea0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_3_LOC = 0x4ec0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_4_LOC = 0x4ee0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_5_LOC = 0x4f00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_6_LOC = 0x4f20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_7_LOC = 0x4f40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_0_LOC = 0x4f60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_1_LOC = 0x4f80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_2_LOC = 0x4fa0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_3_LOC = 0x4fc0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_4_LOC = 0x4fe0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_5_LOC = 0x5000;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_6_LOC = 0x5020;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_7_LOC = 0x5040;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_0_LOC = 0x5060;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_1_LOC = 0x5080;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_2_LOC = 0x50a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_3_LOC = 0x50c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_4_LOC = 0x50e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_5_LOC = 0x5100;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_6_LOC = 0x5120;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_7_LOC = 0x5140;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_0_LOC = 0x5160;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_1_LOC = 0x5180;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_2_LOC = 0x51a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_3_LOC = 0x51c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_4_LOC = 0x51e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_5_LOC = 0x5200;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_6_LOC = 0x5220;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_7_LOC = 0x5240;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_0_LOC = 0x5260;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_1_LOC = 0x5280;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_2_LOC = 0x52a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_3_LOC = 0x52c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_4_LOC = 0x52e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_5_LOC = 0x5300;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_6_LOC = 0x5320;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_7_LOC = 0x5340;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_0_LOC = 0x5360;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_1_LOC = 0x5380;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_2_LOC = 0x53a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_3_LOC = 0x53c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_4_LOC = 0x53e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_5_LOC = 0x5400;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_6_LOC = 0x5420;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_7_LOC = 0x5440;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_0_LOC = 0x5460;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_1_LOC = 0x5480;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_2_LOC = 0x54a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_3_LOC = 0x54c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_4_LOC = 0x54e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_5_LOC = 0x5500;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_6_LOC = 0x5520;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_7_LOC = 0x5540;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_0_LOC = 0x5560;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_1_LOC = 0x5580;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_2_LOC = 0x55a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_3_LOC = 0x55c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_4_LOC = 0x55e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_5_LOC = 0x5600;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_6_LOC = 0x5620;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_7_LOC = 0x5640;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_0_LOC = 0x5660;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_1_LOC = 0x5680;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_2_LOC = 0x56a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_3_LOC = 0x56c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_4_LOC = 0x56e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_5_LOC = 0x5700;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_6_LOC = 0x5720;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_7_LOC = 0x5740;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_0_LOC = 0x5760;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_1_LOC = 0x5780;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_2_LOC = 0x57a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_3_LOC = 0x57c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_4_LOC = 0x57e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_5_LOC = 0x5800;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_6_LOC = 0x5820;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_7_LOC = 0x5840;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_0_LOC = 0x5860;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_1_LOC = 0x5880;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_2_LOC = 0x58a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_3_LOC = 0x58c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_4_LOC = 0x58e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_5_LOC = 0x5900;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_6_LOC = 0x5920;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_7_LOC = 0x5940;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_0_LOC = 0x5960;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_1_LOC = 0x5980;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_2_LOC = 0x59a0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_3_LOC = 0x59c0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_4_LOC = 0x59e0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_5_LOC = 0x5a00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_6_LOC = 0x5a20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_7_LOC = 0x5a40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_0_LOC = 0x5a60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_1_LOC = 0x5a80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_2_LOC = 0x5aa0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_3_LOC = 0x5ac0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_4_LOC = 0x5ae0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_5_LOC = 0x5b00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_6_LOC = 0x5b20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_7_LOC = 0x5b40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_0_LOC = 0x5b60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_1_LOC = 0x5b80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_2_LOC = 0x5ba0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_3_LOC = 0x5bc0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_4_LOC = 0x5be0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_5_LOC = 0x5c00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_6_LOC = 0x5c20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_7_LOC = 0x5c40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_0_LOC = 0x5c60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_1_LOC = 0x5c80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_2_LOC = 0x5ca0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_3_LOC = 0x5cc0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_4_LOC = 0x5ce0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_5_LOC = 0x5d00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_6_LOC = 0x5d20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_7_LOC = 0x5d40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_0_LOC = 0x5d60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_1_LOC = 0x5d80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_2_LOC = 0x5da0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_3_LOC = 0x5dc0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_4_LOC = 0x5de0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_5_LOC = 0x5e00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_6_LOC = 0x5e20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_7_LOC = 0x5e40;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_0_LOC = 0x5e60;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_1_LOC = 0x5e80;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_2_LOC = 0x5ea0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_3_LOC = 0x5ec0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_4_LOC = 0x5ee0;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_5_LOC = 0x5f00;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_6_LOC = 0x5f20;
-uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_7_LOC = 0x5f40;
+uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_0_LOC = 0x48c0;
+uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_1_LOC = 0x48e0;
+uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_2_LOC = 0x4900;
+uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_3_LOC = 0x4920;
+uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_4_LOC = 0x4940;
+uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_5_LOC = 0x4960;
+uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_6_LOC = 0x4980;
+uint256 internal constant BARYCENTRIC_LAGRANGE_DENOMINATOR_7_LOC = 0x49a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_0_LOC = 0x49c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_1_LOC = 0x49e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_2_LOC = 0x4a00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_3_LOC = 0x4a20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_4_LOC = 0x4a40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_5_LOC = 0x4a60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_6_LOC = 0x4a80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_0_7_LOC = 0x4aa0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_0_LOC = 0x4ac0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_1_LOC = 0x4ae0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_2_LOC = 0x4b00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_3_LOC = 0x4b20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_4_LOC = 0x4b40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_5_LOC = 0x4b60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_6_LOC = 0x4b80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_1_7_LOC = 0x4ba0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_0_LOC = 0x4bc0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_1_LOC = 0x4be0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_2_LOC = 0x4c00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_3_LOC = 0x4c20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_4_LOC = 0x4c40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_5_LOC = 0x4c60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_6_LOC = 0x4c80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_2_7_LOC = 0x4ca0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_0_LOC = 0x4cc0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_1_LOC = 0x4ce0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_2_LOC = 0x4d00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_3_LOC = 0x4d20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_4_LOC = 0x4d40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_5_LOC = 0x4d60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_6_LOC = 0x4d80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_3_7_LOC = 0x4da0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_0_LOC = 0x4dc0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_1_LOC = 0x4de0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_2_LOC = 0x4e00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_3_LOC = 0x4e20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_4_LOC = 0x4e40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_5_LOC = 0x4e60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_6_LOC = 0x4e80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_4_7_LOC = 0x4ea0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_0_LOC = 0x4ec0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_1_LOC = 0x4ee0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_2_LOC = 0x4f00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_3_LOC = 0x4f20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_4_LOC = 0x4f40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_5_LOC = 0x4f60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_6_LOC = 0x4f80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_5_7_LOC = 0x4fa0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_0_LOC = 0x4fc0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_1_LOC = 0x4fe0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_2_LOC = 0x5000;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_3_LOC = 0x5020;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_4_LOC = 0x5040;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_5_LOC = 0x5060;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_6_LOC = 0x5080;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_6_7_LOC = 0x50a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_0_LOC = 0x50c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_1_LOC = 0x50e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_2_LOC = 0x5100;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_3_LOC = 0x5120;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_4_LOC = 0x5140;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_5_LOC = 0x5160;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_6_LOC = 0x5180;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_7_7_LOC = 0x51a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_0_LOC = 0x51c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_1_LOC = 0x51e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_2_LOC = 0x5200;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_3_LOC = 0x5220;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_4_LOC = 0x5240;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_5_LOC = 0x5260;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_6_LOC = 0x5280;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_8_7_LOC = 0x52a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_0_LOC = 0x52c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_1_LOC = 0x52e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_2_LOC = 0x5300;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_3_LOC = 0x5320;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_4_LOC = 0x5340;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_5_LOC = 0x5360;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_6_LOC = 0x5380;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_9_7_LOC = 0x53a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_0_LOC = 0x53c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_1_LOC = 0x53e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_2_LOC = 0x5400;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_3_LOC = 0x5420;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_4_LOC = 0x5440;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_5_LOC = 0x5460;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_6_LOC = 0x5480;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_10_7_LOC = 0x54a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_0_LOC = 0x54c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_1_LOC = 0x54e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_2_LOC = 0x5500;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_3_LOC = 0x5520;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_4_LOC = 0x5540;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_5_LOC = 0x5560;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_6_LOC = 0x5580;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_11_7_LOC = 0x55a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_0_LOC = 0x55c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_1_LOC = 0x55e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_2_LOC = 0x5600;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_3_LOC = 0x5620;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_4_LOC = 0x5640;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_5_LOC = 0x5660;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_6_LOC = 0x5680;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_12_7_LOC = 0x56a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_0_LOC = 0x56c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_1_LOC = 0x56e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_2_LOC = 0x5700;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_3_LOC = 0x5720;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_4_LOC = 0x5740;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_5_LOC = 0x5760;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_6_LOC = 0x5780;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_13_7_LOC = 0x57a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_0_LOC = 0x57c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_1_LOC = 0x57e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_2_LOC = 0x5800;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_3_LOC = 0x5820;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_4_LOC = 0x5840;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_5_LOC = 0x5860;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_6_LOC = 0x5880;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_14_7_LOC = 0x58a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_0_LOC = 0x58c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_1_LOC = 0x58e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_2_LOC = 0x5900;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_3_LOC = 0x5920;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_4_LOC = 0x5940;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_5_LOC = 0x5960;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_6_LOC = 0x5980;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_15_7_LOC = 0x59a0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_0_LOC = 0x59c0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_1_LOC = 0x59e0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_2_LOC = 0x5a00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_3_LOC = 0x5a20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_4_LOC = 0x5a40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_5_LOC = 0x5a60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_6_LOC = 0x5a80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_16_7_LOC = 0x5aa0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_0_LOC = 0x5ac0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_1_LOC = 0x5ae0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_2_LOC = 0x5b00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_3_LOC = 0x5b20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_4_LOC = 0x5b40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_5_LOC = 0x5b60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_6_LOC = 0x5b80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_17_7_LOC = 0x5ba0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_0_LOC = 0x5bc0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_1_LOC = 0x5be0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_2_LOC = 0x5c00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_3_LOC = 0x5c20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_4_LOC = 0x5c40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_5_LOC = 0x5c60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_6_LOC = 0x5c80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_18_7_LOC = 0x5ca0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_0_LOC = 0x5cc0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_1_LOC = 0x5ce0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_2_LOC = 0x5d00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_3_LOC = 0x5d20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_4_LOC = 0x5d40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_5_LOC = 0x5d60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_6_LOC = 0x5d80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_19_7_LOC = 0x5da0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_0_LOC = 0x5dc0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_1_LOC = 0x5de0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_2_LOC = 0x5e00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_3_LOC = 0x5e20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_4_LOC = 0x5e40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_5_LOC = 0x5e60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_6_LOC = 0x5e80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_20_7_LOC = 0x5ea0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_0_LOC = 0x5ec0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_1_LOC = 0x5ee0;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_2_LOC = 0x5f00;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_3_LOC = 0x5f20;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_4_LOC = 0x5f40;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_5_LOC = 0x5f60;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_6_LOC = 0x5f80;
+uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_7_LOC = 0x5fa0;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                         SUMCHECK - RUNTIME MEMORY - BARYCENTRIC COMPLETE                         */
@@ -756,35 +759,37 @@ uint256 internal constant BARYCENTRIC_DENOMINATOR_INVERSES_21_7_LOC = 0x5f40;
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                       SUMCHECK - RUNTIME MEMORY - SUBRELATION EVALUATIONS                        */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant SUBRELATION_EVAL_0_LOC = 0x5f60;
-uint256 internal constant SUBRELATION_EVAL_1_LOC = 0x5f80;
-uint256 internal constant SUBRELATION_EVAL_2_LOC = 0x5fa0;
-uint256 internal constant SUBRELATION_EVAL_3_LOC = 0x5fc0;
-uint256 internal constant SUBRELATION_EVAL_4_LOC = 0x5fe0;
-uint256 internal constant SUBRELATION_EVAL_5_LOC = 0x6000;
-uint256 internal constant SUBRELATION_EVAL_6_LOC = 0x6020;
-uint256 internal constant SUBRELATION_EVAL_7_LOC = 0x6040;
-uint256 internal constant SUBRELATION_EVAL_8_LOC = 0x6060;
-uint256 internal constant SUBRELATION_EVAL_9_LOC = 0x6080;
-uint256 internal constant SUBRELATION_EVAL_10_LOC = 0x60a0;
-uint256 internal constant SUBRELATION_EVAL_11_LOC = 0x60c0;
-uint256 internal constant SUBRELATION_EVAL_12_LOC = 0x60e0;
-uint256 internal constant SUBRELATION_EVAL_13_LOC = 0x6100;
-uint256 internal constant SUBRELATION_EVAL_14_LOC = 0x6120;
-uint256 internal constant SUBRELATION_EVAL_15_LOC = 0x6140;
-uint256 internal constant SUBRELATION_EVAL_16_LOC = 0x6160;
-uint256 internal constant SUBRELATION_EVAL_17_LOC = 0x6180;
-uint256 internal constant SUBRELATION_EVAL_18_LOC = 0x61a0;
-uint256 internal constant SUBRELATION_EVAL_19_LOC = 0x61c0;
-uint256 internal constant SUBRELATION_EVAL_20_LOC = 0x61e0;
-uint256 internal constant SUBRELATION_EVAL_21_LOC = 0x6200;
-uint256 internal constant SUBRELATION_EVAL_22_LOC = 0x6220;
-uint256 internal constant SUBRELATION_EVAL_23_LOC = 0x6240;
-uint256 internal constant SUBRELATION_EVAL_24_LOC = 0x6260;
-uint256 internal constant SUBRELATION_EVAL_25_LOC = 0x6280;
-uint256 internal constant SUBRELATION_EVAL_26_LOC = 0x62a0;
-uint256 internal constant SUBRELATION_EVAL_27_LOC = 0x62c0;
-uint256 internal constant SUBRELATION_EVAL_28_LOC = 0x62e0;
+uint256 internal constant SUBRELATION_EVAL_0_LOC = 0x5fc0;
+uint256 internal constant SUBRELATION_EVAL_1_LOC = 0x5fe0;
+uint256 internal constant SUBRELATION_EVAL_2_LOC = 0x6000;
+uint256 internal constant SUBRELATION_EVAL_3_LOC = 0x6020;
+uint256 internal constant SUBRELATION_EVAL_4_LOC = 0x6040;
+uint256 internal constant SUBRELATION_EVAL_5_LOC = 0x6060;
+uint256 internal constant SUBRELATION_EVAL_6_LOC = 0x6080;
+uint256 internal constant SUBRELATION_EVAL_7_LOC = 0x60a0;
+uint256 internal constant SUBRELATION_EVAL_8_LOC = 0x60c0;
+uint256 internal constant SUBRELATION_EVAL_9_LOC = 0x60e0;
+uint256 internal constant SUBRELATION_EVAL_10_LOC = 0x6100;
+uint256 internal constant SUBRELATION_EVAL_11_LOC = 0x6120;
+uint256 internal constant SUBRELATION_EVAL_12_LOC = 0x6140;
+uint256 internal constant SUBRELATION_EVAL_13_LOC = 0x6160;
+uint256 internal constant SUBRELATION_EVAL_14_LOC = 0x6180;
+uint256 internal constant SUBRELATION_EVAL_15_LOC = 0x61a0;
+uint256 internal constant SUBRELATION_EVAL_16_LOC = 0x61c0;
+uint256 internal constant SUBRELATION_EVAL_17_LOC = 0x61e0;
+uint256 internal constant SUBRELATION_EVAL_18_LOC = 0x6200;
+uint256 internal constant SUBRELATION_EVAL_19_LOC = 0x6220;
+uint256 internal constant SUBRELATION_EVAL_20_LOC = 0x6240;
+uint256 internal constant SUBRELATION_EVAL_21_LOC = 0x6260;
+uint256 internal constant SUBRELATION_EVAL_22_LOC = 0x6280;
+uint256 internal constant SUBRELATION_EVAL_23_LOC = 0x62a0;
+uint256 internal constant SUBRELATION_EVAL_24_LOC = 0x62c0;
+uint256 internal constant SUBRELATION_EVAL_25_LOC = 0x62e0;
+uint256 internal constant SUBRELATION_EVAL_26_LOC = 0x6300;
+uint256 internal constant SUBRELATION_EVAL_27_LOC = 0x6320;
+uint256 internal constant SUBRELATION_EVAL_28_LOC = 0x6340;
+uint256 internal constant SUBRELATION_EVAL_29_LOC = 0x6360;
+uint256 internal constant SUBRELATION_EVAL_30_LOC = 0x6380;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                   SUMCHECK - RUNTIME MEMORY - SUBRELATION EVALUATIONS COMPLETE                   */
@@ -793,13 +798,13 @@ uint256 internal constant SUBRELATION_EVAL_28_LOC = 0x62e0;
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                      SUMCHECK - RUNTIME MEMORY - SUBRELATION INTERMEDIATES                       */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant FINAL_ROUND_TARGET_LOC = 0x6300;
-uint256 internal constant POW_PARTIAL_EVALUATION_LOC = 0x6320;
-uint256 internal constant AUX_NON_NATIVE_FIELD_IDENTITY = 0x6340;
-uint256 internal constant AUX_LIMB_ACCUMULATOR_IDENTITY = 0x6360;
-uint256 internal constant AUX_RAM_CONSISTENCY_CHECK_IDENTITY = 0x6380;
-uint256 internal constant AUX_ROM_CONSISTENCY_CHECK_IDENTITY = 0x63a0;
-uint256 internal constant AUX_MEMORY_CHECK_IDENTITY = 0x63c0;
+uint256 internal constant FINAL_ROUND_TARGET_LOC = 0x63a0;
+uint256 internal constant POW_PARTIAL_EVALUATION_LOC = 0x63c0;
+uint256 internal constant AUX_NON_NATIVE_FIELD_IDENTITY = 0x63e0;
+uint256 internal constant AUX_LIMB_ACCUMULATOR_IDENTITY = 0x6400;
+uint256 internal constant AUX_RAM_CONSISTENCY_CHECK_IDENTITY = 0x6420;
+uint256 internal constant AUX_ROM_CONSISTENCY_CHECK_IDENTITY = 0x6440;
+uint256 internal constant AUX_MEMORY_CHECK_IDENTITY = 0x6460;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                               SUMCHECK - RUNTIME MEMORY - COMPLETE                               */
@@ -813,28 +818,28 @@ uint256 internal constant AUX_MEMORY_CHECK_IDENTITY = 0x63c0;
 /*                            SHPLEMINI - POWERS OF EVALUATION CHALLENGE                            */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 /// {{ UNROLL_SECTION_START POWERS_OF_EVALUATION_CHALLENGE }}
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_0_LOC = 0x63e0;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_1_LOC = 0x6400;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_2_LOC = 0x6420;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_3_LOC = 0x6440;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_4_LOC = 0x6460;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_5_LOC = 0x6480;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_6_LOC = 0x64a0;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_7_LOC = 0x64c0;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_8_LOC = 0x64e0;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_9_LOC = 0x6500;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_10_LOC = 0x6520;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_11_LOC = 0x6540;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_12_LOC = 0x6560;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_13_LOC = 0x6580;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_14_LOC = 0x65a0;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_15_LOC = 0x65c0;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_16_LOC = 0x65e0;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_17_LOC = 0x6600;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_18_LOC = 0x6620;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_19_LOC = 0x6640;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_20_LOC = 0x6660;
-uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_21_LOC = 0x6680;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_0_LOC = 0x6480;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_1_LOC = 0x64a0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_2_LOC = 0x64c0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_3_LOC = 0x64e0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_4_LOC = 0x6500;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_5_LOC = 0x6520;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_6_LOC = 0x6540;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_7_LOC = 0x6560;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_8_LOC = 0x6580;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_9_LOC = 0x65a0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_10_LOC = 0x65c0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_11_LOC = 0x65e0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_12_LOC = 0x6600;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_13_LOC = 0x6620;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_14_LOC = 0x6640;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_15_LOC = 0x6660;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_16_LOC = 0x6680;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_17_LOC = 0x66a0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_18_LOC = 0x66c0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_19_LOC = 0x66e0;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_20_LOC = 0x6700;
+uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_21_LOC = 0x6720;
 /// {{ UNROLL_SECTION_END POWERS_OF_EVALUATION_CHALLENGE }}
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -844,74 +849,74 @@ uint256 internal constant POWERS_OF_EVALUATION_CHALLENGE_21_LOC = 0x6680;
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                            SHPLEMINI - RUNTIME MEMORY - BATCH SCALARS                            */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant BATCH_SCALAR_1_LOC = 0x66a0;
-uint256 internal constant BATCH_SCALAR_2_LOC = 0x66c0;
-uint256 internal constant BATCH_SCALAR_3_LOC = 0x66e0;
-uint256 internal constant BATCH_SCALAR_4_LOC = 0x6700;
-uint256 internal constant BATCH_SCALAR_5_LOC = 0x6720;
-uint256 internal constant BATCH_SCALAR_6_LOC = 0x6740;
-uint256 internal constant BATCH_SCALAR_7_LOC = 0x6760;
-uint256 internal constant BATCH_SCALAR_8_LOC = 0x6780;
-uint256 internal constant BATCH_SCALAR_9_LOC = 0x67a0;
-uint256 internal constant BATCH_SCALAR_10_LOC = 0x67c0;
-uint256 internal constant BATCH_SCALAR_11_LOC = 0x67e0;
-uint256 internal constant BATCH_SCALAR_12_LOC = 0x6800;
-uint256 internal constant BATCH_SCALAR_13_LOC = 0x6820;
-uint256 internal constant BATCH_SCALAR_14_LOC = 0x6840;
-uint256 internal constant BATCH_SCALAR_15_LOC = 0x6860;
-uint256 internal constant BATCH_SCALAR_16_LOC = 0x6880;
-uint256 internal constant BATCH_SCALAR_17_LOC = 0x68a0;
-uint256 internal constant BATCH_SCALAR_18_LOC = 0x68c0;
-uint256 internal constant BATCH_SCALAR_19_LOC = 0x68e0;
-uint256 internal constant BATCH_SCALAR_20_LOC = 0x6900;
-uint256 internal constant BATCH_SCALAR_21_LOC = 0x6920;
-uint256 internal constant BATCH_SCALAR_22_LOC = 0x6940;
-uint256 internal constant BATCH_SCALAR_23_LOC = 0x6960;
-uint256 internal constant BATCH_SCALAR_24_LOC = 0x6980;
-uint256 internal constant BATCH_SCALAR_25_LOC = 0x69a0;
-uint256 internal constant BATCH_SCALAR_26_LOC = 0x69c0;
-uint256 internal constant BATCH_SCALAR_27_LOC = 0x69e0;
-uint256 internal constant BATCH_SCALAR_28_LOC = 0x6a00;
-uint256 internal constant BATCH_SCALAR_29_LOC = 0x6a20;
-uint256 internal constant BATCH_SCALAR_30_LOC = 0x6a40;
-uint256 internal constant BATCH_SCALAR_31_LOC = 0x6a60;
-uint256 internal constant BATCH_SCALAR_32_LOC = 0x6a80;
-uint256 internal constant BATCH_SCALAR_33_LOC = 0x6aa0;
-uint256 internal constant BATCH_SCALAR_34_LOC = 0x6ac0;
-uint256 internal constant BATCH_SCALAR_35_LOC = 0x6ae0;
-uint256 internal constant BATCH_SCALAR_36_LOC = 0x6b00;
-uint256 internal constant BATCH_SCALAR_37_LOC = 0x6b20;
-uint256 internal constant BATCH_SCALAR_38_LOC = 0x6b40;
-uint256 internal constant BATCH_SCALAR_39_LOC = 0x6b60;
-uint256 internal constant BATCH_SCALAR_40_LOC = 0x6b80;
-uint256 internal constant BATCH_SCALAR_41_LOC = 0x6ba0;
-uint256 internal constant BATCH_SCALAR_42_LOC = 0x6bc0;
-uint256 internal constant BATCH_SCALAR_43_LOC = 0x6be0;
-uint256 internal constant BATCH_SCALAR_44_LOC = 0x6c00;
-uint256 internal constant BATCH_SCALAR_45_LOC = 0x6c20;
-uint256 internal constant BATCH_SCALAR_46_LOC = 0x6c40;
-uint256 internal constant BATCH_SCALAR_47_LOC = 0x6c60;
-uint256 internal constant BATCH_SCALAR_48_LOC = 0x6c80;
-uint256 internal constant BATCH_SCALAR_49_LOC = 0x6ca0;
-uint256 internal constant BATCH_SCALAR_50_LOC = 0x6cc0;
-uint256 internal constant BATCH_SCALAR_51_LOC = 0x6ce0;
-uint256 internal constant BATCH_SCALAR_52_LOC = 0x6d00;
-uint256 internal constant BATCH_SCALAR_53_LOC = 0x6d20;
-uint256 internal constant BATCH_SCALAR_54_LOC = 0x6d40;
-uint256 internal constant BATCH_SCALAR_55_LOC = 0x6d60;
-uint256 internal constant BATCH_SCALAR_56_LOC = 0x6d80;
-uint256 internal constant BATCH_SCALAR_57_LOC = 0x6da0;
-uint256 internal constant BATCH_SCALAR_58_LOC = 0x6dc0;
-uint256 internal constant BATCH_SCALAR_59_LOC = 0x6de0;
-uint256 internal constant BATCH_SCALAR_60_LOC = 0x6e00;
-uint256 internal constant BATCH_SCALAR_61_LOC = 0x6e20;
-uint256 internal constant BATCH_SCALAR_62_LOC = 0x6e40;
-uint256 internal constant BATCH_SCALAR_63_LOC = 0x6e60;
-uint256 internal constant BATCH_SCALAR_64_LOC = 0x6e80;
-uint256 internal constant BATCH_SCALAR_65_LOC = 0x6ea0;
-uint256 internal constant BATCH_SCALAR_66_LOC = 0x6ec0;
-uint256 internal constant BATCH_SCALAR_67_LOC = 0x6ee0;
-uint256 internal constant BATCH_SCALAR_68_LOC = 0x6f00;
+uint256 internal constant BATCH_SCALAR_1_LOC = 0x6740;
+uint256 internal constant BATCH_SCALAR_2_LOC = 0x6760;
+uint256 internal constant BATCH_SCALAR_3_LOC = 0x6780;
+uint256 internal constant BATCH_SCALAR_4_LOC = 0x67a0;
+uint256 internal constant BATCH_SCALAR_5_LOC = 0x67c0;
+uint256 internal constant BATCH_SCALAR_6_LOC = 0x67e0;
+uint256 internal constant BATCH_SCALAR_7_LOC = 0x6800;
+uint256 internal constant BATCH_SCALAR_8_LOC = 0x6820;
+uint256 internal constant BATCH_SCALAR_9_LOC = 0x6840;
+uint256 internal constant BATCH_SCALAR_10_LOC = 0x6860;
+uint256 internal constant BATCH_SCALAR_11_LOC = 0x6880;
+uint256 internal constant BATCH_SCALAR_12_LOC = 0x68a0;
+uint256 internal constant BATCH_SCALAR_13_LOC = 0x68c0;
+uint256 internal constant BATCH_SCALAR_14_LOC = 0x68e0;
+uint256 internal constant BATCH_SCALAR_15_LOC = 0x6900;
+uint256 internal constant BATCH_SCALAR_16_LOC = 0x6920;
+uint256 internal constant BATCH_SCALAR_17_LOC = 0x6940;
+uint256 internal constant BATCH_SCALAR_18_LOC = 0x6960;
+uint256 internal constant BATCH_SCALAR_19_LOC = 0x6980;
+uint256 internal constant BATCH_SCALAR_20_LOC = 0x69a0;
+uint256 internal constant BATCH_SCALAR_21_LOC = 0x69c0;
+uint256 internal constant BATCH_SCALAR_22_LOC = 0x69e0;
+uint256 internal constant BATCH_SCALAR_23_LOC = 0x6a00;
+uint256 internal constant BATCH_SCALAR_24_LOC = 0x6a20;
+uint256 internal constant BATCH_SCALAR_25_LOC = 0x6a40;
+uint256 internal constant BATCH_SCALAR_26_LOC = 0x6a60;
+uint256 internal constant BATCH_SCALAR_27_LOC = 0x6a80;
+uint256 internal constant BATCH_SCALAR_28_LOC = 0x6aa0;
+uint256 internal constant BATCH_SCALAR_29_LOC = 0x6ac0;
+uint256 internal constant BATCH_SCALAR_30_LOC = 0x6ae0;
+uint256 internal constant BATCH_SCALAR_31_LOC = 0x6b00;
+uint256 internal constant BATCH_SCALAR_32_LOC = 0x6b20;
+uint256 internal constant BATCH_SCALAR_33_LOC = 0x6b40;
+uint256 internal constant BATCH_SCALAR_34_LOC = 0x6b60;
+uint256 internal constant BATCH_SCALAR_35_LOC = 0x6b80;
+uint256 internal constant BATCH_SCALAR_36_LOC = 0x6ba0;
+uint256 internal constant BATCH_SCALAR_37_LOC = 0x6bc0;
+uint256 internal constant BATCH_SCALAR_38_LOC = 0x6be0;
+uint256 internal constant BATCH_SCALAR_39_LOC = 0x6c00;
+uint256 internal constant BATCH_SCALAR_40_LOC = 0x6c20;
+uint256 internal constant BATCH_SCALAR_41_LOC = 0x6c40;
+uint256 internal constant BATCH_SCALAR_42_LOC = 0x6c60;
+uint256 internal constant BATCH_SCALAR_43_LOC = 0x6c80;
+uint256 internal constant BATCH_SCALAR_44_LOC = 0x6ca0;
+uint256 internal constant BATCH_SCALAR_45_LOC = 0x6cc0;
+uint256 internal constant BATCH_SCALAR_46_LOC = 0x6ce0;
+uint256 internal constant BATCH_SCALAR_47_LOC = 0x6d00;
+uint256 internal constant BATCH_SCALAR_48_LOC = 0x6d20;
+uint256 internal constant BATCH_SCALAR_49_LOC = 0x6d40;
+uint256 internal constant BATCH_SCALAR_50_LOC = 0x6d60;
+uint256 internal constant BATCH_SCALAR_51_LOC = 0x6d80;
+uint256 internal constant BATCH_SCALAR_52_LOC = 0x6da0;
+uint256 internal constant BATCH_SCALAR_53_LOC = 0x6dc0;
+uint256 internal constant BATCH_SCALAR_54_LOC = 0x6de0;
+uint256 internal constant BATCH_SCALAR_55_LOC = 0x6e00;
+uint256 internal constant BATCH_SCALAR_56_LOC = 0x6e20;
+uint256 internal constant BATCH_SCALAR_57_LOC = 0x6e40;
+uint256 internal constant BATCH_SCALAR_58_LOC = 0x6e60;
+uint256 internal constant BATCH_SCALAR_59_LOC = 0x6e80;
+uint256 internal constant BATCH_SCALAR_60_LOC = 0x6ea0;
+uint256 internal constant BATCH_SCALAR_61_LOC = 0x6ec0;
+uint256 internal constant BATCH_SCALAR_62_LOC = 0x6ee0;
+uint256 internal constant BATCH_SCALAR_63_LOC = 0x6f00;
+uint256 internal constant BATCH_SCALAR_64_LOC = 0x6f20;
+uint256 internal constant BATCH_SCALAR_65_LOC = 0x6f40;
+uint256 internal constant BATCH_SCALAR_66_LOC = 0x6f60;
+uint256 internal constant BATCH_SCALAR_67_LOC = 0x6f80;
+uint256 internal constant BATCH_SCALAR_68_LOC = 0x6fa0;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                       SHPLEMINI - RUNTIME MEMORY - BATCH SCALARS COMPLETE                        */
@@ -920,129 +925,129 @@ uint256 internal constant BATCH_SCALAR_68_LOC = 0x6f00;
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                             SHPLEMINI - RUNTIME MEMORY - INVERSIONS                              */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant GEMINI_R_INV_LOC = 0x6f20;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_0_LOC = 0x6f40;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_1_LOC = 0x6f60;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_2_LOC = 0x6f80;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_3_LOC = 0x6fa0;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_4_LOC = 0x6fc0;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_5_LOC = 0x6fe0;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_6_LOC = 0x7000;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_7_LOC = 0x7020;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_8_LOC = 0x7040;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_9_LOC = 0x7060;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_10_LOC = 0x7080;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_11_LOC = 0x70a0;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_12_LOC = 0x70c0;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_13_LOC = 0x70e0;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_14_LOC = 0x7100;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_15_LOC = 0x7120;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_16_LOC = 0x7140;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_17_LOC = 0x7160;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_18_LOC = 0x7180;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_19_LOC = 0x71a0;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_20_LOC = 0x71c0;
-uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_21_LOC = 0x71e0;
+uint256 internal constant GEMINI_R_INV_LOC = 0x6fc0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_0_LOC = 0x6fe0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_1_LOC = 0x7000;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_2_LOC = 0x7020;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_3_LOC = 0x7040;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_4_LOC = 0x7060;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_5_LOC = 0x7080;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_6_LOC = 0x70a0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_7_LOC = 0x70c0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_8_LOC = 0x70e0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_9_LOC = 0x7100;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_10_LOC = 0x7120;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_11_LOC = 0x7140;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_12_LOC = 0x7160;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_13_LOC = 0x7180;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_14_LOC = 0x71a0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_15_LOC = 0x71c0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_16_LOC = 0x71e0;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_17_LOC = 0x7200;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_18_LOC = 0x7220;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_19_LOC = 0x7240;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_20_LOC = 0x7260;
+uint256 internal constant BATCH_EVALUATION_ACCUMULATOR_INVERSION_21_LOC = 0x7280;
 
-uint256 internal constant CONSTANT_TERM_ACCUMULATOR_LOC = 0x7200;
+uint256 internal constant CONSTANT_TERM_ACCUMULATOR_LOC = 0x72a0;
 
-uint256 internal constant POS_INVERTED_DENOMINATOR = 0x7220;
-uint256 internal constant NEG_INVERTED_DENOMINATOR = 0x7240;
+uint256 internal constant POS_INVERTED_DENOMINATOR = 0x72c0;
+uint256 internal constant NEG_INVERTED_DENOMINATOR = 0x72e0;
 
 // LOG_N challenge pow minus u
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_0_LOC = 0x7260;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_1_LOC = 0x7280;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_2_LOC = 0x72a0;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_3_LOC = 0x72c0;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_4_LOC = 0x72e0;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_5_LOC = 0x7300;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_6_LOC = 0x7320;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_7_LOC = 0x7340;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_8_LOC = 0x7360;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_9_LOC = 0x7380;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_10_LOC = 0x73a0;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_11_LOC = 0x73c0;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_12_LOC = 0x73e0;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_13_LOC = 0x7400;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_14_LOC = 0x7420;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_15_LOC = 0x7440;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_16_LOC = 0x7460;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_17_LOC = 0x7480;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_18_LOC = 0x74a0;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_19_LOC = 0x74c0;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_20_LOC = 0x74e0;
-uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_21_LOC = 0x7500;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_0_LOC = 0x7300;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_1_LOC = 0x7320;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_2_LOC = 0x7340;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_3_LOC = 0x7360;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_4_LOC = 0x7380;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_5_LOC = 0x73a0;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_6_LOC = 0x73c0;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_7_LOC = 0x73e0;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_8_LOC = 0x7400;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_9_LOC = 0x7420;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_10_LOC = 0x7440;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_11_LOC = 0x7460;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_12_LOC = 0x7480;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_13_LOC = 0x74a0;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_14_LOC = 0x74c0;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_15_LOC = 0x74e0;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_16_LOC = 0x7500;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_17_LOC = 0x7520;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_18_LOC = 0x7540;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_19_LOC = 0x7560;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_20_LOC = 0x7580;
+uint256 internal constant INVERTED_CHALLENGE_POW_MINUS_U_21_LOC = 0x75a0;
 
 // LOG_N pos_inverted_off
-uint256 internal constant POS_INVERTED_DENOM_0_LOC = 0x7520;
-uint256 internal constant POS_INVERTED_DENOM_1_LOC = 0x7540;
-uint256 internal constant POS_INVERTED_DENOM_2_LOC = 0x7560;
-uint256 internal constant POS_INVERTED_DENOM_3_LOC = 0x7580;
-uint256 internal constant POS_INVERTED_DENOM_4_LOC = 0x75a0;
-uint256 internal constant POS_INVERTED_DENOM_5_LOC = 0x75c0;
-uint256 internal constant POS_INVERTED_DENOM_6_LOC = 0x75e0;
-uint256 internal constant POS_INVERTED_DENOM_7_LOC = 0x7600;
-uint256 internal constant POS_INVERTED_DENOM_8_LOC = 0x7620;
-uint256 internal constant POS_INVERTED_DENOM_9_LOC = 0x7640;
-uint256 internal constant POS_INVERTED_DENOM_10_LOC = 0x7660;
-uint256 internal constant POS_INVERTED_DENOM_11_LOC = 0x7680;
-uint256 internal constant POS_INVERTED_DENOM_12_LOC = 0x76a0;
-uint256 internal constant POS_INVERTED_DENOM_13_LOC = 0x76c0;
-uint256 internal constant POS_INVERTED_DENOM_14_LOC = 0x76e0;
-uint256 internal constant POS_INVERTED_DENOM_15_LOC = 0x7700;
-uint256 internal constant POS_INVERTED_DENOM_16_LOC = 0x7720;
-uint256 internal constant POS_INVERTED_DENOM_17_LOC = 0x7740;
-uint256 internal constant POS_INVERTED_DENOM_18_LOC = 0x7760;
-uint256 internal constant POS_INVERTED_DENOM_19_LOC = 0x7780;
-uint256 internal constant POS_INVERTED_DENOM_20_LOC = 0x77a0;
-uint256 internal constant POS_INVERTED_DENOM_21_LOC = 0x77c0;
+uint256 internal constant POS_INVERTED_DENOM_0_LOC = 0x75c0;
+uint256 internal constant POS_INVERTED_DENOM_1_LOC = 0x75e0;
+uint256 internal constant POS_INVERTED_DENOM_2_LOC = 0x7600;
+uint256 internal constant POS_INVERTED_DENOM_3_LOC = 0x7620;
+uint256 internal constant POS_INVERTED_DENOM_4_LOC = 0x7640;
+uint256 internal constant POS_INVERTED_DENOM_5_LOC = 0x7660;
+uint256 internal constant POS_INVERTED_DENOM_6_LOC = 0x7680;
+uint256 internal constant POS_INVERTED_DENOM_7_LOC = 0x76a0;
+uint256 internal constant POS_INVERTED_DENOM_8_LOC = 0x76c0;
+uint256 internal constant POS_INVERTED_DENOM_9_LOC = 0x76e0;
+uint256 internal constant POS_INVERTED_DENOM_10_LOC = 0x7700;
+uint256 internal constant POS_INVERTED_DENOM_11_LOC = 0x7720;
+uint256 internal constant POS_INVERTED_DENOM_12_LOC = 0x7740;
+uint256 internal constant POS_INVERTED_DENOM_13_LOC = 0x7760;
+uint256 internal constant POS_INVERTED_DENOM_14_LOC = 0x7780;
+uint256 internal constant POS_INVERTED_DENOM_15_LOC = 0x77a0;
+uint256 internal constant POS_INVERTED_DENOM_16_LOC = 0x77c0;
+uint256 internal constant POS_INVERTED_DENOM_17_LOC = 0x77e0;
+uint256 internal constant POS_INVERTED_DENOM_18_LOC = 0x7800;
+uint256 internal constant POS_INVERTED_DENOM_19_LOC = 0x7820;
+uint256 internal constant POS_INVERTED_DENOM_20_LOC = 0x7840;
+uint256 internal constant POS_INVERTED_DENOM_21_LOC = 0x7860;
 
 // LOG_N neg_inverted_off
-uint256 internal constant NEG_INVERTED_DENOM_0_LOC = 0x77e0;
-uint256 internal constant NEG_INVERTED_DENOM_1_LOC = 0x7800;
-uint256 internal constant NEG_INVERTED_DENOM_2_LOC = 0x7820;
-uint256 internal constant NEG_INVERTED_DENOM_3_LOC = 0x7840;
-uint256 internal constant NEG_INVERTED_DENOM_4_LOC = 0x7860;
-uint256 internal constant NEG_INVERTED_DENOM_5_LOC = 0x7880;
-uint256 internal constant NEG_INVERTED_DENOM_6_LOC = 0x78a0;
-uint256 internal constant NEG_INVERTED_DENOM_7_LOC = 0x78c0;
-uint256 internal constant NEG_INVERTED_DENOM_8_LOC = 0x78e0;
-uint256 internal constant NEG_INVERTED_DENOM_9_LOC = 0x7900;
-uint256 internal constant NEG_INVERTED_DENOM_10_LOC = 0x7920;
-uint256 internal constant NEG_INVERTED_DENOM_11_LOC = 0x7940;
-uint256 internal constant NEG_INVERTED_DENOM_12_LOC = 0x7960;
-uint256 internal constant NEG_INVERTED_DENOM_13_LOC = 0x7980;
-uint256 internal constant NEG_INVERTED_DENOM_14_LOC = 0x79a0;
-uint256 internal constant NEG_INVERTED_DENOM_15_LOC = 0x79c0;
-uint256 internal constant NEG_INVERTED_DENOM_16_LOC = 0x79e0;
-uint256 internal constant NEG_INVERTED_DENOM_17_LOC = 0x7a00;
-uint256 internal constant NEG_INVERTED_DENOM_18_LOC = 0x7a20;
-uint256 internal constant NEG_INVERTED_DENOM_19_LOC = 0x7a40;
-uint256 internal constant NEG_INVERTED_DENOM_20_LOC = 0x7a60;
-uint256 internal constant NEG_INVERTED_DENOM_21_LOC = 0x7a80;
+uint256 internal constant NEG_INVERTED_DENOM_0_LOC = 0x7880;
+uint256 internal constant NEG_INVERTED_DENOM_1_LOC = 0x78a0;
+uint256 internal constant NEG_INVERTED_DENOM_2_LOC = 0x78c0;
+uint256 internal constant NEG_INVERTED_DENOM_3_LOC = 0x78e0;
+uint256 internal constant NEG_INVERTED_DENOM_4_LOC = 0x7900;
+uint256 internal constant NEG_INVERTED_DENOM_5_LOC = 0x7920;
+uint256 internal constant NEG_INVERTED_DENOM_6_LOC = 0x7940;
+uint256 internal constant NEG_INVERTED_DENOM_7_LOC = 0x7960;
+uint256 internal constant NEG_INVERTED_DENOM_8_LOC = 0x7980;
+uint256 internal constant NEG_INVERTED_DENOM_9_LOC = 0x79a0;
+uint256 internal constant NEG_INVERTED_DENOM_10_LOC = 0x79c0;
+uint256 internal constant NEG_INVERTED_DENOM_11_LOC = 0x79e0;
+uint256 internal constant NEG_INVERTED_DENOM_12_LOC = 0x7a00;
+uint256 internal constant NEG_INVERTED_DENOM_13_LOC = 0x7a20;
+uint256 internal constant NEG_INVERTED_DENOM_14_LOC = 0x7a40;
+uint256 internal constant NEG_INVERTED_DENOM_15_LOC = 0x7a60;
+uint256 internal constant NEG_INVERTED_DENOM_16_LOC = 0x7a80;
+uint256 internal constant NEG_INVERTED_DENOM_17_LOC = 0x7aa0;
+uint256 internal constant NEG_INVERTED_DENOM_18_LOC = 0x7ac0;
+uint256 internal constant NEG_INVERTED_DENOM_19_LOC = 0x7ae0;
+uint256 internal constant NEG_INVERTED_DENOM_20_LOC = 0x7b00;
+uint256 internal constant NEG_INVERTED_DENOM_21_LOC = 0x7b20;
 
-uint256 internal constant FOLD_POS_EVALUATIONS_0_LOC = 0x7aa0;
-uint256 internal constant FOLD_POS_EVALUATIONS_1_LOC = 0x7ac0;
-uint256 internal constant FOLD_POS_EVALUATIONS_2_LOC = 0x7ae0;
-uint256 internal constant FOLD_POS_EVALUATIONS_3_LOC = 0x7b00;
-uint256 internal constant FOLD_POS_EVALUATIONS_4_LOC = 0x7b20;
-uint256 internal constant FOLD_POS_EVALUATIONS_5_LOC = 0x7b40;
-uint256 internal constant FOLD_POS_EVALUATIONS_6_LOC = 0x7b60;
-uint256 internal constant FOLD_POS_EVALUATIONS_7_LOC = 0x7b80;
-uint256 internal constant FOLD_POS_EVALUATIONS_8_LOC = 0x7ba0;
-uint256 internal constant FOLD_POS_EVALUATIONS_9_LOC = 0x7bc0;
-uint256 internal constant FOLD_POS_EVALUATIONS_10_LOC = 0x7be0;
-uint256 internal constant FOLD_POS_EVALUATIONS_11_LOC = 0x7c00;
-uint256 internal constant FOLD_POS_EVALUATIONS_12_LOC = 0x7c20;
-uint256 internal constant FOLD_POS_EVALUATIONS_13_LOC = 0x7c40;
-uint256 internal constant FOLD_POS_EVALUATIONS_14_LOC = 0x7c60;
-uint256 internal constant FOLD_POS_EVALUATIONS_15_LOC = 0x7c80;
-uint256 internal constant FOLD_POS_EVALUATIONS_16_LOC = 0x7ca0;
-uint256 internal constant FOLD_POS_EVALUATIONS_17_LOC = 0x7cc0;
-uint256 internal constant FOLD_POS_EVALUATIONS_18_LOC = 0x7ce0;
-uint256 internal constant FOLD_POS_EVALUATIONS_19_LOC = 0x7d00;
-uint256 internal constant FOLD_POS_EVALUATIONS_20_LOC = 0x7d20;
-uint256 internal constant FOLD_POS_EVALUATIONS_21_LOC = 0x7d40;
+uint256 internal constant FOLD_POS_EVALUATIONS_0_LOC = 0x7b40;
+uint256 internal constant FOLD_POS_EVALUATIONS_1_LOC = 0x7b60;
+uint256 internal constant FOLD_POS_EVALUATIONS_2_LOC = 0x7b80;
+uint256 internal constant FOLD_POS_EVALUATIONS_3_LOC = 0x7ba0;
+uint256 internal constant FOLD_POS_EVALUATIONS_4_LOC = 0x7bc0;
+uint256 internal constant FOLD_POS_EVALUATIONS_5_LOC = 0x7be0;
+uint256 internal constant FOLD_POS_EVALUATIONS_6_LOC = 0x7c00;
+uint256 internal constant FOLD_POS_EVALUATIONS_7_LOC = 0x7c20;
+uint256 internal constant FOLD_POS_EVALUATIONS_8_LOC = 0x7c40;
+uint256 internal constant FOLD_POS_EVALUATIONS_9_LOC = 0x7c60;
+uint256 internal constant FOLD_POS_EVALUATIONS_10_LOC = 0x7c80;
+uint256 internal constant FOLD_POS_EVALUATIONS_11_LOC = 0x7ca0;
+uint256 internal constant FOLD_POS_EVALUATIONS_12_LOC = 0x7cc0;
+uint256 internal constant FOLD_POS_EVALUATIONS_13_LOC = 0x7ce0;
+uint256 internal constant FOLD_POS_EVALUATIONS_14_LOC = 0x7d00;
+uint256 internal constant FOLD_POS_EVALUATIONS_15_LOC = 0x7d20;
+uint256 internal constant FOLD_POS_EVALUATIONS_16_LOC = 0x7d40;
+uint256 internal constant FOLD_POS_EVALUATIONS_17_LOC = 0x7d60;
+uint256 internal constant FOLD_POS_EVALUATIONS_18_LOC = 0x7d80;
+uint256 internal constant FOLD_POS_EVALUATIONS_19_LOC = 0x7da0;
+uint256 internal constant FOLD_POS_EVALUATIONS_20_LOC = 0x7dc0;
+uint256 internal constant FOLD_POS_EVALUATIONS_21_LOC = 0x7de0;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                         SHPLEMINI RUNTIME MEMORY - INVERSIONS - COMPLETE                         */
@@ -1052,256 +1057,256 @@ uint256 internal constant FOLD_POS_EVALUATIONS_21_LOC = 0x7d40;
 /*                               SHPLEMINI RUNTIME MEMORY - COMPLETE                                */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-uint256 internal constant BARYCENTRIC_TEMP_0_LOC = 0x7d60;
-uint256 internal constant BARYCENTRIC_TEMP_1_LOC = 0x7d80;
-uint256 internal constant BARYCENTRIC_TEMP_2_LOC = 0x7da0;
-uint256 internal constant BARYCENTRIC_TEMP_3_LOC = 0x7dc0;
-uint256 internal constant BARYCENTRIC_TEMP_4_LOC = 0x7de0;
-uint256 internal constant BARYCENTRIC_TEMP_5_LOC = 0x7e00;
-uint256 internal constant BARYCENTRIC_TEMP_6_LOC = 0x7e20;
-uint256 internal constant BARYCENTRIC_TEMP_7_LOC = 0x7e40;
-uint256 internal constant BARYCENTRIC_TEMP_8_LOC = 0x7e60;
-uint256 internal constant BARYCENTRIC_TEMP_9_LOC = 0x7e80;
-uint256 internal constant BARYCENTRIC_TEMP_10_LOC = 0x7ea0;
-uint256 internal constant BARYCENTRIC_TEMP_11_LOC = 0x7ec0;
-uint256 internal constant BARYCENTRIC_TEMP_12_LOC = 0x7ee0;
-uint256 internal constant BARYCENTRIC_TEMP_13_LOC = 0x7f00;
-uint256 internal constant BARYCENTRIC_TEMP_14_LOC = 0x7f20;
-uint256 internal constant BARYCENTRIC_TEMP_15_LOC = 0x7f40;
-uint256 internal constant BARYCENTRIC_TEMP_16_LOC = 0x7f60;
-uint256 internal constant BARYCENTRIC_TEMP_17_LOC = 0x7f80;
-uint256 internal constant BARYCENTRIC_TEMP_18_LOC = 0x7fa0;
-uint256 internal constant BARYCENTRIC_TEMP_19_LOC = 0x7fc0;
-uint256 internal constant BARYCENTRIC_TEMP_20_LOC = 0x7fe0;
-uint256 internal constant BARYCENTRIC_TEMP_21_LOC = 0x8000;
-uint256 internal constant BARYCENTRIC_TEMP_22_LOC = 0x8020;
-uint256 internal constant BARYCENTRIC_TEMP_23_LOC = 0x8040;
-uint256 internal constant BARYCENTRIC_TEMP_24_LOC = 0x8060;
-uint256 internal constant BARYCENTRIC_TEMP_25_LOC = 0x8080;
-uint256 internal constant BARYCENTRIC_TEMP_26_LOC = 0x80a0;
-uint256 internal constant BARYCENTRIC_TEMP_27_LOC = 0x80c0;
-uint256 internal constant BARYCENTRIC_TEMP_28_LOC = 0x80e0;
-uint256 internal constant BARYCENTRIC_TEMP_29_LOC = 0x8100;
-uint256 internal constant BARYCENTRIC_TEMP_30_LOC = 0x8120;
-uint256 internal constant BARYCENTRIC_TEMP_31_LOC = 0x8140;
-uint256 internal constant BARYCENTRIC_TEMP_32_LOC = 0x8160;
-uint256 internal constant BARYCENTRIC_TEMP_33_LOC = 0x8180;
-uint256 internal constant BARYCENTRIC_TEMP_34_LOC = 0x81a0;
-uint256 internal constant BARYCENTRIC_TEMP_35_LOC = 0x81c0;
-uint256 internal constant BARYCENTRIC_TEMP_36_LOC = 0x81e0;
-uint256 internal constant BARYCENTRIC_TEMP_37_LOC = 0x8200;
-uint256 internal constant BARYCENTRIC_TEMP_38_LOC = 0x8220;
-uint256 internal constant BARYCENTRIC_TEMP_39_LOC = 0x8240;
-uint256 internal constant BARYCENTRIC_TEMP_40_LOC = 0x8260;
-uint256 internal constant BARYCENTRIC_TEMP_41_LOC = 0x8280;
-uint256 internal constant BARYCENTRIC_TEMP_42_LOC = 0x82a0;
-uint256 internal constant BARYCENTRIC_TEMP_43_LOC = 0x82c0;
-uint256 internal constant BARYCENTRIC_TEMP_44_LOC = 0x82e0;
-uint256 internal constant BARYCENTRIC_TEMP_45_LOC = 0x8300;
-uint256 internal constant BARYCENTRIC_TEMP_46_LOC = 0x8320;
-uint256 internal constant BARYCENTRIC_TEMP_47_LOC = 0x8340;
-uint256 internal constant BARYCENTRIC_TEMP_48_LOC = 0x8360;
-uint256 internal constant BARYCENTRIC_TEMP_49_LOC = 0x8380;
-uint256 internal constant BARYCENTRIC_TEMP_50_LOC = 0x83a0;
-uint256 internal constant BARYCENTRIC_TEMP_51_LOC = 0x83c0;
-uint256 internal constant BARYCENTRIC_TEMP_52_LOC = 0x83e0;
-uint256 internal constant BARYCENTRIC_TEMP_53_LOC = 0x8400;
-uint256 internal constant BARYCENTRIC_TEMP_54_LOC = 0x8420;
-uint256 internal constant BARYCENTRIC_TEMP_55_LOC = 0x8440;
-uint256 internal constant BARYCENTRIC_TEMP_56_LOC = 0x8460;
-uint256 internal constant BARYCENTRIC_TEMP_57_LOC = 0x8480;
-uint256 internal constant BARYCENTRIC_TEMP_58_LOC = 0x84a0;
-uint256 internal constant BARYCENTRIC_TEMP_59_LOC = 0x84c0;
-uint256 internal constant BARYCENTRIC_TEMP_60_LOC = 0x84e0;
-uint256 internal constant BARYCENTRIC_TEMP_61_LOC = 0x8500;
-uint256 internal constant BARYCENTRIC_TEMP_62_LOC = 0x8520;
-uint256 internal constant BARYCENTRIC_TEMP_63_LOC = 0x8540;
-uint256 internal constant BARYCENTRIC_TEMP_64_LOC = 0x8560;
-uint256 internal constant BARYCENTRIC_TEMP_65_LOC = 0x8580;
-uint256 internal constant BARYCENTRIC_TEMP_66_LOC = 0x85a0;
-uint256 internal constant BARYCENTRIC_TEMP_67_LOC = 0x85c0;
-uint256 internal constant BARYCENTRIC_TEMP_68_LOC = 0x85e0;
-uint256 internal constant BARYCENTRIC_TEMP_69_LOC = 0x8600;
-uint256 internal constant BARYCENTRIC_TEMP_70_LOC = 0x8620;
-uint256 internal constant BARYCENTRIC_TEMP_71_LOC = 0x8640;
-uint256 internal constant BARYCENTRIC_TEMP_72_LOC = 0x8660;
-uint256 internal constant BARYCENTRIC_TEMP_73_LOC = 0x8680;
-uint256 internal constant BARYCENTRIC_TEMP_74_LOC = 0x86a0;
-uint256 internal constant BARYCENTRIC_TEMP_75_LOC = 0x86c0;
-uint256 internal constant BARYCENTRIC_TEMP_76_LOC = 0x86e0;
-uint256 internal constant BARYCENTRIC_TEMP_77_LOC = 0x8700;
-uint256 internal constant BARYCENTRIC_TEMP_78_LOC = 0x8720;
-uint256 internal constant BARYCENTRIC_TEMP_79_LOC = 0x8740;
-uint256 internal constant BARYCENTRIC_TEMP_80_LOC = 0x8760;
-uint256 internal constant BARYCENTRIC_TEMP_81_LOC = 0x8780;
-uint256 internal constant BARYCENTRIC_TEMP_82_LOC = 0x87a0;
-uint256 internal constant BARYCENTRIC_TEMP_83_LOC = 0x87c0;
-uint256 internal constant BARYCENTRIC_TEMP_84_LOC = 0x87e0;
-uint256 internal constant BARYCENTRIC_TEMP_85_LOC = 0x8800;
-uint256 internal constant BARYCENTRIC_TEMP_86_LOC = 0x8820;
-uint256 internal constant BARYCENTRIC_TEMP_87_LOC = 0x8840;
-uint256 internal constant BARYCENTRIC_TEMP_88_LOC = 0x8860;
-uint256 internal constant BARYCENTRIC_TEMP_89_LOC = 0x8880;
-uint256 internal constant BARYCENTRIC_TEMP_90_LOC = 0x88a0;
-uint256 internal constant BARYCENTRIC_TEMP_91_LOC = 0x88c0;
-uint256 internal constant BARYCENTRIC_TEMP_92_LOC = 0x88e0;
-uint256 internal constant BARYCENTRIC_TEMP_93_LOC = 0x8900;
-uint256 internal constant BARYCENTRIC_TEMP_94_LOC = 0x8920;
-uint256 internal constant BARYCENTRIC_TEMP_95_LOC = 0x8940;
-uint256 internal constant BARYCENTRIC_TEMP_96_LOC = 0x8960;
-uint256 internal constant BARYCENTRIC_TEMP_97_LOC = 0x8980;
-uint256 internal constant BARYCENTRIC_TEMP_98_LOC = 0x89a0;
-uint256 internal constant BARYCENTRIC_TEMP_99_LOC = 0x89c0;
-uint256 internal constant BARYCENTRIC_TEMP_100_LOC = 0x89e0;
-uint256 internal constant BARYCENTRIC_TEMP_101_LOC = 0x8a00;
-uint256 internal constant BARYCENTRIC_TEMP_102_LOC = 0x8a20;
-uint256 internal constant BARYCENTRIC_TEMP_103_LOC = 0x8a40;
-uint256 internal constant BARYCENTRIC_TEMP_104_LOC = 0x8a60;
-uint256 internal constant BARYCENTRIC_TEMP_105_LOC = 0x8a80;
-uint256 internal constant BARYCENTRIC_TEMP_106_LOC = 0x8aa0;
-uint256 internal constant BARYCENTRIC_TEMP_107_LOC = 0x8ac0;
-uint256 internal constant BARYCENTRIC_TEMP_108_LOC = 0x8ae0;
-uint256 internal constant BARYCENTRIC_TEMP_109_LOC = 0x8b00;
-uint256 internal constant BARYCENTRIC_TEMP_110_LOC = 0x8b20;
-uint256 internal constant BARYCENTRIC_TEMP_111_LOC = 0x8b40;
-uint256 internal constant BARYCENTRIC_TEMP_112_LOC = 0x8b60;
-uint256 internal constant BARYCENTRIC_TEMP_113_LOC = 0x8b80;
-uint256 internal constant BARYCENTRIC_TEMP_114_LOC = 0x8ba0;
-uint256 internal constant BARYCENTRIC_TEMP_115_LOC = 0x8bc0;
-uint256 internal constant BARYCENTRIC_TEMP_116_LOC = 0x8be0;
-uint256 internal constant BARYCENTRIC_TEMP_117_LOC = 0x8c00;
-uint256 internal constant BARYCENTRIC_TEMP_118_LOC = 0x8c20;
-uint256 internal constant BARYCENTRIC_TEMP_119_LOC = 0x8c40;
-uint256 internal constant BARYCENTRIC_TEMP_120_LOC = 0x8c60;
-uint256 internal constant BARYCENTRIC_TEMP_121_LOC = 0x8c80;
-uint256 internal constant BARYCENTRIC_TEMP_122_LOC = 0x8ca0;
-uint256 internal constant BARYCENTRIC_TEMP_123_LOC = 0x8cc0;
-uint256 internal constant BARYCENTRIC_TEMP_124_LOC = 0x8ce0;
-uint256 internal constant BARYCENTRIC_TEMP_125_LOC = 0x8d00;
-uint256 internal constant BARYCENTRIC_TEMP_126_LOC = 0x8d20;
-uint256 internal constant BARYCENTRIC_TEMP_127_LOC = 0x8d40;
-uint256 internal constant BARYCENTRIC_TEMP_128_LOC = 0x8d60;
-uint256 internal constant BARYCENTRIC_TEMP_129_LOC = 0x8d80;
-uint256 internal constant BARYCENTRIC_TEMP_130_LOC = 0x8da0;
-uint256 internal constant BARYCENTRIC_TEMP_131_LOC = 0x8dc0;
-uint256 internal constant BARYCENTRIC_TEMP_132_LOC = 0x8de0;
-uint256 internal constant BARYCENTRIC_TEMP_133_LOC = 0x8e00;
-uint256 internal constant BARYCENTRIC_TEMP_134_LOC = 0x8e20;
-uint256 internal constant BARYCENTRIC_TEMP_135_LOC = 0x8e40;
-uint256 internal constant BARYCENTRIC_TEMP_136_LOC = 0x8e60;
-uint256 internal constant BARYCENTRIC_TEMP_137_LOC = 0x8e80;
-uint256 internal constant BARYCENTRIC_TEMP_138_LOC = 0x8ea0;
-uint256 internal constant BARYCENTRIC_TEMP_139_LOC = 0x8ec0;
-uint256 internal constant BARYCENTRIC_TEMP_140_LOC = 0x8ee0;
-uint256 internal constant BARYCENTRIC_TEMP_141_LOC = 0x8f00;
-uint256 internal constant BARYCENTRIC_TEMP_142_LOC = 0x8f20;
-uint256 internal constant BARYCENTRIC_TEMP_143_LOC = 0x8f40;
-uint256 internal constant BARYCENTRIC_TEMP_144_LOC = 0x8f60;
-uint256 internal constant BARYCENTRIC_TEMP_145_LOC = 0x8f80;
-uint256 internal constant BARYCENTRIC_TEMP_146_LOC = 0x8fa0;
-uint256 internal constant BARYCENTRIC_TEMP_147_LOC = 0x8fc0;
-uint256 internal constant BARYCENTRIC_TEMP_148_LOC = 0x8fe0;
-uint256 internal constant BARYCENTRIC_TEMP_149_LOC = 0x9000;
-uint256 internal constant BARYCENTRIC_TEMP_150_LOC = 0x9020;
-uint256 internal constant BARYCENTRIC_TEMP_151_LOC = 0x9040;
-uint256 internal constant BARYCENTRIC_TEMP_152_LOC = 0x9060;
-uint256 internal constant BARYCENTRIC_TEMP_153_LOC = 0x9080;
-uint256 internal constant BARYCENTRIC_TEMP_154_LOC = 0x90a0;
-uint256 internal constant BARYCENTRIC_TEMP_155_LOC = 0x90c0;
-uint256 internal constant BARYCENTRIC_TEMP_156_LOC = 0x90e0;
-uint256 internal constant BARYCENTRIC_TEMP_157_LOC = 0x9100;
-uint256 internal constant BARYCENTRIC_TEMP_158_LOC = 0x9120;
-uint256 internal constant BARYCENTRIC_TEMP_159_LOC = 0x9140;
-uint256 internal constant BARYCENTRIC_TEMP_160_LOC = 0x9160;
-uint256 internal constant BARYCENTRIC_TEMP_161_LOC = 0x9180;
-uint256 internal constant BARYCENTRIC_TEMP_162_LOC = 0x91a0;
-uint256 internal constant BARYCENTRIC_TEMP_163_LOC = 0x91c0;
-uint256 internal constant BARYCENTRIC_TEMP_164_LOC = 0x91e0;
-uint256 internal constant BARYCENTRIC_TEMP_165_LOC = 0x9200;
-uint256 internal constant BARYCENTRIC_TEMP_166_LOC = 0x9220;
-uint256 internal constant BARYCENTRIC_TEMP_167_LOC = 0x9240;
-uint256 internal constant BARYCENTRIC_TEMP_168_LOC = 0x9260;
-uint256 internal constant BARYCENTRIC_TEMP_169_LOC = 0x9280;
-uint256 internal constant BARYCENTRIC_TEMP_170_LOC = 0x92a0;
-uint256 internal constant BARYCENTRIC_TEMP_171_LOC = 0x92c0;
-uint256 internal constant BARYCENTRIC_TEMP_172_LOC = 0x92e0;
-uint256 internal constant BARYCENTRIC_TEMP_173_LOC = 0x9300;
-uint256 internal constant BARYCENTRIC_TEMP_174_LOC = 0x9320;
-uint256 internal constant BARYCENTRIC_TEMP_175_LOC = 0x9340;
-uint256 internal constant PUBLIC_INPUTS_DENOM_TEMP_LOC = 0x9360;
-uint256 internal constant GEMINI_R_INV_TEMP_LOC = 0x9380;
-uint256 internal constant BATCH_PRODUCT_TEMP_LOC = 0x93a0;
+uint256 internal constant BARYCENTRIC_TEMP_0_LOC = 0x7e00;
+uint256 internal constant BARYCENTRIC_TEMP_1_LOC = 0x7e20;
+uint256 internal constant BARYCENTRIC_TEMP_2_LOC = 0x7e40;
+uint256 internal constant BARYCENTRIC_TEMP_3_LOC = 0x7e60;
+uint256 internal constant BARYCENTRIC_TEMP_4_LOC = 0x7e80;
+uint256 internal constant BARYCENTRIC_TEMP_5_LOC = 0x7ea0;
+uint256 internal constant BARYCENTRIC_TEMP_6_LOC = 0x7ec0;
+uint256 internal constant BARYCENTRIC_TEMP_7_LOC = 0x7ee0;
+uint256 internal constant BARYCENTRIC_TEMP_8_LOC = 0x7f00;
+uint256 internal constant BARYCENTRIC_TEMP_9_LOC = 0x7f20;
+uint256 internal constant BARYCENTRIC_TEMP_10_LOC = 0x7f40;
+uint256 internal constant BARYCENTRIC_TEMP_11_LOC = 0x7f60;
+uint256 internal constant BARYCENTRIC_TEMP_12_LOC = 0x7f80;
+uint256 internal constant BARYCENTRIC_TEMP_13_LOC = 0x7fa0;
+uint256 internal constant BARYCENTRIC_TEMP_14_LOC = 0x7fc0;
+uint256 internal constant BARYCENTRIC_TEMP_15_LOC = 0x7fe0;
+uint256 internal constant BARYCENTRIC_TEMP_16_LOC = 0x8000;
+uint256 internal constant BARYCENTRIC_TEMP_17_LOC = 0x8020;
+uint256 internal constant BARYCENTRIC_TEMP_18_LOC = 0x8040;
+uint256 internal constant BARYCENTRIC_TEMP_19_LOC = 0x8060;
+uint256 internal constant BARYCENTRIC_TEMP_20_LOC = 0x8080;
+uint256 internal constant BARYCENTRIC_TEMP_21_LOC = 0x80a0;
+uint256 internal constant BARYCENTRIC_TEMP_22_LOC = 0x80c0;
+uint256 internal constant BARYCENTRIC_TEMP_23_LOC = 0x80e0;
+uint256 internal constant BARYCENTRIC_TEMP_24_LOC = 0x8100;
+uint256 internal constant BARYCENTRIC_TEMP_25_LOC = 0x8120;
+uint256 internal constant BARYCENTRIC_TEMP_26_LOC = 0x8140;
+uint256 internal constant BARYCENTRIC_TEMP_27_LOC = 0x8160;
+uint256 internal constant BARYCENTRIC_TEMP_28_LOC = 0x8180;
+uint256 internal constant BARYCENTRIC_TEMP_29_LOC = 0x81a0;
+uint256 internal constant BARYCENTRIC_TEMP_30_LOC = 0x81c0;
+uint256 internal constant BARYCENTRIC_TEMP_31_LOC = 0x81e0;
+uint256 internal constant BARYCENTRIC_TEMP_32_LOC = 0x8200;
+uint256 internal constant BARYCENTRIC_TEMP_33_LOC = 0x8220;
+uint256 internal constant BARYCENTRIC_TEMP_34_LOC = 0x8240;
+uint256 internal constant BARYCENTRIC_TEMP_35_LOC = 0x8260;
+uint256 internal constant BARYCENTRIC_TEMP_36_LOC = 0x8280;
+uint256 internal constant BARYCENTRIC_TEMP_37_LOC = 0x82a0;
+uint256 internal constant BARYCENTRIC_TEMP_38_LOC = 0x82c0;
+uint256 internal constant BARYCENTRIC_TEMP_39_LOC = 0x82e0;
+uint256 internal constant BARYCENTRIC_TEMP_40_LOC = 0x8300;
+uint256 internal constant BARYCENTRIC_TEMP_41_LOC = 0x8320;
+uint256 internal constant BARYCENTRIC_TEMP_42_LOC = 0x8340;
+uint256 internal constant BARYCENTRIC_TEMP_43_LOC = 0x8360;
+uint256 internal constant BARYCENTRIC_TEMP_44_LOC = 0x8380;
+uint256 internal constant BARYCENTRIC_TEMP_45_LOC = 0x83a0;
+uint256 internal constant BARYCENTRIC_TEMP_46_LOC = 0x83c0;
+uint256 internal constant BARYCENTRIC_TEMP_47_LOC = 0x83e0;
+uint256 internal constant BARYCENTRIC_TEMP_48_LOC = 0x8400;
+uint256 internal constant BARYCENTRIC_TEMP_49_LOC = 0x8420;
+uint256 internal constant BARYCENTRIC_TEMP_50_LOC = 0x8440;
+uint256 internal constant BARYCENTRIC_TEMP_51_LOC = 0x8460;
+uint256 internal constant BARYCENTRIC_TEMP_52_LOC = 0x8480;
+uint256 internal constant BARYCENTRIC_TEMP_53_LOC = 0x84a0;
+uint256 internal constant BARYCENTRIC_TEMP_54_LOC = 0x84c0;
+uint256 internal constant BARYCENTRIC_TEMP_55_LOC = 0x84e0;
+uint256 internal constant BARYCENTRIC_TEMP_56_LOC = 0x8500;
+uint256 internal constant BARYCENTRIC_TEMP_57_LOC = 0x8520;
+uint256 internal constant BARYCENTRIC_TEMP_58_LOC = 0x8540;
+uint256 internal constant BARYCENTRIC_TEMP_59_LOC = 0x8560;
+uint256 internal constant BARYCENTRIC_TEMP_60_LOC = 0x8580;
+uint256 internal constant BARYCENTRIC_TEMP_61_LOC = 0x85a0;
+uint256 internal constant BARYCENTRIC_TEMP_62_LOC = 0x85c0;
+uint256 internal constant BARYCENTRIC_TEMP_63_LOC = 0x85e0;
+uint256 internal constant BARYCENTRIC_TEMP_64_LOC = 0x8600;
+uint256 internal constant BARYCENTRIC_TEMP_65_LOC = 0x8620;
+uint256 internal constant BARYCENTRIC_TEMP_66_LOC = 0x8640;
+uint256 internal constant BARYCENTRIC_TEMP_67_LOC = 0x8660;
+uint256 internal constant BARYCENTRIC_TEMP_68_LOC = 0x8680;
+uint256 internal constant BARYCENTRIC_TEMP_69_LOC = 0x86a0;
+uint256 internal constant BARYCENTRIC_TEMP_70_LOC = 0x86c0;
+uint256 internal constant BARYCENTRIC_TEMP_71_LOC = 0x86e0;
+uint256 internal constant BARYCENTRIC_TEMP_72_LOC = 0x8700;
+uint256 internal constant BARYCENTRIC_TEMP_73_LOC = 0x8720;
+uint256 internal constant BARYCENTRIC_TEMP_74_LOC = 0x8740;
+uint256 internal constant BARYCENTRIC_TEMP_75_LOC = 0x8760;
+uint256 internal constant BARYCENTRIC_TEMP_76_LOC = 0x8780;
+uint256 internal constant BARYCENTRIC_TEMP_77_LOC = 0x87a0;
+uint256 internal constant BARYCENTRIC_TEMP_78_LOC = 0x87c0;
+uint256 internal constant BARYCENTRIC_TEMP_79_LOC = 0x87e0;
+uint256 internal constant BARYCENTRIC_TEMP_80_LOC = 0x8800;
+uint256 internal constant BARYCENTRIC_TEMP_81_LOC = 0x8820;
+uint256 internal constant BARYCENTRIC_TEMP_82_LOC = 0x8840;
+uint256 internal constant BARYCENTRIC_TEMP_83_LOC = 0x8860;
+uint256 internal constant BARYCENTRIC_TEMP_84_LOC = 0x8880;
+uint256 internal constant BARYCENTRIC_TEMP_85_LOC = 0x88a0;
+uint256 internal constant BARYCENTRIC_TEMP_86_LOC = 0x88c0;
+uint256 internal constant BARYCENTRIC_TEMP_87_LOC = 0x88e0;
+uint256 internal constant BARYCENTRIC_TEMP_88_LOC = 0x8900;
+uint256 internal constant BARYCENTRIC_TEMP_89_LOC = 0x8920;
+uint256 internal constant BARYCENTRIC_TEMP_90_LOC = 0x8940;
+uint256 internal constant BARYCENTRIC_TEMP_91_LOC = 0x8960;
+uint256 internal constant BARYCENTRIC_TEMP_92_LOC = 0x8980;
+uint256 internal constant BARYCENTRIC_TEMP_93_LOC = 0x89a0;
+uint256 internal constant BARYCENTRIC_TEMP_94_LOC = 0x89c0;
+uint256 internal constant BARYCENTRIC_TEMP_95_LOC = 0x89e0;
+uint256 internal constant BARYCENTRIC_TEMP_96_LOC = 0x8a00;
+uint256 internal constant BARYCENTRIC_TEMP_97_LOC = 0x8a20;
+uint256 internal constant BARYCENTRIC_TEMP_98_LOC = 0x8a40;
+uint256 internal constant BARYCENTRIC_TEMP_99_LOC = 0x8a60;
+uint256 internal constant BARYCENTRIC_TEMP_100_LOC = 0x8a80;
+uint256 internal constant BARYCENTRIC_TEMP_101_LOC = 0x8aa0;
+uint256 internal constant BARYCENTRIC_TEMP_102_LOC = 0x8ac0;
+uint256 internal constant BARYCENTRIC_TEMP_103_LOC = 0x8ae0;
+uint256 internal constant BARYCENTRIC_TEMP_104_LOC = 0x8b00;
+uint256 internal constant BARYCENTRIC_TEMP_105_LOC = 0x8b20;
+uint256 internal constant BARYCENTRIC_TEMP_106_LOC = 0x8b40;
+uint256 internal constant BARYCENTRIC_TEMP_107_LOC = 0x8b60;
+uint256 internal constant BARYCENTRIC_TEMP_108_LOC = 0x8b80;
+uint256 internal constant BARYCENTRIC_TEMP_109_LOC = 0x8ba0;
+uint256 internal constant BARYCENTRIC_TEMP_110_LOC = 0x8bc0;
+uint256 internal constant BARYCENTRIC_TEMP_111_LOC = 0x8be0;
+uint256 internal constant BARYCENTRIC_TEMP_112_LOC = 0x8c00;
+uint256 internal constant BARYCENTRIC_TEMP_113_LOC = 0x8c20;
+uint256 internal constant BARYCENTRIC_TEMP_114_LOC = 0x8c40;
+uint256 internal constant BARYCENTRIC_TEMP_115_LOC = 0x8c60;
+uint256 internal constant BARYCENTRIC_TEMP_116_LOC = 0x8c80;
+uint256 internal constant BARYCENTRIC_TEMP_117_LOC = 0x8ca0;
+uint256 internal constant BARYCENTRIC_TEMP_118_LOC = 0x8cc0;
+uint256 internal constant BARYCENTRIC_TEMP_119_LOC = 0x8ce0;
+uint256 internal constant BARYCENTRIC_TEMP_120_LOC = 0x8d00;
+uint256 internal constant BARYCENTRIC_TEMP_121_LOC = 0x8d20;
+uint256 internal constant BARYCENTRIC_TEMP_122_LOC = 0x8d40;
+uint256 internal constant BARYCENTRIC_TEMP_123_LOC = 0x8d60;
+uint256 internal constant BARYCENTRIC_TEMP_124_LOC = 0x8d80;
+uint256 internal constant BARYCENTRIC_TEMP_125_LOC = 0x8da0;
+uint256 internal constant BARYCENTRIC_TEMP_126_LOC = 0x8dc0;
+uint256 internal constant BARYCENTRIC_TEMP_127_LOC = 0x8de0;
+uint256 internal constant BARYCENTRIC_TEMP_128_LOC = 0x8e00;
+uint256 internal constant BARYCENTRIC_TEMP_129_LOC = 0x8e20;
+uint256 internal constant BARYCENTRIC_TEMP_130_LOC = 0x8e40;
+uint256 internal constant BARYCENTRIC_TEMP_131_LOC = 0x8e60;
+uint256 internal constant BARYCENTRIC_TEMP_132_LOC = 0x8e80;
+uint256 internal constant BARYCENTRIC_TEMP_133_LOC = 0x8ea0;
+uint256 internal constant BARYCENTRIC_TEMP_134_LOC = 0x8ec0;
+uint256 internal constant BARYCENTRIC_TEMP_135_LOC = 0x8ee0;
+uint256 internal constant BARYCENTRIC_TEMP_136_LOC = 0x8f00;
+uint256 internal constant BARYCENTRIC_TEMP_137_LOC = 0x8f20;
+uint256 internal constant BARYCENTRIC_TEMP_138_LOC = 0x8f40;
+uint256 internal constant BARYCENTRIC_TEMP_139_LOC = 0x8f60;
+uint256 internal constant BARYCENTRIC_TEMP_140_LOC = 0x8f80;
+uint256 internal constant BARYCENTRIC_TEMP_141_LOC = 0x8fa0;
+uint256 internal constant BARYCENTRIC_TEMP_142_LOC = 0x8fc0;
+uint256 internal constant BARYCENTRIC_TEMP_143_LOC = 0x8fe0;
+uint256 internal constant BARYCENTRIC_TEMP_144_LOC = 0x9000;
+uint256 internal constant BARYCENTRIC_TEMP_145_LOC = 0x9020;
+uint256 internal constant BARYCENTRIC_TEMP_146_LOC = 0x9040;
+uint256 internal constant BARYCENTRIC_TEMP_147_LOC = 0x9060;
+uint256 internal constant BARYCENTRIC_TEMP_148_LOC = 0x9080;
+uint256 internal constant BARYCENTRIC_TEMP_149_LOC = 0x90a0;
+uint256 internal constant BARYCENTRIC_TEMP_150_LOC = 0x90c0;
+uint256 internal constant BARYCENTRIC_TEMP_151_LOC = 0x90e0;
+uint256 internal constant BARYCENTRIC_TEMP_152_LOC = 0x9100;
+uint256 internal constant BARYCENTRIC_TEMP_153_LOC = 0x9120;
+uint256 internal constant BARYCENTRIC_TEMP_154_LOC = 0x9140;
+uint256 internal constant BARYCENTRIC_TEMP_155_LOC = 0x9160;
+uint256 internal constant BARYCENTRIC_TEMP_156_LOC = 0x9180;
+uint256 internal constant BARYCENTRIC_TEMP_157_LOC = 0x91a0;
+uint256 internal constant BARYCENTRIC_TEMP_158_LOC = 0x91c0;
+uint256 internal constant BARYCENTRIC_TEMP_159_LOC = 0x91e0;
+uint256 internal constant BARYCENTRIC_TEMP_160_LOC = 0x9200;
+uint256 internal constant BARYCENTRIC_TEMP_161_LOC = 0x9220;
+uint256 internal constant BARYCENTRIC_TEMP_162_LOC = 0x9240;
+uint256 internal constant BARYCENTRIC_TEMP_163_LOC = 0x9260;
+uint256 internal constant BARYCENTRIC_TEMP_164_LOC = 0x9280;
+uint256 internal constant BARYCENTRIC_TEMP_165_LOC = 0x92a0;
+uint256 internal constant BARYCENTRIC_TEMP_166_LOC = 0x92c0;
+uint256 internal constant BARYCENTRIC_TEMP_167_LOC = 0x92e0;
+uint256 internal constant BARYCENTRIC_TEMP_168_LOC = 0x9300;
+uint256 internal constant BARYCENTRIC_TEMP_169_LOC = 0x9320;
+uint256 internal constant BARYCENTRIC_TEMP_170_LOC = 0x9340;
+uint256 internal constant BARYCENTRIC_TEMP_171_LOC = 0x9360;
+uint256 internal constant BARYCENTRIC_TEMP_172_LOC = 0x9380;
+uint256 internal constant BARYCENTRIC_TEMP_173_LOC = 0x93a0;
+uint256 internal constant BARYCENTRIC_TEMP_174_LOC = 0x93c0;
+uint256 internal constant BARYCENTRIC_TEMP_175_LOC = 0x93e0;
+uint256 internal constant PUBLIC_INPUTS_DENOM_TEMP_LOC = 0x9400;
+uint256 internal constant GEMINI_R_INV_TEMP_LOC = 0x9420;
+uint256 internal constant BATCH_PRODUCT_TEMP_LOC = 0x9440;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                                         Temporary space                                          */
 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-uint256 internal constant TEMP_0_LOC = 0x93c0;
-uint256 internal constant TEMP_1_LOC = 0x93e0;
-uint256 internal constant TEMP_2_LOC = 0x9400;
-uint256 internal constant TEMP_3_LOC = 0x9420;
-uint256 internal constant TEMP_4_LOC = 0x9440;
-uint256 internal constant TEMP_5_LOC = 0x9460;
-uint256 internal constant TEMP_6_LOC = 0x9480;
-uint256 internal constant TEMP_7_LOC = 0x94a0;
-uint256 internal constant TEMP_8_LOC = 0x94c0;
-uint256 internal constant TEMP_9_LOC = 0x94e0;
-uint256 internal constant TEMP_10_LOC = 0x9500;
-uint256 internal constant TEMP_11_LOC = 0x9520;
-uint256 internal constant TEMP_12_LOC = 0x9540;
-uint256 internal constant TEMP_13_LOC = 0x9560;
-uint256 internal constant TEMP_14_LOC = 0x9580;
-uint256 internal constant TEMP_15_LOC = 0x95a0;
-uint256 internal constant TEMP_16_LOC = 0x95c0;
-uint256 internal constant TEMP_17_LOC = 0x95e0;
-uint256 internal constant TEMP_18_LOC = 0x9600;
-uint256 internal constant TEMP_19_LOC = 0x9620;
-uint256 internal constant TEMP_20_LOC = 0x9640;
-uint256 internal constant TEMP_21_LOC = 0x9660;
-uint256 internal constant TEMP_22_LOC = 0x9680;
-uint256 internal constant TEMP_23_LOC = 0x96a0;
-uint256 internal constant TEMP_24_LOC = 0x96c0;
-uint256 internal constant TEMP_25_LOC = 0x96e0;
-uint256 internal constant TEMP_26_LOC = 0x9700;
-uint256 internal constant TEMP_27_LOC = 0x9720;
-uint256 internal constant TEMP_28_LOC = 0x9740;
-uint256 internal constant TEMP_29_LOC = 0x9760;
-uint256 internal constant TEMP_30_LOC = 0x9780;
-uint256 internal constant TEMP_31_LOC = 0x97a0;
-uint256 internal constant TEMP_32_LOC = 0x97c0;
-uint256 internal constant TEMP_33_LOC = 0x97e0;
-uint256 internal constant TEMP_34_LOC = 0x9800;
-uint256 internal constant TEMP_35_LOC = 0x9820;
-uint256 internal constant TEMP_36_LOC = 0x9840;
-uint256 internal constant TEMP_37_LOC = 0x9860;
-uint256 internal constant TEMP_38_LOC = 0x9880;
-uint256 internal constant TEMP_39_LOC = 0x98a0;
-uint256 internal constant TEMP_40_LOC = 0x98c0;
-uint256 internal constant TEMP_41_LOC = 0x98e0;
-uint256 internal constant TEMP_42_LOC = 0x9900;
-uint256 internal constant TEMP_43_LOC = 0x9920;
-uint256 internal constant TEMP_44_LOC = 0x9940;
-uint256 internal constant TEMP_45_LOC = 0x9960;
-uint256 internal constant TEMP_46_LOC = 0x9980;
-uint256 internal constant TEMP_47_LOC = 0x99a0;
-uint256 internal constant TEMP_48_LOC = 0x99c0;
-uint256 internal constant TEMP_49_LOC = 0x99e0;
-uint256 internal constant TEMP_50_LOC = 0x9a00;
-uint256 internal constant TEMP_51_LOC = 0x9a20;
-uint256 internal constant TEMP_52_LOC = 0x9a40;
-uint256 internal constant TEMP_53_LOC = 0x9a60;
-uint256 internal constant TEMP_54_LOC = 0x9a80;
-uint256 internal constant TEMP_55_LOC = 0x9aa0;
-uint256 internal constant TEMP_56_LOC = 0x9ac0;
-uint256 internal constant TEMP_57_LOC = 0x9ae0;
-uint256 internal constant TEMP_58_LOC = 0x9b00;
-uint256 internal constant TEMP_59_LOC = 0x9b20;
-uint256 internal constant TEMP_60_LOC = 0x9b40;
-uint256 internal constant TEMP_61_LOC = 0x9b60;
-uint256 internal constant TEMP_62_LOC = 0x9b80;
-uint256 internal constant TEMP_63_LOC = 0x9ba0;
-uint256 internal constant TEMP_64_LOC = 0x9bc0;
-uint256 internal constant TEMP_65_LOC = 0x9be0;
-uint256 internal constant LATER_SCRATCH_SPACE = 0x9c00;
+uint256 internal constant TEMP_0_LOC = 0x9460;
+uint256 internal constant TEMP_1_LOC = 0x9480;
+uint256 internal constant TEMP_2_LOC = 0x94a0;
+uint256 internal constant TEMP_3_LOC = 0x94c0;
+uint256 internal constant TEMP_4_LOC = 0x94e0;
+uint256 internal constant TEMP_5_LOC = 0x9500;
+uint256 internal constant TEMP_6_LOC = 0x9520;
+uint256 internal constant TEMP_7_LOC = 0x9540;
+uint256 internal constant TEMP_8_LOC = 0x9560;
+uint256 internal constant TEMP_9_LOC = 0x9580;
+uint256 internal constant TEMP_10_LOC = 0x95a0;
+uint256 internal constant TEMP_11_LOC = 0x95c0;
+uint256 internal constant TEMP_12_LOC = 0x95e0;
+uint256 internal constant TEMP_13_LOC = 0x9600;
+uint256 internal constant TEMP_14_LOC = 0x9620;
+uint256 internal constant TEMP_15_LOC = 0x9640;
+uint256 internal constant TEMP_16_LOC = 0x9660;
+uint256 internal constant TEMP_17_LOC = 0x9680;
+uint256 internal constant TEMP_18_LOC = 0x96a0;
+uint256 internal constant TEMP_19_LOC = 0x96c0;
+uint256 internal constant TEMP_20_LOC = 0x96e0;
+uint256 internal constant TEMP_21_LOC = 0x9700;
+uint256 internal constant TEMP_22_LOC = 0x9720;
+uint256 internal constant TEMP_23_LOC = 0x9740;
+uint256 internal constant TEMP_24_LOC = 0x9760;
+uint256 internal constant TEMP_25_LOC = 0x9780;
+uint256 internal constant TEMP_26_LOC = 0x97a0;
+uint256 internal constant TEMP_27_LOC = 0x97c0;
+uint256 internal constant TEMP_28_LOC = 0x97e0;
+uint256 internal constant TEMP_29_LOC = 0x9800;
+uint256 internal constant TEMP_30_LOC = 0x9820;
+uint256 internal constant TEMP_31_LOC = 0x9840;
+uint256 internal constant TEMP_32_LOC = 0x9860;
+uint256 internal constant TEMP_33_LOC = 0x9880;
+uint256 internal constant TEMP_34_LOC = 0x98a0;
+uint256 internal constant TEMP_35_LOC = 0x98c0;
+uint256 internal constant TEMP_36_LOC = 0x98e0;
+uint256 internal constant TEMP_37_LOC = 0x9900;
+uint256 internal constant TEMP_38_LOC = 0x9920;
+uint256 internal constant TEMP_39_LOC = 0x9940;
+uint256 internal constant TEMP_40_LOC = 0x9960;
+uint256 internal constant TEMP_41_LOC = 0x9980;
+uint256 internal constant TEMP_42_LOC = 0x99a0;
+uint256 internal constant TEMP_43_LOC = 0x99c0;
+uint256 internal constant TEMP_44_LOC = 0x99e0;
+uint256 internal constant TEMP_45_LOC = 0x9a00;
+uint256 internal constant TEMP_46_LOC = 0x9a20;
+uint256 internal constant TEMP_47_LOC = 0x9a40;
+uint256 internal constant TEMP_48_LOC = 0x9a60;
+uint256 internal constant TEMP_49_LOC = 0x9a80;
+uint256 internal constant TEMP_50_LOC = 0x9aa0;
+uint256 internal constant TEMP_51_LOC = 0x9ac0;
+uint256 internal constant TEMP_52_LOC = 0x9ae0;
+uint256 internal constant TEMP_53_LOC = 0x9b00;
+uint256 internal constant TEMP_54_LOC = 0x9b20;
+uint256 internal constant TEMP_55_LOC = 0x9b40;
+uint256 internal constant TEMP_56_LOC = 0x9b60;
+uint256 internal constant TEMP_57_LOC = 0x9b80;
+uint256 internal constant TEMP_58_LOC = 0x9ba0;
+uint256 internal constant TEMP_59_LOC = 0x9bc0;
+uint256 internal constant TEMP_60_LOC = 0x9be0;
+uint256 internal constant TEMP_61_LOC = 0x9c00;
+uint256 internal constant TEMP_62_LOC = 0x9c20;
+uint256 internal constant TEMP_63_LOC = 0x9c40;
+uint256 internal constant TEMP_64_LOC = 0x9c60;
+uint256 internal constant TEMP_65_LOC = 0x9c80;
+uint256 internal constant LATER_SCRATCH_SPACE = 0x9ca0;
 
 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
 /*                                    Temporary space - COMPLETE                                    */
@@ -1379,8 +1384,6 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
     uint256 internal constant G1_Y_LOCATION = 0x80;
     uint256 internal constant SCALAR_LOCATION = 0xa0;
 
-    uint256 internal constant LOWER_127_MASK = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
-
     // Group order
     uint256 internal constant Q = 21888242871839275222246405745257275088696311157297823662689037894645226208583; // EC group order
 
@@ -1450,42 +1453,42 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
             //
             // Although defined at the top of the file, it is used towards the end of the algorithm when batching in the commitment scheme.
             function loadVk() {
-                mstore(Q_L_X_LOC, 0x1a79a26fab19b584fc2f22aa56ec3247ba132af5608c81289e3e7680dd3217ac)
-                mstore(Q_L_Y_LOC, 0x0575fe92e41255b3d413c6ff8fd0bddbc31c94156c8e96700b3001b79f6eb8a6)
-                mstore(Q_R_X_LOC, 0x29ac5ceb745ac0dc17bebcc3e82069ff84d7753d33a6eaff1f8aa06bac08cc06)
-                mstore(Q_R_Y_LOC, 0x0a7ffd71cef9d0a26c56941ef4c6ab249fa201130cf9bb916e3cb6bfc4b100dc)
-                mstore(Q_O_X_LOC, 0x23f6206d6aae6970f032509033de3ac81be4e682596d105e5366a4543e571c09)
-                mstore(Q_O_Y_LOC, 0x282978c1d39228963e5ac43ac000fbaad2b7115ecfcce97ab128d753403f2daa)
-                mstore(Q_4_X_LOC, 0x2a49404982b8f663f7e2dbdc788916f27af537dbcf314d12a1f433c12851674f)
-                mstore(Q_4_Y_LOC, 0x1ba676180a5bdbf60d00909b1d4376c568561d9bf18b7959fe724b4584220cad)
-                mstore(Q_M_X_LOC, 0x20dec620db54cf4010eb90fa51b294a5c4245a39648f4b443e2e35f41d1af6bf)
-                mstore(Q_M_Y_LOC, 0x14514113536902bfc70f826b554276d42ca7b5f8b09f3ff240239b50cf45ec5a)
-                mstore(Q_C_X_LOC, 0x0bac58f1d1502b854d4e0df5f29fa254f696313be73208c02ffa1b4c38e78512)
-                mstore(Q_C_Y_LOC, 0x0f4c522e942d77ad8c8e0703d7b24e82c8d12460b012c46cd6002d6de53b487a)
+                mstore(Q_L_X_LOC, 0x25a58ac2cece6809a78cfa4fcc84f7ef2a4f829e8a745aaa9941075240d78231)
+                mstore(Q_L_Y_LOC, 0x2f371788e498a02df72c437a0d338f7f6f3464f546ca71015bb68f2ad0dad8e5)
+                mstore(Q_R_X_LOC, 0x07373285154c7f111629b9f949945fa719ad9a6ab4a0c2ecbb39dc406f37c001)
+                mstore(Q_R_Y_LOC, 0x28d9c4b4dd7f2c968cee840974bdff93b469f10030d32eb9e0812a57662305ec)
+                mstore(Q_O_X_LOC, 0x1b28299044d8fc619c49549ee5568c083dbf9f9c888edfcb0bd028dfdd249ad0)
+                mstore(Q_O_Y_LOC, 0x229db01f1decdc6c35f0c32edda8749ef4a288ef16be62df89da734c4d5ea5f1)
+                mstore(Q_4_X_LOC, 0x1c5470d5f436e4ae965073884f7ad63c948445f0263e2ec69fb25f9548952834)
+                mstore(Q_4_Y_LOC, 0x25847df208b2e423a8a16758b96fcc8d4eb852490f6fce1b6c49eda2815e8a16)
+                mstore(Q_M_X_LOC, 0x2b0b893e79867981faf35051cbbd4879d5cadab48583ebfe45929559f23d7a89)
+                mstore(Q_M_Y_LOC, 0x2fc7d4c255f94cbc2efac874a481693caf3f39f2ef556b54dc67e8088f38e719)
+                mstore(Q_C_X_LOC, 0x26514db948b07b8866ffbb5b73b1e1856234b70717a12433869d745207caf079)
+                mstore(Q_C_Y_LOC, 0x20d054743a268e9e6364a59c71c9f4246f5d94df67ba5edc9a2f6fbf68e5b658)
                 mstore(Q_LOOKUP_X_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
                 mstore(Q_LOOKUP_Y_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
-                mstore(Q_ARITH_X_LOC, 0x201e1935e229c26d28fc24d0d39723709e41147e9a7a9ed167646b35ede642f5)
-                mstore(Q_ARITH_Y_LOC, 0x01dac84a96ba92e5b329aacd5288836c92535908fa1d30a5d444f492302f9bd9)
-                mstore(Q_DELTA_RANGE_X_LOC, 0x0f303c8d4022213e2c3493ccddc1ff3da73e7e86605e4e407dba1051dbfee2e3)
-                mstore(Q_DELTA_RANGE_Y_LOC, 0x130823b4449a068a1396f6a33d006cecbe0be54c3c66f3355107debf876804f9)
+                mstore(Q_ARITH_X_LOC, 0x00b5e131a92a5fb1392fe632483c10b966830a7bb1ee6326c23289f898bacaed)
+                mstore(Q_ARITH_Y_LOC, 0x1d7f2e23b933429d352758643ecc26280ca4b93f8aed5878c444a6f2b4f476c0)
+                mstore(Q_DELTA_RANGE_X_LOC, 0x1b48a17b2d0d13a585149823ad82d2c536400c8e9a64b50f78a9e31298df8dc6)
+                mstore(Q_DELTA_RANGE_Y_LOC, 0x2c93478236c03fd6230a08dde33e36fa5c79c3c40631210bfc5199468d789cea)
                 mstore(Q_ELLIPTIC_X_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
                 mstore(Q_ELLIPTIC_Y_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
-                mstore(Q_MEMORY_X_LOC, 0x1322329bc7e71c57c1a6e0fcd92c989fce265e5b5551da7c42e92b8926d41128)
-                mstore(Q_MEMORY_Y_LOC, 0x2d64b1138898d0117a08c56c4e001fbc23f8b36b9192720d3be423b7e3915f27)
-                mstore(Q_NNF_X_LOC, 0x26b0f5928851047af331c2c241c0e2e72ece342addcc16023ccee92b44c4dfac)
-                mstore(Q_NNF_Y_LOC, 0x26e07ace80190b9c89684b1a7bee997bed97e5c84797379b4b7bfe2de86313f3)
-                mstore(Q_POSEIDON_2_EXTERNAL_X_LOC, 0x02526187dc41987d05255c4075627a3dcb0e7935d43c8968a4fd89b9aeefff4b)
-                mstore(Q_POSEIDON_2_EXTERNAL_Y_LOC, 0x1910eac76561dd4bfdc6e79c465ffa25d2fd57a07794cc889e25299b31c84c67)
-                mstore(Q_POSEIDON_2_INTERNAL_X_LOC, 0x018870ce3fe3343bfb561179908fa3c20d2789b5ca428af183759a7b23a44331)
-                mstore(Q_POSEIDON_2_INTERNAL_Y_LOC, 0x200135c1ecedcf28ff2565c837afa27a00a3f2ed6b72476a4421877dca1131af)
-                mstore(SIGMA_1_X_LOC, 0x1795d1d1079fbfdd7f132c040c21d9a4a3b82863c5c04677582d4739725983f5)
-                mstore(SIGMA_1_Y_LOC, 0x1fe847d8ad43fa341bd426350a12df8af946e42c11d31ac654f2ea4071db2aa8)
-                mstore(SIGMA_2_X_LOC, 0x09653503d49fb717163a34a152eccb0c28302143bc77b02738ddbba18a88526d)
-                mstore(SIGMA_2_Y_LOC, 0x07a50f391a38e266dfeae2ddafb07c47d7a4a56a56a1f46f913ea454496b6bf3)
-                mstore(SIGMA_3_X_LOC, 0x2f13ecf5b0caf5b0f30a0234d9a159488af6939e373f5dd2f39d55f33f6442fc)
-                mstore(SIGMA_3_Y_LOC, 0x2ced906aca8f8ea9ba1e75dfb468dea994b9ea026247cd3db87e6bb2c10ba06d)
-                mstore(SIGMA_4_X_LOC, 0x143b55c86f0873377f38817e614fca78e6325d2d34fbb056f81c43afc4dcd958)
-                mstore(SIGMA_4_Y_LOC, 0x1b3acc880f56e2f17788efec82bacac34a9d0e14bdac37d4c8a35efc6aa80e1e)
+                mstore(Q_MEMORY_X_LOC, 0x05c0b53dc93fd2ce8746031b8385f22e39463c8fb61ba451ee87938bef30159f)
+                mstore(Q_MEMORY_Y_LOC, 0x099d12449420e778fa0d1d8c20d216cbe1bcefeb00e7655646599a5951a4f442)
+                mstore(Q_NNF_X_LOC, 0x20cabbc13ea48354f71ef576e983d74fbdfcc112fb70af61271dddd033d8a8bd)
+                mstore(Q_NNF_Y_LOC, 0x1819dd38c088a47bf616361dea5dfc4ef858920629cd4d4daa789b6ca3aa76c1)
+                mstore(Q_POSEIDON_2_EXTERNAL_X_LOC, 0x10722b920416620bdeda44b0e9846ea2af5ad77ccd4f0e315b6890bc40607007)
+                mstore(Q_POSEIDON_2_EXTERNAL_Y_LOC, 0x19bfe9a7f07351ad23d2f50e7e0e111df8b66a2e59c05ce12a999f67d1a43778)
+                mstore(Q_POSEIDON_2_INTERNAL_X_LOC, 0x2ce6377ce2c7972944a992eeffcf3155124658091829dc5a3d1c720414ac846e)
+                mstore(Q_POSEIDON_2_INTERNAL_Y_LOC, 0x09c2ffafe6d57d22f71338f56437d0277681ba379e1773561cf07b906a49d813)
+                mstore(SIGMA_1_X_LOC, 0x22aa4751e5508b6471da010d2a005e284e479a348b3f790b2670d9085754b7f3)
+                mstore(SIGMA_1_Y_LOC, 0x00f450c7bf999b199a7a35e2a859e17069be3c96504c896915fd197870ba1030)
+                mstore(SIGMA_2_X_LOC, 0x1a017cbb2be6ea23f466b309c8cfaccabecae4fdaeb53d5f8f577ff7c2cdf5a6)
+                mstore(SIGMA_2_Y_LOC, 0x2a0c1d5312726496e6af50d50f5232e824c091050a77327f12f54e8acf59ce18)
+                mstore(SIGMA_3_X_LOC, 0x043962a1643db0a1afc28e3809c235a44909db8892e23700b968dfe7ac0a4ed9)
+                mstore(SIGMA_3_Y_LOC, 0x0225cdc41b0682cb059d913faa60875e5713c2084ae61a7f6fb69742173e79d9)
+                mstore(SIGMA_4_X_LOC, 0x21aa2461d602b37b81ce45f1df23743256dcb7625588f3eaea2aaeb97af32bc6)
+                mstore(SIGMA_4_Y_LOC, 0x1fe9e2ac8fefdba93fbba056bc6a85e42c5840322304a9580312c80a8a7f5410)
                 mstore(TABLE_1_X_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
                 mstore(TABLE_1_Y_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
                 mstore(TABLE_2_X_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
@@ -1494,18 +1497,18 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 mstore(TABLE_3_Y_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
                 mstore(TABLE_4_X_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
                 mstore(TABLE_4_Y_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
-                mstore(ID_1_X_LOC, 0x2881808cd124014b215c0f6e3688f7da1aec2bae5f7744cfd438bbc0b6c5023a)
-                mstore(ID_1_Y_LOC, 0x1eabb4c72cfc616efb954570926ff765be5c718e341ecc97301f16d448b2cb8b)
-                mstore(ID_2_X_LOC, 0x1fa0887a8a46ac8b6a2087598ff03d44f807fbfcb4103b07d90b39b35c40ca1f)
-                mstore(ID_2_Y_LOC, 0x26268fd1ab6e15854ba118b06edb47c8d3a755a5be4d9870b60b56ac6ab9e154)
-                mstore(ID_3_X_LOC, 0x283eb07779a6f03fc88545d84d5e1a1c3f658c59ef1409885f2570d504f9ac33)
-                mstore(ID_3_Y_LOC, 0x001d419b94fe5b61df1594780f2cd6e1187c7c5bda6d888c50f29033810d3723)
-                mstore(ID_4_X_LOC, 0x225b18cf66419fb4219890a25d9b2652018c15cfb89d6c2b7d4c92660c517f6c)
-                mstore(ID_4_Y_LOC, 0x13b49572e41be80024523540539d3aae57c65ed2774ae4b4c2be3c8fd7aa7459)
+                mstore(ID_1_X_LOC, 0x2e958e596183ae34a5062bd868d9f8c2265c5bfde6b43a1d0d201b9d9e971f5b)
+                mstore(ID_1_Y_LOC, 0x2199f3f845582138668826e911f91ada3fc5047c2b3148f2b2ecf3d4608e629a)
+                mstore(ID_2_X_LOC, 0x2649a857a266531699d647518511d581a6140467a3ed021f1504120559f2b191)
+                mstore(ID_2_Y_LOC, 0x2b55e90f355312ff5e30bf03b8fd352dbf17346725bf601bbe999977f080574a)
+                mstore(ID_3_X_LOC, 0x1dfa5b20451f2532550c01bbfc87aa54d732456a79661405ac0958c607733b0f)
+                mstore(ID_3_Y_LOC, 0x28fd7a2aff54916dd1b46840b9d060eabd07b91c8e5b6750ebe7223d4af21a24)
+                mstore(ID_4_X_LOC, 0x27c3eadd52302dce8aa8d90f5bda92bf3c640339045eff81b546112c3591da6c)
+                mstore(ID_4_Y_LOC, 0x04cfa2620360061fdd517fdaa94a991c659d2fc7607ddb52329ab05268c820c5)
                 mstore(LAGRANGE_FIRST_X_LOC, 0x2a56ce41f6b0be13b9c26747621b821eee81b23a887f299049b14c11e98460d6)
                 mstore(LAGRANGE_FIRST_Y_LOC, 0x1aa98f2de3ddda547d8f6de4e725ded5827d6338c78656c0d12ca1aea6ef2c7c)
-                mstore(LAGRANGE_LAST_X_LOC, 0x13ac9e0ef7cf017a1ce7a7b153b224e9f6ebdaee9701222e209a9191bcc7a9f3)
-                mstore(LAGRANGE_LAST_Y_LOC, 0x305fd2d43262d2d405fe5941ff5435b18fa1e86fcdf33d92bd764e6a77cd7b84)
+                mstore(LAGRANGE_LAST_X_LOC, 0x303b52dd9f9261d7ca29f2a89068f9afeaef5ed02c049a29dcd38a1c1d651e9f)
+                mstore(LAGRANGE_LAST_Y_LOC, 0x215f2d4ca0b40e3c0cbcd22ffefd41073986983c436d9a1e9d8167bf140a1b7c)
             }
 
             // Prime field order - placing on the stack
@@ -1594,17 +1597,20 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 // 0x1e0 = 1 * 32 bytes + 3 * 64 bytes for (w1,w2,w3) + 0x100 for pairing points
                 let eta_input_length := add(0x1e0, public_inputs_size)
 
-                // Get single eta challenge and compute powers (eta, eta², eta³)
+                // Get eta and rom_logup_gamma, and compute eta powers (eta, eta², eta³)
                 let prev_challenge := mod(keccak256(0x00, eta_input_length), p)
+                let eta := prev_challenge
+                mstore(0x00, prev_challenge)
+                prev_challenge := mod(keccak256(0x00, 0x20), p)
                 mstore(0x00, prev_challenge)
 
-                let eta := and(prev_challenge, LOWER_127_MASK)
                 let eta_two := mulmod(eta, eta, p)
                 let eta_three := mulmod(eta_two, eta, p)
 
                 mstore(ETA_CHALLENGE, eta)
                 mstore(ETA_TWO_CHALLENGE, eta_two)
                 mstore(ETA_THREE_CHALLENGE, eta_three)
+                mstore(ROM_LOGUP_GAMMA_CHALLENGE, prev_challenge)
 
                 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
                 /*                  LOAD PROOF INTO MEMORY                    */
@@ -1694,9 +1700,11 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 mcopy(0x20, LOOKUP_READ_COUNTS_X_LOC, 0xc0)
 
                 prev_challenge := mod(keccak256(0x00, 0xe0), p)
+                let beta := prev_challenge
                 mstore(0x00, prev_challenge)
-                let beta := and(prev_challenge, LOWER_127_MASK)
-                let gamma := shr(127, prev_challenge)
+                prev_challenge := mod(keccak256(0x00, 0x20), p)
+                mstore(0x00, prev_challenge)
+                let gamma := prev_challenge
 
                 mstore(BETA_CHALLENGE, beta)
                 mstore(GAMMA_CHALLENGE, gamma)
@@ -1706,8 +1714,8 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
                 // Generate Alpha challenges - non-linearise the gate contributions
                 //
-                // There are 28 total subrelations in this honk relation, we do not need to non linearise the first sub relation.
-                // There are 27 total gate contributions, a gate contribution is analogous to
+                // There are 31 total subrelations in this honk relation, we do not need to non linearise the first sub relation.
+                // There are 30 total gate contributions, a gate contribution is analogous to
                 // a custom gate, it is an expression which must evaluate to zero for each
                 // row in the constraint matrix
                 //
@@ -1718,12 +1726,12 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
 
                 prev_challenge := mod(keccak256(0x00, 0xa0), p)
                 mstore(0x00, prev_challenge)
-                let alpha := and(prev_challenge, LOWER_127_MASK)
+                let alpha := prev_challenge
                 mstore(ALPHA_CHALLENGE_0, alpha)
 
-                // Compute powers of alpha: alpha^2, alpha^3, ..., alpha^26
+                // Compute powers of alpha: alpha^2, alpha^3, ..., alpha^30
                 let alpha_off_set := ALPHA_CHALLENGE_1
-                for {} lt(alpha_off_set, add(ALPHA_CHALLENGE_27, 0x20)) {} {
+                for {} lt(alpha_off_set, add(ALPHA_CHALLENGE_29, 0x20)) {} {
                     let prev_alpha := mload(sub(alpha_off_set, 0x20))
                     mstore(alpha_off_set, mulmod(prev_alpha, alpha, p))
                     alpha_off_set := add(alpha_off_set, 0x20)
@@ -1736,7 +1744,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 // Store the first gate challenge
                 prev_challenge := mod(keccak256(0x00, 0x20), p)
                 mstore(0x00, prev_challenge)
-                let gate_challenge := and(prev_challenge, LOWER_127_MASK)
+                let gate_challenge := prev_challenge
                 mstore(GATE_CHALLENGE_0, gate_challenge)
 
                 let gate_off := GATE_CHALLENGE_1
@@ -1768,7 +1776,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                     prev_challenge := mod(keccak256(0x00, 0x120), p)
                     mstore(0x00, prev_challenge)
 
-                    let sumcheck_u_challenge := and(prev_challenge, LOWER_127_MASK)
+                    let sumcheck_u_challenge := prev_challenge
                     mstore(write_off, sumcheck_u_challenge)
 
                     // Progress read / write pointers
@@ -1828,7 +1836,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 prev_challenge := mod(keccak256(0x00, 0x540), p)
                 mstore(0x00, prev_challenge)
 
-                let rho := and(prev_challenge, LOWER_127_MASK)
+                let rho := prev_challenge
 
                 mstore(RHO_CHALLENGE, rho)
 
@@ -1847,7 +1855,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 prev_challenge := mod(keccak256(0x00, 0x560), p)
                 mstore(0x00, prev_challenge)
 
-                let geminiR := and(prev_challenge, LOWER_127_MASK)
+                let geminiR := prev_challenge
 
                 mstore(GEMINI_R_CHALLENGE, geminiR)
 
@@ -1861,7 +1869,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 prev_challenge := mod(keccak256(0x00, 0x2e0), p)
                 mstore(0x00, prev_challenge)
 
-                let shplonkNu := and(prev_challenge, LOWER_127_MASK)
+                let shplonkNu := prev_challenge
                 mstore(SHPLONK_NU_CHALLENGE, shplonkNu)
 
                 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -1872,7 +1880,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 mcopy(0x20, SHPLONK_Q_X_LOC, 0x40)
                 prev_challenge := mod(keccak256(0x00, 0x60), p)
 
-                let shplonkZ := and(prev_challenge, LOWER_127_MASK)
+                let shplonkZ := prev_challenge
                 mstore(SHPLONK_Z_CHALLENGE, shplonkZ)
 
                 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -3923,6 +3931,40 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 }
 
                 /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+                /*                    ROM LOGUP RELATION                      */
+                /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+                {
+                    // Single-value ROM tables. Wire layout: (w_1, w_2, w_3, w_4) = (index, value, multiplicity,
+                    // inverse), q_c = array id. q_logup_table = q_2 * (1 - q_1), q_logup_read = q_4 * (1 - q_1).
+                    let one_minus_q1 := addmod(1, sub(p, mload(QL_EVAL_LOC)), p)
+                    let q_logup_table := mulmod(mload(QR_EVAL_LOC), one_minus_q1, p)
+                    let q_logup_read := mulmod(mload(Q4_EVAL_LOC), one_minus_q1, p)
+
+                    // denom = rom_logup_gamma + w_1 + eta * w_2 + eta_two * q_c
+                    let denom := mload(ROM_LOGUP_GAMMA_CHALLENGE)
+                    denom := addmod(denom, mload(W1_EVAL_LOC), p)
+                    denom := addmod(denom, mulmod(mload(ETA_CHALLENGE), mload(W2_EVAL_LOC), p), p)
+                    denom := addmod(denom, mulmod(mload(ETA_TWO_CHALLENGE), mload(QC_EVAL_LOC), p), p)
+
+                    // Inverse correctness: q_logup_any * (w_4 * denom - 1) * q_memory
+                    let inverse_correctness := addmod(mulmod(mload(W4_EVAL_LOC), denom, p), sub(p, 1), p)
+                    inverse_correctness := mulmod(addmod(q_logup_table, q_logup_read, p), inverse_correctness, p)
+                    inverse_correctness :=
+                        mulmod(
+                            inverse_correctness,
+                            mulmod(mload(QMEMORY_EVAL_LOC), mload(POW_PARTIAL_EVALUATION_LOC), p),
+                            p
+                        )
+                    mstore(SUBRELATION_EVAL_20_LOC, inverse_correctness)
+
+                    // LogUp sum identity. Linearly dependent, so not scaled by the pow evaluation.
+                    let logup_sum := addmod(q_logup_read, sub(p, mulmod(q_logup_table, mload(W3_EVAL_LOC), p)), p)
+                    logup_sum := mulmod(logup_sum, mload(W4_EVAL_LOC), p)
+                    logup_sum := mulmod(logup_sum, mload(QMEMORY_EVAL_LOC), p)
+                    mstore(SUBRELATION_EVAL_21_LOC, logup_sum)
+                }
+
+                /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
                 /*               NON NATIVE FIELD RELATION                    */
                 /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
                 {
@@ -4064,7 +4106,7 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         p
                     )
 
-                    mstore(SUBRELATION_EVAL_20_LOC, nnf_identity)
+                    mstore(SUBRELATION_EVAL_22_LOC, nnf_identity)
                 }
 
                 /*
@@ -4117,22 +4159,22 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                         mulmod(mload(QPOSEIDON2_EXTERNAL_EVAL_LOC), mload(POW_PARTIAL_EVALUATION_LOC), p)
 
                     mstore(
-                        SUBRELATION_EVAL_21_LOC,
+                        SUBRELATION_EVAL_23_LOC,
                         mulmod(q_pos_by_scaling, addmod(v1, sub(p, mload(W1_SHIFT_EVAL_LOC)), p), p)
                     )
 
                     mstore(
-                        SUBRELATION_EVAL_22_LOC,
+                        SUBRELATION_EVAL_24_LOC,
                         mulmod(q_pos_by_scaling, addmod(v2, sub(p, mload(W2_SHIFT_EVAL_LOC)), p), p)
                     )
 
                     mstore(
-                        SUBRELATION_EVAL_23_LOC,
+                        SUBRELATION_EVAL_25_LOC,
                         mulmod(q_pos_by_scaling, addmod(v3, sub(p, mload(W3_SHIFT_EVAL_LOC)), p), p)
                     )
 
                     mstore(
-                        SUBRELATION_EVAL_24_LOC,
+                        SUBRELATION_EVAL_26_LOC,
                         mulmod(q_pos_by_scaling, addmod(v4, sub(p, mload(W4_SHIFT_EVAL_LOC)), p), p)
                     )
                 }
@@ -4160,25 +4202,25 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                     let v1 := addmod(mulmod(u1, POS_INTERNAL_MATRIX_D_0, p), u_sum, p)
 
                     mstore(
-                        SUBRELATION_EVAL_25_LOC,
+                        SUBRELATION_EVAL_27_LOC,
                         mulmod(q_pos_by_scaling, addmod(v1, sub(p, mload(W1_SHIFT_EVAL_LOC)), p), p)
                     )
                     let v2 := addmod(mulmod(u2, POS_INTERNAL_MATRIX_D_1, p), u_sum, p)
 
                     mstore(
-                        SUBRELATION_EVAL_26_LOC,
+                        SUBRELATION_EVAL_28_LOC,
                         mulmod(q_pos_by_scaling, addmod(v2, sub(p, mload(W2_SHIFT_EVAL_LOC)), p), p)
                     )
                     let v3 := addmod(mulmod(u3, POS_INTERNAL_MATRIX_D_2, p), u_sum, p)
 
                     mstore(
-                        SUBRELATION_EVAL_27_LOC,
+                        SUBRELATION_EVAL_29_LOC,
                         mulmod(q_pos_by_scaling, addmod(v3, sub(p, mload(W3_SHIFT_EVAL_LOC)), p), p)
                     )
 
                     let v4 := addmod(mulmod(u4, POS_INTERNAL_MATRIX_D_3, p), u_sum, p)
                     mstore(
-                        SUBRELATION_EVAL_28_LOC,
+                        SUBRELATION_EVAL_30_LOC,
                         mulmod(q_pos_by_scaling, addmod(v4, sub(p, mload(W4_SHIFT_EVAL_LOC)), p), p)
                     )
                 }
@@ -4330,6 +4372,16 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 accumulator := addmod(
                     accumulator,
                     mulmod(mload(SUBRELATION_EVAL_28_LOC), mload(ALPHA_CHALLENGE_27), p),
+                    p
+                )
+                accumulator := addmod(
+                    accumulator,
+                    mulmod(mload(SUBRELATION_EVAL_29_LOC), mload(ALPHA_CHALLENGE_28), p),
+                    p
+                )
+                accumulator := addmod(
+                    accumulator,
+                    mulmod(mload(SUBRELATION_EVAL_30_LOC), mload(ALPHA_CHALLENGE_29), p),
                     p
                 )
 
