@@ -7,7 +7,7 @@ import path from "path"
 import { promisify } from "util"
 import { gzip } from "zlib"
 import { decompressSync as gunzip } from "fflate"
-import { Barretenberg } from "@aztec/bb.js"
+import { Barretenberg } from "@aztec-foundation/bb.js"
 
 export const gzipAsync = promisify(gzip)
 
