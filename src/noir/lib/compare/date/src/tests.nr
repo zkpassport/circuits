@@ -1,6 +1,18 @@
 use super::{compare_date, get_birthdate, get_expiry_date};
 use date::Date;
-use utils::constants::SAMPLE_DG1;
+use utils::constants::{DG1_TO_MRZ_OFFSET, PASSPORT_MRZ_EXPIRY_DATE_INDEX, SAMPLE_DG1};
+use utils::types::DG1Data;
+
+// Build a passport DG1 with a custom 6-byte "YYMMDD" expiry, reusing SAMPLE_DG1 for
+// every other field. (These helpers read only the expiry slice, so MRZ check digits
+// don't matter here.)
+fn dg1_with_expiry(yymmdd: [u8; 6]) -> DG1Data {
+    let mut dg1 = SAMPLE_DG1;
+    for i in 0..6 {
+        dg1[DG1_TO_MRZ_OFFSET + PASSPORT_MRZ_EXPIRY_DATE_INDEX + i] = yymmdd[i];
+    }
+    dg1
+}
 
 #[test]
 fn test_get_birthdate() {
@@ -31,18 +43,30 @@ fn test_get_expiry_date() {
 
 #[test]
 fn test_get_expiry_date_wrong_century() {
-    let expiry_date = get_expiry_date(SAMPLE_DG1, Date::new(2009, 1, 1).to_timestamp());
-    // If passed a date with a year more than 20 years before the expiry date, it will get the wrong century
-    // as get_expiry_date adds 20 years to the current date to get the threshold year
+    let expiry_date = get_expiry_date(SAMPLE_DG1, Date::new(1975, 1, 1).to_timestamp());
+    // The pivot is current + MAX_DOCUMENT_VALIDITY_YEARS (50). When the current date is
+    // more than 50 years before the expiry (expiry 2030, current 1975), the YY resolves
+    // to the previous century.
     assert_eq(expiry_date, Date::new(1930, 1, 1));
 }
 
 #[test]
 fn test_get_expiry_date_edge_current_date() {
-    let expiry_date = get_expiry_date(SAMPLE_DG1, Date::new(2010, 1, 1).to_timestamp());
-    // Just one year away from being 20 years before the expiry date
-    // so it will still be the correct century
+    let expiry_date = get_expiry_date(SAMPLE_DG1, Date::new(1980, 1, 1).to_timestamp());
+    // Exactly 50 years before the expiry (the pivot boundary), so still the correct century.
     assert_eq(expiry_date, Date::new(2030, 1, 1));
+}
+
+// Regression (expiry-pivot consistency finding): a long-validity document whose real
+// expiry falls in the old 20/30-year overlap window must resolve to the correct future
+// century. Expiry 2051 at current 2026 resolves to 2051; under the old +20 pivot
+// get_expiry_date returned 1951 while check_expiry (at +30) saw 2051 - the divergence
+// this fix removes. Both helpers now share MAX_DOCUMENT_VALIDITY_YEARS.
+#[test]
+fn test_get_expiry_date_overlap_window_consistent() {
+    let dg1 = dg1_with_expiry("510115".as_bytes());
+    let expiry_date = get_expiry_date(dg1, Date::new(2026, 6, 25).to_timestamp());
+    assert_eq(expiry_date, Date::new(2051, 1, 15));
 }
 
 #[test]

@@ -1,6 +1,16 @@
 pub global YYYYMMDD_DATE_LENGTH: u32 = 8;
 pub global YYMMDD_DATE_LENGTH: u32 = 6;
 
+// Pivot margin, in years, for resolving a 2-digit MRZ *expiry* year to its full
+// century: the threshold passed to `Date::from_bytes_short_year` is `current + this`.
+// Every expiry YY->century resolution MUST use this single value so the pivot cannot
+// diverge between helpers. 50 comfortably covers every realistic document
+// validity (10-year passports, 20-30 year national IDs) while keeping genuinely-expired
+// documents resolved in the past.
+// NOTE: this is the expiry pivot only; birthdates pivot
+// at the current year (past-leaning) and must NOT use this constant.
+pub global MAX_DOCUMENT_VALIDITY_YEARS: u32 = 50;
+
 // Index for the country of issuance of the passport
 pub global PASSPORT_MRZ_ISSUING_COUNTRY_INDEX: u32 = 2;
 // Length of the country code in the MRZ

@@ -1,6 +1,12 @@
 use date::Date;
 use poseidon::poseidon2::Poseidon2;
-use utils::{get_dob_from_mrz, get_expiry_date_from_mrz, is_id_card, types::{DG1Data, YYMMDDDate}};
+use utils::{
+    constants::MAX_DOCUMENT_VALIDITY_YEARS,
+    get_dob_from_mrz,
+    get_expiry_date_from_mrz,
+    is_id_card,
+    types::{DG1Data, YYMMDDDate},
+};
 
 pub mod tests;
 
@@ -29,10 +35,11 @@ pub fn get_expiry_date(dg1: DG1Data, current_date_timestamp: u64) -> Date {
     let current_date = Date::from_timestamp(current_date_timestamp);
     let mut expiry_date = Date::new(1, 1, 1);
 
-    // We base the threshold year for the expiry date on the current date plus 20 years
-    // As most documents will have a 10 year validity (and some maybe 15 years?)
-    // So with 20 years we should be safe
-    let threshold_year = current_date.add_years(20);
+    // Resolve the 2-digit MRZ year against the shared expiry pivot. This MUST match the
+    // pivot used by data_check_expiry::check_expiry_from_date (both read
+    // MAX_DOCUMENT_VALIDITY_YEARS) so the same bytes can never resolve to two different
+    // centuries within one proof.
+    let threshold_year = current_date.add_years(MAX_DOCUMENT_VALIDITY_YEARS);
 
     // Get the slice of the MRZ representing the expiry date
     if is_id_card(dg1) {
