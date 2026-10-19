@@ -4,9 +4,7 @@
 
 set -euo pipefail
 
-# Number of circuits to compile in parallel. Each nargo invocation is itself
-# multi-threaded, so default to a modest width (min(nproc, 8)) to avoid
-# oversubscribing CPU / RAM on the heavy RSA circuits. Override with e.g.
+# Number of circuits to compile in parallel. Override with e.g.
 # `JOBS=16 scripts/ci-compile-circuits.sh`.
 JOBS="${JOBS:-$(( $(nproc) < 8 ? $(nproc) : 8 ))}"
 
@@ -85,9 +83,6 @@ FACEMATCH=(
 
 echo "Compiling ${#CIRCUITS[@]} brillig + ${#FACEMATCH[@]} facematch circuits with $JOBS parallel jobs"
 
-# `xargs -n1` appends each package name as the final argument, running
-# `nargo compile ... --package <name>` up to $JOBS at a time. If any compile
-# fails, xargs still exits nonzero, so `set -e` fails the script.
 printf '%s\n' "${CIRCUITS[@]}" | xargs -P "$JOBS" -n1 nargo compile --force --force-brillig --package
 printf '%s\n' "${FACEMATCH[@]}" | xargs -P "$JOBS" -n1 nargo compile --force --package
 
