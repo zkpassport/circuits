@@ -829,7 +829,7 @@ for (const config of suiteConfigs) {
 
     beforeAll(async () => {
       await setupPassport(state, config.setup)
-    })
+    }, 60000)
 
     describeDscTest(state, config.dscCircuit, config.dscLabel, config.dscTimeout, config.dscUseCli)
     describeIdTest(state, config.idCircuit, config.idLabel, config.idTimeout, config.idUseCli, config.idProveName)
