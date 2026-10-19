@@ -29,7 +29,9 @@ use outer_lib::{
     prepare_disclosure_inputs, prepare_integrity_check_inputs,
 };
 use std::verify_proof_with_type;
-use utils::constants::{NON_SALTED_MOCK_NULLIFIER, NONE_NULLIFIER};
+use utils::constants::{
+    NON_SALTED_MOCK_NULLIFIER, NONE_NULLIFIER, SALTED_MOCK_NULLIFIER, SALTED_NULLIFIER,
+};
 global PROOF_TYPE_HONK_ZK: u32 = 6;
 
 fn verify_subproofs(
@@ -131,6 +133,17 @@ fn verify_subproofs(
     assert(
         (scoped_nullifier == 0) | (nullifier_type != NONE_NULLIFIER),
         "Scoped nullifier must be zero when the nullifier type is NONE",
+    );
+    // oprf_pk_hash is only meaningful for salted nullifiers (it is the OPRF service key
+    // hash). A non-salted subproof emits oprf_pk_hash = 0, which rides the per-subproof
+    // "== 0" wildcard below, leaving the top-level value otherwise unconstrained. Pin it:
+    // the top-level oprf_pk_hash must be zero unless the nullifier is salted, so a
+    // non-salted proof cannot publish a forged OPRF service hash.
+    assert(
+        (nullifier_type == SALTED_NULLIFIER)
+            | (nullifier_type == SALTED_MOCK_NULLIFIER)
+            | (oprf_pk_hash == 0),
+        "oprf_pk_hash must be zero unless the nullifier is salted",
     );
 
     verify_proof_with_type(
