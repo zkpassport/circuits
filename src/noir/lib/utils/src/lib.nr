@@ -422,6 +422,33 @@ pub fn get_document_number_id_card(mrz: MRZData) -> MRZDocumentNumber {
     get_array_slice::<_, ID_CARD_MRZ_DOCUMENT_NUMBER_LENGTH>(mrz, ID_CARD_MRZ_DOCUMENT_NUMBER_INDEX)
 }
 
+/// Read a DER length field whose first octet is at `data[pos]`.
+///
+/// Returns `(content_length, length_octets_consumed)` where the consumed count covers
+/// the length octets only (not the preceding tag). Supports the short form and the 1-
+/// and 2-byte long forms, which spans every field encountered in the X.509 certificates
+/// and Android attestation structures parsed here (content lengths up to 65535).
+pub fn read_der_length<let N: u32>(data: [u8; N], pos: u32) -> (u32, u32) {
+    let first: u8 = data[pos];
+    let mut content_len: u32 = 0;
+    let mut consumed: u32 = 1;
+    if (first & 0x80) == 0 {
+        // Short form: the length is the low 7 bits of the single octet.
+        content_len = (first & 0x7F) as u32;
+    } else {
+        // Long form: the low 7 bits give the number of following length octets.
+        let nlen: u32 = (first & 0x7F) as u32;
+        assert((nlen == 1) | (nlen == 2), "Unsupported DER length form");
+        for i in 0..2 {
+            if i < nlen {
+                content_len = content_len * 256 + data[pos + 1 + i] as u32;
+            }
+        }
+        consumed = 1 + nlen;
+    }
+    (content_len, consumed)
+}
+
 /// Returns total TLV length (tag + length field + content) for any
 /// ASN.1 element using DER/BER **definite-length** encoding with a
 /// single-byte tag (tag number field < 31)
