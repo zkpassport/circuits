@@ -1,6 +1,9 @@
 pub global YYYYMMDD_DATE_LENGTH: u32 = 8;
 pub global YYMMDD_DATE_LENGTH: u32 = 6;
 
+// Pivot margin (years) for resolving a 2-digit MRZ *expiry* year
+pub global MAX_DOCUMENT_VALIDITY_YEARS: u32 = 30;
+
 // Index for the country of issuance of the passport
 pub global PASSPORT_MRZ_ISSUING_COUNTRY_INDEX: u32 = 2;
 // Length of the country code in the MRZ
