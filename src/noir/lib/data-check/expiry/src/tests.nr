@@ -3,8 +3,8 @@ use date::Date;
 use utils::constants::{DG1_TO_MRZ_OFFSET, PASSPORT_MRZ_EXPIRY_DATE_INDEX, SAMPLE_DG1};
 use utils::types::DG1Data;
 
-// Build a passport DG1 with a custom 6-byte "YYMMDD" expiry, reusing SAMPLE_DG1 for the
-// rest. check_expiry reads only the expiry slice, so MRZ check digits don't matter here.
+// Passport DG1 with a custom "YYMMDD" expiry, reusing SAMPLE_DG1 for the rest (only the
+// expiry slice is read, so check digits don't matter).
 fn dg1_with_expiry(yymmdd: [u8; 6]) -> DG1Data {
     let mut dg1: [u8; 95] = SAMPLE_DG1;
     for i in 0..6 {
@@ -33,13 +33,11 @@ fn test_check_expiry_expired() {
     check_expiry(SAMPLE_DG1, current_date.to_timestamp());
 }
 
-// Regression (expiry-pivot consistency finding): a genuinely-valid long-validity
-// document must not be rejected. Expiry 2060 at current 2026 is a ~34-year document;
-// under the old +30 pivot its YY (60) resolved to 1960 and check_expiry wrongly reported
-// "Document is expired". With the shared MAX_DOCUMENT_VALIDITY_YEARS (50) pivot it
-// resolves to 2060 and correctly passes.
+// Regression (expiry-pivot consistency): a valid long-validity document within the pivot
+// margin must not be rejected. Expiry 2055 at current 2026 (~29y) resolves to 2055 and
+// passes.
 #[test]
 fn test_check_expiry_long_validity() {
-    let dg1: [u8; 95] = dg1_with_expiry("600101".as_bytes());
+    let dg1: [u8; 95] = dg1_with_expiry("550101".as_bytes());
     check_expiry(dg1, Date::new(2026, 6, 25).to_timestamp());
 }

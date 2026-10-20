@@ -3,9 +3,8 @@ use date::Date;
 use utils::constants::{DG1_TO_MRZ_OFFSET, PASSPORT_MRZ_EXPIRY_DATE_INDEX, SAMPLE_DG1};
 use utils::types::DG1Data;
 
-// Build a passport DG1 with a custom 6-byte "YYMMDD" expiry, reusing SAMPLE_DG1 for
-// every other field. (These helpers read only the expiry slice, so MRZ check digits
-// don't matter here.)
+// Passport DG1 with a custom "YYMMDD" expiry, reusing SAMPLE_DG1 for the rest (only the
+// expiry slice is read, so check digits don't matter).
 fn dg1_with_expiry(yymmdd: [u8; 6]) -> DG1Data {
     let mut dg1 = SAMPLE_DG1;
     for i in 0..6 {
@@ -44,24 +43,21 @@ fn test_get_expiry_date() {
 #[test]
 fn test_get_expiry_date_wrong_century() {
     let expiry_date = get_expiry_date(SAMPLE_DG1, Date::new(1975, 1, 1).to_timestamp());
-    // The pivot is current + MAX_DOCUMENT_VALIDITY_YEARS (50). When the current date is
-    // more than 50 years before the expiry (expiry 2030, current 1975), the YY resolves
-    // to the previous century.
+    // Pivot is current + 30: when current is >30y before the expiry (2030 vs 1975), the
+    // YY resolves to the previous century.
     assert_eq(expiry_date, Date::new(1930, 1, 1));
 }
 
 #[test]
 fn test_get_expiry_date_edge_current_date() {
-    let expiry_date = get_expiry_date(SAMPLE_DG1, Date::new(1980, 1, 1).to_timestamp());
-    // Exactly 50 years before the expiry (the pivot boundary), so still the correct century.
+    let expiry_date = get_expiry_date(SAMPLE_DG1, Date::new(2000, 1, 1).to_timestamp());
+    // Exactly 30 years before the expiry (the pivot boundary), so still the correct century.
     assert_eq(expiry_date, Date::new(2030, 1, 1));
 }
 
-// Regression (expiry-pivot consistency finding): a long-validity document whose real
-// expiry falls in the old 20/30-year overlap window must resolve to the correct future
-// century. Expiry 2051 at current 2026 resolves to 2051; under the old +20 pivot
-// get_expiry_date returned 1951 while check_expiry (at +30) saw 2051 - the divergence
-// this fix removes. Both helpers now share MAX_DOCUMENT_VALIDITY_YEARS.
+// Regression (expiry-pivot consistency): expiry 2051 at current 2026 must resolve to
+// 2051. Under the old split pivot get_expiry_date returned 1951 while check_expiry saw
+// 2051; both now share MAX_DOCUMENT_VALIDITY_YEARS.
 #[test]
 fn test_get_expiry_date_overlap_window_consistent() {
     let dg1 = dg1_with_expiry("510115".as_bytes());

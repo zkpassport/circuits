@@ -35,10 +35,9 @@ pub fn get_expiry_date(dg1: DG1Data, current_date_timestamp: u64) -> Date {
     let current_date = Date::from_timestamp(current_date_timestamp);
     let mut expiry_date = Date::new(1, 1, 1);
 
-    // Resolve the 2-digit MRZ year against the shared expiry pivot. This MUST match the
-    // pivot used by data_check_expiry::check_expiry_from_date (both read
-    // MAX_DOCUMENT_VALIDITY_YEARS) so the same bytes can never resolve to two different
-    // centuries within one proof.
+    // Resolve the 2-digit MRZ year against the shared expiry pivot - must match
+    // data_check_expiry::check_expiry_from_date so the same bytes can't resolve to two
+    // centuries.
     let threshold_year = current_date.add_years(MAX_DOCUMENT_VALIDITY_YEARS);
 
     // Get the slice of the MRZ representing the expiry date
