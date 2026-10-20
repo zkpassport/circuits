@@ -827,6 +827,7 @@ for (const config of suiteConfigs) {
   describe(config.name, () => {
     const state = createTestState()
 
+    // Generating RSA keys of up to 6144 bits can outlast jest's 5 s default for hooks
     beforeAll(async () => {
       await setupPassport(state, config.setup)
     }, 60000)
