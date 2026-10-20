@@ -814,11 +814,7 @@ fn verify_subproofs(
         (scoped_nullifier == 0) | (nullifier_type != NONE_NULLIFIER),
         "Scoped nullifier must be zero when the nullifier type is NONE",
     );
-    // oprf_pk_hash is only meaningful for salted nullifiers (it is the OPRF service key
-    // hash). A non-salted subproof emits oprf_pk_hash = 0, which rides the per-subproof
-    // "== 0" wildcard below, leaving the top-level value otherwise unconstrained. Pin it:
-    // the top-level oprf_pk_hash must be zero unless the nullifier is salted, so a
-    // non-salted proof cannot publish a forged OPRF service hash.
+    // oprf_pk_hash is only meaningful for salted nullifiers
     assert(
         (nullifier_type == SALTED_NULLIFIER)
             | (nullifier_type == SALTED_MOCK_NULLIFIER)
