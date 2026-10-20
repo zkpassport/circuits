@@ -54,6 +54,12 @@ fn skip_tagged_element<let N: u32>(tbs: [u8; N], pos: u32) -> u32 {
     pos + tl + consumed + len
 }
 
+/// Assert the single-byte-tag TLV at `pos` carries `tag`, then descend into its content.
+fn expect_enter<let N: u32>(tbs: [u8; N], pos: u32, tag: u8) -> u32 {
+    assert(tbs[pos] == tag, "unexpected DER tag while walking credential TBS");
+    enter_element(tbs, pos)
+}
+
 pub fn get_app_id_from_credential_tbs<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: u32>(
     tbs: [u8; TBS_MAX_LEN],
 ) -> ([u8; APP_ID_MAX_LEN], u32) {
@@ -71,10 +77,8 @@ pub fn get_app_id_from_credential_tbs<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: 
     // Framing: 04 extension OCTET STRING -> 30 KeyDescription -> 6 fixed fields -> 30
     // softwareEnforced.
     let mut p: u32 = oid_offset + OID_ANDROID_KEY_ATTESTATION.len();
-    assert(tbs[p] == 0x04, "Attestation extension value not found");
-    p = enter_element(tbs, p); // into the extension value OCTET STRING
-    assert(tbs[p] == 0x30, "KeyDescription SEQUENCE not found");
-    p = enter_element(tbs, p); // into the KeyDescription SEQUENCE
+    p = expect_enter(tbs, p, 0x04); // extension value OCTET STRING
+    p = expect_enter(tbs, p, 0x30); // KeyDescription SEQUENCE
     // Skip the six fixed fields by length, stepping over attestationChallenge.
     for _i in 0..6 {
         p = skip_element(tbs, p);
@@ -92,7 +96,7 @@ pub fn get_app_id_from_credential_tbs<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: 
     // cap bounds the walk (softwareEnforced holds only a handful of entries).
     let app_id_tag: [u8; 3] = [0xBF, 0x85, 0x45];
     let MAX_SW_ENTRIES: u32 = 32;
-    let mut p: u32 = sw_start;
+    p = sw_start;
     let mut tag_offset: u32 = TBS_MAX_LEN;
     let mut found: bool = false;
     for _ in 0..MAX_SW_ENTRIES {
@@ -113,14 +117,10 @@ pub fn get_app_id_from_credential_tbs<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: 
     // SEQUENCE -> packageName OCTET STRING (the app id).
     let (_, tag_len_bytes) = read_der_length(tbs, tag_offset + 3);
     let mut q = tag_offset + 3 + tag_len_bytes;
-    assert(tbs[q] == 0x04, "app-id OCTET STRING wrapper not found");
-    q = enter_element(tbs, q);
-    assert(tbs[q] == 0x30, "AttestationApplicationId SEQUENCE not found");
-    q = enter_element(tbs, q);
-    assert(tbs[q] == 0x31, "AttestationPackageInfo SET not found");
-    q = enter_element(tbs, q);
-    assert(tbs[q] == 0x30, "AttestationPackageInfo SEQUENCE not found");
-    q = enter_element(tbs, q);
+    q = expect_enter(tbs, q, 0x04); // OCTET STRING wrapper
+    q = expect_enter(tbs, q, 0x30); // AttestationApplicationId SEQUENCE
+    q = expect_enter(tbs, q, 0x31); // SET OF AttestationPackageInfo
+    q = expect_enter(tbs, q, 0x30); // AttestationPackageInfo SEQUENCE
     assert(tbs[q] == 0x04, "packageName OCTET STRING not found");
     let (app_id_length, app_id_len_bytes) = read_der_length(tbs, q + 1);
     let app_id_offset = q + 1 + app_id_len_bytes;
