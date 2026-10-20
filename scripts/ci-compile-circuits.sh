@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Number of circuits to compile in parallel. Override with e.g.
+# `JOBS=16 scripts/ci-compile-circuits.sh`.
+JOBS="${JOBS:-$(( $(nproc) < 8 ? $(nproc) : 8 ))}"
+
 # Circuits to compile
 CIRCUITS=(
     "sig_check_dsc_tbs_1000_rsa_pkcs_6144_sha256"
@@ -66,20 +70,20 @@ CIRCUITS=(
 # Ensure circuits are generated
 ./node_modules/.bin/tsx src/ts/scripts/circuit-builder.ts generate && nargo fmt
 
-# Compile circuits into unconstrained brillig
-for circuit in "${CIRCUITS[@]}"; do
-    echo "Compiling $circuit"
-    nargo compile --force --force-brillig --package "$circuit"
-    echo "Compiled $circuit"
-done
+# Facematch circuits are compiled constrained (force brillig fails for these at
+# present). 
+# TODO: Fix this once the force brillig issue is resolved.
 
-# Compile facematch (force brillig fails for this circuit at present)
-# TODO: Fix this once the force brillig issue is resolved
-echo "Compiling facematch_ios (constrained)"
-nargo compile --force --package facematch_ios
-echo "Compiling facematch_ios_evm (constrained)"
-nargo compile --force --package facematch_ios_evm
-echo "Compiling facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256 (constrained)"
-nargo compile --force --package facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256
-echo "Compiling facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256_evm (constrained)"
-nargo compile --force --package facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256_evm
+FACEMATCH=(
+    "facematch_ios"
+    "facematch_ios_evm"
+    "facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256"
+    "facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256_evm"
+)
+
+echo "Compiling ${#CIRCUITS[@]} brillig + ${#FACEMATCH[@]} facematch circuits with $JOBS parallel jobs"
+
+printf '%s\n' "${CIRCUITS[@]}" | xargs -P "$JOBS" -n1 nargo compile --force --force-brillig --package
+printf '%s\n' "${FACEMATCH[@]}" | xargs -P "$JOBS" -n1 nargo compile --force --package
+
+echo "All circuits compiled -> target/*.json ($(ls target/*.json 2>/dev/null | wc -l) artifacts)"
