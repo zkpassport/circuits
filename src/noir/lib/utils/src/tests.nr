@@ -1,7 +1,7 @@
 use crate::{
     check_zero_padding, find_subarray_index, find_subarray_index_after_index_strict,
     find_subarray_index_strict, get_mrz_from_dg1, get_name_from_mrz, pack_be_bytes_into_fields,
-    pack_be_bytes_into_u128s, split_array, unsafe_get_asn1_element_length,
+    pack_be_bytes_into_u128s, read_der_length, split_array, unsafe_get_asn1_element_length,
 };
 
 use super::constants::{
@@ -642,6 +642,42 @@ fn test_get_document_number_passport() {
 fn test_get_document_number_id_card() {
     let mrz_document_number = get_document_number_from_mrz(ID_CARD_SAMPLE_DG1);
     assert_eq(mrz_document_number, "ZID222222".as_bytes());
+}
+
+#[test]
+fn test_read_der_length_short_form() {
+    // Single-octet length < 128 encodes the length directly in its low 7 bits.
+    let data: [u8; 2] = [0x1E, 0x00]; // length 30
+    let (len, consumed) = read_der_length(data, 0);
+    assert_eq(len, 30);
+    assert_eq(consumed, 1);
+}
+
+#[test]
+fn test_read_der_length_long_form_1_byte() {
+    // 0x81 => one following length octet; 0x80 = 128.
+    let data: [u8; 2] = [0x81, 0x80];
+    let (len, consumed) = read_der_length(data, 0);
+    assert_eq(len, 128);
+    assert_eq(consumed, 2);
+}
+
+#[test]
+fn test_read_der_length_long_form_2_bytes() {
+    // 0x82 => two following length octets; 0x01 0x41 = 321. Placed at a non-zero
+    // position to mirror real usage (reading the length after a tag octet).
+    let data: [u8; 5] = [0xAA, 0xBB, 0x82, 0x01, 0x41];
+    let (len, consumed) = read_der_length(data, 2);
+    assert_eq(len, 321);
+    assert_eq(consumed, 3);
+}
+
+#[test(should_fail_with = "Unsupported DER length form")]
+fn test_read_der_length_rejects_unsupported_form() {
+    // 0x83 => three following length octets, which is beyond what this reader (and the
+    // certificates/attestations it parses) supports.
+    let data: [u8; 4] = [0x83, 0x01, 0x00, 0x00];
+    let _ = read_der_length(data, 0);
 }
 
 // TODO: Add a test for the extended document number
