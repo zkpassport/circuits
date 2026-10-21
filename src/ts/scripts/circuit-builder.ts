@@ -123,6 +123,10 @@ const STATIC_CIRCUITS = [
     path: "./src/noir/bin/facematch/ios/evm",
   },
   {
+    name: "attested_id_ios",
+    path: "./src/noir/bin/attested_id/ios/standard",
+  },
+  {
     name: "oprf_auth",
     path: "./src/noir/bin/oprf-auth",
   },
@@ -134,6 +138,7 @@ const LIB_CIRCUITS = [
   "src/noir/lib/commitment/csc-to-dsc",
   "src/noir/lib/commitment/dsc-to-id",
   "src/noir/lib/commitment/integrity-to-disclosure",
+  "src/noir/lib/commitment/attested-to-disclosure",
   "src/noir/lib/commitment/scoped-nullifier",
   "src/noir/lib/compare/age",
   "src/noir/lib/compare/date",

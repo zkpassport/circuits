@@ -1,0 +1,10 @@
+[package]
+name = "attested_id_ios"
+type = "bin"
+authors = ["Saleel"]
+compiler_version = ">=1.0.0"
+
+[dependencies]
+facematch = { path = "../../../../lib/facematch" }
+commitment = { path = "../../../../lib/commitment/attested-to-disclosure" }
+utils = { path = "../../../../lib/utils" }
