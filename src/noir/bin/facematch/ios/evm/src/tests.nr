@@ -1,4 +1,5 @@
 use facematch::constants;
+use utils::constants::CREDENTIAL_SCHEME_ICAO_CHIP;
 use utils::{constants::NON_SALTED_NULLIFIER, types::{DG1Data, SaltedValue}};
 use utils::get_expiry_date_from_mrz;
 
@@ -211,7 +212,7 @@ fn test_main() {
     let nullifier_secret: Field = 0;
     let current_date: u64 = 1719859200;
 
-    let (param_commitment, nullifier_type, nullifier, oprf_pk_hash) = crate::main(
+    let (param_commitment, nullifier_type, nullifier, oprf_pk_hash, credential_scheme) = crate::main(
         comm_in,
         current_date,
         SaltedValue::from_value(salt, private_nullifier),
@@ -233,7 +234,9 @@ fn test_main() {
         nullifier_secret,
         service_scope,
         service_subscope,
+        CREDENTIAL_SCHEME_ICAO_CHIP,
     );
+    assert_eq(credential_scheme, CREDENTIAL_SCHEME_ICAO_CHIP);
     assert(param_commitment != 0);
     assert(oprf_pk_hash == 0);
     assert(nullifier == 0x23e6d64d15c131d84badbfdbd06bf9c4b8794c5541737c9fcb884ee18f78b81c);

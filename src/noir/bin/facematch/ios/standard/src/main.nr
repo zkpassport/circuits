@@ -46,7 +46,10 @@ fn main(
     nullifier_secret: Field,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub (Field, Field, Field, Field) {
+    // What verified the ID (CREDENTIAL_SCHEME_* in utils); the outer circuit and the verifier
+    // check it against the base proof's output, so it rides along as the last public output
+    credential_scheme: Field,
+) -> pub (Field, Field, Field, Field, Field) {
     // Check the ID is not expired
     check_expiry_from_date(salted_expiry_date.value, current_date);
 
@@ -137,5 +140,7 @@ fn main(
     let param_commitment =
         calculate_param_commitment(root_key_leaf, environment, app_id_hash, 0, facematch_mode);
 
-    (param_commitment, nullifier_type, nullifier, oprf_pk_hash)
+    assert(credential_scheme != 0, "Credential scheme must be set");
+
+    (param_commitment, nullifier_type, nullifier, oprf_pk_hash, credential_scheme)
 }

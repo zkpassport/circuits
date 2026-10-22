@@ -93,9 +93,17 @@ if (!fs.existsSync(PACKAGED_CIRCUITS_DIR)) {
 }
 
 // Get all JSON files from target directory
+// `--only name1,name2` packages just those circuits, for a local manifest of a subset
+const onlyArg = process.argv.find((arg) => arg.startsWith("--only="))
+const only = onlyArg ? new Set(onlyArg.slice("--only=".length).split(",")) : null
+
 const files = fs
   .readdirSync(TARGET_DIR)
-  .filter((file) => !file.endsWith(".vkey.json") && !file.endsWith(".size.json") && file.endsWith(".json"))
+  .filter(
+    (file) =>
+      !file.endsWith(".vkey.json") && !file.endsWith(".size.json") && file.endsWith(".json"),
+  )
+  .filter((file) => !only || only.has(file.replace(".json", "")))
 
 // Promisify exec
 const execAsync = promisify(exec)
@@ -122,7 +130,9 @@ const processFile = async (
     const isUnconstrained = inputContent.includes("unconstrained main")
 
     if (isUnconstrained) {
-      throw new Error(`Unconstrained circuit detected: ${file}. Please remove any unconstrained circuits and rebuild them constrained.`)
+      throw new Error(
+        `Unconstrained circuit detected: ${file}. Please remove any unconstrained circuits and rebuild them constrained.`,
+      )
     }
 
     if (fs.existsSync(outputPath)) {

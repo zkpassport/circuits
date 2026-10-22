@@ -26,7 +26,10 @@ fn main(
     oprf_proof: commitment::OPRFProof,
     service_scope: pub Field,
     service_subscope: pub Field,
-) -> pub (Field, Field, Field, Field) {
+    // What verified the ID (CREDENTIAL_SCHEME_* in utils); the outer circuit and the verifier
+    // check it against the base proof's output, so it rides along as the last public output
+    credential_scheme: Field,
+) -> pub (Field, Field, Field, Field, Field) {
     // Check the ID is not expired
     check_expiry(salted_dg1.value, current_date);
 
@@ -50,5 +53,6 @@ fn main(
     // reconstructed by verifiers on EVM chains
     let param_commitment =
         calculate_param_commitment_sha2(PROOF_TYPE_BIRTHDATE, min_date, max_date);
-    (param_commitment, nullifier_type, nullifier, oprf_pk_hash)
+    assert(credential_scheme != 0, "Credential scheme must be set");
+    (param_commitment, nullifier_type, nullifier, oprf_pk_hash, credential_scheme)
 }
