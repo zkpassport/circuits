@@ -131,34 +131,83 @@ contract DeploySubVerifier is DeployBase {
   }
 
   function _writeAddresses(RootVerifier rootVerifier, SubVerifier subVerifier, address adminAddress) internal {
-    string memory versionStr = _versionString(SUB_VERIFIER_VERSION);
-
-    // proof_verifiers object keyed by outer_count_N
-    string memory pvJson = "pv";
-    vm.serializeAddress(pvJson, "outer_count_4", proofVerifiers[0]);
-    vm.serializeAddress(pvJson, "outer_count_5", proofVerifiers[1]);
-    vm.serializeAddress(pvJson, "outer_count_6", proofVerifiers[2]);
-    vm.serializeAddress(pvJson, "outer_count_7", proofVerifiers[3]);
-    vm.serializeAddress(pvJson, "outer_count_8", proofVerifiers[4]);
-    vm.serializeAddress(pvJson, "outer_count_9", proofVerifiers[5]);
-    vm.serializeAddress(pvJson, "outer_count_10", proofVerifiers[6]);
-    vm.serializeAddress(pvJson, "outer_count_11", proofVerifiers[7]);
-    vm.serializeAddress(pvJson, "outer_count_12", proofVerifiers[8]);
-    pvJson = vm.serializeAddress(pvJson, "outer_count_13", proofVerifiers[9]);
-
-    // version object: { address, admin, root_verifier, proof_verifiers, deployed_at }
-    string memory versionJson = "subverifier_version";
-    vm.serializeAddress(versionJson, "address", address(subVerifier));
-    vm.serializeAddress(versionJson, "admin", adminAddress);
-    vm.serializeAddress(versionJson, "root_verifier", address(rootVerifier));
-    vm.serializeUint(versionJson, "deployed_at", block.timestamp);
-    versionJson = vm.serializeString(versionJson, "proof_verifiers", pvJson);
-
-    // sub_verifier_versions: { "<version>": { ... } }
     string memory section = "sub_verifier_versions";
-    section = vm.serializeString(section, versionStr, versionJson);
+    string memory versionStr = _versionString(SUB_VERIFIER_VERSION);
+    string memory sectionJson;
 
-    _writeToAddresses("sub_verifier_versions", section);
+    // Writing the section replaces it whole, so carry over every other version it records
+    string memory addresses = _readAddresses();
+    string[] memory recordedVersions = _recordedVersions(addresses, section);
+    for (uint256 i = 0; i < recordedVersions.length; i++) {
+      if (keccak256(bytes(recordedVersions[i])) == keccak256(bytes(versionStr))) {
+        continue;
+      }
+      SubVerifierEntry memory recorded =
+        _readSubVerifierEntry(addresses, _versionEntryPath(section, recordedVersions[i]));
+      sectionJson =
+        vm.serializeString(section, recordedVersions[i], _serializeSubVerifierEntry(recordedVersions[i], recorded));
+    }
+
+    SubVerifierEntry memory deployed = SubVerifierEntry({
+      subVerifier: address(subVerifier),
+      admin: adminAddress,
+      rootVerifier: address(rootVerifier),
+      deployedAt: block.timestamp,
+      outerVerifiers: proofVerifiers
+    });
+    sectionJson = vm.serializeString(section, versionStr, _serializeSubVerifierEntry(versionStr, deployed));
+
+    _writeToAddresses(section, sectionJson);
+  }
+
+  /// One sub_verifier_versions entry: { address, admin, root_verifier, deployed_at, proof_verifiers }.
+  struct SubVerifierEntry {
+    address subVerifier;
+    address admin;
+    address rootVerifier;
+    uint256 deployedAt;
+    address[] outerVerifiers;
+  }
+
+  function _serializeSubVerifierEntry(string memory version, SubVerifierEntry memory entry)
+    internal
+    returns (string memory)
+  {
+    // proof_verifiers object keyed by outer_count_N
+    string memory proofVerifiersKey = string.concat("proof_verifiers_", version);
+    string memory proofVerifiersJson;
+    for (uint256 i = 0; i < 10; i++) {
+      proofVerifiersJson = vm.serializeAddress(
+        proofVerifiersKey, string.concat("outer_count_", vm.toString(i + 4)), entry.outerVerifiers[i]
+      );
+    }
+
+    string memory entryKey = string.concat("sub_verifier_", version);
+    vm.serializeAddress(entryKey, "address", entry.subVerifier);
+    vm.serializeAddress(entryKey, "admin", entry.admin);
+    vm.serializeAddress(entryKey, "root_verifier", entry.rootVerifier);
+    vm.serializeUint(entryKey, "deployed_at", entry.deployedAt);
+    return vm.serializeString(entryKey, "proof_verifiers", proofVerifiersJson);
+  }
+
+  function _readSubVerifierEntry(string memory addresses, string memory entryPath)
+    internal
+    pure
+    returns (SubVerifierEntry memory entry)
+  {
+    _requireFieldCount(addresses, entryPath, 5);
+    _requireFieldCount(addresses, string.concat(entryPath, ".proof_verifiers"), 10);
+
+    entry.subVerifier = vm.parseJsonAddress(addresses, string.concat(entryPath, ".address"));
+    entry.admin = vm.parseJsonAddress(addresses, string.concat(entryPath, ".admin"));
+    entry.rootVerifier = vm.parseJsonAddress(addresses, string.concat(entryPath, ".root_verifier"));
+    entry.deployedAt = vm.parseJsonUint(addresses, string.concat(entryPath, ".deployed_at"));
+
+    entry.outerVerifiers = new address[](10);
+    for (uint256 i = 0; i < 10; i++) {
+      entry.outerVerifiers[i] =
+        vm.parseJsonAddress(addresses, string.concat(entryPath, ".proof_verifiers.outer_count_", vm.toString(i + 4)));
+    }
   }
 
   function _versionString(bytes32 version) internal pure returns (string memory) {

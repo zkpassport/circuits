@@ -40,7 +40,38 @@ abstract contract DeployBase is Script {
     return string.concat(DEPLOYMENTS_DIR, "/addresses-", _chainIdStr(), ".json");
   }
 
-  /// Write a serialized JSON object to a top-level key in `addresses-<chainId>.json`.
+  /// Contents of `addresses-<chainId>.json`, or an empty object when the file does not exist yet.
+  function _readAddresses() internal view returns (string memory) {
+    string memory path = _addressesFilePath();
+    if (!vm.exists(path)) {
+      return "{}";
+    }
+    return vm.readFile(path);
+  }
+
+  /// Version keys recorded under the top-level `section` of `addresses`, or none when the section is missing.
+  function _recordedVersions(string memory addresses, string memory section) internal view returns (string[] memory) {
+    string memory sectionPath = string.concat(".", section);
+    if (!vm.keyExistsJson(addresses, sectionPath)) {
+      return new string[](0);
+    }
+    return vm.parseJsonKeys(addresses, sectionPath);
+  }
+
+  /// JSON path of `version`'s entry in `section`. The version is quoted because a version such as
+  /// "0.21.1" contains dots, which an unquoted path would read as nested keys.
+  function _versionEntryPath(string memory section, string memory version) internal pure returns (string memory) {
+    return string.concat(".", section, "['", version, "']");
+  }
+
+  /// Revert unless the object at `path` has exactly `fieldCount` fields, so an entry copied field by
+  /// field cannot silently lose one.
+  function _requireFieldCount(string memory json, string memory path, uint256 fieldCount) internal pure {
+    require(vm.parseJsonKeys(json, path).length == fieldCount, string.concat("Unexpected fields in ", path));
+  }
+
+  /// Write a serialized JSON object to a top-level key in `addresses-<chainId>.json`, replacing that
+  /// key's whole value.
   function _writeToAddresses(string memory key, string memory json) internal {
     _ensureDeploymentsDir();
     string memory path = _addressesFilePath();

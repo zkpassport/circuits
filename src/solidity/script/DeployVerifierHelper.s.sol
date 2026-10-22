@@ -55,17 +55,44 @@ contract DeployVerifierHelper is DeployBase {
   }
 
   function _writeAddresses(RootRegistry rootRegistry, VerifierHelper helper) internal {
-    string memory versionStr = _versionString(SUB_VERIFIER_VERSION);
-
-    string memory versionJson = "helper_version";
-    vm.serializeAddress(versionJson, "address", address(helper));
-    vm.serializeAddress(versionJson, "root_registry", address(rootRegistry));
-    versionJson = vm.serializeUint(versionJson, "deployed_at", block.timestamp);
-
     string memory section = "verifier_helper_versions";
-    section = vm.serializeString(section, versionStr, versionJson);
+    string memory versionStr = _versionString(SUB_VERIFIER_VERSION);
+    string memory sectionJson;
 
-    _writeToAddresses("verifier_helper_versions", section);
+    // Writing the section replaces it whole, so carry over every other version it records
+    string memory addresses = _readAddresses();
+    string[] memory recordedVersions = _recordedVersions(addresses, section);
+    for (uint256 i = 0; i < recordedVersions.length; i++) {
+      if (keccak256(bytes(recordedVersions[i])) == keccak256(bytes(versionStr))) {
+        continue;
+      }
+      string memory entryPath = _versionEntryPath(section, recordedVersions[i]);
+      _requireFieldCount(addresses, entryPath, 3);
+      string memory recordedJson = _serializeHelperEntry(
+        recordedVersions[i],
+        vm.parseJsonAddress(addresses, string.concat(entryPath, ".address")),
+        vm.parseJsonAddress(addresses, string.concat(entryPath, ".root_registry")),
+        vm.parseJsonUint(addresses, string.concat(entryPath, ".deployed_at"))
+      );
+      sectionJson = vm.serializeString(section, recordedVersions[i], recordedJson);
+    }
+
+    string memory deployedJson =
+      _serializeHelperEntry(versionStr, address(helper), address(rootRegistry), block.timestamp);
+    sectionJson = vm.serializeString(section, versionStr, deployedJson);
+
+    _writeToAddresses(section, sectionJson);
+  }
+
+  /// One verifier_helper_versions entry: { address, root_registry, deployed_at }.
+  function _serializeHelperEntry(string memory version, address helper, address rootRegistry, uint256 deployedAt)
+    internal
+    returns (string memory)
+  {
+    string memory entryKey = string.concat("helper_", version);
+    vm.serializeAddress(entryKey, "address", helper);
+    vm.serializeAddress(entryKey, "root_registry", rootRegistry);
+    return vm.serializeUint(entryKey, "deployed_at", deployedAt);
   }
 
   function _versionString(bytes32 version) internal pure returns (string memory) {
