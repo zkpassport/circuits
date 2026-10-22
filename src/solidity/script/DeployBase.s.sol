@@ -26,6 +26,16 @@ abstract contract DeployBase is Script {
     return vm.toString(block.chainid);
   }
 
+  /// Revert unless the RPC's chain matches the CHAIN_ID env var, so a wrong --rpc-url can't
+  /// deploy to an unintended network.
+  function _requireChainId() internal view {
+    uint256 expectedChainId = vm.envUint("CHAIN_ID");
+    require(
+      block.chainid == expectedChainId,
+      string.concat("CHAIN_ID is ", vm.toString(expectedChainId), " but the RPC is on chain ", _chainIdStr())
+    );
+  }
+
   function _addressesFilePath() internal view returns (string memory) {
     return string.concat(DEPLOYMENTS_DIR, "/addresses-", _chainIdStr(), ".json");
   }

@@ -14,11 +14,9 @@
  *
  * Required env vars:
  *   PRIVATE_KEY            - deployer key
+ *   CHAIN_ID               - chain the RPC must be on; the script reverts on a mismatch
  *   ROOT_REGISTRY_ADDRESS  - the RootRegistry the helper will read from
- *
- * Optional env vars:
- *   SUB_VERIFIER_VERSION   - bytes32 semver key. Recorded in the addresses JSON only.
- *                             Defaults to bytes32(0) (rendered as "unversioned").
+ *   SUB_VERIFIER_VERSION   - non-zero bytes32 semver key. Recorded in the addresses JSON only.
  */
 
 pragma solidity ^0.8.30;
@@ -35,7 +33,9 @@ contract DeployVerifierHelper is DeployBase {
 
   function run() public {
     // Validate env
-    SUB_VERIFIER_VERSION = vm.envOr("SUB_VERIFIER_VERSION", bytes32(0));
+    _requireChainId();
+    SUB_VERIFIER_VERSION = vm.envBytes32("SUB_VERIFIER_VERSION");
+    require(SUB_VERIFIER_VERSION != bytes32(0), "SUB_VERIFIER_VERSION must be set");
     RootRegistry rootRegistry = RootRegistry(vm.envAddress("ROOT_REGISTRY_ADDRESS"));
     require(address(rootRegistry) != address(0), "ROOT_REGISTRY_ADDRESS must be set");
 
