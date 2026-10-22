@@ -6,7 +6,7 @@
  *
  * Deploys the 10 UltraHonk outer-circuit proof verifiers, deploys a SubVerifier (canonical
  * contract imported from the registry-contracts package), wires the proof verifiers + their
- * vkey hashes, optionally sets the default OPRF public key hash, and transfers admin to
+ * vkey hashes, sets the default OPRF public key hash, and transfers admin to
  * the final ADMIN_ADDRESS. Does NOT register the SubVerifier with the RootVerifier — that
  * registration is performed by the RootVerifier admin (a Safe multisig) outside this script.
  *
@@ -15,15 +15,13 @@
  * ADMIN_ADDRESS at the end of the script.
  *
  * Required env vars:
- *   PRIVATE_KEY            - deployer key (becomes temporary admin)
- *   ROOT_VERIFIER_ADDRESS  - already-deployed RootVerifier this SubVerifier targets
- *   ADMIN_ADDRESS          - final admin (e.g. multisig) for the new SubVerifier
- *
- * Optional env vars:
- *   SUB_VERIFIER_VERSION      - bytes32 semver key. Recorded in the addresses JSON only.
- *                                Defaults to bytes32(0) (rendered as "unversioned").
- *   GLOBAL_OPRF_PUB_KEY_HASH - protocol-default OPRF pubkey hash. When non-zero, set via
- *                                setGlobalOPRFPubKeyHash. Otherwise admin can set later.
+ *   PRIVATE_KEY              - deployer key (becomes temporary admin)
+ *   CHAIN_ID                 - chain the RPC must be on; the script reverts on a mismatch
+ *   ROOT_VERIFIER_ADDRESS    - already-deployed RootVerifier this SubVerifier targets
+ *   ADMIN_ADDRESS            - final admin (e.g. multisig) for the new SubVerifier
+ *   SUB_VERIFIER_VERSION     - non-zero bytes32 semver key. Recorded in the addresses JSON only.
+ *   GLOBAL_OPRF_PUB_KEY_HASH - non-zero protocol-default OPRF pubkey hash, passed to the
+ *                              SubVerifier constructor. Salted proofs fail while it is zero.
  */
 
 pragma solidity ^0.8.30;
@@ -77,12 +75,15 @@ contract DeploySubVerifier is DeployBase {
 
   function run() public {
     // Validate env
-    SUB_VERIFIER_VERSION = vm.envOr("SUB_VERIFIER_VERSION", bytes32(0));
+    _requireChainId();
+    SUB_VERIFIER_VERSION = vm.envBytes32("SUB_VERIFIER_VERSION");
+    require(SUB_VERIFIER_VERSION != bytes32(0), "SUB_VERIFIER_VERSION must be set");
     address adminAddress = vm.envAddress("ADMIN_ADDRESS");
     require(adminAddress != address(0), "ADMIN_ADDRESS must be set");
     RootVerifier rootVerifier = RootVerifier(vm.envAddress("ROOT_VERIFIER_ADDRESS"));
     require(address(rootVerifier) != address(0), "ROOT_VERIFIER_ADDRESS must be set");
-    bytes32 globalOPRFPubKeyHash = vm.envOr("GLOBAL_OPRF_PUB_KEY_HASH", bytes32(0));
+    bytes32 globalOPRFPubKeyHash = vm.envBytes32("GLOBAL_OPRF_PUB_KEY_HASH");
+    require(globalOPRFPubKeyHash != bytes32(0), "GLOBAL_OPRF_PUB_KEY_HASH must be set");
 
     uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
     address deployer = vm.addr(deployerPrivateKey);
