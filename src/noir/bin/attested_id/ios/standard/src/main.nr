@@ -15,6 +15,7 @@
 # comm_out -> commitment over the salted DG1, expiry date, attested digest and private nullifier
 # param_commitment -> commitment over the attestation root key, environment, app ID and mode,
 #                     checked outside the circuit as for the facematch circuit
+# credential_scheme -> CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS: the verifier reads the tier from it
 */
 
 use commitment::{calculate_attested_digest, commit_to_disclosure_attested};
@@ -32,7 +33,7 @@ use facematch::constants::{
 };
 use facematch::param_commit::calculate_param_commitment;
 use utils::{
-    constants::SHA256_IDENTIFIER,
+    constants::{CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS, SHA256_IDENTIFIER},
     poseidon2_hash_packed,
     split_array,
     types::{DG1Data, SaltedValue},
@@ -61,7 +62,7 @@ fn main(
     // @committed
     // Hash of app_id is committed to (via parameter commitment) and can be verified outside the circuit
     app_id: [u8; APP_ID_MAX_LEN],
-) -> pub (Field, Field) {
+) -> pub (Field, Field, Field) {
     // Split the root and intermediate key into x and y coordinates
     let (root_key_x, root_key_y) = split_array(root_key);
     let (intermediate_key_x, intermediate_key_y) = split_array(intermediate_key);
@@ -146,5 +147,5 @@ fn main(
         FACEMATCH_MODE_STRICT,
     );
 
-    (comm_out, param_commitment)
+    (comm_out, param_commitment, CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS)
 }

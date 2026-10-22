@@ -95,3 +95,21 @@ fn test_commitment_is_deterministic_and_salt_bound() {
     assert(comm_a != comm_c);
     assert(nullifier_a != 0);
 }
+
+// Prints the values the TypeScript twins in @zkpassport/utils are checked against:
+// `nargo test --package attested_to_disclosure_commitment --show-output test_vectors`
+#[test]
+fn test_vectors_for_typescript() {
+    let dg1 = sample_dg1();
+    let digest = calculate_attested_digest(dg1, sample_portrait_hash());
+    let (comm_out, private_nullifier) = commit_to_disclosure_attested(
+        SaltedValue::from_value(1, dg1),
+        2,
+        3,
+        SaltedValue::from_value(3, SHA256_IDENTIFIER),
+        4,
+        digest,
+    );
+    println(f"tier2_private_nullifier={private_nullifier}");
+    println(f"comm_out={comm_out}");
+}
