@@ -58,8 +58,7 @@ abstract contract DeployBase is Script {
     return vm.parseJsonKeys(addresses, sectionPath);
   }
 
-  /// JSON path of `version`'s entry in `section`. The version is quoted because a version such as
-  /// "0.21.1" contains dots, which an unquoted path would read as nested keys.
+  /// JSON path of `version`'s entry in `section`.
   function _versionEntryPath(string memory section, string memory version) internal pure returns (string memory) {
     return string.concat(".", section, "['", version, "']");
   }
