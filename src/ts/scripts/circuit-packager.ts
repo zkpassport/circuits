@@ -7,7 +7,7 @@ import type { Blockstore } from "interface-blockstore"
 import path from "path"
 import { promisify } from "util"
 import { snakeToPascal, gzipAsync, initBarretenberg, destroyBarretenberg } from "../utils"
-import { Barretenberg } from "@aztec/bb.js"
+import { Barretenberg } from "@aztec-foundation/bb.js"
 
 let barretenberg: Barretenberg
 
@@ -47,7 +47,7 @@ async function getIpfsCidv0(
 const getPackageJsonBBVersion = () => {
   const packageJsonPath = path.resolve(__dirname, "../../../package.json")
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
-  const expectedBBVersion = packageJson.dependencies["@aztec/bb.js"].replace(
+  const expectedBBVersion = packageJson.dependencies["@aztec-foundation/bb.js"].replace(
     /[^0-9a-zA-Z\.\-]/i,
     "",
   )
