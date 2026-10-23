@@ -75,25 +75,6 @@ up:
      export ETHERSCAN_API_KEY=your_etherscan_api_key  # Optional for verification
      ```
 
-### Running Deployments
-
-To deploy to different networks:
-
-```bash
-# Deploy to local Anvil node (default)
-./deploy.sh
-
-# Deploy to Sepolia testnet
-./deploy.sh sepolia
-```
-
-The script will automatically:
-
-- Load environment variables from `.env` if present
-- Check if required variables are set
-- Display helpful error messages if something is missing
-- Use the appropriate RPC URL for the selected network
-
 ## Additional Resources
 
 - [Foundry Book](https://book.getfoundry.sh/)
