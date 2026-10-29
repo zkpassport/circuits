@@ -168,6 +168,10 @@ pub global CREDENTIAL_SCHEME_ISO_MDOC: Field = 103;
 pub global CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS: Field = 200;
 // The data page read by camera on Android, attested by Play Integrity with a strict face match
 pub global CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID: Field = 201;
+// The chip read but its signature not verifiable (no certificate in the registry), attested by
+// the device with a strict face match. Reserved; no circuit proves it yet.
+pub global CREDENTIAL_SCHEME_ATTESTED_CHIP_READ_IOS: Field = 202;
+pub global CREDENTIAL_SCHEME_ATTESTED_CHIP_READ_ANDROID: Field = 203;
 
 // P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<<<
 pub global SAMPLE_DG1: [u8; DG1_LENGTH] = [
