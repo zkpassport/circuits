@@ -1449,6 +1449,7 @@ const compileCircuitsWithNargo = async ({
 
   const pool = new PromisePool(concurrency)
   const promises: Promise<void>[] = []
+  const failedCircuits: string[] = []
 
   // Get all circuits that need to be compiled
   const allCircuits = [...STATIC_CIRCUITS, ...generatedCircuits]
@@ -1472,6 +1473,7 @@ const compileCircuitsWithNargo = async ({
           await execPromise(name, `${command} ${name}`, counter, totalCount)
         } catch (error: any) {
           console.error(`Error executing script for ${name}: ${error.message}`)
+          failedCircuits.push(name)
         }
       })
     promises.push(promise(name, processedCount))
@@ -1479,6 +1481,11 @@ const compileCircuitsWithNargo = async ({
 
   // Wait for all compilations to complete
   await Promise.all(promises)
+
+  if (failedCircuits.length > 0) {
+    console.error(`Failed to compile ${failedCircuits.length} circuits: ${failedCircuits.join(", ")}`)
+    process.exit(1)
+  }
 
   if (processedCount > 0) {
     const duration = (Date.now() - startTime) / 1000 // convert to seconds
