@@ -34,14 +34,14 @@ pub fn verify_rsa_pubkey_in_tbs<let PUBKEY_SIZE: u32, let TBS_SIZE: u32>(
 
     // BIT STRING -> unused-bits octet -> RSAPublicKey SEQUENCE -> modulus INTEGER.
     assert(tbs[p] == 0x03, "BIT STRING tag not found in SPKI");
-    let (_, bitstr_len_bytes) = read_der_length(tbs, p + 1);
+    let (bitstr_len, bitstr_len_bytes) = read_der_length(tbs, p + 1);
     p += 1 + bitstr_len_bytes;
 
     assert(tbs[p] == 0x00, "BIT STRING unused-bits octet must be zero");
     p += 1;
 
     assert(tbs[p] == 0x30, "RSAPublicKey SEQUENCE tag not found");
-    let (_, seq_len_bytes) = read_der_length(tbs, p + 1);
+    let (seq_len, seq_len_bytes) = read_der_length(tbs, p + 1);
     p += 1 + seq_len_bytes;
 
     assert(tbs[p] == 0x02, "Modulus INTEGER tag not found");
@@ -64,6 +64,14 @@ pub fn verify_rsa_pubkey_in_tbs<let PUBKEY_SIZE: u32, let TBS_SIZE: u32>(
     let exponent_bytes_length: u32 = tbs[exp_start + 1] as u32;
     assert(exponent_bytes_length >= 1, "Exponent length must be at least 1 byte");
     assert(exponent_bytes_length <= 4, "Exponent cannot be greater than 4 bytes");
+
+    // The RSAPublicKey SEQUENCE must span exactly the modulus + exponent TLVs, and the
+    // BIT STRING the unused-bits octet + that SEQUENCE
+    let modulus_tlv_len: u32 = 1 + mod_len_bytes + modulus_len;
+    let exponent_tlv_len: u32 = 2 + exponent_bytes_length;
+    assert(seq_len == modulus_tlv_len + exponent_tlv_len, "RSAPublicKey SEQUENCE length mismatch");
+    assert(bitstr_len == 1 + 1 + seq_len_bytes + seq_len, "BIT STRING length mismatch");
+
     let mut decoded: u32 = 0;
     for i in 0..4 {
         if i < exponent_bytes_length {
