@@ -551,10 +551,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     nullifier_secret: Field,
     service_scope: pub Field,
     service_subscope: pub Field,
-    // What verified the ID (CREDENTIAL_SCHEME_* in utils); the outer circuit and the verifier
-    // check it against the base proof's output, so it rides along as the last public output
-    credential_scheme: Field,
-) -> pub (Field, Field, Field, Field, Field) {
+) -> pub (Field, Field, Field, Field) {
     // Check the ID is not expired
     check_expiry_from_date(salted_expiry_date.value, current_date);
 
@@ -697,9 +694,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     let param_commitment =
         ${evm ? "calculate_param_commitment_sha2" : "calculate_param_commitment"}(root_key_leaf, environment, app_id_hash, play_integrity_public_key_hash, facematch_mode);
 
-    assert(credential_scheme != 0, "Credential scheme must be set");
-
-    (param_commitment, nullifier_type, nullifier, oprf_pk_hash, credential_scheme)
+    (param_commitment, nullifier_type, nullifier, oprf_pk_hash)
 }
 `
 
@@ -762,7 +757,7 @@ fn verify_subproofs(
     scoped_nullifier: Field,
     // The hash of the OPRF public key used for salted nullifiers (0 if non-salted)
     oprf_pk_hash: Field,
-    // What verified the ID, as the base proof output it and every disclosure proof carries it
+    // What verified the ID, as the base proof output it
     credential_scheme: Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
@@ -890,7 +885,6 @@ fn verify_subproofs(
         assert((disclosure_proofs[i].public_inputs[1] == 0) | (disclosure_proofs[i].public_inputs[1] == scoped_nullifier), "Disclosure proof scoped nullifier must be either 0 or the expected scoped nullifier");
         assert((disclosure_proofs[i].public_inputs[2] == NONE_NULLIFIER) | (disclosure_proofs[i].public_inputs[2] == nullifier_type), "Disclosure proof nullifier type must be either NONE or the expected nullifier type");
         assert((disclosure_proofs[i].public_inputs[3] == 0) | (disclosure_proofs[i].public_inputs[3] == oprf_pk_hash), "Disclosure proof oprf_pk_hash must be either 0 or the expected oprf_pk_hash");
-        assert_eq(disclosure_proofs[i].public_inputs[4], credential_scheme, "Disclosure proof credential scheme != expected credential scheme");
         // But at least one disclosure proof must have the expected scoped nullifier
         if (!found_valid_scoped_nullifier & (disclosure_proofs[i].public_inputs[1] == scoped_nullifier)) {
             found_valid_scoped_nullifier = true;
@@ -908,7 +902,6 @@ fn verify_subproofs(
                 disclosure_proofs[i].public_inputs[2], // nullifier_type (per-subproof: NONE or matches top-level)
                 disclosure_proofs[i].public_inputs[1], // scoped nullifier (per-subproof: 0 or matches top-level)
                 disclosure_proofs[i].public_inputs[3], // oprf_pk_hash (per-subproof: 0 or matches top-level)
-                credential_scheme,
             ),
             disclosure_proofs[i].key_hash,
             PROOF_TYPE_HONK_ZK,

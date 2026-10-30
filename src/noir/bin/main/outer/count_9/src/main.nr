@@ -17,7 +17,7 @@ service_subscope -> The service subscope
 param_commitments -> The commitments over the parameters of the disclosure circuits
 nullifier_type -> The type of the nullifier
 scoped_nullifier -> The scoped nullifier
-credential_scheme -> What verified the ID: the chip (1), a device-attested camera read (2), ... (see utils)
+credential_scheme -> What verified the ID (CREDENTIAL_SCHEME_* in utils): 1xx when the issuer signed it, 2xx when a device attested a camera read of it
 csc_to_dsc_proof -> The proof of the CSC to DSC circuit
 dsc_to_id_data_proof -> The proof of the DSC to ID Data circuit
 integrity_check_proof -> The proof of the integrity check circuit
@@ -54,7 +54,7 @@ fn verify_subproofs(
     scoped_nullifier: Field,
     // The hash of the OPRF public key used for salted nullifiers (0 if non-salted)
     oprf_pk_hash: Field,
-    // What verified the ID, as the base proof output it and every disclosure proof carries it
+    // What verified the ID, as the base proof output it
     credential_scheme: Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
@@ -226,11 +226,6 @@ fn verify_subproofs(
                 | (disclosure_proofs[i].public_inputs[3] == oprf_pk_hash),
             "Disclosure proof oprf_pk_hash must be either 0 or the expected oprf_pk_hash",
         );
-        assert_eq(
-            disclosure_proofs[i].public_inputs[4],
-            credential_scheme,
-            "Disclosure proof credential scheme != expected credential scheme",
-        );
         // But at least one disclosure proof must have the expected scoped nullifier
         if (
             !found_valid_scoped_nullifier
@@ -251,7 +246,6 @@ fn verify_subproofs(
                 disclosure_proofs[i].public_inputs[2], // nullifier_type (per-subproof: NONE or matches top-level)
                 disclosure_proofs[i].public_inputs[1], // scoped nullifier (per-subproof: 0 or matches top-level)
                 disclosure_proofs[i].public_inputs[3], // oprf_pk_hash (per-subproof: 0 or matches top-level)
-                credential_scheme,
             ),
             disclosure_proofs[i].key_hash,
             PROOF_TYPE_HONK_ZK,
