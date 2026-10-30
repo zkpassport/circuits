@@ -24,9 +24,8 @@ pub fn prepare_disclosure_inputs(
     nullifier_type: Field,
     scoped_nullifier: Field,
     oprf_pk_hash: Field,
-    credential_scheme: Field,
-) -> [Field; 9] {
-    let mut result: [Field; 9] = [0; 9];
+) -> [Field; 8] {
+    let mut result: [Field; 8] = [0; 8];
     result[0] = comm_in;
     result[1] = current_date as Field;
     result[2] = service_scope;
@@ -35,7 +34,6 @@ pub fn prepare_disclosure_inputs(
     result[5] = nullifier_type;
     result[6] = scoped_nullifier;
     result[7] = oprf_pk_hash;
-    result[8] = credential_scheme;
     result
 }
 
@@ -83,8 +81,8 @@ pub struct IntegrityCheckProof {
 pub struct DisclosureProof {
     pub vkey: [Field; VKEY_SIZE],
     pub proof: [Field; PROOF_SIZE],
-    // param_commitment, scoped_nullifier, nullifier_type, oprf_pk_hash, credential_scheme
-    pub public_inputs: [Field; 5],
+    // comm_in, scoped_nullifier, nullifier_type, oprf_pk_hash
+    pub public_inputs: [Field; 4],
     pub key_hash: Field,
     // Hash path for circuit D key hash in the sub-circuit merkle tree
     pub tree_hash_path: [Field; 12],
