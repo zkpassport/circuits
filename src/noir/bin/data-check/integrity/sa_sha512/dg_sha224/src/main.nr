@@ -3,6 +3,7 @@ use commitment::commit_to_disclosure;
 use data_check_integrity::{
     check_dg1_sha224, check_signed_attributes_sha512, get_dg2_hash_from_econtent,
 };
+use utils::constants::CREDENTIAL_SCHEME_ICAO_CHIP;
 use utils::{
     constants::{SHA224_DIGEST_LENGTH, SHA224_IDENTIFIER},
     types::{DG1Data, EContentData, SaltedValue, SignedAttrsData},
@@ -17,7 +18,7 @@ fn main(
     signed_attributes: SignedAttrsData,
     e_content: EContentData,
     salted_private_nullifier: SaltedValue<Field>,
-) -> pub Field {
+) -> pub (Field, Field) {
     // Get the length of e_content by parsing the ASN.1
     // Safety: This is safe because the length must be correct for econtent to hash to
     // the expected digest in signed attributes as checked below in check_signed_attributes_sha224
@@ -46,5 +47,6 @@ fn main(
         e_content,
         salted_private_nullifier,
     );
-    comm_out
+    // The chip's signatures verified the data: every proof built on this one carries the scheme
+    (comm_out, CREDENTIAL_SCHEME_ICAO_CHIP)
 }

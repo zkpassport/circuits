@@ -123,6 +123,10 @@ const STATIC_CIRCUITS = [
     path: "./src/noir/bin/facematch/ios/evm",
   },
   {
+    name: "attested_id_ios",
+    path: "./src/noir/bin/attested_id/ios/standard",
+  },
+  {
     name: "oprf_auth",
     path: "./src/noir/bin/oprf-auth",
   },
@@ -134,6 +138,7 @@ const LIB_CIRCUITS = [
   "src/noir/lib/commitment/csc-to-dsc",
   "src/noir/lib/commitment/dsc-to-id",
   "src/noir/lib/commitment/integrity-to-disclosure",
+  "src/noir/lib/commitment/attested-to-disclosure",
   "src/noir/lib/commitment/scoped-nullifier",
   "src/noir/lib/compare/age",
   "src/noir/lib/compare/date",
@@ -406,6 +411,7 @@ const DATA_INTEGRITY_CHECK_TEMPLATE = (
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_disclosure;
+use utils::constants::CREDENTIAL_SCHEME_ICAO_CHIP;
 use data_check_integrity::{check_dg1_${dg_hash_algorithm}, check_signed_attributes_${signed_attributes_hash_algorithm}, get_dg2_hash_from_econtent};
 use utils::{types::{DG1Data, EContentData, SignedAttrsData, SaltedValue}, constants::{${getHashAlgorithmIdentifier(
   dg_hash_algorithm,
@@ -420,7 +426,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     signed_attributes: SignedAttrsData,
     e_content: EContentData,
     salted_private_nullifier: SaltedValue<Field>,
-) -> pub Field {
+) -> pub (Field, Field) {
     // Get the length of e_content by parsing the ASN.1
     // Safety: This is safe because the length must be correct for econtent to hash to
     // the expected digest in signed attributes as checked below in check_signed_attributes_${dg_hash_algorithm}
@@ -454,7 +460,8 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         e_content,
         salted_private_nullifier,
     );
-    comm_out
+    // The chip's signatures verified the data: every proof built on this one carries the scheme
+    (comm_out, CREDENTIAL_SCHEME_ICAO_CHIP)
 }
 `
 
@@ -715,6 +722,7 @@ service_subscope -> The service subscope
 param_commitments -> The commitments over the parameters of the disclosure circuits
 nullifier_type -> The type of the nullifier
 scoped_nullifier -> The scoped nullifier
+credential_scheme -> What verified the ID (CREDENTIAL_SCHEME_* in utils): 1xx when the issuer signed it, 2xx when a device attested a camera read of it
 csc_to_dsc_proof -> The proof of the CSC to DSC circuit
 dsc_to_id_data_proof -> The proof of the DSC to ID Data circuit
 integrity_check_proof -> The proof of the integrity check circuit
@@ -749,6 +757,8 @@ fn verify_subproofs(
     scoped_nullifier: Field,
     // The hash of the OPRF public key used for salted nullifiers (0 if non-salted)
     oprf_pk_hash: Field,
+    // What verified the ID, as the base proof output it
+    credential_scheme: Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
     integrity_check_proof: IntegrityCheckProof,
@@ -856,10 +866,13 @@ fn verify_subproofs(
         prepare_integrity_check_inputs(
             integrity_check_proof.public_inputs[0], // comm_in
             integrity_check_proof.public_inputs[1], // comm_out
+            integrity_check_proof.public_inputs[2], // credential_scheme
         ),
         integrity_check_proof.key_hash,
         PROOF_TYPE_HONK_ZK,
     );
+
+    assert_eq(integrity_check_proof.public_inputs[2], credential_scheme, "Credential scheme from integrity check circuit != expected credential scheme");
 
     let mut found_valid_scoped_nullifier = false;
 
@@ -910,6 +923,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     nullifier_type: pub Field,
     scoped_nullifier: pub Field,
     oprf_pk_hash: pub Field,
+    credential_scheme: pub Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
     integrity_check_proof: IntegrityCheckProof,
@@ -925,6 +939,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         nullifier_type,
         scoped_nullifier,
         oprf_pk_hash,
+        credential_scheme,
         csc_to_dsc_proof,
         dsc_to_id_data_proof,
         integrity_check_proof,
