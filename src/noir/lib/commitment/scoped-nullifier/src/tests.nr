@@ -191,8 +191,9 @@ fn test_nullify_hidden_nullifier() {
     let dg2_hash_type = SHA256_IDENTIFIER;
 
     // The private nullifier is only known by its salted hash inside the circuit
-    let hidden_private_nullifier: SaltedValue<Field> =
-        SaltedValue::from_hash(SaltedValue::from_value(salt, private_nullifier).get_hash());
+    let hidden_private_nullifier: SaltedValue<Field> = SaltedValue::from_hash(
+        SaltedValue::<Field>::from_value(salt, private_nullifier).get_hash(),
+    );
 
     let comm_in = hash_salt_dg1_dg2_hash_private_nullifier(
         SaltedValue::from_value(salt, SAMPLE_DG1),
@@ -251,8 +252,9 @@ fn test_nullify_hidden_nullifier_rejects_secret() {
     let dg2_hash_normalized = 6;
     let dg2_hash_type = SHA256_IDENTIFIER;
 
-    let hidden_private_nullifier: SaltedValue<Field> =
-        SaltedValue::from_hash(SaltedValue::from_value(salt, private_nullifier).get_hash());
+    let hidden_private_nullifier: SaltedValue<Field> = SaltedValue::from_hash(
+        SaltedValue::<Field>::from_value(salt, private_nullifier).get_hash(),
+    );
 
     let comm_in = hash_salt_dg1_dg2_hash_private_nullifier(
         SaltedValue::from_value(salt, SAMPLE_DG1),
