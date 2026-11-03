@@ -445,6 +445,9 @@ pub fn read_der_length<let N: u32>(data: [u8; N], pos: u32) -> (u32, u32) {
             }
         }
         consumed = 1 + nlen;
+        // DER minimality: long form only for values >= 128, with a non-zero leading octet.
+        assert(content_len >= 128, "Non-minimal DER length encoding");
+        assert(data[pos + 1] != 0, "Non-minimal DER length encoding");
     }
     (content_len, consumed)
 }
