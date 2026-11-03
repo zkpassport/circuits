@@ -1,6 +1,7 @@
 crs
 target
 target.*
+release
 proofs
 vkeys
 Prover.toml

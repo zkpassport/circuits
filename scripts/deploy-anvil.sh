@@ -8,7 +8,10 @@ ANVIL_RPC="${ANVIL_RPC:-http://localhost:8546}"
 ANVIL_PRIVATE_KEY="${ANVIL_PRIVATE_KEY:-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80}"
 
 CIRCUIT_VERSION_SEMVER="0.18.0"
-CIRCUIT_VERSION=$(printf "0x%04x%04x%04x%052d" ${CIRCUIT_VERSION_SEMVER//./ } 0)
+CIRCUIT_VERSION=$(CIRCUIT_VERSION_SEMVER="$CIRCUIT_VERSION_SEMVER" npx tsx -e '
+import { circuitVersionToBytes32 } from "@zkpassport/utils/registry"
+console.log(circuitVersionToBytes32(process.env.CIRCUIT_VERSION_SEMVER))
+')
 echo "Circuit version: ${CIRCUIT_VERSION_SEMVER} -> ${CIRCUIT_VERSION}"
 
 # OPRF global key hash pinned on-chain. By default it's left unset (bytes32(0)) — the stack

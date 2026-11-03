@@ -680,5 +680,19 @@ fn test_read_der_length_rejects_unsupported_form() {
     let _ = read_der_length(data, 0);
 }
 
+#[test(should_fail_with = "Non-minimal DER length encoding")]
+fn test_read_der_length_rejects_non_minimal_long_form() {
+    // 0x81 0x7F: long form for 127, which the short form encodes in a single octet.
+    let data: [u8; 2] = [0x81, 0x7F];
+    let _ = read_der_length(data, 0);
+}
+
+#[test(should_fail_with = "Non-minimal DER length encoding")]
+fn test_read_der_length_rejects_leading_zero_octet() {
+    // 0x82 0x00 0xFF: two octets with a leading zero for 255, which fits in one octet.
+    let data: [u8; 3] = [0x82, 0x00, 0xFF];
+    let _ = read_der_length(data, 0);
+}
+
 // TODO: Add a test for the extended document number
 // once get_document_number_from_mrz can extract the whole extended document number

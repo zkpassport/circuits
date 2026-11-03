@@ -37,6 +37,21 @@ fn tbs_with_rsa_spki(modulus: [u8; 256]) -> [u8; 1000] {
     tbs
 }
 
+// Repatch the SEQUENCE / BIT STRING length fields for an exponent of `exp_len` content
+// bytes so the framing stays DER-consistent (the base builder hardcodes e=65537).
+fn with_rsa_spki_lengths(mut tbs: [u8; 1000], exp_len: u32) -> [u8; 1000] {
+    // modulus TLV is fixed at 261 B; exponent TLV is 2 + exp_len; BIT STRING adds the
+    // unused-bits octet + SEQUENCE TLV.
+    let seq_len: u32 = 261 + 2 + exp_len;
+    let bitstr_len: u32 = seq_len + 5;
+    // SEQUENCE length `30 82 hi lo` at 124..127, BIT STRING `03 82 hi lo` at 119..122.
+    tbs[126] = (seq_len / 256) as u8;
+    tbs[127] = (seq_len % 256) as u8;
+    tbs[121] = (bitstr_len / 256) as u8;
+    tbs[122] = (bitstr_len % 256) as u8;
+    tbs
+}
+
 #[test]
 fn test_verify_rsa_pubkey_in_tbs() {
     let rsa_pubkey: [u8; 256] = sample_modulus();
@@ -53,7 +68,7 @@ fn test_verify_rsa_pubkey_in_tbs() {
 #[test]
 fn test_verify_rsa_pubkey_in_tbs_small_exponent() {
     let rsa_pubkey: [u8; 256] = sample_modulus();
-    let mut tbs: [u8; 1000] = tbs_with_rsa_spki(rsa_pubkey);
+    let mut tbs: [u8; 1000] = with_rsa_spki_lengths(tbs_with_rsa_spki(rsa_pubkey), 1);
     // e = 3 hits the 1-byte branch: 0x02 | 0x01 | 0x03.
     tbs[EXP_OFF] = 0x02;
     tbs[EXP_OFF + 1] = 0x01;
@@ -64,7 +79,7 @@ fn test_verify_rsa_pubkey_in_tbs_small_exponent() {
 #[test]
 fn test_verify_rsa_pubkey_in_tbs_zero_padded_exponent() {
     let rsa_pubkey: [u8; 256] = sample_modulus();
-    let mut tbs: [u8; 1000] = tbs_with_rsa_spki(rsa_pubkey);
+    let mut tbs: [u8; 1000] = with_rsa_spki_lengths(tbs_with_rsa_spki(rsa_pubkey), 4);
     // e = 65537 declared with length 4 and a leading zero byte:
     //   0x02 | 0x04 | 0x00 0x01 0x00 0x01
     // Non-canonical DER (DER strips leading zeros), but the big-endian decoder
@@ -167,6 +182,38 @@ fn test_verify_rsa_pubkey_in_tbs_fail_modulus_length() {
     tbs[EXP_OFF + 2] = 0x01;
     tbs[EXP_OFF + 3] = 0x00;
     tbs[EXP_OFF + 4] = 0x01;
+    verify_rsa_pubkey_in_tbs(rsa_pubkey, 65537, tbs);
+}
+
+// The SEQUENCE length must equal the modulus + exponent TLVs it wraps.
+#[test(should_fail_with = "RSAPublicKey SEQUENCE length mismatch")]
+fn test_verify_rsa_pubkey_in_tbs_fail_sequence_length() {
+    let rsa_pubkey: [u8; 256] = sample_modulus();
+    let mut tbs: [u8; 1000] = tbs_with_rsa_spki(rsa_pubkey);
+    tbs[EXP_OFF] = 0x02;
+    tbs[EXP_OFF + 1] = 0x03;
+    tbs[EXP_OFF + 2] = 0x01;
+    tbs[EXP_OFF + 3] = 0x00;
+    tbs[EXP_OFF + 4] = 0x01;
+    // Shrink the declared SEQUENCE length (266 -> 265) without changing its content.
+    tbs[126] = 0x01;
+    tbs[127] = 0x09;
+    verify_rsa_pubkey_in_tbs(rsa_pubkey, 65537, tbs);
+}
+
+// The BIT STRING length must wrap the unused-bits octet + the RSAPublicKey SEQUENCE.
+#[test(should_fail_with = "BIT STRING length mismatch")]
+fn test_verify_rsa_pubkey_in_tbs_fail_bitstring_length() {
+    let rsa_pubkey: [u8; 256] = sample_modulus();
+    let mut tbs: [u8; 1000] = tbs_with_rsa_spki(rsa_pubkey);
+    tbs[EXP_OFF] = 0x02;
+    tbs[EXP_OFF + 1] = 0x03;
+    tbs[EXP_OFF + 2] = 0x01;
+    tbs[EXP_OFF + 3] = 0x00;
+    tbs[EXP_OFF + 4] = 0x01;
+    // Grow the declared BIT STRING length (271 -> 272) while the SEQUENCE stays correct.
+    tbs[121] = 0x01;
+    tbs[122] = 0x10;
     verify_rsa_pubkey_in_tbs(rsa_pubkey, 65537, tbs);
 }
 
