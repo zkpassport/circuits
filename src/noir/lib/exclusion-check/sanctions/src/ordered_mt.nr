@@ -1,47 +1,6 @@
 // c.t. /self/noir/crates/dg1/src/utils/
-use crate::types::{
-    SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH, SanctionsOrderedMerkleTreeInclusionProof,
-    SanctionsOrderedMerkleTreeProof,
-};
-use poseidon::poseidon2::Poseidon2;
-
-///
-/// Ordered Merkle Tree Inclusion Proof
-///
-/// Performs a normal merkle tree inclusion proof
-///
-pub fn ordered_mt_verify_inclusion(
-    root: Field,
-    inclusion_proof: SanctionsOrderedMerkleTreeInclusionProof,
-) {
-    let path_in_bits: [bool; SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH] =
-        inclusion_proof.leaf_index.to_be_bits::<SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH>();
-
-    let mut current = inclusion_proof.leaf;
-    for i in 0..SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH {
-        let (left, right) = if path_in_bits[SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH - i - 1] {
-            (inclusion_proof.sibling_path[i], current)
-        } else {
-            (current, inclusion_proof.sibling_path[i])
-        };
-
-        current = Poseidon2::hash([left, right], 2);
-    }
-    assert(current == root);
-}
-
-pub fn ordered_mt_non_membership(root: Field, leaf: Field, proof: SanctionsOrderedMerkleTreeProof) {
-    // Perform inclusion checks for bothe the closest upper and the closest lower
-    ordered_mt_verify_inclusion(root, proof.left);
-    ordered_mt_verify_inclusion(root, proof.right);
-
-    // Check that the closest upper and closest lower are lower / greater than the leaf value
-    assert(proof.left.leaf.lt(leaf));
-    assert(leaf.lt(proof.right.leaf));
-
-    // Check that their indexes are adjacent
-    assert(proof.left.leaf_index + 1 == proof.right.leaf_index);
-}
+use crate::types::{SanctionsOrderedMerkleTreeInclusionProof, SanctionsOrderedMerkleTreeProof};
+pub use utils::ordered_mt::{ordered_mt_non_membership, ordered_mt_verify_inclusion};
 
 #[test]
 fn test_ordered_mt_non_membership() {

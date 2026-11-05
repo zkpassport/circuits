@@ -6,6 +6,8 @@ use facematch::{
     android::{
         constants::INTEGRITY_TOKEN_MAX_LENGTH,
         get_app_id_from_credential_tbs,
+        get_tbs_serial_number,
+        hardware::{assert_serial_not_revoked, RevocationProof},
         token::{
             is_integrity_token_fresh, parse_integrity_token, verify_integrity_token,
             verify_integrity_token_signature, verify_nonce,
@@ -22,7 +24,9 @@ use facematch::{
 use facematch::constants::{
     APP_ID_MAX_LEN, ATTESTATION_KEY_TYPE_GOOGLE, CLIENT_DATA_MAX_LEN, CREDENTIAL_TBS_MAX_LEN,
 };
-use facematch::param_commit::{calculate_param_commitment, calculate_param_commitment_sha2};
+use facematch::param_commit::{
+    calculate_android_param_commitment, calculate_android_param_commitment_sha2,
+};
 use sig_check_ecdsa::{verify_nist_p256_blackbox as verify_nist_p256, verify_nist_p384};
 use sig_check_rsa::verify_signature;
 use utils::{
@@ -51,14 +55,24 @@ fn main(
     intermediate_1_tbs: [u8; 700],
     // RSA signature from the root over the intermediate certificate #1 TBS
     intermediate_1_sig: [u8; 512],
+    // Shows the serial number of intermediate certificate #1 is not in the revocation tree
+    intermediate_1_revocation_proof: RevocationProof,
     intermediate_2_key: [u8; 64],
     intermediate_2_tbs: [u8; 700],
     // ecdsa signature from the intermediate certificate #1 over the intermediate certificate #2 TBS
     intermediate_2_sig: [u8; 64],
+    // Shows the serial number of intermediate certificate #2 is not in the revocation tree
+    intermediate_2_revocation_proof: RevocationProof,
     intermediate_3_key: [u8; 96],
     intermediate_3_tbs: [u8; 700],
     // ecdsa signature from the intermediate certificate #2 over the intermediate certificate #3 TBS
     intermediate_3_sig: [u8; 64],
+    // Shows the serial number of intermediate certificate #3 is not in the revocation tree
+    intermediate_3_revocation_proof: RevocationProof,
+    // @committed
+    // The root of the tree of revoked attestation certificate serial numbers is committed to
+    // (via parameter commitment) and can be verified outside the circuit
+    revocation_root: Field,
     // This is the leaf certificate derived from the private key in the KeyStore
     // so we have control over the signature algorithm used (i.e P-256 with SHA256)
     // so client_data_sig will always be P-256 with SHA256
@@ -197,6 +211,24 @@ fn main(
         "Failed to verify client data hash",
     );
 
+    assert_serial_not_revoked(
+        revocation_root,
+        get_tbs_serial_number(intermediate_1_tbs),
+        intermediate_1_revocation_proof,
+    );
+
+    assert_serial_not_revoked(
+        revocation_root,
+        get_tbs_serial_number(intermediate_2_tbs),
+        intermediate_2_revocation_proof,
+    );
+
+    assert_serial_not_revoked(
+        revocation_root,
+        get_tbs_serial_number(intermediate_3_tbs),
+        intermediate_3_revocation_proof,
+    );
+
     // Verify the app ID in the credential certificate TBS matches the expected app ID
     let (tbs_app_id, app_id_length): ([u8; APP_ID_MAX_LEN], u32) =
         get_app_id_from_credential_tbs(credential_tbs);
@@ -273,14 +305,15 @@ fn main(
     );
 
     let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
-    let play_integrity_public_key_hash =
+    let integrity_anchor =
         poseidon2_hash_packed(play_integrity_public_key, play_integrity_public_key.len());
-    let param_commitment = calculate_param_commitment_sha2(
+    let param_commitment = calculate_android_param_commitment_sha2(
         root_key_leaf,
         environment,
         app_id_hash,
-        play_integrity_public_key_hash,
+        integrity_anchor,
         facematch_mode,
+        revocation_root,
     );
 
     (param_commitment, nullifier_type, nullifier, oprf_pk_hash)

@@ -4,6 +4,7 @@
 * https://www.icao.int/publications/pages/publication.aspx?docnum=9303
 */
 pub mod tests;
+pub mod ordered_mt;
 pub mod types;
 pub mod constants;
 

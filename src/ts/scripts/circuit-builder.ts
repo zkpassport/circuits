@@ -474,19 +474,26 @@ const FACEMATCH_ANDROID_TEMPLATE = (
   }[],
   evm: boolean = false,
   unconstrained: boolean = false,
+  hardware: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
-use commitment::nullify;
+${hardware ? `// Hardware attestation variant: the device and app are vouched for by Android key attestation
+// alone (locked bootloader, verified boot with the OEM key or an allowlisted one, recent
+// security patch, APK signing digest), with no Play Integrity verdict. Only chains under
+// Google's ECDSA root are accepted, which remote key provisioning issues per device.
+` : ""}use commitment::nullify;
 use data_check_tbs_pubkey::{verify_ecdsa_pubkey_in_tbs, verify_rsa_pubkey_in_tbs};
 use data_check_expiry::check_expiry_from_date;
 use facematch::{
-    android::{get_app_id_from_credential_tbs, constants::INTEGRITY_TOKEN_MAX_LENGTH, token::{is_integrity_token_fresh, verify_integrity_token, verify_nonce, verify_integrity_token_signature, parse_integrity_token}}, calculate_attestation_registry_leaf,
+    android::{${hardware
+      ? `get_key_description, constants::ANDROID_BOOT_KEY_ALLOWLIST_DEPTH, hardware::{calculate_hardware_integrity_anchor, verify_hardware_device_state}`
+      : `get_app_id_from_credential_tbs, constants::INTEGRITY_TOKEN_MAX_LENGTH, token::{is_integrity_token_fresh, verify_integrity_token, verify_nonce, verify_integrity_token_signature, parse_integrity_token}`}, get_tbs_serial_number, hardware::{assert_serial_not_revoked, RevocationProof}}, calculate_attestation_registry_leaf,
     get_client_data_hash, prepare_client_data_hash_for_signature, get_facematch_mode_from_client_data, get_tbs_hash_sha256,
     get_tbs_hash_sha384, verify_dg2_hash_in_client_data
 };
 use facematch::constants::{
     APP_ID_MAX_LEN, ATTESTATION_KEY_TYPE_GOOGLE, CLIENT_DATA_MAX_LEN, CREDENTIAL_TBS_MAX_LEN,
 };
-use facematch::param_commit::{calculate_param_commitment, calculate_param_commitment_sha2};
+use facematch::param_commit::{calculate_android_param_commitment, calculate_android_param_commitment_sha2};
 use sig_check_ecdsa::{verify_nist_p256_blackbox as verify_nist_p256, verify_nist_p384};
 use sig_check_rsa::verify_signature;
 use utils::{poseidon2_hash_packed, split_array, types::{DG1Data, SaltedValue, MRZExpiryDate}, unsafe_get_asn1_element_length};
@@ -520,7 +527,13 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     intermediate_${index + 1}_tbs: [u8; ${signature_algorithm === "rsa" ? 1000 : 700}],
     // ${index === 0 ? "RSA" : intermediate_signature_algorithms[index - 1].signature_algorithm} signature from the ${index === 0 ? "root" : `intermediate certificate #${index}`} over the intermediate certificate #${index + 1} TBS
     intermediate_${index + 1}_sig: [u8; ${index === 0 ? root_signature_algorithm === "rsa" ? 512 : 96 : intermediate_signature_algorithms[index - 1].signature_algorithm === "rsa" ? Math.ceil(intermediate_signature_algorithms[index - 1].bit_size / 8) : Math.ceil(intermediate_signature_algorithms[index - 1].bit_size / 4)}],
+    // Shows the serial number of intermediate certificate #${index + 1} is not in the revocation tree
+    intermediate_${index + 1}_revocation_proof: RevocationProof,
     `).join("")}
+    // @committed
+    // The root of the tree of revoked attestation certificate serial numbers is committed to
+    // (via parameter commitment) and can be verified outside the circuit
+    revocation_root: Field,
     // This is the leaf certificate derived from the private key in the KeyStore
     // so we have control over the signature algorithm used (i.e P-256 with SHA256)
     // so client_data_sig will always be P-256 with SHA256
@@ -540,14 +553,21 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     // @committed
     // facematch_mode is commitment to (via parameter commitment) and can be verified outside the circuit
     facematch_mode: u8, // FACEMATCH_MODE_REGULAR (1) or FACEMATCH_MODE_STRICT (2)
-    // The bytes of the JSON integrity token from Play Integrity API
+    ${hardware ? `// @committed
+    // The root of the allowlist of user-installed verified boot keys (e.g. GrapheneOS, per device)
+    // is committed to (via parameter commitment) and can be verified outside the circuit
+    boot_key_allowlist_root: Field,
+    // Position of the device's verified boot key in the allowlist, only checked when the OS
+    // booted with a user-installed key
+    boot_key_index: Field,
+    boot_key_path: [Field; ANDROID_BOOT_KEY_ALLOWLIST_DEPTH],` : `// The bytes of the JSON integrity token from Play Integrity API
     integrity_token: [u8; INTEGRITY_TOKEN_MAX_LENGTH],
     // The signature over the integrity token (ECDSA P-256 with SHA-256)
     integrity_token_signature: [u8; 64],
     // @committed
     // Hash of play_integrity_public_key is committed to (via parameter commitment) and can be verified outside the circuit
     // Play Integrity's public key behind the signature over the integrity token
-    play_integrity_public_key: [u8; 64],
+    play_integrity_public_key: [u8; 64],`}
     nullifier_secret: Field,
     service_scope: pub Field,
     service_subscope: pub Field,
@@ -629,9 +649,15 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         "Failed to verify client data hash",
     );
 
+    ${intermediate_signature_algorithms.map((_, index) => `
+    assert_serial_not_revoked(revocation_root, get_tbs_serial_number(intermediate_${index + 1}_tbs), intermediate_${index + 1}_revocation_proof);
+    `).join("")}
+
     // Verify the app ID in the credential certificate TBS matches the expected app ID
-    let (tbs_app_id, app_id_length): ([u8; APP_ID_MAX_LEN], u32) =
-        get_app_id_from_credential_tbs(credential_tbs);
+    ${hardware ? `let key_description = get_key_description::<_, APP_ID_MAX_LEN>(credential_tbs);
+    let tbs_app_id = key_description.app_id;
+    let app_id_length = key_description.app_id_length;` : `let (tbs_app_id, app_id_length): ([u8; APP_ID_MAX_LEN], u32) =
+        get_app_id_from_credential_tbs(credential_tbs);`}
     assert(tbs_app_id == app_id, "Failed to verify app_id");
 
     // Verify the facematch mode in client_data matches the expected facematch mode
@@ -646,7 +672,9 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         "Failed to verify dg2_hash in client_data",
     );
 
-    // Verify the integrity token
+    ${hardware ? `verify_hardware_device_state(key_description, boot_key_allowlist_root, boot_key_index, boot_key_path, current_date);
+
+    ` : `    // Verify the integrity token
     let parsed_integrity_token = parse_integrity_token(integrity_token);
     let integrity_token_response = verify_integrity_token(parsed_integrity_token, app_id, app_id_length);
     assert(
@@ -671,7 +699,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         "Failed to verify nonce from integrity token",
     );
 
-    // Facematch circuit does not use OPRF proof. Pass a zero OPRF proof so nullify skips OPRF verification.
+`}    // Facematch circuit does not use OPRF proof. Pass a zero OPRF proof so nullify skips OPRF verification.
     let zero_oprf_proof = commitment::OPRFProof {
         pk: commitment::BabyJubJubPoint { x: 0, y: 0 },
         dlog_e: 0,
@@ -694,9 +722,9 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     );
 
     let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
-    let play_integrity_public_key_hash = poseidon2_hash_packed(play_integrity_public_key, play_integrity_public_key.len());
+    ${hardware ? `let integrity_anchor = calculate_hardware_integrity_anchor(boot_key_allowlist_root, key_description.app_signing_digest);` : `let integrity_anchor = poseidon2_hash_packed(play_integrity_public_key, play_integrity_public_key.len());`}
     let param_commitment =
-        ${evm ? "calculate_param_commitment_sha2" : "calculate_param_commitment"}(root_key_leaf, environment, app_id_hash, play_integrity_public_key_hash, facematch_mode);
+        ${evm ? "calculate_android_param_commitment_sha2" : "calculate_android_param_commitment"}(root_key_leaf, environment, app_id_hash, integrity_anchor, facematch_mode, revocation_root);
 
     (param_commitment, nullifier_type, nullifier, oprf_pk_hash)
 }
@@ -1106,16 +1134,18 @@ function generateFaceMatchAndroidCircuit(
   }[],
   evm: boolean = false,
   unconstrained: boolean = false,
+  hardware: boolean = false,
 ) {
   const noirFile = FACEMATCH_ANDROID_TEMPLATE(
     root_signature_algorithm,
     intermediate_signature_algorithms,
     evm,
     unconstrained,
+    hardware,
   )  
   const intermediate_certificates_count = intermediate_signature_algorithms.length
   const intermediate_certificates_str = intermediate_signature_algorithms.map(({ signature_algorithm, hash_algorithm, bit_size }) => `ik_${signature_algorithm === "rsa" ? "rsa_" : "ecdsa_p"}${bit_size}_${hash_algorithm}`).join("_")
-  const name = `facematch_android_rk_${root_signature_algorithm}_ik_count_${intermediate_certificates_count}_${intermediate_certificates_str}${evm ? "_evm" : ""}`
+  const name = `facematch_android_${hardware ? "hw_" : ""}rk_${root_signature_algorithm}_ik_count_${intermediate_certificates_count}_${intermediate_certificates_str}${evm ? "_evm" : ""}`
   const relativePath = `../../../../../../${"../".repeat(intermediate_certificates_count)}`
   const nargoFile = NARGO_TEMPLATE(name, [
     { name: "facematch", path: `${relativePath}lib/facematch` },
@@ -1127,7 +1157,7 @@ function generateFaceMatchAndroidCircuit(
     { name: "utils", path: `${relativePath}lib/utils` },
   ])
   const intermediate_certificates_path = intermediate_signature_algorithms.map(({ signature_algorithm, hash_algorithm, bit_size }) => `ik_${signature_algorithm === "rsa" ? "rsa_" : "ecdsa_p"}${bit_size}_${hash_algorithm}`).join("/")
-  const folderPath = `./src/noir/bin/facematch/android/rk_${root_signature_algorithm}/ik_count_${intermediate_certificates_count}/${intermediate_certificates_path}${evm ? "/evm" : "/standard"}`
+  const folderPath = `./src/noir/bin/facematch/${hardware ? "android_hw" : "android"}/rk_${root_signature_algorithm}/ik_count_${intermediate_certificates_count}/${intermediate_certificates_path}${evm ? "/evm" : "/standard"}`
   const noirFilePath = `${folderPath}/src/main.nr`
   const nargoFilePath = `${folderPath}/Nargo.toml`
   ensureDirectoryExistence(noirFilePath)
@@ -1294,24 +1324,28 @@ const generateFaceMatchAndroidCircuits = ({ unconstrained = false }: { unconstra
   // Support both RSA (old) and ECDSA P384 (new) root keys
   const root_signature_algorithms: ("rsa" | "ecdsa")[] = ["rsa", "ecdsa"]
   console.log("Generating FaceMatch Android circuits...")
-  root_signature_algorithms.forEach((root_signature_algorithm) => {
+  const variants = root_signature_algorithms
+    .map((root_signature_algorithm) => ({ root_signature_algorithm, hardware: false }))
+    // Factory-provisioned keyboxes, the ones that leak, chain to the RSA root
+    .concat([{ root_signature_algorithm: "ecdsa" as const, hardware: true }])
+  variants.forEach(({ root_signature_algorithm, hardware }) => {
     // Non-EVM
     intermediate_signature_algorithms.forEach((a) => {
-      generateFaceMatchAndroidCircuit(root_signature_algorithm, [a], false, unconstrained)
+      generateFaceMatchAndroidCircuit(root_signature_algorithm, [a], false, unconstrained, hardware)
       intermediate_signature_algorithms.forEach((b) => {
-        generateFaceMatchAndroidCircuit(root_signature_algorithm, [a, b], false, unconstrained)
+        generateFaceMatchAndroidCircuit(root_signature_algorithm, [a, b], false, unconstrained, hardware)
         intermediate_signature_algorithms.forEach((c) => {
-          generateFaceMatchAndroidCircuit(root_signature_algorithm, [a, b, c], false, unconstrained)
+          generateFaceMatchAndroidCircuit(root_signature_algorithm, [a, b, c], false, unconstrained, hardware)
         })
       })
     })
     // EVM
     intermediate_signature_algorithms.forEach((a) => {
-      generateFaceMatchAndroidCircuit(root_signature_algorithm, [a], true, unconstrained)
+      generateFaceMatchAndroidCircuit(root_signature_algorithm, [a], true, unconstrained, hardware)
       intermediate_signature_algorithms.forEach((b) => {
-        generateFaceMatchAndroidCircuit(root_signature_algorithm, [a, b], true, unconstrained)
+        generateFaceMatchAndroidCircuit(root_signature_algorithm, [a, b], true, unconstrained, hardware)
         intermediate_signature_algorithms.forEach((c) => {
-          generateFaceMatchAndroidCircuit(root_signature_algorithm, [a, b, c], true, unconstrained)
+          generateFaceMatchAndroidCircuit(root_signature_algorithm, [a, b, c], true, unconstrained, hardware)
         })
       })
     })

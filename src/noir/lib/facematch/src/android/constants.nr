@@ -31,8 +31,25 @@ pub global PLAY_INTEGRITY_PUBLIC_KEY_Y: [u8; 32] = [
 
 pub global INTEGRITY_TOKEN_MAX_LENGTH: u32 = 1024;
 
-// The app reuses a stored face-match attestation for 30 days, so a day more never rejects one it
-// would still use
-pub global INTEGRITY_TOKEN_MAX_AGE_SECONDS: u64 = 31 * 24 * 60 * 60;
+// Revoked keyboxes are rejected through the revocation tree, so this only bounds how long a
+// verdict from a leak Google never detects stays usable
+pub global INTEGRITY_TOKEN_MAX_AGE_SECONDS: u64 = 365 * 24 * 60 * 60;
 // The token is stamped by Google's clock and the proof date by the phone's
 pub global INTEGRITY_TOKEN_MAX_CLOCK_SKEW_SECONDS: u64 = 24 * 60 * 60;
+
+pub global KM_SECURITY_LEVEL_TRUSTED_ENVIRONMENT: u8 = 1;
+pub global KM_SECURITY_LEVEL_STRONGBOX: u8 = 2;
+
+// The bootloader verified the OS with the key the OEM fused into the device
+pub global VERIFIED_BOOT_STATE_VERIFIED: u8 = 0;
+// The bootloader verified the OS with a key the user installed, as GrapheneOS does on Pixels;
+// the key must then be on the boot key allowlist
+pub global VERIFIED_BOOT_STATE_SELF_SIGNED: u8 = 1;
+
+// Play Integrity's MEETS_STRONG_INTEGRITY asks for a security patch from the last year
+pub global ANDROID_MAX_OS_PATCH_AGE_MONTHS: u32 = 12;
+
+pub global ANDROID_BOOT_KEY_ALLOWLIST_DEPTH: u32 = 8;
+
+// Ordered tree of the attestation certificate serial numbers Google lists as revoked
+pub global ANDROID_REVOCATION_TREE_DEPTH: u32 = 20;
