@@ -1,5 +1,6 @@
 use crate::constants::{APP_ATTEST_ENV_DEVELOPMENT, APP_ATTEST_ENV_PRODUCTION, APP_ID_MAX_LEN};
 use super::constants::{
+    INTEGRITY_TOKEN_MAX_AGE_SECONDS, INTEGRITY_TOKEN_MAX_CLOCK_SKEW_SECONDS,
     INTEGRITY_TOKEN_MAX_LENGTH, JWS_HEADER_BASE64, JWS_HEADER_LENGTH, JWS_PAYLOAD_LENGTH,
     JWS_PAYLOAD_SEPARATOR, PLAY_INTEGRITY_PUBLIC_KEY_X, PLAY_INTEGRITY_PUBLIC_KEY_Y,
 };
@@ -277,6 +278,14 @@ pub fn verify_integrity_token_signature(
     )
 }
 
+/// Whether a Play Integrity verdict issued at `timestamp` (seconds) can back a proof dated
+/// `current_date` (seconds): not older than the attestation reuse window, and not from the future
+/// beyond the allowed clock skew.
+pub fn is_integrity_token_fresh(timestamp: u64, current_date: u64) -> bool {
+    (timestamp <= current_date + INTEGRITY_TOKEN_MAX_CLOCK_SKEW_SECONDS)
+        & (current_date <= timestamp + INTEGRITY_TOKEN_MAX_AGE_SECONDS)
+}
+
 pub fn verify_nonce(nonce: [u8; 32], client_data_hash: [u8; 32], signature: [u8; 64]) -> bool {
     // The nonce is the sha256 hash of the concatenation of the client data hash and signature
     // i.e. sha256(<client_data_hash><signature>)
@@ -322,4 +331,34 @@ fn test_verify_integrity_token_signature() {
         signature,
     );
     assert(verified, "Failed to verify integrity token signature");
+}
+
+#[test]
+fn test_integrity_token_fresh_within_reuse_window() {
+    let issued_at = 1760262881;
+    assert(is_integrity_token_fresh(issued_at, issued_at));
+    assert(is_integrity_token_fresh(issued_at, issued_at + INTEGRITY_TOKEN_MAX_AGE_SECONDS));
+    assert(
+        is_integrity_token_fresh(
+            issued_at,
+            issued_at - INTEGRITY_TOKEN_MAX_CLOCK_SKEW_SECONDS,
+        ),
+    );
+}
+
+#[test]
+fn test_integrity_token_stale_after_reuse_window() {
+    let issued_at = 1760262881;
+    assert(!is_integrity_token_fresh(issued_at, issued_at + INTEGRITY_TOKEN_MAX_AGE_SECONDS + 1));
+}
+
+#[test]
+fn test_integrity_token_from_the_future_rejected() {
+    let issued_at = 1760262881;
+    assert(
+        !is_integrity_token_fresh(
+            issued_at,
+            issued_at - INTEGRITY_TOKEN_MAX_CLOCK_SKEW_SECONDS - 1,
+        ),
+    );
 }

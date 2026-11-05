@@ -7,8 +7,8 @@ use facematch::{
         constants::INTEGRITY_TOKEN_MAX_LENGTH,
         get_app_id_from_credential_tbs,
         token::{
-            parse_integrity_token, verify_integrity_token, verify_integrity_token_signature,
-            verify_nonce,
+            is_integrity_token_fresh, parse_integrity_token, verify_integrity_token,
+            verify_integrity_token_signature, verify_nonce,
         },
     },
     calculate_attestation_registry_leaf,
@@ -195,6 +195,10 @@ fn main(
     assert(
         integrity_token_response.environment == environment,
         "Failed to verify integrity token environment",
+    );
+    assert(
+        is_integrity_token_fresh(integrity_token_response.timestamp, current_date),
+        "Integrity token is too old for the current date",
     );
 
     // Verify the signature over the integrity token

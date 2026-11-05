@@ -1018,6 +1018,9 @@ describe("subcircuits - RSA PKCS", () => {
   })
 
   describe("facematch android", () => {
+    // The fixtures' Play Integrity tokens are from this time, and the circuit rejects a token
+    // older than the attestation reuse window, so their proofs are dated then
+    const ANDROID_FIXTURE_TIMESTAMP = 1760459252
     let androidCircuit: Circuit
     let androidEvmCircuit: Circuit
 
@@ -1039,7 +1042,7 @@ describe("subcircuits - RSA PKCS", () => {
       const query: Query = { facematch: { mode: "regular" } }
       let inputs = await getFacematchCircuitInputs(
         state.helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS,
-        0n, 0n, 0n, nowTimestamp,
+        0n, 0n, 0n, ANDROID_FIXTURE_TIMESTAMP,
       )
       if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
       expect(BigInt(inputs.comm_in)).toEqual(state.integrityCheckCommitment)
@@ -1065,14 +1068,14 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const currentDate = getCurrentDateFromDisclosureProof(proof)
-      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
+      expect(currentDate.getTime()).toEqual(ANDROID_FIXTURE_TIMESTAMP * 1000)
     }, 90000)
 
     test("verify facematch evm", async () => {
       const query: Query = { facematch: { mode: "strict" } }
       let inputs = await getFacematchCircuitInputs(
         state.helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS,
-        0n, 0n, 0n, nowTimestamp,
+        0n, 0n, 0n, ANDROID_FIXTURE_TIMESTAMP,
       )
       if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
       expect(BigInt(inputs.comm_in)).toEqual(state.integrityCheckCommitment)
@@ -1098,7 +1101,7 @@ describe("subcircuits - RSA PKCS", () => {
       const nullifier = getNullifierFromDisclosureProof(proof)
       expect(nullifier).toEqual(EXPECTED_NULLIFIER)
       const currentDate = getCurrentDateFromDisclosureProof(proof)
-      expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
+      expect(currentDate.getTime()).toEqual(ANDROID_FIXTURE_TIMESTAMP * 1000)
     }, 90000)
   })
 

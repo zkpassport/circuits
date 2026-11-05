@@ -493,7 +493,7 @@ use commitment::{calculate_attested_digest, commit_to_disclosure_attested};` : `
 use data_check_expiry::check_expiry_from_date;`}
 use data_check_tbs_pubkey::{verify_ecdsa_pubkey_in_tbs, verify_rsa_pubkey_in_tbs};
 use facematch::{
-    android::{get_app_id_from_credential_tbs, constants::INTEGRITY_TOKEN_MAX_LENGTH, token::{verify_integrity_token, verify_nonce, verify_integrity_token_signature, parse_integrity_token}}, calculate_attestation_registry_leaf,
+    android::{get_app_id_from_credential_tbs, constants::INTEGRITY_TOKEN_MAX_LENGTH, token::{is_integrity_token_fresh, verify_integrity_token, verify_nonce, verify_integrity_token_signature, parse_integrity_token}}, calculate_attestation_registry_leaf,
     get_client_data_hash, prepare_client_data_hash_for_signature, get_facematch_mode_from_client_data, get_tbs_hash_sha256,
     get_tbs_hash_sha384, ${attested ? "get_dg2_hash_from_client_data" : "verify_dg2_hash_in_client_data"}
 };
@@ -692,7 +692,11 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     ${attested ? `// The date is the integrity token's, issued with the attestation, so the outer proof's
     // recency check measures the face match, not when this proof was made
     assert(current_date == integrity_token_response.timestamp, "Date is not the integrity token's");
-` : ""}
+` : `assert(
+        is_integrity_token_fresh(integrity_token_response.timestamp, current_date),
+        "Integrity token is too old for the current date",
+    );
+`}
     // Verify the signature over the integrity token
     let (play_integrity_public_key_x, play_integrity_public_key_y) = split_array(play_integrity_public_key);
     assert(
