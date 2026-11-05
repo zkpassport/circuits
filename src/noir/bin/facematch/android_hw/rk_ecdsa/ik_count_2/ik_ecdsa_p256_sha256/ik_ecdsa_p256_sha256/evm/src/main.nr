@@ -27,9 +27,7 @@ use facematch::{
 use facematch::constants::{
     APP_ID_MAX_LEN, ATTESTATION_KEY_TYPE_GOOGLE, CLIENT_DATA_MAX_LEN, CREDENTIAL_TBS_MAX_LEN,
 };
-use facematch::param_commit::{
-    calculate_android_param_commitment, calculate_android_param_commitment_sha2,
-};
+use facematch::param_commit::{calculate_param_commitment, calculate_param_commitment_sha2};
 use sig_check_ecdsa::{verify_nist_p256_blackbox as verify_nist_p256, verify_nist_p384};
 use sig_check_rsa::verify_signature;
 use utils::{
@@ -251,7 +249,7 @@ fn main(
         boot_key_allowlist_root,
         key_description.app_signing_digest,
     );
-    let param_commitment = calculate_android_param_commitment_sha2(
+    let param_commitment = calculate_param_commitment_sha2(
         root_key_leaf,
         environment,
         app_id_hash,

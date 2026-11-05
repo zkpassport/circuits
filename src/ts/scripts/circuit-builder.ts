@@ -493,7 +493,7 @@ use facematch::{
 use facematch::constants::{
     APP_ID_MAX_LEN, ATTESTATION_KEY_TYPE_GOOGLE, CLIENT_DATA_MAX_LEN, CREDENTIAL_TBS_MAX_LEN,
 };
-use facematch::param_commit::{calculate_android_param_commitment, calculate_android_param_commitment_sha2};
+use facematch::param_commit::{calculate_param_commitment, calculate_param_commitment_sha2};
 use sig_check_ecdsa::{verify_nist_p256_blackbox as verify_nist_p256, verify_nist_p384};
 use sig_check_rsa::verify_signature;
 use utils::{poseidon2_hash_packed, split_array, types::{DG1Data, SaltedValue, MRZExpiryDate}, unsafe_get_asn1_element_length};
@@ -724,7 +724,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
     ${hardware ? `let integrity_anchor = calculate_hardware_integrity_anchor(boot_key_allowlist_root, key_description.app_signing_digest);` : `let integrity_anchor = poseidon2_hash_packed(play_integrity_public_key, play_integrity_public_key.len());`}
     let param_commitment =
-        ${evm ? "calculate_android_param_commitment_sha2" : "calculate_android_param_commitment"}(root_key_leaf, environment, app_id_hash, integrity_anchor, facematch_mode, revocation_root);
+        ${evm ? "calculate_param_commitment_sha2" : "calculate_param_commitment"}(root_key_leaf, environment, app_id_hash, integrity_anchor, facematch_mode, revocation_root);
 
     (param_commitment, nullifier_type, nullifier, oprf_pk_hash)
 }
