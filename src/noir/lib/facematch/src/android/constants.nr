@@ -30,3 +30,9 @@ pub global PLAY_INTEGRITY_PUBLIC_KEY_Y: [u8; 32] = [
 ];
 
 pub global INTEGRITY_TOKEN_MAX_LENGTH: u32 = 1024;
+
+// The app reuses a stored face-match attestation for 30 days, so a day more never rejects one it
+// would still use
+pub global INTEGRITY_TOKEN_MAX_AGE_SECONDS: u64 = 31 * 24 * 60 * 60;
+// The token is stamped by Google's clock and the proof date by the phone's
+pub global INTEGRITY_TOKEN_MAX_CLOCK_SKEW_SECONDS: u64 = 24 * 60 * 60;

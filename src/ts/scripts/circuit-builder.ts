@@ -479,7 +479,7 @@ use commitment::nullify;
 use data_check_tbs_pubkey::{verify_ecdsa_pubkey_in_tbs, verify_rsa_pubkey_in_tbs};
 use data_check_expiry::check_expiry_from_date;
 use facematch::{
-    android::{get_app_id_from_credential_tbs, constants::INTEGRITY_TOKEN_MAX_LENGTH, token::{verify_integrity_token, verify_nonce, verify_integrity_token_signature, parse_integrity_token}}, calculate_attestation_registry_leaf,
+    android::{get_app_id_from_credential_tbs, constants::INTEGRITY_TOKEN_MAX_LENGTH, token::{is_integrity_token_fresh, verify_integrity_token, verify_nonce, verify_integrity_token_signature, parse_integrity_token}}, calculate_attestation_registry_leaf,
     get_client_data_hash, prepare_client_data_hash_for_signature, get_facematch_mode_from_client_data, get_tbs_hash_sha256,
     get_tbs_hash_sha384, verify_dg2_hash_in_client_data
 };
@@ -652,6 +652,10 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     assert(
         integrity_token_response.environment == environment,
         "Failed to verify integrity token environment",
+    );
+    assert(
+        is_integrity_token_fresh(integrity_token_response.timestamp, current_date),
+        "Integrity token is too old for the current date",
     );
 
     // Verify the signature over the integrity token
