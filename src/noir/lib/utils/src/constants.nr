@@ -152,6 +152,27 @@ pub global SALTED_MOCK_NULLIFIER: Field = 3;
 // Mock (ZKR) IDs keep their mock type even with a hidden private nullifier
 pub global NONE_NULLIFIER: Field = 4;
 
+// Credential scheme: how the ID's data was verified, output by the base proofs and carried by
+// the disclosure proofs and the outer proof. One value per scheme, never reused; 0 is never valid.
+// The hundreds digit is the assurance tier: 1xx when the issuer signed the data, 2xx when a
+// device attested a capture of it.
+// The eMRTD chip, signed by the issuing country (CSCA -> DSC): passports and ICAO ID cards
+pub global CREDENTIAL_SCHEME_ICAO_CHIP: Field = 100;
+// Aadhaar, signed by UIDAI
+pub global CREDENTIAL_SCHEME_UIDAI_AADHAAR: Field = 101;
+// Japan's My Number card, JPKI chain
+pub global CREDENTIAL_SCHEME_JPKI: Field = 102;
+// ISO 18013-5 mDoc (mDL, EUDI), IACA -> document signer
+pub global CREDENTIAL_SCHEME_ISO_MDOC: Field = 103;
+// The data page read by camera on iOS, attested by App Attest with a strict face match
+pub global CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS: Field = 200;
+// The data page read by camera on Android, attested by Play Integrity with a strict face match
+pub global CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID: Field = 201;
+// The chip read but its signature not verifiable (no certificate in the registry), attested by
+// the device with a strict face match. Reserved; no circuit proves it yet.
+pub global CREDENTIAL_SCHEME_ATTESTED_CHIP_READ_IOS: Field = 202;
+pub global CREDENTIAL_SCHEME_ATTESTED_CHIP_READ_ANDROID: Field = 203;
+
 // P<AUSSILVERHAND<<JOHNNY<<<<<<<<<<<<<<<<<<<<<PA1234567_AUS881112_M300101_<CYBERCITY<<<<<<
 pub global SAMPLE_DG1: [u8; DG1_LENGTH] = [
     0x61, 0x5B, 0x5F, 0x1F, 0x58, 80, 60, 65, 85, 83, 83, 73, 76, 86, 69, 82, 72, 65, 78, 68, 60,
