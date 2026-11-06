@@ -31,7 +31,7 @@ if [ ! -d src/solidity/lib/zkpassport-packages/packages ]; then
 fi
 
 nargo_expected=$(node -p "require('./package.json').dependencies['@noir-lang/noir_js'].replace('^', '')")
-bb_expected=$(node -p "require('./package.json').dependencies['@aztec/bb.js']")
+bb_expected=$(node -p "require('./package.json').dependencies['@aztec-foundation/bb.js']")
 nargo_installed=$(nargo --version | sed -n 's/^nargo version = //p')
 bb_installed=$(bb --version | sed 's/^v//')
 if [ "$nargo_installed" != "$nargo_expected" ]; then

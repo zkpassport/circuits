@@ -1,5 +1,5 @@
 import { CompiledCircuit, InputMap, Noir } from "@noir-lang/noir_js"
-import { Barretenberg, UltraHonkBackend } from "@aztec/bb.js"
+import { Barretenberg, UltraHonkBackend } from "@aztec-foundation/bb.js"
 import fs from "fs"
 import path from "path"
 import os from "os"
