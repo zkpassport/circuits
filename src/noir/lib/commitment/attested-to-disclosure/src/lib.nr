@@ -27,7 +27,7 @@ pub global TIER2_NULLIFIER_DOMAIN: Field = 0x5449455232; // "TIER2"
 pub global ATTESTED_DIGEST_INPUT_LENGTH: u32 = DG1_LENGTH + 32;
 
 /// The length of the fields the Tier 2 nullifier is derived from
-global NULLIFIER_FIELDS_LENGTH: u32 = 3 + 9 + 6;
+global NULLIFIER_FIELDS_LENGTH: u32 = 3 + 9 + 6 + 6;
 
 /// The digest the device attests for a camera-read ID: SHA-256 over the padded DG1 followed
 /// by the SHA-256 of the portrait. It sits in the attestation where a chip ID's DG2 hash does.
@@ -43,12 +43,15 @@ pub fn calculate_attested_digest(dg1: DG1Data, portrait_hash: [u8; 32]) -> [u8; 
 }
 
 /// A camera-read ID has no signature to derive a nullifier from, so it comes from the MRZ
-/// fields that carry a check digit: issuing country, document number and date of birth.
-/// Names have no check digit and OCR may read them differently each time, so they are left out.
+/// fields OCR reads reliably: issuing country, and the document number, date of birth and
+/// expiry date, which carry a check digit. The expiry date changes only with the document
+/// number, on renewal, and makes the nullifier slower to enumerate. Names have no check digit
+/// and OCR may read them differently each time, so they are left out.
 pub fn calculate_tier2_private_nullifier(dg1: DG1Data) -> Field {
     let issuing_country = get_issuing_country_from_mrz(dg1);
     let document_number = get_document_number_from_mrz(dg1);
     let date_of_birth = get_dob_from_mrz(dg1);
+    let expiry_date = get_expiry_date_from_mrz(dg1);
 
     let mut fields: [u8; NULLIFIER_FIELDS_LENGTH] = [0; NULLIFIER_FIELDS_LENGTH];
     for i in 0..3 {
@@ -59,6 +62,7 @@ pub fn calculate_tier2_private_nullifier(dg1: DG1Data) -> Field {
     }
     for i in 0..6 {
         fields[12 + i] = date_of_birth[i];
+        fields[18 + i] = expiry_date[i];
     }
     let packed: [Field; 1] = pack_be_bytes_into_fields::<NULLIFIER_FIELDS_LENGTH, 1, 31>(fields);
     Poseidon2::hash([TIER2_NULLIFIER_DOMAIN, packed[0]], 2)

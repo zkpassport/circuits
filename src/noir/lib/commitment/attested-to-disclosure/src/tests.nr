@@ -74,6 +74,14 @@ fn test_nullifier_changes_with_the_date_of_birth() {
 }
 
 #[test]
+fn test_nullifier_changes_with_the_expiry_date() {
+    let dg1 = sample_dg1();
+    let mut other = dg1;
+    other[71] = 49; // 2030-04-03 -> 2031-04-03
+    assert(calculate_tier2_private_nullifier(dg1) != calculate_tier2_private_nullifier(other));
+}
+
+#[test]
 fn test_commitment_is_deterministic_and_salt_bound() {
     let dg1 = sample_dg1();
     let digest = calculate_attested_digest(dg1, sample_portrait_hash());
