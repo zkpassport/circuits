@@ -13,8 +13,6 @@ import {
   getCommitmentFromDSCProof,
   getCommitmentInFromIDDataProof,
   getCommitmentOutFromIDDataProof,
-  getCommitmentInFromIntegrityProof,
-  getCommitmentOutFromIntegrityProof,
   getCommitmentInFromDisclosureProof,
   getDiscloseCircuitInputs,
   SanctionsBuilder,
@@ -83,6 +81,8 @@ const INTEGRITY_TO_DISCLOSURE_SALTS: IntegrityToDisclosureSalts = {
 }
 const EXPECTED_NULLIFIER = 0xf03bc01b2dd79b1b8906831e8bd47f1cdf7435e8f38010a9cd1978a1b13a26an
 const nowTimestamp = getNowTimestamp()
+// The integrity check proof's public inputs: comm_in, then its outputs comm_out and credential_scheme
+const CREDENTIAL_SCHEME_ICAO_CHIP = 100n
 const FIXTURES_PATH = path.join(__dirname, "fixtures")
 
 // Common MRZ strings
@@ -216,9 +216,11 @@ function describeIntegrityTest(
         useCli,
       })
       expect(proof).toBeDefined()
-      const commitmentIn = getCommitmentInFromIntegrityProof(proof)
+      expect(proof.publicInputs).toHaveLength(3)
+      const [commitmentIn, commitmentOut, credentialScheme] = proof.publicInputs.map(BigInt)
       expect(commitmentIn).toEqual(state.idDataCommitment)
-      state.integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
+      expect(credentialScheme).toEqual(CREDENTIAL_SCHEME_ICAO_CHIP)
+      state.integrityCheckCommitment = commitmentOut
       await circuit.destroy()
     }, timeout)
   })
