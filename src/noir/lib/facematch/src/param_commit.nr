@@ -127,3 +127,16 @@ fn param_commitment_sha2(
     let hash = sha256::sha256_var(params, FACEMATCH_PARAM_COMMITMENT_EVM_BYTES);
     utils::pack_be_bytes_and_truncate_into_field::<32, 31>(hash)
 }
+
+#[test]
+fn test_attested_id_param_commitment_vectors() {
+    let root_key_leaf = 0x2532418a107c5306fa8308c22255792cf77e4a290cbce8a840a642a3e591340b;
+    let app_id_hash = 0x067041deed02d9d2df216a420b50404bdf5bcb0026db2602a4142e380a9d6e2a;
+    let standard = calculate_attested_id_param_commitment(root_key_leaf, 1, app_id_hash, 0, 2);
+    let evm = calculate_attested_id_param_commitment_sha2(root_key_leaf, 1, app_id_hash, 0, 2);
+    // Same parameters, another proof type
+    assert(standard != calculate_param_commitment(root_key_leaf, 1, app_id_hash, 0, 2));
+    assert(evm != calculate_param_commitment_sha2(root_key_leaf, 1, app_id_hash, 0, 2));
+    println(f"attested_id_param_commitment={standard}");
+    println(f"attested_id_param_commitment_sha2={evm}");
+}
