@@ -104,6 +104,8 @@ pub global PROOF_TYPE_ISSUING_COUNTRY_EXCLUSION: u8 = 7;
 pub global PROOF_TYPE_BIND: u8 = 8;
 pub global PROOF_TYPE_SANCTIONS_EXCLUSION: u8 = 9;
 pub global PROOF_TYPE_FACEMATCH: u8 = 10;
+// A Tier 2 base proof's device attestation, with the same parameters as a face match
+pub global PROOF_TYPE_ATTESTED_ID: u8 = 11;
 
 // DG1 length
 pub global DG1_LENGTH: u32 = 95;

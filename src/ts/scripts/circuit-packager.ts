@@ -204,10 +204,14 @@ const processFile = async (
   }
 }
 
+// The outer circuits a SubVerifier verifies, in the order its deploy script deploys them: the
+// chip ones, then the Tier 2 ones for iOS, then for Android
+const OUTER_KINDS = ["", "attested_ios_", "attested_android_"]
+
 // Get all outer EVM vkey hashes from packaged circuit files
-const getOuterVkeyHashes = (): { count: number; hash: string }[] => {
+const getOuterVkeyHashes = (): { kind: string; count: number; hash: string }[] => {
   console.log("Collecting vkey hashes from packaged circuit files...")
-  const vkeyHashes: { count: number; hash: string }[] = []
+  const vkeyHashes: { kind: string; count: number; hash: string }[] = []
 
   try {
     // Get all packaged JSON files
@@ -215,41 +219,42 @@ const getOuterVkeyHashes = (): { count: number; hash: string }[] => {
       .readdirSync(PACKAGED_CIRCUITS_DIR)
       .filter((file) => file.endsWith(".json"))
 
-    // Filter for outer_evm_count files and extract their vkey hashes
+    // The EVM outer circuits, chip and Tier 2, and their vkey hashes
     for (const file of packagedFiles) {
-      if (file.startsWith("outer_evm_count_")) {
-        const countMatch = file.match(/outer_evm_count_(\d+)\.json/)
-        if (countMatch && countMatch[1]) {
-          const count = parseInt(countMatch[1])
-          const filePath = path.join(PACKAGED_CIRCUITS_DIR, file)
+      const outerMatch = file.match(/^outer_evm_((?:attested_(?:ios|android)_)?)count_(\d+)\.json$/)
+      if (outerMatch) {
+        const kind = outerMatch[1]
+        const count = parseInt(outerMatch[2])
+        const filePath = path.join(PACKAGED_CIRCUITS_DIR, file)
 
-          // Read the packaged circuit file
-          const fileContent = fs.readFileSync(filePath, "utf-8")
-          const packagedCircuit = JSON.parse(fileContent)
+        // Read the packaged circuit file
+        const fileContent = fs.readFileSync(filePath, "utf-8")
+        const packagedCircuit = JSON.parse(fileContent)
 
-          if (packagedCircuit.vkey_hash) {
-            // Ensure the hash has the proper 0x prefix and length
-            let hash = packagedCircuit.vkey_hash as string
-            // Remove "0x" prefix if present
-            const hashWithoutPrefix = hash.startsWith("0x") ? hash.substring(2) : hash
-            // Ensure even number of characters by adding leading zero if needed
-            const paddedHash =
-              hashWithoutPrefix.length % 2 === 1 ? `0${hashWithoutPrefix}` : hashWithoutPrefix
-            // Normalize the hash format to always have 0x prefix
-            const normalizedHash = `0x${paddedHash}`
+        if (packagedCircuit.vkey_hash) {
+          // Ensure the hash has the proper 0x prefix and length
+          let hash = packagedCircuit.vkey_hash as string
+          // Remove "0x" prefix if present
+          const hashWithoutPrefix = hash.startsWith("0x") ? hash.substring(2) : hash
+          // Ensure even number of characters by adding leading zero if needed
+          const paddedHash =
+            hashWithoutPrefix.length % 2 === 1 ? `0${hashWithoutPrefix}` : hashWithoutPrefix
+          // Normalize the hash format to always have 0x prefix
+          const normalizedHash = `0x${paddedHash}`
 
-            vkeyHashes.push({
-              count,
-              hash: normalizedHash,
-            })
-            console.log(`Collected vkey hash for outer_evm_count_${count}: ${normalizedHash}`)
-          }
+          vkeyHashes.push({
+            kind,
+            count,
+            hash: normalizedHash,
+          })
+          console.log(`Collected vkey hash for outer_evm_${kind}count_${count}: ${normalizedHash}`)
         }
       }
     }
 
-    // Sort by count in ascending order
-    vkeyHashes.sort((a, b) => a.count - b.count)
+    vkeyHashes.sort(
+      (a, b) => OUTER_KINDS.indexOf(a.kind) - OUTER_KINDS.indexOf(b.kind) || a.count - b.count,
+    )
 
     return vkeyHashes
   } catch (error) {
@@ -278,8 +283,8 @@ const updateVkeyHashesInSolidityDeployScript = (filePath: string) => {
     // Generate the new vkey hashes content
     const newVkeyHashesContent = outerVkeyHashes
       .map(
-        ({ count, hash }) =>
-          `    // Outer (${count} subproofs)\n    bytes32(hex"${hash
+        ({ kind, count, hash }) =>
+          `    // Outer ${kind ? `${kind.replace(/_$/, "").replace("_", " ")} ` : ""}(${count} subproofs)\n    bytes32(hex"${hash
             .substring(2)
             .padStart(64, "0")}")`,
       )
@@ -323,7 +328,7 @@ const processFiles = async () => {
       const successEvm = await processFile(
         file,
         true,
-        file.replace("outer_count", "outer_evm_count").replace(".json", ""),
+        file.replace(/^outer_/, "outer_evm_").replace(".json", ""),
         true,
       )
       if (!successEvm) {

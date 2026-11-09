@@ -26,7 +26,7 @@ use facematch::constants::{
     APP_ID_MAX_LEN, ATTESTATION_KEY_TYPE_GOOGLE, CLIENT_DATA_MAX_LEN, CREDENTIAL_TBS_MAX_LEN,
     FACEMATCH_MODE_STRICT,
 };
-use facematch::param_commit::{calculate_param_commitment, calculate_param_commitment_sha2};
+use facematch::param_commit::calculate_attested_id_param_commitment;
 use sig_check_ecdsa::{verify_nist_p256_blackbox as verify_nist_p256, verify_nist_p384};
 use sig_check_rsa::verify_signature;
 use utils::{
@@ -210,7 +210,7 @@ fn main(
     let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
     let play_integrity_public_key_hash =
         poseidon2_hash_packed(play_integrity_public_key, play_integrity_public_key.len());
-    let param_commitment = calculate_param_commitment(
+    let param_commitment = calculate_attested_id_param_commitment(
         root_key_leaf,
         environment,
         app_id_hash,

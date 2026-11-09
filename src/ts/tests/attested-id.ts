@@ -20,7 +20,7 @@ const APP_ID_MAX_LEN = 100
 const INTEGRITY_TOKEN_MAX_LENGTH = 1024
 const ATTESTATION_KEY_TYPE_APPLE = 1
 const ATTESTATION_KEY_TYPE_GOOGLE = 2
-const PROOF_TYPE_FACEMATCH = 10n
+const PROOF_TYPE_ATTESTED_ID = 11n
 const TIER2_NULLIFIER_DOMAIN = 0x5449455232n
 const SHA256_IDENTIFIER = 3
 
@@ -224,7 +224,7 @@ export async function calculateAttestationParamCommitment(opts: {
     ? await packLeBytesAndHashPoseidon2(opts.integrityPublicKey)
     : 0n
   return poseidon2HashAsync([
-    PROOF_TYPE_FACEMATCH,
+    PROOF_TYPE_ATTESTED_ID,
     5n,
     rootKeyLeaf,
     BigInt(opts.environment),

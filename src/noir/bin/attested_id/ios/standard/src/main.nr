@@ -31,7 +31,7 @@ use facematch::constants::{
     APP_ID_MAX_LEN, ATTESTATION_KEY_TYPE_APPLE, AUTH_DATA_MAX_LEN, CLIENT_DATA_MAX_LEN,
     CREDENTIAL_TBS_MAX_LEN, FACEMATCH_MODE_STRICT,
 };
-use facematch::param_commit::calculate_param_commitment;
+use facematch::param_commit::calculate_attested_id_param_commitment;
 use utils::{
     constants::{CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS, SHA256_IDENTIFIER},
     poseidon2_hash_packed,
@@ -139,7 +139,7 @@ fn main(
 
     let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
     // Since the integrity public key hash is only for Android, we set it to 0 for iOS
-    let param_commitment = calculate_param_commitment(
+    let param_commitment = calculate_attested_id_param_commitment(
         root_key_leaf,
         environment,
         app_id_hash,

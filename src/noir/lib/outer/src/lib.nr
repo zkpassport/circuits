@@ -89,3 +89,14 @@ pub struct DisclosureProof {
     // Index of circuit D key hash in the sub-circuit merkle tree
     pub tree_index: Field,
 }
+
+pub struct AttestedIdProof<let N: u32> {
+    pub vkey: [Field; VKEY_SIZE],
+    pub proof: [Field; PROOF_SIZE],
+    // iOS: comm_out, param_commitment, credential_scheme
+    // Android: current_date, comm_out, param_commitment, credential_scheme
+    pub public_inputs: [Field; N],
+    pub key_hash: Field,
+    pub tree_hash_path: [Field; 12],
+    pub tree_index: Field,
+}

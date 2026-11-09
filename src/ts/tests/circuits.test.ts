@@ -1,6 +1,8 @@
 import {
   Binary,
   calculatePackagedCertificatesRoot,
+  calculateCircuitRoot,
+  getCircuitMerkleProof,
   getNationalityInclusionCircuitInputs,
   getNationalityExclusionCircuitInputs,
   getAgeCircuitInputs,
@@ -2924,6 +2926,16 @@ describe("attested id (Tier 2)", () => {
         new TextEncoder().encode(attestation.appId),
       )
       expect(paramCommitment).toEqual(
+        await calculateAttestationParamCommitment({
+          rootKeyType: ATTESTATION_KEY_TYPE_APPLE,
+          rootKey: attestation.rootKey,
+          environment: attestation.environment,
+          appId: attestation.appId,
+          mode: FACEMATCH_MODE_STRICT,
+        }),
+      )
+      // The twin above and the published face match helper differ only in the proof type
+      expect(paramCommitment).not.toEqual(
         await getFacematchParameterCommitment(
           rootKeyLeaf,
           BigInt(attestation.environment),
@@ -3133,5 +3145,175 @@ describe("attested id (Tier 2)", () => {
         circuit.solve({ ...attestation.inputs, integrity_token_signature: signature }),
       ).rejects.toThrow("Failed to verify integrity token signature")
     })
+  })
+
+  describe("outer proof", () => {
+    type Subproof = { proof: string[]; publicInputs: string[]; vkey: string[]; vkeyHash: string }
+
+    const recursiveProof = async (circuit: Circuit, name: string, inputs: any): Promise<Subproof> => {
+      const proof = await circuit.prove(inputs, {
+        witness: await circuit.solve(inputs, true),
+        useCli: true,
+        circuitName: name,
+        recursive: true,
+      })
+      const vkey = (await circuit.getVerificationKey({ evm: false })).vkeyFields
+      const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x: string) => BigInt(x)))).toString(16)}`
+      return { proof: proof.proof, publicInputs: proof.publicInputs, vkey, vkeyHash }
+    }
+
+    // The disclosure proof built on an attested ID's commitment, as the app makes it
+    const discloseOn = async (commOut: bigint, dg1: Uint8Array) => {
+      const expected = await calculateAttestedIdCommitment(SALTS, dg1, PORTRAIT_HASH)
+      const discloseCircuit = Circuit.from("disclose_bytes")
+      const inputs = {
+        comm_in: `0x${commOut.toString(16)}`,
+        current_date: nowTimestamp,
+        salted_private_nullifier: SaltedValue.fromValue(
+          SALTS.privateNullifierSalt,
+          expected.privateNullifier,
+        ).formatForInput(),
+        salted_expiry_date: SaltedValue.fromValue(
+          SALTS.expiryDateSalt,
+          getExpiryDate(dg1),
+        ).formatForInput(),
+        salted_dg1: SaltedValue.fromValue(SALTS.dg1Salt, Array.from(padDg1(dg1))).formatForInput(),
+        salted_dg2_hash: SaltedValue.fromValue(
+          SALTS.dg2HashSalt,
+          expected.dg2HashNormalized,
+        ).formatForInput(),
+        salted_dg2_hash_type: SaltedValue.fromValue(SALTS.dg2HashSalt, 3n).formatForInput(),
+        disclose_mask: Array(90).fill(1),
+        nullifier_secret: "0x0",
+        oprf_proof: OPRF_ZERO_PROOF,
+        service_scope: "0x0",
+        service_subscope: "0x0",
+      }
+      const proof = await recursiveProof(discloseCircuit, "disclose_bytes", inputs)
+      await discloseCircuit.destroy()
+      return proof
+    }
+
+    const outerInputs = async (attested: Subproof, disclose: Subproof, scheme: bigint) => {
+      const circuitManifest = {
+        version: "0.22.0",
+        root: await calculateCircuitRoot({ hashes: [attested.vkeyHash, disclose.vkeyHash] }),
+        circuits: {
+          attested: { hash: attested.vkeyHash, size: 1 },
+          disclose: { hash: disclose.vkeyHash, size: 1 },
+        },
+      } as any
+      const leaf = async (subproof: Subproof, publicInputs: string[]) => {
+        const { path, index } = await getCircuitMerkleProof(subproof.vkeyHash, circuitManifest)
+        return {
+          vkey: subproof.vkey,
+          proof: subproof.proof,
+          public_inputs: publicInputs,
+          key_hash: subproof.vkeyHash,
+          tree_hash_path: path,
+          tree_index: index.toString(),
+        }
+      }
+      const d = disclose.publicInputs
+      return {
+        certificate_registry_root: "0x1",
+        circuit_registry_root: circuitManifest.root,
+        current_date: nowTimestamp,
+        service_scope: "0x0",
+        service_subscope: "0x0",
+        param_commitments: [attested.publicInputs[attested.publicInputs.length - 2], d[4]],
+        nullifier_type: d[5],
+        scoped_nullifier: d[6],
+        oprf_pk_hash: d[7],
+        credential_scheme: `0x${scheme.toString(16)}`,
+        attested_id_proof: await leaf(attested, attested.publicInputs),
+        disclosure_proofs: [await leaf(disclose, [d[0], d[6], d[5], d[7]])],
+      }
+    }
+
+    const proveOuter = async (name: string, inputs: any) => {
+      const circuit = Circuit.from(name)
+      const proof = await circuit.prove(inputs, {
+        witness: await circuit.solve(inputs, true),
+        useCli: true,
+        circuitName: name,
+        recursive: true,
+      })
+      const unprefixed = { ...proof, proof: proof.proof.map((x) => x.replace(/^0x/, "")) }
+      expect(await circuit.verify(unprefixed, true)).toBe(true)
+      await circuit.destroy()
+      return proof
+    }
+
+    const expectOuterToFail = async (name: string, inputs: any, message: string) => {
+      const circuit = Circuit.from(name)
+      await expect(circuit.solve(inputs, true)).rejects.toThrow(message)
+      await circuit.destroy()
+    }
+
+    test("ios: wraps the attested ID proof and a disclosure proof built on it", async () => {
+      const attestedCircuit = Circuit.from("attested_id_ios")
+      const attestation = await buildIosAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+      })
+      const attested = await recursiveProof(attestedCircuit, "attested_id_ios", attestation.inputs)
+      await attestedCircuit.destroy()
+      const disclose = await discloseOn(BigInt(attested.publicInputs[0]), PASSPORT_DG1)
+      const inputs = await outerInputs(attested, disclose, 200n)
+
+      const proof = await proveOuter("outer_attested_ios_count_2", inputs)
+      const publicInputs = proof.publicInputs.map(BigInt)
+      // The chip outer's layout: roots, date, scopes, param commitments, then the trailing four
+      expect(publicInputs).toHaveLength(11)
+      expect(publicInputs[5]).toEqual(BigInt(attested.publicInputs[1]))
+      expect(publicInputs[6]).toEqual(BigInt(disclose.publicInputs[4]))
+      expect(publicInputs[publicInputs.length - 1]).toEqual(200n)
+
+      await expectOuterToFail(
+        "outer_attested_ios_count_2",
+        { ...inputs, credential_scheme: "0xc9" },
+        "Not a Tier 2 credential scheme for this platform",
+      )
+      await expectOuterToFail(
+        "outer_attested_ios_count_2",
+        { ...inputs, param_commitments: ["0x1", inputs.param_commitments[1]] },
+        "Attested ID parameter commitment != first parameter commitment",
+      )
+      const otherDisclose = { ...inputs.disclosure_proofs[0] }
+      otherDisclose.public_inputs = ["0x2", ...otherDisclose.public_inputs.slice(1)]
+      await expectOuterToFail(
+        "outer_attested_ios_count_2",
+        { ...inputs, disclosure_proofs: [otherDisclose] },
+        "Commitment out from attested ID circuit != commitment in from disclosure circuit",
+      )
+    }, 600000)
+
+    test("android: wraps the attested ID proof, which must be recent", async () => {
+      const name = "attested_id_android_rk_ecdsa_ik_count_1_ik_ecdsa_p256_sha256"
+      const attestedCircuit = Circuit.from(name)
+      const attestation = await buildAndroidAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+        currentDate: nowTimestamp,
+      })
+      const attested = await recursiveProof(attestedCircuit, name, attestation.inputs)
+      await attestedCircuit.destroy()
+      const disclose = await discloseOn(BigInt(attested.publicInputs[1]), PASSPORT_DG1)
+      const inputs = await outerInputs(attested, disclose, 201n)
+
+      const proof = await proveOuter("outer_attested_android_count_2", inputs)
+      const publicInputs = proof.publicInputs.map(BigInt)
+      expect(publicInputs[5]).toEqual(BigInt(attested.publicInputs[2]))
+      expect(publicInputs[publicInputs.length - 1]).toEqual(201n)
+
+      await expectOuterToFail(
+        "outer_attested_android_count_2",
+        { ...inputs, current_date: nowTimestamp + 31 * 24 * 60 * 60 },
+        "Attested ID proof is not recent",
+      )
+    }, 600000)
   })
 })
