@@ -20,6 +20,17 @@ fn sample_dg1() -> DG1Data {
     dg1
 }
 
+// The ICAO 9303 sample TD1 ID card: "I<UTOD231458907...", born 1974-08-12, expiring 2012-04-15
+fn sample_id_card_dg1() -> DG1Data {
+    [
+        97, 91, 95, 31, 90, 73, 60, 85, 84, 79, 68, 50, 51, 49, 52, 53, 56, 57, 48, 55, 60, 60, 60,
+        60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 55, 52, 48, 56, 49, 50, 50, 70, 49, 50, 48,
+        52, 49, 53, 57, 85, 84, 79, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 54, 69, 82, 73, 75,
+        83, 83, 79, 78, 60, 60, 65, 78, 78, 65, 60, 77, 65, 82, 73, 65, 60, 60, 60, 60, 60, 60, 60,
+        60, 60, 60,
+    ]
+}
+
 // sha256("portrait")
 fn sample_portrait_hash() -> [u8; 32] {
     [
@@ -119,5 +130,14 @@ fn test_vectors_for_typescript() {
         digest,
     );
     println(f"tier2_private_nullifier={private_nullifier}");
+    let id_card_nullifier = calculate_tier2_private_nullifier(sample_id_card_dg1());
+    println(f"tier2_id_card_private_nullifier={id_card_nullifier}");
+    // Germany writes D<< as its issuing country, which reads as DEU
+    let mut german = sample_dg1();
+    german[7] = 68;
+    german[8] = 60;
+    german[9] = 60;
+    let german_nullifier = calculate_tier2_private_nullifier(german);
+    println(f"tier2_german_private_nullifier={german_nullifier}");
     println(f"comm_out={comm_out}");
 }
