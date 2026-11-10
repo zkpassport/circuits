@@ -24,6 +24,7 @@ members = [
     "src/noir/bin/facematch/ios/evm",
     "src/noir/bin/attested_id/ios/standard",
     "src/noir/bin/attested_id/ios/evm",
+    "src/noir/bin/aadhaar/standard",
     "src/noir/bin/oprf-auth",
     "src/noir/bin/sig-check/dsc/tbs_700/ecdsa/nist/p192/sha1",
     "src/noir/bin/sig-check/dsc/tbs_700/ecdsa/nist/p192/sha256",
@@ -969,5 +970,6 @@ members = [
     "src/noir/lib/sig-check/rsa",
     "src/noir/lib/utils",
     "src/noir/lib/exclusion-check/sanctions",
-    "src/noir/lib/facematch"
+    "src/noir/lib/facematch",
+    "src/noir/lib/aadhaar"
 ]

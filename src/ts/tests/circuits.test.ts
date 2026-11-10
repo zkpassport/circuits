@@ -3404,3 +3404,88 @@ describe("attested id (Tier 2)", () => {
     }, 600000)
   })
 })
+
+describe("aadhaar", () => {
+  // A V2 Secure QR made with buildAadhaarSignedData in @zkpassport/utils, signed by a test
+  // RSA-2048 key, with its aadhaar_id inputs and the outputs the utils twins expect
+  const FIXTURE = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "fixtures/aadhaar.json"), "utf8"),
+  )
+  const SALTS = { dg1Salt: 11n, expiryDateSalt: 12n, dg2HashSalt: 13n, privateNullifierSalt: 14n }
+  let circuit: Circuit
+  let discloseCircuit: Circuit
+  beforeAll(() => {
+    circuit = Circuit.from("aadhaar_id")
+    discloseCircuit = Circuit.from("disclose_bytes")
+  })
+  afterAll(async () => {
+    await circuit.destroy()
+    await discloseCircuit.destroy()
+  })
+
+  test("proves, and its commitment is consumed by disclose_bytes", async () => {
+    const proof = await circuit.prove(FIXTURE.inputs, {
+      witness: await circuit.solve(FIXTURE.inputs),
+      useCli: true,
+      circuitName: "aadhaar_id",
+    })
+    const [commOut, paramCommitment, credentialScheme] = proof.publicInputs.map(BigInt)
+    expect(commOut).toEqual(BigInt(FIXTURE.commOut))
+    expect(paramCommitment).toEqual(BigInt(FIXTURE.paramCommitment))
+    expect(credentialScheme).toEqual(101n)
+
+    const dg1 = new Uint8Array(FIXTURE.dg1)
+    const discloseMask = Array(90).fill(1)
+    const discloseInputs = {
+      comm_in: FIXTURE.commOut,
+      current_date: nowTimestamp,
+      salted_private_nullifier: SaltedValue.fromValue(
+        SALTS.privateNullifierSalt,
+        BigInt(FIXTURE.privateNullifier),
+      ).formatForInput(),
+      salted_expiry_date: SaltedValue.fromValue(SALTS.expiryDateSalt, getExpiryDate(dg1)).formatForInput(),
+      salted_dg1: SaltedValue.fromValue(SALTS.dg1Salt, FIXTURE.dg1).formatForInput(),
+      salted_dg2_hash: SaltedValue.fromValue(
+        SALTS.dg2HashSalt,
+        BigInt(FIXTURE.photoHashNormalized),
+      ).formatForInput(),
+      salted_dg2_hash_type: SaltedValue.fromValue(SALTS.dg2HashSalt, 3n).formatForInput(),
+      disclose_mask: discloseMask,
+      nullifier_secret: "0x0",
+      oprf_proof: OPRF_ZERO_PROOF,
+      service_scope: "0x0",
+      service_subscope: "0x0",
+    }
+    const discloseProof = await discloseCircuit.prove(discloseInputs as any, {
+      witness: await discloseCircuit.solve(discloseInputs as any),
+      useCli: true,
+      circuitName: "disclose_bytes",
+    })
+    expect(getCommitmentInFromDisclosureProof(discloseProof)).toEqual(commOut)
+    const mrz = Buffer.from(dg1.subarray(5, 93)).toString()
+    const disclosedData = DisclosedData.fromDisclosedBytes(
+      getDisclosedBytesFromMrzAndMask(mrz, discloseMask),
+      "passport",
+    )
+    expect(disclosedData.issuingCountry).toBe("IND")
+    expect(disclosedData.nationality).toBe("XXX")
+    expect(disclosedData.documentNumber).toBe("XXXXX1234")
+    expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1990, 7, 15))
+    expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2036, 2, 15))
+  }, 300000)
+
+  test("rejects a tampered QR code", async () => {
+    const qrData = [...FIXTURE.inputs.qr_data]
+    qrData[40] ^= 1
+    // The RSA library's own constraints fail before the circuit's assertion message
+    await expect(circuit.solve({ ...FIXTURE.inputs, qr_data: qrData })).rejects.toThrow()
+  })
+
+  test("rejects delimiter indices that skip a field", async () => {
+    const delimiters = [...FIXTURE.inputs.delimiter_indices]
+    delimiters[3] = delimiters[4]
+    await expect(
+      circuit.solve({ ...FIXTURE.inputs, delimiter_indices: delimiters }),
+    ).rejects.toThrow("Delimiter index mismatch")
+  })
+})

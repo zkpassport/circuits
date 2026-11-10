@@ -106,6 +106,8 @@ pub global PROOF_TYPE_SANCTIONS_EXCLUSION: u8 = 9;
 pub global PROOF_TYPE_FACEMATCH: u8 = 10;
 // A Tier 2 base proof's device attestation, with the same parameters as a face match
 pub global PROOF_TYPE_ATTESTED_ID: u8 = 11;
+// An Aadhaar base proof's UIDAI signing key
+pub global PROOF_TYPE_AADHAAR: u8 = 12;
 
 // DG1 length
 pub global DG1_LENGTH: u32 = 95;

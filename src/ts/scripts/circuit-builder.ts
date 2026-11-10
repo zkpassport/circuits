@@ -131,6 +131,10 @@ const STATIC_CIRCUITS = [
     path: "./src/noir/bin/attested_id/ios/evm",
   },
   {
+    name: "aadhaar_id",
+    path: "./src/noir/bin/aadhaar/standard",
+  },
+  {
     name: "oprf_auth",
     path: "./src/noir/bin/oprf-auth",
   },
@@ -158,6 +162,7 @@ const LIB_CIRCUITS = [
   "src/noir/lib/utils",
   "src/noir/lib/exclusion-check/sanctions",
   "src/noir/lib/facematch",
+  "src/noir/lib/aadhaar",
 ]
 
 const WORKSPACE_NARGO_TEMPLATE = (dependencies: string[]) => `[workspace]
