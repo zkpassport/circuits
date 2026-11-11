@@ -78,6 +78,7 @@ import {
   buildIosAttestedIdInputs,
   calculateAttestationParamCommitment,
   calculateAttestedIdCommitment,
+  calculateTier2PrivateNullifier,
   getExpiryDate,
   padDg1,
 } from "./attested-id"
@@ -2877,6 +2878,15 @@ describe("attested id (Tier 2)", () => {
       ),
     )
     .toUInt8Array()
+  // A US driving licence's barcode, converted to a TD1 MRZ by @zkpassport/utils: "DL" for the
+  // document code, the number in its overflow form with the state after it, no nationality
+  const LICENSE_DG1 = Binary.fromHex("615B5F1F5A")
+    .concat(
+      Binary.from(
+        "DLUSAD1234567<<7<CA<<<<<<<<<<<9001158F3101159<<<<<<<<<<<<<<4DOE<<JANE<MARIE<<<<<<<<<<<<<<<",
+      ),
+    )
+    .toUInt8Array()
   // Private nullifiers printed by the attested-to-disclosure Noir lib tests
   const PASSPORT_PRIVATE_NULLIFIER =
     0x268d201714d4c95b9cbea4ec4910962f6b6239a6011bce1e05ac93d8b3c1130en
@@ -3011,6 +3021,27 @@ describe("attested id (Tier 2)", () => {
       expect(expected.privateNullifier).toEqual(ID_CARD_PRIVATE_NULLIFIER)
       expect(commOut).toEqual(expected.commitment)
       expect(credentialScheme).toEqual(200n)
+    }, 90000)
+
+    test("driving licence (TD1 from its barcode): proves, with the state in its nullifier", async () => {
+      const attestation = await buildIosAttestedIdInputs({
+        dg1: LICENSE_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+      })
+      const proof = await circuit.prove(attestation.inputs, {
+        witness: await circuit.solve(attestation.inputs),
+        useCli: true,
+        circuitName: CIRCUIT_NAME,
+      })
+      const [commOut] = proof.publicInputs.map(BigInt)
+      const expected = await calculateAttestedIdCommitment(SALTS, LICENSE_DG1, PORTRAIT_HASH)
+      expect(commOut).toEqual(expected.commitment)
+      const otherState = Uint8Array.from(LICENSE_DG1)
+      otherState.set(new TextEncoder().encode("NV"), 5 + 17)
+      expect(await calculateTier2PrivateNullifier(otherState)).not.toEqual(
+        expected.privateNullifier,
+      )
     }, 90000)
 
     test("fails when the attested digest is not over the DG1 and portrait", async () => {
