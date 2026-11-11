@@ -92,6 +92,33 @@ fn test_nullifier_changes_with_the_expiry_date() {
     assert(calculate_tier2_private_nullifier(dg1) != calculate_tier2_private_nullifier(other));
 }
 
+// The sample ID card with its number continued in the optional data: "D23145890" + "7342<",
+// the check digit position left empty, as ICAO 9303-5 writes a number longer than 9 characters
+fn overflowing_id_card_dg1() -> DG1Data {
+    let mut dg1 = sample_id_card_dg1();
+    let overflow: [u8; 6] = [60, 55, 51, 52, 50, 60]; // "<7342<"
+    for i in 0..6 {
+        dg1[5 + 14 + i] = overflow[i];
+    }
+    dg1
+}
+
+#[test]
+fn test_nullifier_takes_a_long_document_number_whole() {
+    let dg1 = overflowing_id_card_dg1();
+    let mut other = dg1;
+    other[5 + 17] = 57; // the 12th character of the number: 4 -> 9
+    assert(calculate_tier2_private_nullifier(dg1) != calculate_tier2_private_nullifier(other));
+}
+
+#[test]
+fn test_nullifier_ignores_optional_data_after_a_short_document_number() {
+    let dg1 = sample_id_card_dg1();
+    let mut other = dg1;
+    other[5 + 20] = 65; // optional data, the number having its check digit in place
+    assert_eq(calculate_tier2_private_nullifier(dg1), calculate_tier2_private_nullifier(other));
+}
+
 #[test]
 fn test_commitment_is_deterministic_and_salt_bound() {
     let dg1 = sample_dg1();
@@ -139,5 +166,7 @@ fn test_vectors_for_typescript() {
     german[9] = 60;
     let german_nullifier = calculate_tier2_private_nullifier(german);
     println(f"tier2_german_private_nullifier={german_nullifier}");
+    let overflow_nullifier = calculate_tier2_private_nullifier(overflowing_id_card_dg1());
+    println(f"tier2_long_number_private_nullifier={overflow_nullifier}");
     println(f"comm_out={comm_out}");
 }

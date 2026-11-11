@@ -1,11 +1,12 @@
 use common::{hash_salt_dg1_dg2_hash_private_nullifier, normalize_dg2_hash};
 use poseidon::poseidon2::Poseidon2;
 use utils::{
-    constants::DG1_LENGTH,
+    constants::{ASCII_CODE_FOR_LESS_THAN, DG1_LENGTH, DG1_TO_MRZ_OFFSET},
     get_dob_from_mrz,
     get_document_number_from_mrz,
     get_expiry_date_from_mrz,
     get_issuing_country_from_mrz,
+    is_id_card,
     pack_be_bytes_into_fields,
     types::{DG1Data, SaltedValue},
 };
@@ -20,14 +21,17 @@ pub mod tests;
 # the chip base proofs produce, so every disclosure circuit works on it unchanged.
 */
 
-/// Domain separator for the Tier 2 private nullifier, so it can never collide with a chip one
-pub global TIER2_NULLIFIER_DOMAIN: Field = 0x5449455232; // "TIER2"
-
 /// The attested digest covers the DG1 and the portrait hash, both as the device read them
 pub global ATTESTED_DIGEST_INPUT_LENGTH: u32 = DG1_LENGTH + 32;
 
+/// The document number as the nullifier takes it: up to 24 characters
+global NULLIFIER_DOCUMENT_NUMBER_LENGTH: u32 = 24;
+
 /// The length of the fields the Tier 2 nullifier is derived from
-global NULLIFIER_FIELDS_LENGTH: u32 = 3 + 9 + 6 + 6;
+global NULLIFIER_FIELDS_LENGTH: u32 = 3 + NULLIFIER_DOCUMENT_NUMBER_LENGTH + 6 + 6;
+
+/// Where a TD1 MRZ's optional data starts, after the document number and its check digit
+global TD1_OPTIONAL_DATA_INDEX: u32 = 15;
 
 /// The digest the device attests for a camera-read ID: SHA-256 over the padded DG1 followed
 /// by the SHA-256 of the portrait. It sits in the attestation where a chip ID's DG2 hash does.
@@ -42,14 +46,32 @@ pub fn calculate_attested_digest(dg1: DG1Data, portrait_hash: [u8; 32]) -> [u8; 
     sha256::sha256_var(input, ATTESTED_DIGEST_INPUT_LENGTH)
 }
 
+/// The whole document number. A TD1 number longer than 9 characters leaves its check digit
+/// position empty and continues in the optional data (ICAO 9303-5), which is then taken as well;
+/// otherwise the rest is filler. Sub-national documents (US driving licences) put their
+/// subdivision code first, since their numbers are unique only within it.
+fn get_full_document_number(dg1: DG1Data) -> [u8; NULLIFIER_DOCUMENT_NUMBER_LENGTH] {
+    let number = get_document_number_from_mrz(dg1);
+    let mut full = [ASCII_CODE_FOR_LESS_THAN; NULLIFIER_DOCUMENT_NUMBER_LENGTH];
+    for i in 0..9 {
+        full[i] = number[i];
+    }
+    let mrz_start = DG1_TO_MRZ_OFFSET;
+    if is_id_card(dg1) & (dg1[mrz_start + TD1_OPTIONAL_DATA_INDEX - 1] == ASCII_CODE_FOR_LESS_THAN) {
+        for i in 0..(NULLIFIER_DOCUMENT_NUMBER_LENGTH - 9) {
+            full[9 + i] = dg1[mrz_start + TD1_OPTIONAL_DATA_INDEX + i];
+        }
+    }
+    full
+}
+
 /// A camera-read ID has no signature to derive a nullifier from, so it comes from the MRZ
-/// fields OCR reads reliably: issuing country, and the document number, date of birth and
-/// expiry date, which carry a check digit. The expiry date changes only with the document
-/// number, on renewal, and makes the nullifier slower to enumerate. Names have no check digit
-/// and OCR may read them differently each time, so they are left out.
+/// fields every document has and OCR reads reliably: issuing country, and the whole document
+/// number, date of birth and expiry date, which carry check digits. The same document always
+/// gives the same nullifier; names are left out, as OCR may read them differently each time.
 pub fn calculate_tier2_private_nullifier(dg1: DG1Data) -> Field {
     let issuing_country = get_issuing_country_from_mrz(dg1);
-    let document_number = get_document_number_from_mrz(dg1);
+    let document_number = get_full_document_number(dg1);
     let date_of_birth = get_dob_from_mrz(dg1);
     let expiry_date = get_expiry_date_from_mrz(dg1);
 
@@ -57,15 +79,15 @@ pub fn calculate_tier2_private_nullifier(dg1: DG1Data) -> Field {
     for i in 0..3 {
         fields[i] = issuing_country[i];
     }
-    for i in 0..9 {
+    for i in 0..NULLIFIER_DOCUMENT_NUMBER_LENGTH {
         fields[3 + i] = document_number[i];
     }
     for i in 0..6 {
-        fields[12 + i] = date_of_birth[i];
-        fields[18 + i] = expiry_date[i];
+        fields[3 + NULLIFIER_DOCUMENT_NUMBER_LENGTH + i] = date_of_birth[i];
+        fields[9 + NULLIFIER_DOCUMENT_NUMBER_LENGTH + i] = expiry_date[i];
     }
-    let packed: [Field; 1] = pack_be_bytes_into_fields::<NULLIFIER_FIELDS_LENGTH, 1, 31>(fields);
-    Poseidon2::hash([TIER2_NULLIFIER_DOMAIN, packed[0]], 2)
+    let packed: [Field; 2] = pack_be_bytes_into_fields::<NULLIFIER_FIELDS_LENGTH, 2, 31>(fields);
+    Poseidon2::hash(packed, 2)
 }
 
 /// The commitment the disclosure circuits take as `comm_in`, with the same shape as the one

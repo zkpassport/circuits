@@ -21,7 +21,6 @@ const INTEGRITY_TOKEN_MAX_LENGTH = 1024
 const ATTESTATION_KEY_TYPE_APPLE = 1
 const ATTESTATION_KEY_TYPE_GOOGLE = 2
 const PROOF_TYPE_ATTESTED_ID = 11n
-const TIER2_NULLIFIER_DOMAIN = 0x5449455232n
 const SHA256_IDENTIFIER = 3
 
 export const FACEMATCH_MODE_REGULAR = 1
@@ -166,6 +165,18 @@ export function getExpiryDate(dg1: Uint8Array): number[] {
   return Array.from(padded.subarray(start, start + 6))
 }
 
+// The whole document number: a TD1 number longer than 9 characters continues in the optional data
+function getFullDocumentNumber(padded: Uint8Array): Uint8Array {
+  const mrz = padded.subarray(5)
+  const start = mrzLayout(padded).documentNumber
+  const number = new Uint8Array(24).fill(60)
+  number.set(mrz.subarray(start, start + 9))
+  if (padded[93] !== 0 && padded[94] !== 0 && mrz[14] === 60) {
+    number.set(mrz.subarray(15, 30), 9)
+  }
+  return number
+}
+
 export async function calculateTier2PrivateNullifier(dg1: Uint8Array): Promise<bigint> {
   const padded = padDg1(dg1)
   const mrz = padded.subarray(5)
@@ -173,12 +184,11 @@ export async function calculateTier2PrivateNullifier(dg1: Uint8Array): Promise<b
   const country = mrz.subarray(2, 5)
   const fields = concat(
     Buffer.from(country).toString() === "D<<" ? enc("DEU") : country,
-    mrz.subarray(layout.documentNumber, layout.documentNumber + 9),
+    getFullDocumentNumber(padded),
     mrz.subarray(layout.dateOfBirth, layout.dateOfBirth + 6),
     mrz.subarray(layout.expiryDate, layout.expiryDate + 6),
   )
-  const [packed] = packBeBytesIntoFields(fields, 31)
-  return poseidon2HashAsync([TIER2_NULLIFIER_DOMAIN, BigInt(packed)])
+  return poseidon2HashAsync(packBeBytesIntoFields(fields, 31).map((x) => BigInt(x)))
 }
 
 export type AttestedSalts = {

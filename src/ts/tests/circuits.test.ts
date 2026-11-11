@@ -2879,9 +2879,9 @@ describe("attested id (Tier 2)", () => {
     .toUInt8Array()
   // Private nullifiers printed by the attested-to-disclosure Noir lib tests
   const PASSPORT_PRIVATE_NULLIFIER =
-    0x2317606928ff9d9e96f64be3120c40a9834aedfeec32adbb7ea94fde44853f46n
+    0x268d201714d4c95b9cbea4ec4910962f6b6239a6011bce1e05ac93d8b3c1130en
   const ID_CARD_PRIVATE_NULLIFIER =
-    0x2aeee20f16d7f0cbe27a36460df9e3d5847ab46f6ff1f8160219414d8319c07en
+    0x26494576986dd8b931a4ffefbbc69db50ba5ea8ea8365a477ff2ae4929d9a514n
   const PORTRAIT_HASH = sha256(new TextEncoder().encode("portrait"))
   const OTHER_PORTRAIT_HASH = sha256(new TextEncoder().encode("another portrait"))
 
