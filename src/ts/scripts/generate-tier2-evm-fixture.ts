@@ -38,7 +38,7 @@ import {
 const execAsync = promisify(exec)
 
 const DOMAIN = "zkpassport.id"
-const SCOPE = "tier2"
+const SCOPE = "zkpassport-tier2:tier2"
 const SALTS = { dg1Salt: 11n, expiryDateSalt: 12n, dg2HashSalt: 13n, privateNullifierSalt: 14n }
 const DG1 = Buffer.concat([
   Buffer.from("615B5F1F58", "hex"),
