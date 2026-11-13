@@ -11,9 +11,8 @@ global DS_DLOG: Field = 1523098184080632582082867317389990410064981862;
 // Domain separator for the OPRF output, b"OPRF" (same as scoped-nullifier). The output itself is
 // not used here, only the checks `verified_oprf` makes on the way
 global DS_OPRF: Field = 1330664006;
-// Domain separator for the auth commitment, b"zkPassport OPRF auth commitment"
-global DS_COMMIT: Field =
-    216295995820588902101791877209007728011808683886180117732362510332974165620;
+// Domain separator for the auth commitment, b"zkPassport-OPRF-v2-commit"
+global DS_COMMIT: Field = 768437743021582172182320022843274690170766867557081613691252;
 
 /// Commitment to the auth secret `s`, bound to the private nullifier `pn`:
 /// `commit(pn, s) = Poseidon2_t3([DS_COMMIT, pn, s])[1]`
