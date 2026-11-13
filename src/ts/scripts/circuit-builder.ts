@@ -126,6 +126,10 @@ const STATIC_CIRCUITS = [
     name: "oprf_auth",
     path: "./src/noir/bin/oprf-auth",
   },
+  {
+    name: "oprf_registration",
+    path: "./src/noir/bin/oprf-registration",
+  },
 ]
 
 const LIB_CIRCUITS = [
