@@ -107,7 +107,7 @@ async function main() {
   })
 
   const circuitManifest = {
-    version: "0.22.0",
+    version: "0.23.0",
     root: await calculateCircuitRoot({ hashes: [attested.vkeyHash, disclose.vkeyHash] }),
     circuits: {
       attested: { hash: attested.vkeyHash, size: 1 },
