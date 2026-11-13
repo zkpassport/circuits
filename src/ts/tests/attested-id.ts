@@ -183,6 +183,7 @@ export async function calculateTier2PrivateNullifier(dg1: Uint8Array): Promise<b
   const layout = mrzLayout(padded)
   const country = mrz.subarray(2, 5)
   const fields = concat(
+    enc("ZKPTIER2"),
     Buffer.from(country).toString() === "D<<" ? enc("DEU") : country,
     getFullDocumentNumber(padded),
     mrz.subarray(layout.dateOfBirth, layout.dateOfBirth + 6),

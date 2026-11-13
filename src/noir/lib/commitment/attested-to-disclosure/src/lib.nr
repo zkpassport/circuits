@@ -27,8 +27,14 @@ pub global ATTESTED_DIGEST_INPUT_LENGTH: u32 = DG1_LENGTH + 32;
 /// The document number as the nullifier takes it: up to 24 characters
 global NULLIFIER_DOCUMENT_NUMBER_LENGTH: u32 = 24;
 
-/// The length of the fields the Tier 2 nullifier is derived from
-global NULLIFIER_FIELDS_LENGTH: u32 = 3 + NULLIFIER_DOCUMENT_NUMBER_LENGTH + 6 + 6;
+/// Prefixed to the Tier 2 nullifier's fields, so no table built for another system hashing the
+/// same document fields applies to it, and its nullifiers never coincide with another scheme's
+global NULLIFIER_DOMAIN: [u8; 8] = "ZKPTIER2".as_bytes();
+global NULLIFIER_DOMAIN_LENGTH: u32 = 8;
+
+/// The length of the fields the Tier 2 nullifier is derived from: 47 bytes, two packed fields
+global NULLIFIER_FIELDS_LENGTH: u32 =
+    NULLIFIER_DOMAIN_LENGTH + 3 + NULLIFIER_DOCUMENT_NUMBER_LENGTH + 6 + 6;
 
 /// Where a TD1 MRZ's optional data starts, after the document number and its check digit
 global TD1_OPTIONAL_DATA_INDEX: u32 = 15;
@@ -67,7 +73,7 @@ fn get_full_document_number(dg1: DG1Data) -> [u8; NULLIFIER_DOCUMENT_NUMBER_LENG
 
 /// A camera-read ID has no signature to derive a nullifier from, so it comes from the MRZ
 /// fields every document has and OCR reads reliably: issuing country, and the whole document
-/// number, date of birth and expiry date, which carry check digits. The same document always
+/// number, date of birth and expiry date, which carry check digits, after the "ZKPTIER2" domain. The same document always
 /// gives the same nullifier; names are left out, as OCR may read them differently each time.
 pub fn calculate_tier2_private_nullifier(dg1: DG1Data) -> Field {
     let issuing_country = get_issuing_country_from_mrz(dg1);
@@ -76,15 +82,19 @@ pub fn calculate_tier2_private_nullifier(dg1: DG1Data) -> Field {
     let expiry_date = get_expiry_date_from_mrz(dg1);
 
     let mut fields: [u8; NULLIFIER_FIELDS_LENGTH] = [0; NULLIFIER_FIELDS_LENGTH];
+    for i in 0..NULLIFIER_DOMAIN_LENGTH {
+        fields[i] = NULLIFIER_DOMAIN[i];
+    }
+    let d = NULLIFIER_DOMAIN_LENGTH;
     for i in 0..3 {
-        fields[i] = issuing_country[i];
+        fields[d + i] = issuing_country[i];
     }
     for i in 0..NULLIFIER_DOCUMENT_NUMBER_LENGTH {
-        fields[3 + i] = document_number[i];
+        fields[d + 3 + i] = document_number[i];
     }
     for i in 0..6 {
-        fields[3 + NULLIFIER_DOCUMENT_NUMBER_LENGTH + i] = date_of_birth[i];
-        fields[9 + NULLIFIER_DOCUMENT_NUMBER_LENGTH + i] = expiry_date[i];
+        fields[d + 3 + NULLIFIER_DOCUMENT_NUMBER_LENGTH + i] = date_of_birth[i];
+        fields[d + 9 + NULLIFIER_DOCUMENT_NUMBER_LENGTH + i] = expiry_date[i];
     }
     let packed: [Field; 2] = pack_be_bytes_into_fields::<NULLIFIER_FIELDS_LENGTH, 2, 31>(fields);
     Poseidon2::hash(packed, 2)
