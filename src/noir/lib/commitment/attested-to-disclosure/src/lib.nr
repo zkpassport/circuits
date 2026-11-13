@@ -29,10 +29,10 @@ global NULLIFIER_DOCUMENT_NUMBER_LENGTH: u32 = 24;
 
 /// Prefixed to the Tier 2 nullifier's fields, so no table built for another system hashing the
 /// same document fields applies to it, and its nullifiers never coincide with another scheme's
-global NULLIFIER_DOMAIN: [u8; 8] = "ZKPTIER2".as_bytes();
-global NULLIFIER_DOMAIN_LENGTH: u32 = 8;
+global NULLIFIER_DOMAIN: [u8; 11] = "ATTESTED_ID".as_bytes();
+global NULLIFIER_DOMAIN_LENGTH: u32 = 11;
 
-/// The length of the fields the Tier 2 nullifier is derived from: 47 bytes, two packed fields
+/// The length of the fields the Tier 2 nullifier is derived from: 50 bytes, two packed fields
 global NULLIFIER_FIELDS_LENGTH: u32 =
     NULLIFIER_DOMAIN_LENGTH + 3 + NULLIFIER_DOCUMENT_NUMBER_LENGTH + 6 + 6;
 
@@ -73,7 +73,7 @@ fn get_full_document_number(dg1: DG1Data) -> [u8; NULLIFIER_DOCUMENT_NUMBER_LENG
 
 /// A camera-read ID has no signature to derive a nullifier from, so it comes from the MRZ
 /// fields every document has and OCR reads reliably: issuing country, and the whole document
-/// number, date of birth and expiry date, which carry check digits, after the "ZKPTIER2" domain. The same document always
+/// number, date of birth and expiry date, which carry check digits, after the "ATTESTED_ID" domain. The same document always
 /// gives the same nullifier; names are left out, as OCR may read them differently each time.
 pub fn calculate_tier2_private_nullifier(dg1: DG1Data) -> Field {
     let issuing_country = get_issuing_country_from_mrz(dg1);
