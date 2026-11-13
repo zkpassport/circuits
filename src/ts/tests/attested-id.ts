@@ -25,6 +25,9 @@ const SHA256_IDENTIFIER = 3
 
 export const FACEMATCH_MODE_REGULAR = 1
 export const FACEMATCH_MODE_STRICT = 2
+// ZKPassportAppAttest attestationType: a chip face match, or an ID read by camera
+export const ATTESTATION_TYPE_FACE_MATCH = 1
+export const ATTESTATION_TYPE_ATTESTED_ID = 3
 
 const enc = (s: string) => new TextEncoder().encode(s)
 const concat = (...parts: Uint8Array[]) => {
@@ -96,12 +99,18 @@ class Key {
 
 const name = (cn: string) => seq(set(seq(oid(OID_COMMON_NAME), utf8(cn))))
 
+/** A unix timestamp (seconds) as UTCTime, YYMMDDhhmmssZ */
+const utcTime = (timestamp: number) =>
+  new Date(timestamp * 1000).toISOString().replace(/[-:T]/g, "").slice(2, 14) + "Z"
+
 function tbsCertificate(opts: {
   issuer: string
   subject: string
   signatureOid: string
   subjectKey: Key
   extensions?: Uint8Array[]
+  /** Unix seconds; 2025-01-01 when not given */
+  notBefore?: number
 }): Uint8Array {
   const spki = seq(
     seq(oid(OID_EC_PUBLIC_KEY), oid(opts.subjectKey.curveOid)),
@@ -112,7 +121,10 @@ function tbsCertificate(opts: {
     int(0x1234),
     seq(oid(opts.signatureOid)),
     name(opts.issuer),
-    seq(tlv(0x17, enc("250101000000Z")), tlv(0x17, enc("350101000000Z"))),
+    seq(
+      tlv(0x17, enc(opts.notBefore ? utcTime(opts.notBefore) : "250101000000Z")),
+      tlv(0x17, enc("350101000000Z")),
+    ),
     name(opts.subject),
     spki,
     ...(opts.extensions ? [tlv(0xa3, seq(...opts.extensions))] : []),
@@ -126,6 +138,7 @@ export function buildClientData(opts: {
   mode: number
   digest: Uint8Array
   digestAlgorithmOid?: string
+  attestationType?: number
 }): Uint8Array {
   const digestInfo = seq(seq(oid(opts.digestAlgorithmOid ?? OID_SHA256)), octets(opts.digest))
   const faceMatch = seq(
@@ -135,7 +148,8 @@ export function buildClientData(opts: {
     int(0),
     int(0),
   )
-  return seq(int(1), utf8("1.0.0"), enumerated(1), tlv(0xa1, faceMatch))
+  const attestationType = opts.attestationType ?? ATTESTATION_TYPE_ATTESTED_ID
+  return seq(int(1), utf8("1.0.0"), enumerated(attestationType), tlv(0xa1, faceMatch))
 }
 
 /** The client data hash both platforms bind: the packed Poseidon2 hash, as 32 BE bytes */
@@ -253,6 +267,7 @@ export type AttestationOptions = {
   mode?: number
   digest?: Uint8Array
   digestAlgorithmOid?: string
+  attestationType?: number
 }
 
 function attestedIdBaseInputs(opts: AttestationOptions) {
@@ -261,6 +276,7 @@ function attestedIdBaseInputs(opts: AttestationOptions) {
     mode: opts.mode ?? FACEMATCH_MODE_STRICT,
     digest,
     digestAlgorithmOid: opts.digestAlgorithmOid,
+    attestationType: opts.attestationType,
   })
   const s = opts.salts
   return {
@@ -286,8 +302,13 @@ export const IOS_APP_ID = "ABCDE12345.app.zkpassport.test"
 
 /** Inputs for attested_id_ios: a synthetic App Attest attestation in the production environment */
 export async function buildIosAttestedIdInputs(
-  opts: AttestationOptions & { credentialAppId?: string },
+  opts: AttestationOptions & {
+    credentialAppId?: string
+    /** When App Attest issued the credential certificate (unix seconds); now when not given */
+    attestedAt?: number
+  },
 ) {
+  const attestedAt = opts.attestedAt ?? Math.floor(Date.now() / 1000)
   const appId = opts.appId ?? IOS_APP_ID
   const root = Key.p384("ios root")
   const intermediate = Key.p384("ios intermediate")
@@ -322,6 +343,7 @@ export async function buildIosAttestedIdInputs(
     subject: Buffer.from(credentialId).toString("hex"),
     signatureOid: OID_ECDSA_SHA256,
     subjectKey: credential,
+    notBefore: attestedAt,
     extensions: [
       extension(
         OID_APPLE_APP_ID,
@@ -338,6 +360,8 @@ export async function buildIosAttestedIdInputs(
     rootKey: root.publicKey,
     appId,
     environment: 1,
+    // What the circuit outputs: the start of the notBefore day
+    attestedDate: attestedAt - (attestedAt % 86400),
     inputs: {
       ...inputs,
       root_key: Array.from(root.publicKey),

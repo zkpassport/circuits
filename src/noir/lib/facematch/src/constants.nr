@@ -15,3 +15,8 @@ pub global MAX_FIELD_BYTES: u32 = 31;
 
 pub global ATTESTATION_KEY_TYPE_APPLE: u8 = 1;
 pub global ATTESTATION_KEY_TYPE_GOOGLE: u8 = 2;
+
+// ZKPassportAppAttest attestationType: a face match against a chip's DG2 hash, or a camera-read
+// ID whose digest the device computed itself. Kept apart so one can never stand for the other.
+pub global ATTESTATION_TYPE_FACE_MATCH: u8 = 1;
+pub global ATTESTATION_TYPE_ATTESTED_ID: u8 = 3;

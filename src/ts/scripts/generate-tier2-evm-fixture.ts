@@ -86,7 +86,7 @@ async function main() {
   const expected = await calculateAttestedIdCommitment(SALTS, dg1, PORTRAIT_HASH)
   const discloseMask = Array(90).fill(1)
   const disclose = await recursiveProof("disclose_bytes_evm", {
-    comm_in: attested.publicInputs[0],
+    comm_in: attested.publicInputs[1],
     current_date: now,
     salted_private_nullifier: SaltedValue.fromValue(
       SALTS.privateNullifierSalt,
@@ -132,11 +132,11 @@ async function main() {
     current_date: now,
     service_scope: d[2],
     service_subscope: d[3],
-    param_commitments: [attested.publicInputs[1], d[4]],
+    param_commitments: [attested.publicInputs[2], d[4]],
     nullifier_type: d[5],
     scoped_nullifier: d[6],
     oprf_pk_hash: d[7],
-    credential_scheme: attested.publicInputs[2],
+    credential_scheme: attested.publicInputs[3],
     attested_id_proof: await leaf(attested, attested.publicInputs),
     disclosure_proofs: [await leaf(disclose, [d[0], d[6], d[5], d[7]])],
   }

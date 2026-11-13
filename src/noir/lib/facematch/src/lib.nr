@@ -1,5 +1,6 @@
-use constants::CLIENT_DATA_HASH_LEN;
+use constants::{ATTESTATION_TYPE_ATTESTED_ID, CLIENT_DATA_HASH_LEN};
 use data_check_tbs_pubkey::verify_ecdsa_pubkey_in_tbs;
+use date::Date;
 use sha256;
 use sha512::sha384;
 use sig_check_ecdsa::verify_nist_p384;
@@ -81,12 +82,40 @@ pub fn get_tbs_not_before_date<let TBS_MAX_LEN: u32>(tbs: [u8; TBS_MAX_LEN]) -> 
     not_before_date
 }
 
-/// Extract the dg2 hash from App Attestation clientData (ZKPassportAppAttest)
-/// Parses the DER structure: ZKPassportAppAttest.AttestationData.FaceMatchAttestation.dg2Hash.digest
+/// The notBefore date of a certificate TBS as a unix timestamp, at the start of its day (UTC):
+/// rounding down can only make the certificate look older, never newer
+pub fn get_tbs_not_before_timestamp<let TBS_MAX_LEN: u32>(tbs: [u8; TBS_MAX_LEN]) -> u64 {
+    let not_before = get_tbs_not_before_date(tbs);
+    let mut day = [0u8; 8];
+    for i in 0..8 {
+        day[i] = not_before[i];
+    }
+    Date::from_bytes_long_year(day).to_timestamp()
+}
+
+/// Extract the dg2 hash from the clientData of an attested ID (an ID read by camera), whose
+/// attestationType must be attestedId: a chip face match attests a DG2 hash the chip supplied,
+/// so a forged chip could make it equal any digest; only the device computes an attested ID's.
 /// Returns (dg2_hash, dg2_hash_len)
 pub fn get_dg2_hash_from_client_data<let CLIENT_DATA_LEN: u32>(
     client_data: [u8; CLIENT_DATA_LEN],
 ) -> ([u8; 64], u32) {
+    let (dg2_hash, dg2_hash_len, attestation_type, attestation_type_len) =
+        parse_dg2_hash_from_client_data(client_data);
+    assert(attestation_type_len == 1, "Expected a one-byte attestationType");
+    assert(
+        attestation_type == ATTESTATION_TYPE_ATTESTED_ID,
+        "Attestation is not for an attested ID",
+    );
+    (dg2_hash, dg2_hash_len)
+}
+
+/// Parses the DER structure: ZKPassportAppAttest.AttestationData.FaceMatchAttestation.dg2Hash.digest
+/// Returns (dg2_hash, dg2_hash_len, attestation_type, attestation_type_len), the type being the
+/// first byte of the attestationType's content
+fn parse_dg2_hash_from_client_data<let CLIENT_DATA_LEN: u32>(
+    client_data: [u8; CLIENT_DATA_LEN],
+) -> ([u8; 64], u32, u8, u32) {
     // Parse the top-level SEQUENCE (ZKPassportAppAttest)
     assert(client_data[0] == 0x30, "Expected SEQUENCE tag for ZKPassportAppAttest");
     let mut offset = 1; // Start after the SEQUENCE tag
@@ -109,10 +138,11 @@ pub fn get_dg2_hash_from_client_data<let CLIENT_DATA_LEN: u32>(
     offset += 1; // tag
     let app_version_len = client_data[offset] as u32;
     offset += 1 + app_version_len; // length + content
-    // Skip attestationType (ENUMERATED)
+    // attestationType (ENUMERATED), read for the caller to check
     assert(client_data[offset] == 0x0a, "Expected ENUMERATED tag for attestationType");
     offset += 1; // tag
     let attest_type_len = client_data[offset] as u32;
+    let attestation_type = client_data[offset + 1];
     offset += 1 + attest_type_len; // length + content
     // Parse AttestationData [1] EXPLICIT FaceMatchAttestation
     assert(client_data[offset] == 0xa1, "Expected [1] EXPLICIT tag for FaceMatchAttestation");
@@ -166,7 +196,7 @@ pub fn get_dg2_hash_from_client_data<let CLIENT_DATA_LEN: u32>(
         }
         // else leave as 0 (already initialized)
     }
-    (dg2_hash, dg2_hash_len)
+    (dg2_hash, dg2_hash_len, attestation_type, attest_type_len)
 }
 
 /// Verify that the provided dg2_hash matches the one embedded in client_data
@@ -175,8 +205,9 @@ pub fn verify_dg2_hash_in_client_data<let CLIENT_DATA_LEN: u32>(
     dg2_hash_normalized: Field,
     client_data: [u8; CLIENT_DATA_LEN],
 ) -> bool {
-    // Get the dg2 hash from client data and normalize it
-    let (client_data_dg2_hash, dg2_hash_len) = get_dg2_hash_from_client_data(client_data);
+    // Get the dg2 hash from client data and normalize it. Either attestation type: a face match
+    // on a camera-read ID uses this circuit too, and a chip's DG2 hash is checked against its SOD.
+    let (client_data_dg2_hash, dg2_hash_len, _, _) = parse_dg2_hash_from_client_data(client_data);
     let client_data_dg2_hash_normalized = poseidon2_hash_packed(client_data_dg2_hash, dg2_hash_len);
     // Verify the normalized dg2 hash matches the expected normalized dg2 hash
     dg2_hash_normalized == client_data_dg2_hash_normalized

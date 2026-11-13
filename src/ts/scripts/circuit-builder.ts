@@ -501,7 +501,8 @@ use sig_check_rsa::verify_signature;
 use utils::{poseidon2_hash_packed, split_array, ${attested ? "constants::{CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID, SHA256_IDENTIFIER}, types::{DG1Data, SaltedValue}" : "types::{DG1Data, SaltedValue, MRZExpiryDate}"}, unsafe_get_asn1_element_length};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
-    ${attested ? `// Public so the verifier can check the proof is recent
+    ${attested ? `// The integrity token's timestamp (seconds), public so the outer proof can check the
+    // attestation is recent
     current_date: pub u64,
     salted_dg1: SaltedValue<DG1Data>,
     expiry_date_salt: Field,
@@ -683,7 +684,10 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         integrity_token_response.environment == environment,
         "Failed to verify integrity token environment",
     );
-
+    ${attested ? `// The date is the integrity token's, issued with the attestation, so the outer proof's
+    // recency check measures the face match, not when this proof was made
+    assert(current_date == integrity_token_response.timestamp, "Date is not the integrity token's");
+` : ""}
     // Verify the signature over the integrity token
     let (play_integrity_public_key_x, play_integrity_public_key_y) = split_array(play_integrity_public_key);
     assert(
@@ -1024,10 +1028,10 @@ use utils::constants::{
     SALTED_MOCK_NULLIFIER, SALTED_NULLIFIER,
 };
 global PROOF_TYPE_HONK_ZK: u32 = 6;
-${platform === "android" ? `// How old the attested ID proof may be, and how far ahead of the outer proof's date for clock skew
+// How old the attestation may be, and how far ahead of the outer proof's date for clock skew
 global ATTESTED_ID_PROOF_MAX_AGE_SECONDS: u64 = 30 * 24 * 60 * 60;
 global ATTESTED_ID_PROOF_MAX_SKEW_SECONDS: u64 = 24 * 60 * 60;
-` : ""}
+
 ${unconstrained ? "unconstrained " : ""}fn main(
     certificate_registry_root: pub Field,
     circuit_registry_root: pub Field,
@@ -1039,7 +1043,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     scoped_nullifier: pub Field,
     oprf_pk_hash: pub Field,
     credential_scheme: pub Field,
-    attested_id_proof: AttestedIdProof<${platform === "ios" ? 3 : 4}>,
+    attested_id_proof: AttestedIdProof<4>,
     disclosure_proofs: [DisclosureProof; ${disclosure_proofs_count}],
 ) {
     let _ = certificate_registry_root;
@@ -1089,9 +1093,9 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     // The scheme only the attested ID circuits of this platform output, which also keeps any other
     // circuit with as many public inputs out of the base proof's place
     assert_eq(credential_scheme, ${platform === "ios" ? "CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS" : "CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID"}, "Not a Tier 2 credential scheme for this platform");
-${platform === "ios" ? `    let comm_out = attested_id_proof.public_inputs[0];
-    let attested_param_commitment = attested_id_proof.public_inputs[1];
-    let attested_scheme = attested_id_proof.public_inputs[2];` : `    let attested_date = attested_id_proof.public_inputs[0] as u64;
+    // The attestation's date: the integrity token's on Android, the App Attest credential
+    // certificate's notBefore on iOS (a fresh key is attested for every face match)
+    let attested_date = attested_id_proof.public_inputs[0] as u64;
     let comm_out = attested_id_proof.public_inputs[1];
     let attested_param_commitment = attested_id_proof.public_inputs[2];
     let attested_scheme = attested_id_proof.public_inputs[3];
@@ -1099,7 +1103,7 @@ ${platform === "ios" ? `    let comm_out = attested_id_proof.public_inputs[0];
         (attested_date <= current_date + ATTESTED_ID_PROOF_MAX_SKEW_SECONDS)
             & (current_date <= attested_date + ATTESTED_ID_PROOF_MAX_AGE_SECONDS),
         "Attested ID proof is not recent",
-    );`}
+    );
     assert_eq(attested_scheme, credential_scheme, "Credential scheme from attested ID circuit != expected credential scheme");
     assert_eq(attested_param_commitment, param_commitments[0], "Attested ID parameter commitment != first parameter commitment");
 

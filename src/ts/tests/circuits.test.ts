@@ -72,6 +72,7 @@ import FIXTURES_FACEMATCH from "./fixtures/facematch"
 import {
   ATTESTATION_KEY_TYPE_APPLE,
   ATTESTATION_KEY_TYPE_GOOGLE,
+  ATTESTATION_TYPE_FACE_MATCH,
   FACEMATCH_MODE_REGULAR,
   FACEMATCH_MODE_STRICT,
   buildAndroidAttestedIdInputs,
@@ -2923,8 +2924,11 @@ describe("attested id (Tier 2)", () => {
         useCli: true,
         circuitName: CIRCUIT_NAME,
       })
-      expect(proof.publicInputs).toHaveLength(3)
-      const [commOut, paramCommitment, credentialScheme] = proof.publicInputs.map(BigInt)
+      expect(proof.publicInputs).toHaveLength(4)
+      const [attestedDate, commOut, paramCommitment, credentialScheme] =
+        proof.publicInputs.map(BigInt)
+      // The credential certificate's notBefore, at the start of its day
+      expect(attestedDate).toEqual(BigInt(attestation.attestedDate))
 
       const expected = await calculateAttestedIdCommitment(SALTS, PASSPORT_DG1, PORTRAIT_HASH)
       expect(expected.privateNullifier).toEqual(PASSPORT_PRIVATE_NULLIFIER)
@@ -3016,7 +3020,7 @@ describe("attested id (Tier 2)", () => {
         useCli: true,
         circuitName: CIRCUIT_NAME,
       })
-      const [commOut, , credentialScheme] = proof.publicInputs.map(BigInt)
+      const [, commOut, , credentialScheme] = proof.publicInputs.map(BigInt)
       const expected = await calculateAttestedIdCommitment(SALTS, ID_CARD_DG1, PORTRAIT_HASH)
       expect(expected.privateNullifier).toEqual(ID_CARD_PRIVATE_NULLIFIER)
       expect(commOut).toEqual(expected.commitment)
@@ -3034,7 +3038,7 @@ describe("attested id (Tier 2)", () => {
         useCli: true,
         circuitName: CIRCUIT_NAME,
       })
-      const [commOut] = proof.publicInputs.map(BigInt)
+      const [, commOut] = proof.publicInputs.map(BigInt)
       const expected = await calculateAttestedIdCommitment(SALTS, LICENSE_DG1, PORTRAIT_HASH)
       expect(commOut).toEqual(expected.commitment)
       const otherState = Uint8Array.from(LICENSE_DG1)
@@ -3063,6 +3067,18 @@ describe("attested id (Tier 2)", () => {
         },
         "Attested digest does not match DG1 and portrait",
       )
+    })
+
+    test("fails with a chip face match's attestation", async () => {
+      // A forged chip could make its DG2 hash equal any attested digest, so only the camera
+      // read's own attestation type is accepted
+      const attestation = await buildIosAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+        attestationType: ATTESTATION_TYPE_FACE_MATCH,
+      })
+      await expectSolveToFail(attestation.inputs, "Attestation is not for an attested ID")
     })
 
     test("fails with a regular face match", async () => {
@@ -3161,6 +3177,32 @@ describe("attested id (Tier 2)", () => {
       await expect(
         circuit.solve({ ...attestation.inputs, portrait_hash: Array.from(PORTRAIT_HASH) }),
       ).rejects.toThrow("Attested digest does not match DG1 and portrait")
+    })
+
+    test("fails with a chip face match's attestation", async () => {
+      const attestation = await buildAndroidAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+        currentDate: nowTimestamp,
+        attestationType: ATTESTATION_TYPE_FACE_MATCH,
+      })
+      await expect(circuit.solve(attestation.inputs)).rejects.toThrow(
+        "Attestation is not for an attested ID",
+      )
+    })
+
+    test("fails when the date is not the integrity token's", async () => {
+      const attestation = await buildAndroidAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+        currentDate: nowTimestamp - 40 * 24 * 60 * 60,
+      })
+      // An old attestation can't be passed off as recent
+      await expect(
+        circuit.solve({ ...attestation.inputs, current_date: nowTimestamp }),
+      ).rejects.toThrow("Date is not the integrity token's")
     })
 
     test("fails when the integrity token was not signed by the Play Integrity key", async () => {
@@ -3282,7 +3324,7 @@ describe("attested id (Tier 2)", () => {
       await circuit.destroy()
     }
 
-    test("ios: wraps the attested ID proof and a disclosure proof built on it", async () => {
+    test("ios: wraps the attested ID proof and a disclosure proof built on it, if recent", async () => {
       const attestedCircuit = Circuit.from("attested_id_ios")
       const attestation = await buildIosAttestedIdInputs({
         dg1: PASSPORT_DG1,
@@ -3291,16 +3333,23 @@ describe("attested id (Tier 2)", () => {
       })
       const attested = await recursiveProof(attestedCircuit, "attested_id_ios", attestation.inputs)
       await attestedCircuit.destroy()
-      const disclose = await discloseOn(BigInt(attested.publicInputs[0]), PASSPORT_DG1)
+      const disclose = await discloseOn(BigInt(attested.publicInputs[1]), PASSPORT_DG1)
       const inputs = await outerInputs(attested, disclose, 200n)
 
       const proof = await proveOuter("outer_attested_ios_count_2", inputs)
       const publicInputs = proof.publicInputs.map(BigInt)
       // The chip outer's layout: roots, date, scopes, param commitments, then the trailing four
       expect(publicInputs).toHaveLength(11)
-      expect(publicInputs[5]).toEqual(BigInt(attested.publicInputs[1]))
+      expect(publicInputs[5]).toEqual(BigInt(attested.publicInputs[2]))
       expect(publicInputs[6]).toEqual(BigInt(disclose.publicInputs[4]))
       expect(publicInputs[publicInputs.length - 1]).toEqual(200n)
+
+      // The face match must be recent: within 30 days of the outer proof
+      await expectOuterToFail(
+        "outer_attested_ios_count_2",
+        { ...inputs, current_date: nowTimestamp + 31 * 24 * 60 * 60 },
+        "Attested ID proof is not recent",
+      )
 
       await expectOuterToFail(
         "outer_attested_ios_count_2",

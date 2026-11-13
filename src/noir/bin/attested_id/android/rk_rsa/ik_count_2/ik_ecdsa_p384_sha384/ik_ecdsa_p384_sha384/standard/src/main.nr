@@ -38,7 +38,8 @@ use utils::{
 };
 
 fn main(
-    // Public so the verifier can check the proof is recent
+    // The integrity token's timestamp (seconds), public so the outer proof can check the
+    // attestation is recent
     current_date: pub u64,
     salted_dg1: SaltedValue<DG1Data>,
     expiry_date_salt: Field,
@@ -200,6 +201,9 @@ fn main(
         integrity_token_response.environment == environment,
         "Failed to verify integrity token environment",
     );
+    // The date is the integrity token's, issued with the attestation, so the outer proof's
+    // recency check measures the face match, not when this proof was made
+    assert(current_date == integrity_token_response.timestamp, "Date is not the integrity token's");
 
     // Verify the signature over the integrity token
     let (play_integrity_public_key_x, play_integrity_public_key_y) =

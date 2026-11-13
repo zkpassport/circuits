@@ -12,6 +12,8 @@
 #
 # Outputs
 ############################################################
+# attested_date -> the App Attest credential certificate's notBefore day (unix seconds): a fresh
+#                  key is attested for every face match, so the outer proof can check it is recent
 # comm_out -> commitment over the salted DG1, expiry date, attested digest and private nullifier
 # param_commitment -> commitment over the attestation root key, environment, app ID and mode,
 #                     checked outside the circuit as for the facematch circuit
@@ -23,6 +25,7 @@ use facematch::{
     calculate_attestation_registry_leaf,
     get_dg2_hash_from_client_data,
     get_facematch_mode_from_client_data,
+    get_tbs_not_before_timestamp,
     ios::{get_app_id_from_credential_tbs, verify_auth_data_and_client_data, verify_environment},
     verify_credential_certificate,
     verify_intermediate_certificate,
@@ -62,7 +65,7 @@ fn main(
     // @committed
     // Hash of app_id is committed to (via parameter commitment) and can be verified outside the circuit
     app_id: [u8; APP_ID_MAX_LEN],
-) -> pub (Field, Field, Field) {
+) -> pub (u64, Field, Field, Field) {
     // Split the root and intermediate key into x and y coordinates
     let (root_key_x, root_key_y) = split_array(root_key);
     let (intermediate_key_x, intermediate_key_y) = split_array(intermediate_key);
@@ -147,5 +150,7 @@ fn main(
         FACEMATCH_MODE_STRICT,
     );
 
-    (comm_out, param_commitment, CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS)
+    let attested_date = get_tbs_not_before_timestamp(credential_tbs);
+
+    (attested_date, comm_out, param_commitment, CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS)
 }

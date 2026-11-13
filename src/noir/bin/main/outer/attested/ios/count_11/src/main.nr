@@ -33,6 +33,9 @@ use utils::constants::{
     SALTED_MOCK_NULLIFIER, SALTED_NULLIFIER,
 };
 global PROOF_TYPE_HONK_ZK: u32 = 6;
+// How old the attestation may be, and how far ahead of the outer proof's date for clock skew
+global ATTESTED_ID_PROOF_MAX_AGE_SECONDS: u64 = 30 * 24 * 60 * 60;
+global ATTESTED_ID_PROOF_MAX_SKEW_SECONDS: u64 = 24 * 60 * 60;
 
 fn main(
     certificate_registry_root: pub Field,
@@ -45,7 +48,7 @@ fn main(
     scoped_nullifier: pub Field,
     oprf_pk_hash: pub Field,
     credential_scheme: pub Field,
-    attested_id_proof: AttestedIdProof<3>,
+    attested_id_proof: AttestedIdProof<4>,
     disclosure_proofs: [DisclosureProof; 10],
 ) {
     let _ = certificate_registry_root;
@@ -107,9 +110,17 @@ fn main(
         CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS,
         "Not a Tier 2 credential scheme for this platform",
     );
-    let comm_out = attested_id_proof.public_inputs[0];
-    let attested_param_commitment = attested_id_proof.public_inputs[1];
-    let attested_scheme = attested_id_proof.public_inputs[2];
+    // The attestation's date: the integrity token's on Android, the App Attest credential
+    // certificate's notBefore on iOS (a fresh key is attested for every face match)
+    let attested_date = attested_id_proof.public_inputs[0] as u64;
+    let comm_out = attested_id_proof.public_inputs[1];
+    let attested_param_commitment = attested_id_proof.public_inputs[2];
+    let attested_scheme = attested_id_proof.public_inputs[3];
+    assert(
+        (attested_date <= current_date + ATTESTED_ID_PROOF_MAX_SKEW_SECONDS)
+            & (current_date <= attested_date + ATTESTED_ID_PROOF_MAX_AGE_SECONDS),
+        "Attested ID proof is not recent",
+    );
     assert_eq(
         attested_scheme,
         credential_scheme,
