@@ -23,6 +23,17 @@ fn test_check_nationality_exclusion_fail_empty_nationality() {
     check_nationality_exclusion(dg1, country_list);
 }
 
+// A nationality of filler only ("<<<"), as a document stating none carries, is rejected too
+#[test(should_fail_with = "Nationality is empty")]
+fn test_check_nationality_exclusion_fail_filler_nationality() {
+    let mut dg1 = SAMPLE_DG1;
+    for i in 0..3 {
+        dg1[DG1_TO_MRZ_OFFSET + PASSPORT_MRZ_NATIONALITY_INDEX + i] = 60;
+    }
+    let country_list: [u32; 6] = [4608577, 4608578, 4608579, 0, 0, 0];
+    check_nationality_exclusion(dg1, country_list);
+}
+
 #[test]
 fn test_get_closest_index_before_first_item() {
     let country_list: [u32; 6] = [4608577, 4608578, 4608579, 4608580, 4608581, 4608582];
