@@ -3424,21 +3424,10 @@ describe("aadhaar", () => {
     await discloseCircuit.destroy()
   })
 
-  test("proves, and its commitment is consumed by disclose_bytes", async () => {
-    const proof = await circuit.prove(FIXTURE.inputs, {
-      witness: await circuit.solve(FIXTURE.inputs),
-      useCli: true,
-      circuitName: "aadhaar_id",
-    })
-    const [certificateRegistryRoot, commOut, credentialScheme] = proof.publicInputs.map(BigInt)
-    expect(certificateRegistryRoot).toEqual(BigInt(FIXTURE.certificateRegistryRoot))
-    expect(commOut).toEqual(BigInt(FIXTURE.commOut))
-    expect(credentialScheme).toEqual(101n)
-
+  const discloseInputs = (commOut: string, discloseMask: number[]) => {
     const dg1 = new Uint8Array(FIXTURE.dg1)
-    const discloseMask = Array(90).fill(1)
-    const discloseInputs = {
-      comm_in: FIXTURE.commOut,
+    return {
+      comm_in: commOut,
       current_date: nowTimestamp,
       salted_private_nullifier: SaltedValue.fromValue(
         SALTS.privateNullifierSalt,
@@ -3457,8 +3446,24 @@ describe("aadhaar", () => {
       service_scope: "0x0",
       service_subscope: "0x0",
     }
-    const discloseProof = await discloseCircuit.prove(discloseInputs as any, {
-      witness: await discloseCircuit.solve(discloseInputs as any),
+  }
+
+  test("proves, and its commitment is consumed by disclose_bytes", async () => {
+    const proof = await circuit.prove(FIXTURE.inputs, {
+      witness: await circuit.solve(FIXTURE.inputs),
+      useCli: true,
+      circuitName: "aadhaar_id",
+    })
+    const [certificateRegistryRoot, commOut, credentialScheme] = proof.publicInputs.map(BigInt)
+    expect(certificateRegistryRoot).toEqual(BigInt(FIXTURE.certificateRegistryRoot))
+    expect(commOut).toEqual(BigInt(FIXTURE.commOut))
+    expect(credentialScheme).toEqual(101n)
+
+    const dg1 = new Uint8Array(FIXTURE.dg1)
+    const discloseMask = Array(90).fill(1)
+    const inputs = discloseInputs(FIXTURE.commOut, discloseMask)
+    const discloseProof = await discloseCircuit.prove(inputs as any, {
+      witness: await discloseCircuit.solve(inputs as any),
       useCli: true,
       circuitName: "disclose_bytes",
     })
@@ -3474,6 +3479,92 @@ describe("aadhaar", () => {
     expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1990, 7, 15))
     expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2036, 2, 15))
   }, 300000)
+
+  test("outer: wraps the aadhaar_id proof and a disclosure proof built on it", async () => {
+    type Subproof = { proof: string[]; publicInputs: string[]; vkey: string[]; vkeyHash: string }
+    const recursiveProof = async (subcircuit: Circuit, name: string, inputs: any): Promise<Subproof> => {
+      const proof = await subcircuit.prove(inputs, {
+        witness: await subcircuit.solve(inputs, true),
+        useCli: true,
+        circuitName: name,
+        recursive: true,
+      })
+      const vkey = (await subcircuit.getVerificationKey({ evm: false })).vkeyFields
+      const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x: string) => BigInt(x)))).toString(16)}`
+      return { proof: proof.proof, publicInputs: proof.publicInputs, vkey, vkeyHash }
+    }
+    const aadhaar = await recursiveProof(circuit, "aadhaar_id", FIXTURE.inputs)
+    const disclose = await recursiveProof(
+      discloseCircuit,
+      "disclose_bytes",
+      discloseInputs(aadhaar.publicInputs[1], Array(90).fill(1)),
+    )
+    const circuitManifest = {
+      version: "0.23.0",
+      root: await calculateCircuitRoot({ hashes: [aadhaar.vkeyHash, disclose.vkeyHash] }),
+      circuits: {
+        aadhaar: { hash: aadhaar.vkeyHash, size: 1 },
+        disclose: { hash: disclose.vkeyHash, size: 1 },
+      },
+    } as any
+    const leaf = async (subproof: Subproof, publicInputs: string[]) => {
+      const { path, index } = await getCircuitMerkleProof(subproof.vkeyHash, circuitManifest)
+      return {
+        vkey: subproof.vkey,
+        proof: subproof.proof,
+        public_inputs: publicInputs,
+        key_hash: subproof.vkeyHash,
+        tree_hash_path: path,
+        tree_index: index.toString(),
+      }
+    }
+    const d = disclose.publicInputs
+    const inputs = {
+      certificate_registry_root: FIXTURE.certificateRegistryRoot,
+      circuit_registry_root: circuitManifest.root,
+      current_date: nowTimestamp,
+      service_scope: "0x0",
+      service_subscope: "0x0",
+      param_commitments: [d[4]],
+      nullifier_type: d[5],
+      scoped_nullifier: d[6],
+      oprf_pk_hash: d[7],
+      credential_scheme: "0x65",
+      aadhaar_id_proof: await leaf(aadhaar, aadhaar.publicInputs),
+      disclosure_proofs: [await leaf(disclose, [d[0], d[6], d[5], d[7]])],
+    }
+
+    const outer = Circuit.from("outer_aadhaar_count_2")
+    const proof = await outer.prove(inputs as any, {
+      witness: await outer.solve(inputs as any, true),
+      useCli: true,
+      circuitName: "outer_aadhaar_count_2",
+      recursive: true,
+    })
+    const unprefixed = { ...proof, proof: proof.proof.map((x) => x.replace(/^0x/, "")) }
+    expect(await outer.verify(unprefixed, true)).toBe(true)
+    const publicInputs = proof.publicInputs.map(BigInt)
+    // The chip outer's layout: roots, date, scopes, param commitments, then the trailing four
+    expect(publicInputs).toHaveLength(10)
+    expect(publicInputs[0]).toEqual(BigInt(FIXTURE.certificateRegistryRoot))
+    expect(publicInputs[5]).toEqual(BigInt(d[4]))
+    expect(publicInputs[publicInputs.length - 1]).toEqual(101n)
+
+    const fails = (changed: object, message: string) =>
+      expect(outer.solve({ ...inputs, ...changed } as any, true)).rejects.toThrow(message)
+    await fails(
+      { certificate_registry_root: "0x1" },
+      "Certificate registry root from Aadhaar ID circuit != expected certificate registry root",
+    )
+    await fails({ credential_scheme: "0x64" }, "Not the Aadhaar credential scheme")
+    const otherDisclose = { ...inputs.disclosure_proofs[0] }
+    otherDisclose.public_inputs = ["0x2", ...otherDisclose.public_inputs.slice(1)]
+    await fails(
+      { disclosure_proofs: [otherDisclose] },
+      "Commitment out from Aadhaar ID circuit != commitment in from disclosure circuit",
+    )
+    await outer.destroy()
+  }, 600000)
 
   test("rejects a tampered QR code", async () => {
     const qrData = [...FIXTURE.inputs.qr_data]
