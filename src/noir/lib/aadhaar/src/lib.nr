@@ -3,6 +3,7 @@ use common::{
     compute_certificate_tree_root_using_hash_path_v1, hash_salt_dg1_dg2_hash_private_nullifier,
     normalize_dg2_hash, UIDAI_CERT_TYPE,
 };
+use date::Date;
 use poseidon::poseidon2::Poseidon2;
 use utils::{
     constants::{DG1_LENGTH, SHA256_IDENTIFIER},
@@ -74,6 +75,8 @@ pub global CERTIFICATE_TREE_HEIGHT: u32 = 16;
 pub struct AadhaarData {
     pub dg1: DG1Data,
     pub photo_hash: [u8; 32],
+    /// The day the QR code was signed, as a unix timestamp at its start (UTC)
+    pub signed_on: u64,
 }
 
 fn is_digit(c: u8) -> bool {
@@ -359,6 +362,10 @@ pub fn parse_aadhaar_data(
     let (reference_start, reference_length) =
         field_bounds(delimiter_indices, REFERENCE_ID_POSITION + offset);
     let (last_digits, expiry) = read_reference_id(data, reference_start, reference_length);
+    let mut signing_date: [u8; 8] = [0; 8];
+    for i in 0..8 {
+        signing_date[i] = data[reference_start + 4 + i];
+    }
     let (name_start, name_length) = field_bounds(delimiter_indices, NAME_POSITION + offset);
     let name = convert_name_to_mrz(data, name_start, name_length);
     let (dob_start, dob_length) = field_bounds(delimiter_indices, DOB_POSITION + offset);
@@ -369,6 +376,7 @@ pub fn parse_aadhaar_data(
     AadhaarData {
         dg1: build_dg1(name, last_digits, dob, gender, expiry),
         photo_hash: hash_photo(data, data_length, delimiter_indices, delimiter_count, v2),
+        signed_on: Date::from_bytes_long_year(signing_date).to_timestamp(),
     }
 }
 

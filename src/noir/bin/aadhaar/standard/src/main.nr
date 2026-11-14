@@ -12,7 +12,8 @@
 # and the facematch circuit take it as `comm_in` unchanged.
 #
 # The UIDAI key must be a UIDAI leaf of the Certificate Registry, as a CSCA must be for a
-# chip ID, so the verifier checks `certificate_registry_root` like a DSC proof's.
+# chip ID, so the verifier checks `certificate_registry_root` like a DSC proof's. The QR code
+# must have been signed no later than the key's certificate expired.
 #
 # Public inputs and outputs
 ############################################################
@@ -52,6 +53,13 @@ fn main(
     dg2_hash_salt: Field,
     private_nullifier_salt: Field,
 ) -> pub (Field, Field) {
+    let aadhaar = parse_aadhaar_data(qr_data, qr_data_length, delimiter_indices);
+    // The signer sets the signing date, so this can't stop a leaked key, but it keeps a QR code
+    // signed after the key retired out, and a backdated forgery expires with its signing date
+    assert(
+        aadhaar.signed_on <= uidai_cert_expiry as u64,
+        "The UIDAI certificate had expired when the QR code was signed",
+    );
     verify_uidai_key_in_registry(
         pubkey,
         certificate_registry_root,
@@ -78,7 +86,6 @@ fn main(
         "Failed to verify the UIDAI signature",
     );
 
-    let aadhaar = parse_aadhaar_data(qr_data, qr_data_length, delimiter_indices);
     let (comm_out, _private_nullifier) = commit_to_disclosure_aadhaar(
         aadhaar,
         dg1_salt,

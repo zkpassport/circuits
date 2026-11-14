@@ -103,6 +103,8 @@ fn test_parse_v2() {
     // Gender
     assert_eq(dg1[5 + 64], 77);
     assert_eq(aadhaar.photo_hash, sha256::sha256_var(PHOTO, 6));
+    // 2026-03-15T00:00:00Z
+    assert_eq(aadhaar.signed_on, 1773532800);
 }
 
 #[test]
@@ -121,6 +123,8 @@ fn test_parse_v1_with_trailing_hashes() {
     assert_bytes_eq(get_document_number_from_mrz(dg1), "XXXXX9876");
     assert_bytes_eq(get_dob_from_mrz(dg1), "000101");
     assert_bytes_eq(get_expiry_date_from_mrz(dg1), "291231");
+    // 2019-12-31T00:00:00Z
+    assert_eq(aadhaar.signed_on, 1577750400);
     assert_eq(dg1[5 + 64], 70);
     assert_eq(aadhaar.photo_hash, sha256::sha256_var(PHOTO, 6));
 }

@@ -3488,6 +3488,13 @@ describe("aadhaar", () => {
     ).rejects.toThrow("Certificate registry root mismatch")
   })
 
+  test("rejects a QR code signed after its UIDAI certificate expired", async () => {
+    // The fixture's QR code was signed on 2026-03-15
+    await expect(
+      circuit.solve({ ...FIXTURE.inputs, uidai_cert_expiry: 1773532799 }),
+    ).rejects.toThrow("The UIDAI certificate had expired when the QR code was signed")
+  })
+
   test("rejects a Merkle path that does not lead to the root", async () => {
     const path = [...FIXTURE.inputs.certificate_tree_hash_path]
     path[0] = "0x2"
