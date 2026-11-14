@@ -2,8 +2,7 @@
 // phone on the same Wi-Fi can pull locally packaged circuits:
 //   /by-version/<version>/manifest.json and /by-root/<root>/manifest.json -> manifest.json
 //   /by-hash/<vkey hash>.json                                             -> circuits/<name>.json
-//   /certificates.json -> certificates.json, a packaged certificates file for proving against
-//                         certificates not published yet (the app and the SDK in dev mode)
+//   /certificates.json                                                    -> certificates.json
 // Usage: npm run serve-circuits [-- --port 8000]
 import { createServer } from "node:http"
 import { networkInterfaces } from "node:os"

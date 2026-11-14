@@ -101,6 +101,4 @@ pub struct AttestedIdProof<let N: u32> {
     pub tree_index: Field,
 }
 
-/// The aadhaar_id proof, whose public inputs are certificate_registry_root, comm_out and
-/// credential_scheme
 pub type AadhaarIdProof = AttestedIdProof<3>;

@@ -1161,33 +1161,8 @@ const OUTER_AADHAAR_CIRCUIT_TEMPLATE = (
   disclosure_proofs_count: number,
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
-/*
-############################################################
-# Outer Circuit, Aadhaar
-############################################################
-# Wraps ${disclosure_proofs_count + 1} subproofs (the aadhaar_id base proof + ${disclosure_proofs_count} disclosure proofs)
-# into a single proof by verifying them recursively. The aadhaar_id proof stands in for the three
-# chip base proofs; the Certificate Registry root it proved the UIDAI key under is this proof's
-# certificate_registry_root, which the verifier checks as for a chip ID. The verifier must also
-# require a face match among the disclosure proofs, as anyone with a copy of the QR code could
-# otherwise prove with it.
-############################################################
-
-# Inputs/Outputs
-############################################################
-certificate_registry_root -> The Certificate Registry root the UIDAI key is under
-circuit_registry_root -> The root of the circuit registry merkle tree
-current_date -> The current date as a unix timestamp
-service_scope -> The service scope
-service_subscope -> The service subscope
-param_commitments -> The parameter commitments of the disclosure circuits
-nullifier_type -> The type of the nullifier
-scoped_nullifier -> The scoped nullifier
-oprf_pk_hash -> The hash of the OPRF public key used for salted nullifiers (0 if non-salted)
-credential_scheme -> CREDENTIAL_SCHEME_UIDAI_AADHAAR, as the aadhaar_id proof outputs
-aadhaar_id_proof -> The proof of the aadhaar_id circuit
-disclosure_proofs -> The proofs of the disclosure circuits
-*/
+// Outer circuit for an aadhaar_id proof and ${disclosure_proofs_count} disclosure proofs. The verifier must require a face
+// match among them, as anyone with a copy of the QR code could otherwise prove with it.
 
 use common::compute_merkle_root;
 use outer_lib::{AadhaarIdProof, DisclosureProof, poseidon2_hash, prepare_disclosure_inputs};
@@ -1254,8 +1229,6 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         "oprf_pk_hash must be zero unless the nullifier is salted",
     );
 
-    // Only aadhaar_id outputs this scheme, which also keeps any other circuit with as many public
-    // inputs out of the base proof's place
     assert_eq(credential_scheme, CREDENTIAL_SCHEME_UIDAI_AADHAAR, "Not the Aadhaar credential scheme");
     assert_eq(
         aadhaar_id_proof.public_inputs[0],

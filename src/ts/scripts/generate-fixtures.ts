@@ -976,8 +976,6 @@ class FixtureGenerator {
       path.join(__dirname, "..", "..", "solidity", "test", "fixtures", "tier2"),
       { writeVerifier: false },
     )
-    // An Aadhaar outer EVM proof, verified by test/AadhaarVerifier.t.sol with the packaged
-    // OuterAadhaarCount3 verifier
     console.log("Generating the Aadhaar outer EVM proof fixture...")
     await generateAadhaarEvmFixture(
       path.join(__dirname, "..", "..", "solidity", "test", "fixtures", "aadhaar"),

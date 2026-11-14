@@ -1,16 +1,6 @@
-/**
- * Generates an Aadhaar outer EVM proof with a face match over a synthetic iOS attestation, for the
- * on-chain verification test in zkpassport-packages' registry-contracts:
- *
- *   aadhaar_id + facematch_ios_evm + disclose_bytes_evm → outer_aadhaar_count_3 (EVM, no ZK)
- *
- * Writes proof.hex, public_inputs.json, committed_inputs.hex and attestation.json, and, when run
- * from the command line, the outer circuit's Solidity verifier, to the directory given as the first
- * argument. Needs aadhaar_id, facematch_ios_evm, disclose_bytes_evm and outer_aadhaar_count_3
- * compiled into target/.
- *
- *   npx tsx src/ts/scripts/generate-aadhaar-evm-fixture.ts <out dir>
- */
+// An outer_aadhaar_count_3 EVM proof (aadhaar_id + facematch_ios_evm over a synthetic attestation +
+// disclose_bytes_evm) for the registry-contracts tests.
+//   npx tsx src/ts/scripts/generate-aadhaar-evm-fixture.ts <out dir>
 import { exec } from "child_process"
 import * as fs from "fs"
 import * as os from "os"
@@ -66,7 +56,6 @@ async function recursiveProof(name: string, inputs: any): Promise<Subproof> {
   return { proof: proof.proof, publicInputs: proof.publicInputs, vkey, vkeyHash }
 }
 
-/** The SHA-256 of the QR code's photo, which runs from after the last delimiter to the end */
 async function getPhotoHash(): Promise<Uint8Array> {
   const { qr_data: data, qr_data_length: length, delimiter_indices: delimiters } = FIXTURE.inputs
   const photo = Uint8Array.from(data.slice(delimiters[delimiters.length - 1] + 1, length))
@@ -189,7 +178,6 @@ export async function generateAadhaarEvmFixture(
     disableZK: true,
   })
 
-  // The verifier for this outer circuit, from the same vkey the proof was made with
   if (writeVerifier) {
     const { vkeyBytes } = await outer.getVerificationKey({ evm: true })
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "aadhaar-vk-"))
@@ -201,7 +189,6 @@ export async function generateAadhaarEvmFixture(
   }
   await outer.destroy()
 
-  // The committed inputs as the SDK builds them for the contract, in parameter commitment order
   const rootKeyLeaf = await packLeBytesAndHashPoseidon2(
     new Uint8Array([ATTESTATION_KEY_TYPE_APPLE, ...attestation.rootKey]),
   )

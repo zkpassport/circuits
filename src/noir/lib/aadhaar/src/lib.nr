@@ -13,69 +13,42 @@ use utils::{
 
 pub mod tests;
 
-/*
-# Aadhaar
-# The base of an Aadhaar proof: the Secure QR code printed on the Aadhaar card or letter, or
-# shown by the mAadhaar app, is signed by UIDAI (RSA-2048, PKCS#1 v1.5, SHA-256) over its
-# decompressed data. This library reads that data and turns it into a passport-shaped DG1, so
-# every disclosure circuit works on it unchanged, and commits to the SHA-256 of the photo it
-# carries in the DG2 hash slot, so the facematch circuit binds a live face to it.
-#
-# The decompressed data is a list of fields separated by 255. In V2 (2022 onwards) it starts
-# with "V2", then:
-#   1 email/mobile indicator, 2 reference ID (last 4 digits of the Aadhaar number and the
-#   signing time, YYYYMMDDHHMMSSsss), 3 name, 4 date of birth (DD-MM-YYYY), 5 gender,
-#   6-16 address, 17 last 4 digits of the mobile number,
-# and the photo (JPEG 2000) runs from after the 18th delimiter to the end of the signed data.
-# V1 has neither the version nor the mobile digits, so its photo starts after the 16th
-# delimiter, and it ends with the SHA-256 of the email and/or mobile number as its
-# indicator says (1 email, 2 mobile, 3 both, 32 bytes each).
-# The last 256 bytes of the QR data are the signature and are not part of the signed data.
-*/
+// Secure QR data: fields separated by 255. V2: "V2", email/mobile indicator, reference ID
+// (last 4 Aadhaar digits + YYYYMMDDHHMMSSsss), name, DOB (DD-MM-YYYY), gender, 11 address
+// fields, last 4 mobile digits, then the photo. V1 has no version or mobile digits, and ends
+// with 32-byte email/mobile hashes as its indicator says (1 email, 2 mobile, 3 both).
 
-/// The longest signed QR data the circuit takes
 pub global AADHAAR_MAX_DATA_LENGTH: u32 = 2048;
-/// The largest photo the circuit takes
 pub global AADHAAR_MAX_PHOTO_LENGTH: u32 = 1536;
-/// The delimiters before the photo in V2; V1 has 16
 pub global AADHAAR_DELIMITER_COUNT: u32 = 18;
-/// Domain separator of the Aadhaar private nullifier ("AADHAAR"), so it never collides with others
+// "AADHAAR"
 pub global AADHAAR_NULLIFIER_DOMAIN: Field = 0x41414448414152;
 
 global DELIMITER: u8 = 255;
-// The fields before the photo always fit in this many bytes
 global HEADER_SCAN_LENGTH: u32 = 1024;
 global NAME_MAX_LENGTH: u32 = 64;
 global MRZ_NAME_LENGTH: u32 = 39;
 global LT: u8 = 60;
 
-// Positions of the fields, in delimiters before them, in V1. V2 adds one for its version.
+// Field positions in V1; V2 adds one for its version
 global REFERENCE_ID_POSITION: u32 = 1;
 global NAME_POSITION: u32 = 2;
 global DOB_POSITION: u32 = 3;
 global GENDER_POSITION: u32 = 4;
 
-/// A TD3 MRZ's DG1 header (tag 0x61, length 0x5B, MRZ tag 0x5F1F, length 0x58 = 88)
 global DG1_HEADER: [u8; 5] = [0x61, 0x5B, 0x5F, 0x1F, 0x58];
-/// Document type "ID", read as an ID card
 global DOCUMENT_TYPE: [u8; 2] = [73, 68];
-/// Issuing country "IND"
 global ISSUING_COUNTRY: [u8; 3] = [73, 78, 68];
-/// Aadhaar is issued to residents, not only citizens, so it says nothing of nationality:
-/// "XXX", unspecified nationality in ICAO 9303
+// Aadhaar is issued to residents, not only citizens, so it proves no nationality
 pub global AADHAAR_NATIONALITY: [u8; 3] = [88, 88, 88];
-/// The masked digits of the Aadhaar number, as UIDAI masks them on e-Aadhaar
 global DOCUMENT_NUMBER_MASK: [u8; 5] = [88, 88, 88, 88, 88];
-/// Aadhaar has no expiry, so the MRZ gets the signing date plus this many years
+// Aadhaar has no expiry, so the MRZ gets the signing date plus this many years
 pub global AADHAAR_VALIDITY_YEARS: u32 = 10;
-/// Depth of the Certificate Registry's certificate tree
 pub global CERTIFICATE_TREE_HEIGHT: u32 = 16;
 
-/// The Aadhaar data the base proof commits to
 pub struct AadhaarData {
     pub dg1: DG1Data,
     pub photo_hash: [u8; 32],
-    /// The day the QR code was signed, as a unix timestamp at its start (UTC)
     pub signed_on: u64,
 }
 
@@ -98,7 +71,6 @@ fn mrz_char_value(c: u8) -> u32 {
     }
 }
 
-/// ICAO 9303 check digit, weights 7, 3, 1
 pub fn mrz_check_digit<let N: u32>(chars: [u8; N]) -> u8 {
     let weights: [u32; 3] = [7, 3, 1];
     let mut sum: u32 = 0;
@@ -108,16 +80,13 @@ pub fn mrz_check_digit<let N: u32>(chars: [u8; N]) -> u8 {
     ((sum % 10) as u8) + 48
 }
 
-/// Whether the data is V2, which starts with "V2" and a delimiter. V1 starts with its
-/// one-digit email/mobile indicator and a delimiter.
 pub fn is_v2(data: [u8; AADHAAR_MAX_DATA_LENGTH]) -> bool {
     let v2 = (data[0] == 86) & (data[1] == 50) & (data[2] == DELIMITER);
     assert(v2 | (is_digit(data[0]) & (data[1] == DELIMITER)), "Unsupported Aadhaar QR version");
     v2
 }
 
-/// Checks the prover's delimiter indices are the first ones in the data, in order, and
-/// returns how many the version has before the photo
+// The prover's delimiter indices must be the first ones in the data, in order
 pub fn verify_delimiter_indices(
     data: [u8; AADHAAR_MAX_DATA_LENGTH],
     delimiter_indices: [u32; AADHAAR_DELIMITER_COUNT],
@@ -154,9 +123,7 @@ fn field_bounds(delimiter_indices: [u32; AADHAAR_DELIMITER_COUNT], position: u32
     (start, end - start)
 }
 
-/// The name as an MRZ writes it: upper case, words separated by one '<', other characters
-/// dropped, cut to 39 characters and padded with '<'. Aadhaar does not tell the surname
-/// apart, so the whole name is the primary identifier.
+// Aadhaar does not tell the surname apart, so the whole name is the primary identifier
 pub fn convert_name_to_mrz(
     data: [u8; AADHAAR_MAX_DATA_LENGTH],
     start: u32,
@@ -189,7 +156,6 @@ pub fn convert_name_to_mrz(
     name
 }
 
-/// DD-MM-YYYY to YYMMDD
 fn convert_dob_to_mrz(data: [u8; AADHAAR_MAX_DATA_LENGTH], start: u32, length: u32) -> [u8; 6] {
     assert(length == 10, "Date of birth must be DD-MM-YYYY");
     assert((data[start + 2] == 45) & (data[start + 5] == 45), "Date of birth must be DD-MM-YYYY");
@@ -206,7 +172,6 @@ fn convert_dob_to_mrz(data: [u8; AADHAAR_MAX_DATA_LENGTH], start: u32, length: u
     dob
 }
 
-/// M and F as they are; transgender (T) and anything else unspecified
 fn convert_gender_to_mrz(data: [u8; AADHAAR_MAX_DATA_LENGTH], start: u32, length: u32) -> u8 {
     assert(length == 1, "Gender must be one character");
     let c = data[start];
@@ -217,9 +182,6 @@ fn convert_gender_to_mrz(data: [u8; AADHAAR_MAX_DATA_LENGTH], start: u32, length
     }
 }
 
-/// The reference ID starts with the last 4 digits of the Aadhaar number, then the signing
-/// time as YYYYMMDDHHMMSSsss. Returns the 4 digits and the expiry date (YYMMDD) set
-/// AADHAAR_VALIDITY_YEARS after the signing date.
 fn read_reference_id(
     data: [u8; AADHAAR_MAX_DATA_LENGTH],
     start: u32,
@@ -243,7 +205,6 @@ fn read_reference_id(
     (last_digits, expiry)
 }
 
-/// The TD3 DG1 built from the Aadhaar fields, with valid check digits
 pub fn build_dg1(
     name: [u8; MRZ_NAME_LENGTH],
     last_digits: [u8; 4],
@@ -306,7 +267,6 @@ pub fn build_dg1(
     dg1
 }
 
-/// The bytes the email and mobile hashes take at the end of V1 data
 fn trailing_hash_length(data: [u8; AADHAAR_MAX_DATA_LENGTH], v2: bool) -> u32 {
     if v2 {
         0
@@ -323,8 +283,6 @@ fn trailing_hash_length(data: [u8; AADHAAR_MAX_DATA_LENGTH], v2: bool) -> u32 {
     }
 }
 
-/// SHA-256 of the photo, from after the last delimiter before it to the end of the signed
-/// data, less any trailing email/mobile hashes
 pub fn hash_photo(
     data: [u8; AADHAAR_MAX_DATA_LENGTH],
     data_length: u32,
@@ -347,9 +305,7 @@ pub fn hash_photo(
     sha256::sha256_var(photo, photo_length)
 }
 
-/// Reads the signed QR data into the DG1 and photo hash the proof commits to. The caller
-/// must have checked the signature over `data` up to `data_length`, and that it is
-/// zero-padded beyond.
+// The caller must have checked the signature over `data` up to `data_length`
 pub fn parse_aadhaar_data(
     data: [u8; AADHAAR_MAX_DATA_LENGTH],
     data_length: u32,
@@ -380,8 +336,7 @@ pub fn parse_aadhaar_data(
     }
 }
 
-/// Aadhaar's signature changes each time a QR code is made, so the private nullifier comes
-/// from the photo, which stays the same across them
+// The signature changes with every QR code, so the nullifier comes from the photo, which doesn't
 pub fn calculate_aadhaar_private_nullifier(photo_hash: [u8; 32]) -> Field {
     Poseidon2::hash(
         [AADHAAR_NULLIFIER_DOMAIN, normalize_dg2_hash(photo_hash)],
@@ -389,9 +344,6 @@ pub fn calculate_aadhaar_private_nullifier(photo_hash: [u8; 32]) -> Field {
     )
 }
 
-/// Checks the UIDAI key is in the Certificate Registry under the published v1
-/// `certificate_registry_root`, as a UIDAI leaf for India, so a key that is not UIDAI's can't
-/// sign a QR code the circuit accepts
 pub fn verify_uidai_key_in_registry(
     pubkey: [u8; 256],
     certificate_registry_root: Field,
@@ -428,8 +380,6 @@ pub fn verify_uidai_key_in_registry(
     assert(computed_root == certificate_registry_root, "Certificate registry root mismatch");
 }
 
-/// The commitment the disclosure circuits take as `comm_in`, with the same shape as the one
-/// from the integrity check circuit of a chip ID. Returns it with the private nullifier.
 pub fn commit_to_disclosure_aadhaar(
     aadhaar: AadhaarData,
     dg1_salt: Field,

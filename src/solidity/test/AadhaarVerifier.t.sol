@@ -6,13 +6,6 @@ pragma solidity ^0.8.30;
 import {Test} from "forge-std/Test.sol";
 import {HonkVerifier} from "../src/ultra-honk-verifiers/OuterAadhaarCount3.sol";
 
-/**
- * An Aadhaar outer EVM proof against the packaged OuterAadhaarCount3 verifier: a proof of
- * outer_aadhaar_count_3 over aadhaar_id, facematch_ios_evm and disclose_bytes_evm, written to
- * test/fixtures/aadhaar by generate-fixtures. The RootVerifier and SubVerifier path, with its face
- * match rule, is tested with such a proof in zkpassport-packages' registry-contracts
- * (AadhaarVerification.t.sol).
- */
 contract AadhaarVerifierTest is Test {
   HonkVerifier verifier;
   bytes proof;
@@ -45,7 +38,6 @@ contract AadhaarVerifierTest is Test {
 
   function test_RefusesAnotherCredentialScheme() public view {
     bytes32[] memory changed = publicInputs;
-    // The credential scheme, the last public input: 101 (Aadhaar) read as 100 (a chip)
     changed[changed.length - 1] = bytes32(uint256(100));
     assertFalse(_verifies(proof, changed));
   }

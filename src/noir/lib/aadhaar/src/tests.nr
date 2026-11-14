@@ -100,7 +100,6 @@ fn test_parse_v2() {
     assert_bytes_eq(get_document_number_from_mrz(dg1), "XXXXX1234");
     assert_bytes_eq(get_dob_from_mrz(dg1), "900815");
     assert_bytes_eq(get_expiry_date_from_mrz(dg1), "360315");
-    // Gender
     assert_eq(dg1[5 + 64], 77);
     assert_eq(aadhaar.photo_hash, sha256::sha256_var(PHOTO, 6));
     // 2026-03-15T00:00:00Z

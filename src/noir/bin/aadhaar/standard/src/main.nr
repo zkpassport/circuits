@@ -1,26 +1,6 @@
-/*
-############################################################
-# Aadhaar ID
-############################################################
-# The base proof of an Aadhaar verification, in place of the three chip base proofs. It
-# verifies UIDAI's signature over the Secure QR data, converts the name, date of birth,
-# gender and the last 4 digits of the Aadhaar number into a passport-shaped DG1 with an
-# expiry date 10 years after the QR was signed, and commits to the SHA-256 of the photo in
-# the DG2 hash slot.
-#
-# It outputs the same commitment as the integrity check circuit, so the disclosure circuits
-# and the facematch circuit take it as `comm_in` unchanged.
-#
-# The UIDAI key must be a UIDAI leaf of the Certificate Registry, as a CSCA must be for a
-# chip ID, so the verifier checks `certificate_registry_root` like a DSC proof's. The QR code
-# must have been signed no later than the key's certificate expired.
-#
-# Public inputs and outputs
-############################################################
-# certificate_registry_root -> the Certificate Registry root the UIDAI key is under
-# comm_out -> commitment over the salted DG1, expiry date, photo hash and private nullifier
-# credential_scheme -> CREDENTIAL_SCHEME_UIDAI_AADHAAR
-*/
+// Base proof of an Aadhaar Secure QR code, in place of the three chip base proofs. Outputs the
+// same comm_out as the integrity check circuit. Public: certificate_registry_root, comm_out,
+// credential_scheme.
 
 use aadhaar::{
     AADHAAR_DELIMITER_COUNT, AADHAAR_MAX_DATA_LENGTH, CERTIFICATE_TREE_HEIGHT,
@@ -40,10 +20,9 @@ fn main(
     uidai_cert_fingerprint: Field,
     revocation_tree_root: Field,
     masterlist_tree_root: Field,
-    // The decompressed QR data without its last 256 bytes (the signature), zero-padded
+    // Decompressed QR data less its trailing 256-byte signature, zero-padded
     qr_data: [u8; AADHAAR_MAX_DATA_LENGTH],
     qr_data_length: u32,
-    // Indices of the delimiters before the photo; V1 data uses the first 16
     delimiter_indices: [u32; AADHAAR_DELIMITER_COUNT],
     signature: [u8; 256],
     pubkey: [u8; 256],
@@ -54,8 +33,6 @@ fn main(
     private_nullifier_salt: Field,
 ) -> pub (Field, Field) {
     let aadhaar = parse_aadhaar_data(qr_data, qr_data_length, delimiter_indices);
-    // The signer sets the signing date, so this can't stop a leaked key, but it keeps a QR code
-    // signed after the key retired out, and a backdated forgery expires with its signing date
     assert(
         aadhaar.signed_on <= uidai_cert_expiry as u64,
         "The UIDAI certificate had expired when the QR code was signed",

@@ -3338,8 +3338,7 @@ describe("attested id (Tier 2)", () => {
 
       const proof = await proveOuter("outer_attested_id_count_2", inputs)
       const publicInputs = proof.publicInputs.map(BigInt)
-      // The chip outer's layout: roots, date, scopes, param commitments, then the trailing four
-      expect(publicInputs).toHaveLength(11)
+        expect(publicInputs).toHaveLength(11)
       expect(publicInputs[5]).toEqual(BigInt(attested.publicInputs[2]))
       expect(publicInputs[6]).toEqual(BigInt(disclose.publicInputs[4]))
       expect(publicInputs[publicInputs.length - 1]).toEqual(200n)
@@ -3406,9 +3405,7 @@ describe("attested id (Tier 2)", () => {
 })
 
 describe("aadhaar", () => {
-  // A V2 Secure QR signed by a test RSA-2048 key, held as a UIDAI certificate in a test
-  // Certificate Registry, with its aadhaar_id inputs and the outputs the utils twins expect.
-  // Made by scripts/generate-aadhaar-fixture.ts in @zkpassport/utils.
+  // Made by scripts/generate-aadhaar-fixture.ts in @zkpassport/utils
   const FIXTURE = JSON.parse(
     fs.readFileSync(path.join(__dirname, "fixtures/aadhaar.json"), "utf8"),
   )
