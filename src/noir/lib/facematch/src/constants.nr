@@ -1,4 +1,6 @@
-pub global AUTH_DATA_MAX_LEN: u32 = 180;
+// iOS 27 App Attest adds an extensions block (apple_cd_hash_*, apple_bundle_version_01,
+// apple_validation_category_01) after the credential key, making auth data about 306 bytes
+pub global AUTH_DATA_MAX_LEN: u32 = 384;
 pub global CREDENTIAL_TBS_MAX_LEN: u32 = 1000;
 pub global CLIENT_DATA_MAX_LEN: u32 = 169;
 pub global CLIENT_DATA_HASH_LEN: u32 = 32;

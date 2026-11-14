@@ -14,7 +14,7 @@ import { poseidon2HashAsync } from "@zkpassport/poseidon2"
 
 export const DG1_LENGTH = 95
 export const CLIENT_DATA_MAX_LEN = 169
-const AUTH_DATA_MAX_LEN = 180
+const AUTH_DATA_MAX_LEN = 384
 const CREDENTIAL_TBS_MAX_LEN = 1000
 const APP_ID_MAX_LEN = 100
 const INTEGRITY_TOKEN_MAX_LENGTH = 1024
