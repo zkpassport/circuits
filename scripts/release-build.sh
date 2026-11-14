@@ -80,7 +80,7 @@ jq -n \
     root: $m.root,
     nargo: $nargo,
     bb: $bb,
-    outerEvmVkeyHashes: ($m.circuits | with_entries(select(.key | startswith("outer_evm_count_"))) | map_values(.hash)),
+    outerEvmVkeyHashes: ($m.circuits | with_entries(select(.key | startswith("outer_evm_"))) | map_values(.hash)),
     durations: $durations
   }' > "$OUT/build-info.json"
 

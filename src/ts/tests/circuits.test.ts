@@ -1,6 +1,8 @@
 import {
   Binary,
   calculatePackagedCertificatesRoot,
+  calculateCircuitRoot,
+  getCircuitMerkleProof,
   getNationalityInclusionCircuitInputs,
   getNationalityExclusionCircuitInputs,
   getAgeCircuitInputs,
@@ -13,8 +15,6 @@ import {
   getCommitmentFromDSCProof,
   getCommitmentInFromIDDataProof,
   getCommitmentOutFromIDDataProof,
-  getCommitmentInFromIntegrityProof,
-  getCommitmentOutFromIntegrityProof,
   getCommitmentInFromDisclosureProof,
   getDiscloseCircuitInputs,
   SanctionsBuilder,
@@ -49,6 +49,7 @@ import {
   getFacematchEvmParameterCommitment,
   packLeBytesAndHashPoseidon2,
   OPRF_ZERO_PROOF,
+  SaltedValue,
 } from "@zkpassport/utils"
 import type { IntegrityToDisclosureSalts, PackagedCertificatesFile, Query } from "@zkpassport/utils"
 import { beforeAll, afterAll, describe, expect, test } from "@jest/globals"
@@ -68,6 +69,21 @@ import { evaluateOPRF } from "@zkpassport/utils"
 import { poseidon2HashAsync } from "@zkpassport/poseidon2"
 import fs from "fs"
 import FIXTURES_FACEMATCH from "./fixtures/facematch"
+import {
+  ATTESTATION_KEY_TYPE_APPLE,
+  ATTESTATION_KEY_TYPE_GOOGLE,
+  ATTESTATION_TYPE_FACE_MATCH,
+  FACEMATCH_MODE_REGULAR,
+  FACEMATCH_MODE_STRICT,
+  buildAndroidAttestedIdInputs,
+  buildIosAttestedIdInputs,
+  calculateAttestationParamCommitment,
+  calculateAttestedIdCommitment,
+  calculateTier2PrivateNullifier,
+  getExpiryDate,
+  padDg1,
+} from "./attested-id"
+import { sha256, sha384 } from "@noble/hashes/sha2.js"
 import { AlgorithmIdentifier } from "@peculiar/asn1-x509"
 import type { Alpha3Code } from "i18n-iso-countries"
 import { id_ecdsaWithSHA512, id_ecdsaWithSHA256, id_ecdsaWithSHA384, id_ecdsaWithSHA224, id_ecdsaWithSHA1 } from "@peculiar/asn1-ecc"
@@ -83,6 +99,8 @@ const INTEGRITY_TO_DISCLOSURE_SALTS: IntegrityToDisclosureSalts = {
 }
 const EXPECTED_NULLIFIER = 0xf03bc01b2dd79b1b8906831e8bd47f1cdf7435e8f38010a9cd1978a1b13a26an
 const nowTimestamp = getNowTimestamp()
+// The integrity check proof's public inputs: comm_in, then its outputs comm_out and credential_scheme
+const CREDENTIAL_SCHEME_ICAO_CHIP = 100n
 const FIXTURES_PATH = path.join(__dirname, "fixtures")
 
 // Common MRZ strings
@@ -216,9 +234,11 @@ function describeIntegrityTest(
         useCli,
       })
       expect(proof).toBeDefined()
-      const commitmentIn = getCommitmentInFromIntegrityProof(proof)
+      expect(proof.publicInputs).toHaveLength(3)
+      const [commitmentIn, commitmentOut, credentialScheme] = proof.publicInputs.map(BigInt)
       expect(commitmentIn).toEqual(state.idDataCommitment)
-      state.integrityCheckCommitment = getCommitmentOutFromIntegrityProof(proof)
+      expect(credentialScheme).toEqual(CREDENTIAL_SCHEME_ICAO_CHIP)
+      state.integrityCheckCommitment = commitmentOut
       await circuit.destroy()
     }, timeout)
   })
@@ -2838,5 +2858,549 @@ describe("subcircuits - RSA PKCS - German passport", () => {
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
     }, 10000)
+  })
+})
+
+describe("attested id (Tier 2)", () => {
+  const SALTS = { dg1Salt: 11n, expiryDateSalt: 12n, dg2HashSalt: 13n, privateNullifierSalt: 14n }
+  // A TD3 passport DG1: "P<FRADOE<<JANE...", X12345678, born 1990-02-01, expiring 2030-04-03
+  const PASSPORT_DG1 = Binary.fromHex("615B5F1F58")
+    .concat(
+      Binary.from(
+        "P<FRADOE<<JANE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<X12345678<FRA9002016F3004035<<<<<<<<<<<<<<04",
+      ),
+    )
+    .toUInt8Array()
+  // The ICAO 9303 sample TD1 ID card, expired in 2012: the base proof does not check expiry
+  const ID_CARD_DG1 = Binary.fromHex("615B5F1F5A")
+    .concat(
+      Binary.from(
+        "I<UTOD231458907<<<<<<<<<<<<<<<7408122F1204159UTO<<<<<<<<<<<6ERIKSSON<<ANNA<MARIA<<<<<<<<<<",
+      ),
+    )
+    .toUInt8Array()
+  // A US driving licence's barcode, converted to a TD1 MRZ by @zkpassport/utils: "DL" for the
+  // document code, the number in its overflow form with the state after it, no nationality
+  const LICENSE_DG1 = Binary.fromHex("615B5F1F5A")
+    .concat(
+      Binary.from(
+        "DLUSAD1234567<<7<CA<<<<<<<<<<<9001158F3101159<<<<<<<<<<<<<<4DOE<<JANE<MARIE<<<<<<<<<<<<<<<",
+      ),
+    )
+    .toUInt8Array()
+  // Private nullifiers printed by the attested-to-disclosure Noir lib tests
+  const PASSPORT_PRIVATE_NULLIFIER =
+    0x064c866cb0248d050c72dc3a01c74d839bbc18df5600debb0b2e2ff1a645c447n
+  const ID_CARD_PRIVATE_NULLIFIER =
+    0x02c7905c961b56ce7050e0cc7873e9d2bbabfca8835d7eb74619eaa3f2a8a5aen
+  const PORTRAIT_HASH = sha256(new TextEncoder().encode("portrait"))
+  const OTHER_PORTRAIT_HASH = sha256(new TextEncoder().encode("another portrait"))
+
+  describe("ios", () => {
+    const CIRCUIT_NAME = "attested_id_ios"
+    let circuit: Circuit
+    let discloseCircuit: Circuit
+    beforeAll(() => {
+      circuit = Circuit.from(CIRCUIT_NAME)
+      discloseCircuit = Circuit.from("disclose_bytes")
+    })
+    afterAll(async () => {
+      await circuit.destroy()
+      await discloseCircuit.destroy()
+    })
+
+    const expectSolveToFail = async (inputs: any, message: string) => {
+      await expect(circuit.solve(inputs)).rejects.toThrow(message)
+    }
+
+    test("passport: proves, and its commitment is consumed by disclose_bytes", async () => {
+      const attestation = await buildIosAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+      })
+      const proof = await circuit.prove(attestation.inputs, {
+        witness: await circuit.solve(attestation.inputs),
+        useCli: true,
+        circuitName: CIRCUIT_NAME,
+      })
+      expect(proof.publicInputs).toHaveLength(4)
+      const [attestedDate, commOut, paramCommitment, credentialScheme] =
+        proof.publicInputs.map(BigInt)
+      // The credential certificate's notBefore, at the start of its day
+      expect(attestedDate).toEqual(BigInt(attestation.attestedDate))
+
+      const expected = await calculateAttestedIdCommitment(SALTS, PASSPORT_DG1, PORTRAIT_HASH)
+      expect(expected.privateNullifier).toEqual(PASSPORT_PRIVATE_NULLIFIER)
+      expect(commOut).toEqual(expected.commitment)
+      const rootKeyLeaf = await packLeBytesAndHashPoseidon2(
+        new Uint8Array([ATTESTATION_KEY_TYPE_APPLE, ...attestation.rootKey]),
+      )
+      const appIdHash = await packLeBytesAndHashPoseidon2(
+        new TextEncoder().encode(attestation.appId),
+      )
+      expect(paramCommitment).toEqual(
+        await calculateAttestationParamCommitment({
+          rootKeyType: ATTESTATION_KEY_TYPE_APPLE,
+          rootKey: attestation.rootKey,
+          environment: attestation.environment,
+          appId: attestation.appId,
+          mode: FACEMATCH_MODE_STRICT,
+        }),
+      )
+      // The twin above and the published face match helper differ only in the proof type
+      expect(paramCommitment).not.toEqual(
+        await getFacematchParameterCommitment(
+          rootKeyLeaf,
+          BigInt(attestation.environment),
+          appIdHash,
+          BigInt(FACEMATCH_MODE_STRICT),
+        ),
+      )
+      expect(credentialScheme).toEqual(200n)
+
+      const discloseMask = Array(90).fill(1)
+      const discloseInputs = {
+        comm_in: `0x${commOut.toString(16)}`,
+        current_date: nowTimestamp,
+        salted_private_nullifier: SaltedValue.fromValue(
+          SALTS.privateNullifierSalt,
+          expected.privateNullifier,
+        ).formatForInput(),
+        salted_expiry_date: SaltedValue.fromValue(
+          SALTS.expiryDateSalt,
+          getExpiryDate(PASSPORT_DG1),
+        ).formatForInput(),
+        salted_dg1: SaltedValue.fromValue(
+          SALTS.dg1Salt,
+          Array.from(padDg1(PASSPORT_DG1)),
+        ).formatForInput(),
+        salted_dg2_hash: SaltedValue.fromValue(
+          SALTS.dg2HashSalt,
+          expected.dg2HashNormalized,
+        ).formatForInput(),
+        salted_dg2_hash_type: SaltedValue.fromValue(SALTS.dg2HashSalt, 3n).formatForInput(),
+        disclose_mask: discloseMask,
+        nullifier_secret: "0x0",
+        oprf_proof: OPRF_ZERO_PROOF,
+        service_scope: "0x0",
+        service_subscope: "0x0",
+      }
+      const discloseProof = await discloseCircuit.prove(discloseInputs as any, {
+        witness: await discloseCircuit.solve(discloseInputs as any),
+        useCli: true,
+        circuitName: "disclose_bytes",
+      })
+      expect(getCommitmentInFromDisclosureProof(discloseProof)).toEqual(commOut)
+      expect(getNullifierTypeFromDisclosureProof(discloseProof)).toEqual(NullifierType.NON_SALTED)
+      expect(getNullifierFromDisclosureProof(discloseProof)).toEqual(
+        await poseidon2HashAsync([expected.privateNullifier, 0n, 0n]),
+      )
+      const mrz = Buffer.from(PASSPORT_DG1.subarray(5)).toString()
+      const disclosedBytes = getDisclosedBytesFromMrzAndMask(mrz, discloseMask)
+      expect(getParameterCommitmentFromDisclosureProof(discloseProof)).toEqual(
+        await getDiscloseParameterCommitment(discloseMask, disclosedBytes),
+      )
+      const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
+      expect(disclosedData.issuingCountry).toBe("FRA")
+      expect(disclosedData.documentNumber).toBe("X12345678")
+      expect(disclosedData.name).toBe("JANE DOE")
+      expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1990, 1, 1))
+      expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2030, 3, 3))
+    }, 120000)
+
+    test("ID card (TD1): proves", async () => {
+      const attestation = await buildIosAttestedIdInputs({
+        dg1: ID_CARD_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+      })
+      const proof = await circuit.prove(attestation.inputs, {
+        witness: await circuit.solve(attestation.inputs),
+        useCli: true,
+        circuitName: CIRCUIT_NAME,
+      })
+      const [, commOut, , credentialScheme] = proof.publicInputs.map(BigInt)
+      const expected = await calculateAttestedIdCommitment(SALTS, ID_CARD_DG1, PORTRAIT_HASH)
+      expect(expected.privateNullifier).toEqual(ID_CARD_PRIVATE_NULLIFIER)
+      expect(commOut).toEqual(expected.commitment)
+      expect(credentialScheme).toEqual(200n)
+    }, 90000)
+
+    test("driving licence (TD1 from its barcode): proves, with the state in its nullifier", async () => {
+      const attestation = await buildIosAttestedIdInputs({
+        dg1: LICENSE_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+      })
+      const proof = await circuit.prove(attestation.inputs, {
+        witness: await circuit.solve(attestation.inputs),
+        useCli: true,
+        circuitName: CIRCUIT_NAME,
+      })
+      const [, commOut] = proof.publicInputs.map(BigInt)
+      const expected = await calculateAttestedIdCommitment(SALTS, LICENSE_DG1, PORTRAIT_HASH)
+      expect(commOut).toEqual(expected.commitment)
+      const otherState = Uint8Array.from(LICENSE_DG1)
+      otherState.set(new TextEncoder().encode("NV"), 5 + 17)
+      expect(await calculateTier2PrivateNullifier(otherState)).not.toEqual(
+        expected.privateNullifier,
+      )
+    }, 90000)
+
+    test("fails when the attested digest is not over the DG1 and portrait", async () => {
+      const attestation = await buildIosAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: OTHER_PORTRAIT_HASH,
+        salts: SALTS,
+      })
+      await expectSolveToFail(
+        { ...attestation.inputs, portrait_hash: Array.from(PORTRAIT_HASH) },
+        "Attested digest does not match DG1 and portrait",
+      )
+      const tamperedDg1 = [...attestation.inputs.salted_dg1.value]
+      tamperedDg1[49] = "Y".charCodeAt(0)
+      await expectSolveToFail(
+        {
+          ...attestation.inputs,
+          salted_dg1: { ...attestation.inputs.salted_dg1, value: tamperedDg1 },
+        },
+        "Attested digest does not match DG1 and portrait",
+      )
+    })
+
+    test("fails with a chip face match's attestation", async () => {
+      // A forged chip could make its DG2 hash equal any attested digest, so only the camera
+      // read's own attestation type is accepted
+      const attestation = await buildIosAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+        attestationType: ATTESTATION_TYPE_FACE_MATCH,
+      })
+      await expectSolveToFail(attestation.inputs, "Attestation is not for an attested ID")
+    })
+
+    test("fails with a regular face match", async () => {
+      const attestation = await buildIosAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+        mode: FACEMATCH_MODE_REGULAR,
+      })
+      await expectSolveToFail(attestation.inputs, "Tier 2 requires a strict face match")
+    })
+
+    test("fails when the attested digest is not 32 bytes", async () => {
+      const attestation = await buildIosAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+        digest: sha384(new TextEncoder().encode("portrait")),
+        digestAlgorithmOid: "608648016503040202",
+      })
+      await expectSolveToFail(attestation.inputs, "Attested digest must be a SHA-256 digest")
+    })
+
+    test("fails when the app ID differs from the credential certificate's", async () => {
+      const attestation = await buildIosAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+        credentialAppId: "ABCDE12345.app.other.test",
+      })
+      await expectSolveToFail(attestation.inputs, "Failed to verify app_id")
+    })
+  })
+
+  describe("android", () => {
+    const CIRCUIT_NAME = "attested_id_android_rk_ecdsa_ik_count_1_ik_ecdsa_p256_sha256"
+    let circuit: Circuit
+    beforeAll(() => {
+      circuit = Circuit.from(CIRCUIT_NAME)
+    })
+    afterAll(async () => {
+      await circuit.destroy()
+    })
+
+    test("passport: proves", async () => {
+      const attestation = await buildAndroidAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+        currentDate: nowTimestamp,
+      })
+      const proof = await circuit.prove(attestation.inputs, {
+        witness: await circuit.solve(attestation.inputs),
+        useCli: true,
+        circuitName: CIRCUIT_NAME,
+      })
+      expect(proof.publicInputs).toHaveLength(4)
+      const [currentDate, commOut, paramCommitment, credentialScheme] =
+        proof.publicInputs.map(BigInt)
+      expect(currentDate).toEqual(BigInt(nowTimestamp))
+      const expected = await calculateAttestedIdCommitment(SALTS, PASSPORT_DG1, PORTRAIT_HASH)
+      expect(commOut).toEqual(expected.commitment)
+      expect(paramCommitment).toEqual(
+        await calculateAttestationParamCommitment({
+          rootKeyType: ATTESTATION_KEY_TYPE_GOOGLE,
+          rootKey: attestation.rootKey,
+          environment: attestation.environment,
+          appId: attestation.appId,
+          integrityPublicKey: attestation.playIntegrityPublicKey,
+          mode: FACEMATCH_MODE_STRICT,
+        }),
+      )
+      expect(credentialScheme).toEqual(201n)
+    }, 120000)
+
+    test("fails with a regular face match", async () => {
+      const attestation = await buildAndroidAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+        currentDate: nowTimestamp,
+        mode: FACEMATCH_MODE_REGULAR,
+      })
+      await expect(circuit.solve(attestation.inputs)).rejects.toThrow(
+        "Tier 2 requires a strict face match",
+      )
+    })
+
+    test("fails when the attested digest is not over the DG1 and portrait", async () => {
+      const attestation = await buildAndroidAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: OTHER_PORTRAIT_HASH,
+        salts: SALTS,
+        currentDate: nowTimestamp,
+      })
+      await expect(
+        circuit.solve({ ...attestation.inputs, portrait_hash: Array.from(PORTRAIT_HASH) }),
+      ).rejects.toThrow("Attested digest does not match DG1 and portrait")
+    })
+
+    test("fails with a chip face match's attestation", async () => {
+      const attestation = await buildAndroidAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+        currentDate: nowTimestamp,
+        attestationType: ATTESTATION_TYPE_FACE_MATCH,
+      })
+      await expect(circuit.solve(attestation.inputs)).rejects.toThrow(
+        "Attestation is not for an attested ID",
+      )
+    })
+
+    test("fails when the date is not the integrity token's", async () => {
+      const attestation = await buildAndroidAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+        currentDate: nowTimestamp - 40 * 24 * 60 * 60,
+      })
+      // An old attestation can't be passed off as recent
+      await expect(
+        circuit.solve({ ...attestation.inputs, current_date: nowTimestamp }),
+      ).rejects.toThrow("Date is not the integrity token's")
+    })
+
+    test("fails when the integrity token was not signed by the Play Integrity key", async () => {
+      const attestation = await buildAndroidAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+        currentDate: nowTimestamp,
+      })
+      const signature = [...attestation.inputs.integrity_token_signature]
+      signature[63] ^= 1
+      await expect(
+        circuit.solve({ ...attestation.inputs, integrity_token_signature: signature }),
+      ).rejects.toThrow("Failed to verify integrity token signature")
+    })
+  })
+
+  describe("outer proof", () => {
+    type Subproof = { proof: string[]; publicInputs: string[]; vkey: string[]; vkeyHash: string }
+
+    const recursiveProof = async (circuit: Circuit, name: string, inputs: any): Promise<Subproof> => {
+      const proof = await circuit.prove(inputs, {
+        witness: await circuit.solve(inputs, true),
+        useCli: true,
+        circuitName: name,
+        recursive: true,
+      })
+      const vkey = (await circuit.getVerificationKey({ evm: false })).vkeyFields
+      const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x: string) => BigInt(x)))).toString(16)}`
+      return { proof: proof.proof, publicInputs: proof.publicInputs, vkey, vkeyHash }
+    }
+
+    // The disclosure proof built on an attested ID's commitment, as the app makes it
+    const discloseOn = async (commOut: bigint, dg1: Uint8Array) => {
+      const expected = await calculateAttestedIdCommitment(SALTS, dg1, PORTRAIT_HASH)
+      const discloseCircuit = Circuit.from("disclose_bytes")
+      const inputs = {
+        comm_in: `0x${commOut.toString(16)}`,
+        current_date: nowTimestamp,
+        salted_private_nullifier: SaltedValue.fromValue(
+          SALTS.privateNullifierSalt,
+          expected.privateNullifier,
+        ).formatForInput(),
+        salted_expiry_date: SaltedValue.fromValue(
+          SALTS.expiryDateSalt,
+          getExpiryDate(dg1),
+        ).formatForInput(),
+        salted_dg1: SaltedValue.fromValue(SALTS.dg1Salt, Array.from(padDg1(dg1))).formatForInput(),
+        salted_dg2_hash: SaltedValue.fromValue(
+          SALTS.dg2HashSalt,
+          expected.dg2HashNormalized,
+        ).formatForInput(),
+        salted_dg2_hash_type: SaltedValue.fromValue(SALTS.dg2HashSalt, 3n).formatForInput(),
+        disclose_mask: Array(90).fill(1),
+        nullifier_secret: "0x0",
+        oprf_proof: OPRF_ZERO_PROOF,
+        service_scope: "0x0",
+        service_subscope: "0x0",
+      }
+      const proof = await recursiveProof(discloseCircuit, "disclose_bytes", inputs)
+      await discloseCircuit.destroy()
+      return proof
+    }
+
+    const outerInputs = async (attested: Subproof, disclose: Subproof, scheme: bigint) => {
+      const circuitManifest = {
+        version: "0.23.0",
+        root: await calculateCircuitRoot({ hashes: [attested.vkeyHash, disclose.vkeyHash] }),
+        circuits: {
+          attested: { hash: attested.vkeyHash, size: 1 },
+          disclose: { hash: disclose.vkeyHash, size: 1 },
+        },
+      } as any
+      const leaf = async (subproof: Subproof, publicInputs: string[]) => {
+        const { path, index } = await getCircuitMerkleProof(subproof.vkeyHash, circuitManifest)
+        return {
+          vkey: subproof.vkey,
+          proof: subproof.proof,
+          public_inputs: publicInputs,
+          key_hash: subproof.vkeyHash,
+          tree_hash_path: path,
+          tree_index: index.toString(),
+        }
+      }
+      const d = disclose.publicInputs
+      return {
+        certificate_registry_root: "0x1",
+        circuit_registry_root: circuitManifest.root,
+        current_date: nowTimestamp,
+        service_scope: "0x0",
+        service_subscope: "0x0",
+        param_commitments: [attested.publicInputs[attested.publicInputs.length - 2], d[4]],
+        nullifier_type: d[5],
+        scoped_nullifier: d[6],
+        oprf_pk_hash: d[7],
+        credential_scheme: `0x${scheme.toString(16)}`,
+        attested_id_proof: await leaf(attested, attested.publicInputs),
+        disclosure_proofs: [await leaf(disclose, [d[0], d[6], d[5], d[7]])],
+      }
+    }
+
+    const proveOuter = async (name: string, inputs: any) => {
+      const circuit = Circuit.from(name)
+      const proof = await circuit.prove(inputs, {
+        witness: await circuit.solve(inputs, true),
+        useCli: true,
+        circuitName: name,
+        recursive: true,
+      })
+      const unprefixed = { ...proof, proof: proof.proof.map((x) => x.replace(/^0x/, "")) }
+      expect(await circuit.verify(unprefixed, true)).toBe(true)
+      await circuit.destroy()
+      return proof
+    }
+
+    const expectOuterToFail = async (name: string, inputs: any, message: string) => {
+      const circuit = Circuit.from(name)
+      await expect(circuit.solve(inputs, true)).rejects.toThrow(message)
+      await circuit.destroy()
+    }
+
+    test("ios: wraps the attested ID proof and a disclosure proof built on it, if recent", async () => {
+      const attestedCircuit = Circuit.from("attested_id_ios")
+      const attestation = await buildIosAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+      })
+      const attested = await recursiveProof(attestedCircuit, "attested_id_ios", attestation.inputs)
+      await attestedCircuit.destroy()
+      const disclose = await discloseOn(BigInt(attested.publicInputs[1]), PASSPORT_DG1)
+      const inputs = await outerInputs(attested, disclose, 200n)
+
+      const proof = await proveOuter("outer_attested_id_count_2", inputs)
+      const publicInputs = proof.publicInputs.map(BigInt)
+      // The chip outer's layout: roots, date, scopes, param commitments, then the trailing four
+      expect(publicInputs).toHaveLength(11)
+      expect(publicInputs[5]).toEqual(BigInt(attested.publicInputs[2]))
+      expect(publicInputs[6]).toEqual(BigInt(disclose.publicInputs[4]))
+      expect(publicInputs[publicInputs.length - 1]).toEqual(200n)
+
+      // The face match must be recent: within 30 days of the outer proof
+      await expectOuterToFail(
+        "outer_attested_id_count_2",
+        { ...inputs, current_date: nowTimestamp + 31 * 24 * 60 * 60 },
+        "Attested ID proof is not recent",
+      )
+
+      // Not a Tier 2 scheme, or not the one the attested ID proof states
+      await expectOuterToFail(
+        "outer_attested_id_count_2",
+        { ...inputs, credential_scheme: "0x64" },
+        "Not a Tier 2 credential scheme",
+      )
+      await expectOuterToFail(
+        "outer_attested_id_count_2",
+        { ...inputs, credential_scheme: "0xc9" },
+        "Credential scheme from attested ID circuit != expected credential scheme",
+      )
+      await expectOuterToFail(
+        "outer_attested_id_count_2",
+        { ...inputs, param_commitments: ["0x1", inputs.param_commitments[1]] },
+        "Attested ID parameter commitment != first parameter commitment",
+      )
+      const otherDisclose = { ...inputs.disclosure_proofs[0] }
+      otherDisclose.public_inputs = ["0x2", ...otherDisclose.public_inputs.slice(1)]
+      await expectOuterToFail(
+        "outer_attested_id_count_2",
+        { ...inputs, disclosure_proofs: [otherDisclose] },
+        "Commitment out from attested ID circuit != commitment in from disclosure circuit",
+      )
+    }, 600000)
+
+    test("android: wraps the attested ID proof, which must be recent", async () => {
+      const name = "attested_id_android_rk_ecdsa_ik_count_1_ik_ecdsa_p256_sha256"
+      const attestedCircuit = Circuit.from(name)
+      const attestation = await buildAndroidAttestedIdInputs({
+        dg1: PASSPORT_DG1,
+        portraitHash: PORTRAIT_HASH,
+        salts: SALTS,
+        currentDate: nowTimestamp,
+      })
+      const attested = await recursiveProof(attestedCircuit, name, attestation.inputs)
+      await attestedCircuit.destroy()
+      const disclose = await discloseOn(BigInt(attested.publicInputs[1]), PASSPORT_DG1)
+      const inputs = await outerInputs(attested, disclose, 201n)
+
+      // The same outer circuit as iOS: both attested ID proofs have the same public inputs
+      const proof = await proveOuter("outer_attested_id_count_2", inputs)
+      const publicInputs = proof.publicInputs.map(BigInt)
+      expect(publicInputs[5]).toEqual(BigInt(attested.publicInputs[2]))
+      expect(publicInputs[publicInputs.length - 1]).toEqual(201n)
+
+      await expectOuterToFail(
+        "outer_attested_id_count_2",
+        { ...inputs, current_date: nowTimestamp + 31 * 24 * 60 * 60 },
+        "Attested ID proof is not recent",
+      )
+    }, 600000)
   })
 })

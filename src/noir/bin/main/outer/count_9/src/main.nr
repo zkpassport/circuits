@@ -17,6 +17,7 @@ service_subscope -> The service subscope
 param_commitments -> The commitments over the parameters of the disclosure circuits
 nullifier_type -> The type of the nullifier
 scoped_nullifier -> The scoped nullifier
+credential_scheme -> What verified the ID (CREDENTIAL_SCHEME_* in utils): 1xx when the issuer signed it, 2xx when a device attested a camera read of it
 csc_to_dsc_proof -> The proof of the CSC to DSC circuit
 dsc_to_id_data_proof -> The proof of the DSC to ID Data circuit
 integrity_check_proof -> The proof of the integrity check circuit
@@ -53,6 +54,8 @@ fn verify_subproofs(
     scoped_nullifier: Field,
     // The hash of the OPRF public key used for salted nullifiers (0 if non-salted)
     oprf_pk_hash: Field,
+    // What verified the ID, as the base proof output it
+    credential_scheme: Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
     integrity_check_proof: IntegrityCheckProof,
@@ -184,9 +187,16 @@ fn verify_subproofs(
         prepare_integrity_check_inputs(
             integrity_check_proof.public_inputs[0], // comm_in
             integrity_check_proof.public_inputs[1], // comm_out
+            integrity_check_proof.public_inputs[2], // credential_scheme
         ),
         integrity_check_proof.key_hash,
         PROOF_TYPE_HONK_ZK,
+    );
+
+    assert_eq(
+        integrity_check_proof.public_inputs[2],
+        credential_scheme,
+        "Credential scheme from integrity check circuit != expected credential scheme",
     );
 
     let mut found_valid_scoped_nullifier = false;
@@ -257,6 +267,7 @@ fn main(
     nullifier_type: pub Field,
     scoped_nullifier: pub Field,
     oprf_pk_hash: pub Field,
+    credential_scheme: pub Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
     integrity_check_proof: IntegrityCheckProof,
@@ -272,6 +283,7 @@ fn main(
         nullifier_type,
         scoped_nullifier,
         oprf_pk_hash,
+        credential_scheme,
         csc_to_dsc_proof,
         dsc_to_id_data_proof,
         integrity_check_proof,

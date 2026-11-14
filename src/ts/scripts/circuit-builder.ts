@@ -123,6 +123,14 @@ const STATIC_CIRCUITS = [
     path: "./src/noir/bin/facematch/ios/evm",
   },
   {
+    name: "attested_id_ios",
+    path: "./src/noir/bin/attested_id/ios/standard",
+  },
+  {
+    name: "attested_id_ios_evm",
+    path: "./src/noir/bin/attested_id/ios/evm",
+  },
+  {
     name: "oprf_auth",
     path: "./src/noir/bin/oprf-auth",
   },
@@ -134,6 +142,7 @@ const LIB_CIRCUITS = [
   "src/noir/lib/commitment/csc-to-dsc",
   "src/noir/lib/commitment/dsc-to-id",
   "src/noir/lib/commitment/integrity-to-disclosure",
+  "src/noir/lib/commitment/attested-to-disclosure",
   "src/noir/lib/commitment/scoped-nullifier",
   "src/noir/lib/compare/age",
   "src/noir/lib/compare/date",
@@ -406,6 +415,7 @@ const DATA_INTEGRITY_CHECK_TEMPLATE = (
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_disclosure;
+use utils::constants::CREDENTIAL_SCHEME_ICAO_CHIP;
 use data_check_integrity::{check_dg1_${dg_hash_algorithm}, check_signed_attributes_${signed_attributes_hash_algorithm}, get_dg2_hash_from_econtent};
 use utils::{types::{DG1Data, EContentData, SignedAttrsData, SaltedValue}, constants::{${getHashAlgorithmIdentifier(
   dg_hash_algorithm,
@@ -420,7 +430,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     signed_attributes: SignedAttrsData,
     e_content: EContentData,
     salted_private_nullifier: SaltedValue<Field>,
-) -> pub Field {
+) -> pub (Field, Field) {
     // Get the length of e_content by parsing the ASN.1
     // Safety: This is safe because the length must be correct for econtent to hash to
     // the expected digest in signed attributes as checked below in check_signed_attributes_${dg_hash_algorithm}
@@ -454,7 +464,8 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         e_content,
         salted_private_nullifier,
     );
-    comm_out
+    // The chip's signatures verified the data: every proof built on this one carries the scheme
+    (comm_out, CREDENTIAL_SCHEME_ICAO_CHIP)
 }
 `
 
@@ -467,31 +478,44 @@ const FACEMATCH_ANDROID_TEMPLATE = (
   }[],
   evm: boolean = false,
   unconstrained: boolean = false,
+  attested: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
-use commitment::nullify;
+${attested ? `// Attested ID (Android): the base proof of a Tier 2 verification on Android. In place of the
+// three chip base proofs, it verifies that a genuine device running the unmodified app attested,
+// through Android key attestation, the DG1 it read together with the portrait it matched against
+// a live face in strict mode. It outputs the same commitment as the integrity check circuit.
+use commitment::{calculate_attested_digest, commit_to_disclosure_attested};` : `use commitment::nullify;
+use data_check_expiry::check_expiry_from_date;`}
 use data_check_tbs_pubkey::{verify_ecdsa_pubkey_in_tbs, verify_rsa_pubkey_in_tbs};
-use data_check_expiry::check_expiry_from_date;
 use facematch::{
     android::{get_app_id_from_credential_tbs, constants::INTEGRITY_TOKEN_MAX_LENGTH, token::{verify_integrity_token, verify_nonce, verify_integrity_token_signature, parse_integrity_token}}, calculate_attestation_registry_leaf,
     get_client_data_hash, prepare_client_data_hash_for_signature, get_facematch_mode_from_client_data, get_tbs_hash_sha256,
-    get_tbs_hash_sha384, verify_dg2_hash_in_client_data
+    get_tbs_hash_sha384, ${attested ? "get_dg2_hash_from_client_data" : "verify_dg2_hash_in_client_data"}
 };
 use facematch::constants::{
-    APP_ID_MAX_LEN, ATTESTATION_KEY_TYPE_GOOGLE, CLIENT_DATA_MAX_LEN, CREDENTIAL_TBS_MAX_LEN,
+    APP_ID_MAX_LEN, ATTESTATION_KEY_TYPE_GOOGLE, CLIENT_DATA_MAX_LEN, CREDENTIAL_TBS_MAX_LEN,${attested ? " FACEMATCH_MODE_STRICT," : ""}
 };
-use facematch::param_commit::{calculate_param_commitment, calculate_param_commitment_sha2};
+use facematch::param_commit::${attested ? (evm ? "calculate_attested_id_param_commitment_sha2" : "calculate_attested_id_param_commitment") : "{calculate_param_commitment, calculate_param_commitment_sha2}"};
 use sig_check_ecdsa::{verify_nist_p256_blackbox as verify_nist_p256, verify_nist_p384};
 use sig_check_rsa::verify_signature;
-use utils::{poseidon2_hash_packed, split_array, types::{DG1Data, SaltedValue, MRZExpiryDate}, unsafe_get_asn1_element_length};
+use utils::{poseidon2_hash_packed, split_array, ${attested ? "constants::{CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID, SHA256_IDENTIFIER}, types::{DG1Data, SaltedValue}" : "types::{DG1Data, SaltedValue, MRZExpiryDate}"}, unsafe_get_asn1_element_length};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
-    comm_in: pub Field,
+    ${attested ? `// The integrity token's timestamp (seconds), public so the outer proof can check the
+    // attestation is recent
+    current_date: pub u64,
+    salted_dg1: SaltedValue<DG1Data>,
+    expiry_date_salt: Field,
+    dg2_hash_salt: Field,
+    private_nullifier_salt: Field,
+    // SHA-256 of the portrait the face was matched against
+    portrait_hash: [u8; 32],` : `comm_in: pub Field,
     current_date: pub u64,
     salted_private_nullifier: SaltedValue<Field>,
     salted_expiry_date: SaltedValue<MRZExpiryDate>,
     salted_dg1: SaltedValue<DG1Data>,
     salted_dg2_hash: SaltedValue<Field>,
-    salted_dg2_hash_type: SaltedValue<u32>,
+    salted_dg2_hash_type: SaltedValue<u32>,`}
     // @committed
     // Hash of root_key (the attestation registry leaf) is commitment to (via parameter commitment) and can be verified outside the circuit
     ${root_signature_algorithm === "rsa" ? `
@@ -530,9 +554,9 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     // @committed
     // Hash of app_id is committed to (via parameter commitment) and can be verified outside the circuit
     app_id: [u8; APP_ID_MAX_LEN],
-    // @committed
+    ${attested ? "" : `// @committed
     // facematch_mode is commitment to (via parameter commitment) and can be verified outside the circuit
-    facematch_mode: u8, // FACEMATCH_MODE_REGULAR (1) or FACEMATCH_MODE_STRICT (2)
+    facematch_mode: u8, // FACEMATCH_MODE_REGULAR (1) or FACEMATCH_MODE_STRICT (2)`}
     // The bytes of the JSON integrity token from Play Integrity API
     integrity_token: [u8; INTEGRITY_TOKEN_MAX_LENGTH],
     // The signature over the integrity token (ECDSA P-256 with SHA-256)
@@ -541,12 +565,12 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     // Hash of play_integrity_public_key is committed to (via parameter commitment) and can be verified outside the circuit
     // Play Integrity's public key behind the signature over the integrity token
     play_integrity_public_key: [u8; 64],
-    nullifier_secret: Field,
+    ${attested ? `) -> pub (Field, Field, Field) {` : `nullifier_secret: Field,
     service_scope: pub Field,
     service_subscope: pub Field,
 ) -> pub (Field, Field, Field, Field) {
     // Check the ID is not expired
-    check_expiry_from_date(salted_expiry_date.value, current_date);
+    check_expiry_from_date(salted_expiry_date.value, current_date);`}
 
     ${intermediate_signature_algorithms.map(({ signature_algorithm, hash_algorithm, bit_size }, index) => signature_algorithm === "ecdsa" ? `
     let (intermediate_${index + 1}_key_x, intermediate_${index + 1}_key_y) = split_array(intermediate_${index + 1}_key);
@@ -627,7 +651,21 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         get_app_id_from_credential_tbs(credential_tbs);
     assert(tbs_app_id == app_id, "Failed to verify app_id");
 
-    // Verify the facematch mode in client_data matches the expected facematch mode
+    ${attested ? `// The face match is the only thing binding a camera-read ID to a person, so it must be strict
+    let facematch_mode = FACEMATCH_MODE_STRICT;
+    assert(
+        get_facematch_mode_from_client_data(client_data) == facematch_mode,
+        "Tier 2 requires a strict face match",
+    );
+
+    // The device attests one digest in the DG2 hash slot: SHA-256 over the DG1 it read and
+    // the hash of the portrait it matched. Recomputing it binds both to this proof.
+    let (attested_digest, attested_digest_len) = get_dg2_hash_from_client_data(client_data);
+    assert(attested_digest_len == 32, "Attested digest must be a SHA-256 digest");
+    let expected_digest = calculate_attested_digest(salted_dg1.value, portrait_hash);
+    for i in 0..32 {
+        assert(attested_digest[i] == expected_digest[i], "Attested digest does not match DG1 and portrait");
+    }` : `// Verify the facematch mode in client_data matches the expected facematch mode
     assert(
         get_facematch_mode_from_client_data(client_data) == facematch_mode,
         "Failed to verify facematch_mode in client_data",
@@ -637,7 +675,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     assert(
         verify_dg2_hash_in_client_data(salted_dg2_hash.value, client_data),
         "Failed to verify dg2_hash in client_data",
-    );
+    );`}
 
     // Verify the integrity token
     let parsed_integrity_token = parse_integrity_token(integrity_token);
@@ -646,7 +684,10 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         integrity_token_response.environment == environment,
         "Failed to verify integrity token environment",
     );
-
+    ${attested ? `// The date is the integrity token's, issued with the attestation, so the outer proof's
+    // recency check measures the face match, not when this proof was made
+    assert(current_date == integrity_token_response.timestamp, "Date is not the integrity token's");
+` : ""}
     // Verify the signature over the integrity token
     let (play_integrity_public_key_x, play_integrity_public_key_y) = split_array(play_integrity_public_key);
     assert(
@@ -660,7 +701,14 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         "Failed to verify nonce from integrity token",
     );
 
-    // Facematch circuit does not use OPRF proof. Pass a zero OPRF proof so nullify skips OPRF verification.
+    ${attested ? `let (comm_out, _private_nullifier) = commit_to_disclosure_attested(
+        salted_dg1,
+        expiry_date_salt,
+        dg2_hash_salt,
+        SaltedValue::from_value(dg2_hash_salt, SHA256_IDENTIFIER),
+        private_nullifier_salt,
+        expected_digest,
+    );` : `// Facematch circuit does not use OPRF proof. Pass a zero OPRF proof so nullify skips OPRF verification.
     let zero_oprf_proof = commitment::OPRFProof {
         pk: commitment::BabyJubJubPoint { x: 0, y: 0 },
         dlog_e: 0,
@@ -680,14 +728,14 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         service_subscope,
         nullifier_secret,
         zero_oprf_proof,
-    );
+    );`}
 
     let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
     let play_integrity_public_key_hash = poseidon2_hash_packed(play_integrity_public_key, play_integrity_public_key.len());
     let param_commitment =
-        ${evm ? "calculate_param_commitment_sha2" : "calculate_param_commitment"}(root_key_leaf, environment, app_id_hash, play_integrity_public_key_hash, facematch_mode);
+        ${attested ? (evm ? "calculate_attested_id_param_commitment_sha2" : "calculate_attested_id_param_commitment") : evm ? "calculate_param_commitment_sha2" : "calculate_param_commitment"}(root_key_leaf, environment, app_id_hash, play_integrity_public_key_hash, facematch_mode);
 
-    (param_commitment, nullifier_type, nullifier, oprf_pk_hash)
+    ${attested ? "(comm_out, param_commitment, CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID)" : "(param_commitment, nullifier_type, nullifier, oprf_pk_hash)"}
 }
 `
 
@@ -715,6 +763,7 @@ service_subscope -> The service subscope
 param_commitments -> The commitments over the parameters of the disclosure circuits
 nullifier_type -> The type of the nullifier
 scoped_nullifier -> The scoped nullifier
+credential_scheme -> What verified the ID (CREDENTIAL_SCHEME_* in utils): 1xx when the issuer signed it, 2xx when a device attested a camera read of it
 csc_to_dsc_proof -> The proof of the CSC to DSC circuit
 dsc_to_id_data_proof -> The proof of the DSC to ID Data circuit
 integrity_check_proof -> The proof of the integrity check circuit
@@ -749,6 +798,8 @@ fn verify_subproofs(
     scoped_nullifier: Field,
     // The hash of the OPRF public key used for salted nullifiers (0 if non-salted)
     oprf_pk_hash: Field,
+    // What verified the ID, as the base proof output it
+    credential_scheme: Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
     integrity_check_proof: IntegrityCheckProof,
@@ -856,10 +907,13 @@ fn verify_subproofs(
         prepare_integrity_check_inputs(
             integrity_check_proof.public_inputs[0], // comm_in
             integrity_check_proof.public_inputs[1], // comm_out
+            integrity_check_proof.public_inputs[2], // credential_scheme
         ),
         integrity_check_proof.key_hash,
         PROOF_TYPE_HONK_ZK,
     );
+
+    assert_eq(integrity_check_proof.public_inputs[2], credential_scheme, "Credential scheme from integrity check circuit != expected credential scheme");
 
     let mut found_valid_scoped_nullifier = false;
 
@@ -910,6 +964,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     nullifier_type: pub Field,
     scoped_nullifier: pub Field,
     oprf_pk_hash: pub Field,
+    credential_scheme: pub Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
     integrity_check_proof: IntegrityCheckProof,
@@ -925,11 +980,175 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         nullifier_type,
         scoped_nullifier,
         oprf_pk_hash,
+        credential_scheme,
         csc_to_dsc_proof,
         dsc_to_id_data_proof,
         integrity_check_proof,
         disclosure_proofs,
     );
+}
+`
+
+const OUTER_ATTESTED_CIRCUIT_TEMPLATE = (
+  disclosure_proofs_count: number,
+  unconstrained: boolean = false,
+) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
+/*
+############################################################
+# Outer Circuit, Tier 2 (attested ID, iOS or Android)
+############################################################
+# Wraps ${disclosure_proofs_count + 1} subproofs (the attested ID base proof + ${disclosure_proofs_count} disclosure proofs)
+# into a single proof by verifying them recursively. The attested ID proof stands in for the three
+# chip base proofs; its device attestation parameters are the first parameter commitment, which
+# the verifier must check (the circuit cannot know which attestation root keys are genuine).
+# Both platforms' attested ID proofs have the same public inputs (the attestation's date,
+# comm_out, the parameter commitment and the credential scheme), so one circuit wraps either.
+############################################################
+
+# Inputs/Outputs
+############################################################
+certificate_registry_root -> Unused by a camera-read ID; kept so the public inputs keep the chip outer's layout
+circuit_registry_root -> The root of the circuit registry merkle tree
+current_date -> The current date as a unix timestamp
+service_scope -> The service scope
+service_subscope -> The service subscope
+param_commitments -> The attested ID proof's parameter commitment, then those of the disclosure circuits
+nullifier_type -> The type of the nullifier
+scoped_nullifier -> The scoped nullifier
+oprf_pk_hash -> The hash of the OPRF public key used for salted nullifiers (0 if non-salted)
+credential_scheme -> CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS or _ANDROID, as the attested ID proof outputs
+attested_id_proof -> The proof of the attested ID circuit
+disclosure_proofs -> The proofs of the disclosure circuits
+*/
+
+use common::compute_merkle_root;
+use outer_lib::{AttestedIdProof, DisclosureProof, poseidon2_hash, prepare_disclosure_inputs};
+use std::verify_proof_with_type;
+use utils::constants::{
+    CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID, CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS, NON_SALTED_MOCK_NULLIFIER, NONE_NULLIFIER,
+    SALTED_MOCK_NULLIFIER, SALTED_NULLIFIER,
+};
+global PROOF_TYPE_HONK_ZK: u32 = 6;
+// How old the attestation may be, and how far ahead of the outer proof's date for clock skew
+global ATTESTED_ID_PROOF_MAX_AGE_SECONDS: u64 = 30 * 24 * 60 * 60;
+global ATTESTED_ID_PROOF_MAX_SKEW_SECONDS: u64 = 24 * 60 * 60;
+
+${unconstrained ? "unconstrained " : ""}fn main(
+    certificate_registry_root: pub Field,
+    circuit_registry_root: pub Field,
+    current_date: pub u64,
+    service_scope: pub Field,
+    service_subscope: pub Field,
+    param_commitments: pub [Field; ${disclosure_proofs_count + 1}],
+    nullifier_type: pub Field,
+    scoped_nullifier: pub Field,
+    oprf_pk_hash: pub Field,
+    credential_scheme: pub Field,
+    attested_id_proof: AttestedIdProof<4>,
+    disclosure_proofs: [DisclosureProof; ${disclosure_proofs_count}],
+) {
+    let _ = certificate_registry_root;
+
+    assert_eq(
+        circuit_registry_root,
+        compute_merkle_root(
+            attested_id_proof.key_hash,
+            attested_id_proof.tree_index,
+            attested_id_proof.tree_hash_path,
+        ),
+        "Attested ID proof vkey hash not found in circuit tree",
+    );
+    for i in 0..disclosure_proofs.len() {
+        assert_eq(
+            circuit_registry_root,
+            compute_merkle_root(
+                disclosure_proofs[i].key_hash,
+                disclosure_proofs[i].tree_index,
+                disclosure_proofs[i].tree_hash_path,
+            ),
+            "Disclosure proof vkey hash not found in circuit tree",
+        );
+    }
+    assert_eq(poseidon2_hash(attested_id_proof.vkey), attested_id_proof.key_hash, "Attested ID proof vkey hash mismatch");
+    for i in 0..disclosure_proofs.len() {
+        assert_eq(poseidon2_hash(disclosure_proofs[i].vkey), disclosure_proofs[i].key_hash, "Disclosure proof vkey hash mismatch");
+    }
+
+    assert(
+        (scoped_nullifier != 0)
+            | (nullifier_type == NONE_NULLIFIER)
+            | (nullifier_type == NON_SALTED_MOCK_NULLIFIER),
+        "Scoped nullifier must be non-zero unless the nullifier type is NONE",
+    );
+    assert(
+        (scoped_nullifier == 0) | (nullifier_type != NONE_NULLIFIER),
+        "Scoped nullifier must be zero when the nullifier type is NONE",
+    );
+    assert(
+        (nullifier_type == SALTED_NULLIFIER)
+            | (nullifier_type == SALTED_MOCK_NULLIFIER)
+            | (oprf_pk_hash == 0),
+        "oprf_pk_hash must be zero unless the nullifier is salted",
+    );
+
+    // A scheme only the attested ID circuits output, which also keeps any other circuit with as
+    // many public inputs out of the base proof's place; it must equal the base proof's, below
+    assert(
+        (credential_scheme == CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS)
+            | (credential_scheme == CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID),
+        "Not a Tier 2 credential scheme",
+    );
+    // The attestation's date: the integrity token's on Android, the App Attest credential
+    // certificate's notBefore on iOS (a fresh key is attested for every face match)
+    let attested_date = attested_id_proof.public_inputs[0] as u64;
+    let comm_out = attested_id_proof.public_inputs[1];
+    let attested_param_commitment = attested_id_proof.public_inputs[2];
+    let attested_scheme = attested_id_proof.public_inputs[3];
+    assert(
+        (attested_date <= current_date + ATTESTED_ID_PROOF_MAX_SKEW_SECONDS)
+            & (current_date <= attested_date + ATTESTED_ID_PROOF_MAX_AGE_SECONDS),
+        "Attested ID proof is not recent",
+    );
+    assert_eq(attested_scheme, credential_scheme, "Credential scheme from attested ID circuit != expected credential scheme");
+    assert_eq(attested_param_commitment, param_commitments[0], "Attested ID parameter commitment != first parameter commitment");
+
+    verify_proof_with_type(
+        attested_id_proof.vkey,
+        attested_id_proof.proof,
+        attested_id_proof.public_inputs,
+        attested_id_proof.key_hash,
+        PROOF_TYPE_HONK_ZK,
+    );
+
+    let mut found_valid_scoped_nullifier = false;
+    for i in 0..disclosure_proofs.len() {
+        assert_eq(comm_out, disclosure_proofs[i].public_inputs[0], "Commitment out from attested ID circuit != commitment in from disclosure circuit");
+        assert((disclosure_proofs[i].public_inputs[1] == 0) | (disclosure_proofs[i].public_inputs[1] == scoped_nullifier), "Disclosure proof scoped nullifier must be either 0 or the expected scoped nullifier");
+        assert((disclosure_proofs[i].public_inputs[2] == NONE_NULLIFIER) | (disclosure_proofs[i].public_inputs[2] == nullifier_type), "Disclosure proof nullifier type must be either NONE or the expected nullifier type");
+        assert((disclosure_proofs[i].public_inputs[3] == 0) | (disclosure_proofs[i].public_inputs[3] == oprf_pk_hash), "Disclosure proof oprf_pk_hash must be either 0 or the expected oprf_pk_hash");
+        if (!found_valid_scoped_nullifier & (disclosure_proofs[i].public_inputs[1] == scoped_nullifier)) {
+            found_valid_scoped_nullifier = true;
+        }
+
+        verify_proof_with_type(
+            disclosure_proofs[i].vkey,
+            disclosure_proofs[i].proof,
+            prepare_disclosure_inputs(
+                disclosure_proofs[i].public_inputs[0],
+                current_date,
+                param_commitments[i + 1],
+                service_scope,
+                service_subscope,
+                disclosure_proofs[i].public_inputs[2],
+                disclosure_proofs[i].public_inputs[1],
+                disclosure_proofs[i].public_inputs[3],
+            ),
+            disclosure_proofs[i].key_hash,
+            PROOF_TYPE_HONK_ZK,
+        );
+    }
+
+    assert(found_valid_scoped_nullifier, "Incorrect scoped nullifier provided");
 }
 `
 
@@ -1118,6 +1337,39 @@ function generateFaceMatchAndroidCircuit(
   generatedCircuits.push({ name, path: folderPath })
 }
 
+function generateAttestedIdAndroidCircuit(
+  root_signature_algorithm: "rsa" | "ecdsa",
+  intermediate_signature_algorithms: {
+    signature_algorithm: "rsa" | "ecdsa"
+    bit_size: number
+    hash_algorithm: "sha1" | "sha224" | "sha256" | "sha384" | "sha512"
+  }[],
+  evm: boolean = false,
+  unconstrained: boolean = false,
+) {
+  const noirFile = FACEMATCH_ANDROID_TEMPLATE(root_signature_algorithm, intermediate_signature_algorithms, evm, unconstrained, true)
+  const intermediate_certificates_count = intermediate_signature_algorithms.length
+  const intermediate_certificates = intermediate_signature_algorithms.map(({ signature_algorithm, hash_algorithm, bit_size }) => `ik_${signature_algorithm === "rsa" ? "rsa_" : "ecdsa_p"}${bit_size}_${hash_algorithm}`)
+  const name = `attested_id_android_rk_${root_signature_algorithm}_ik_count_${intermediate_certificates_count}_${intermediate_certificates.join("_")}${evm ? "_evm" : ""}`
+  const relativePath = `../../../../../../${"../".repeat(intermediate_certificates_count)}`
+  const nargoFile = NARGO_TEMPLATE(name, [
+    { name: "facematch", path: `${relativePath}lib/facematch` },
+    { name: "sig_check_rsa", path: `${relativePath}lib/sig-check/rsa` },
+    { name: "sig_check_ecdsa", path: `${relativePath}lib/sig-check/ecdsa` },
+    { name: "data_check_tbs_pubkey", path: `${relativePath}lib/data-check/tbs-pubkey` },
+    { name: "commitment", path: `${relativePath}lib/commitment/attested-to-disclosure` },
+    { name: "utils", path: `${relativePath}lib/utils` },
+  ])
+  const folderPath = `./src/noir/bin/attested_id/android/rk_${root_signature_algorithm}/ik_count_${intermediate_certificates_count}/${intermediate_certificates.join("/")}/${evm ? "evm" : "standard"}`
+  const noirFilePath = `${folderPath}/src/main.nr`
+  const nargoFilePath = `${folderPath}/Nargo.toml`
+  ensureDirectoryExistence(noirFilePath)
+  fs.writeFileSync(noirFilePath, noirFile)
+  ensureDirectoryExistence(nargoFilePath)
+  fs.writeFileSync(nargoFilePath, nargoFile)
+  generatedCircuits.push({ name, path: folderPath })
+}
+
 function generateOuterCircuit(disclosure_proofs_count: number, unconstrained: boolean = false) {
   const noirFile = OUTER_CIRCUIT_TEMPLATE(disclosure_proofs_count, unconstrained)
   const name = `outer_count_${disclosure_proofs_count + 3}`
@@ -1127,6 +1379,23 @@ function generateOuterCircuit(disclosure_proofs_count: number, unconstrained: bo
     { name: "utils", path: "../../../../lib/utils" },
   ])
   const folderPath = `./src/noir/bin/main/outer/count_${disclosure_proofs_count + 3}`
+  const noirFilePath = `${folderPath}/src/main.nr`
+  const nargoFilePath = `${folderPath}/Nargo.toml`
+  ensureDirectoryExistence(noirFilePath)
+  fs.writeFileSync(noirFilePath, noirFile)
+  fs.writeFileSync(nargoFilePath, nargoFile)
+  generatedCircuits.push({ name, path: folderPath })
+}
+
+function generateOuterAttestedCircuit(disclosure_proofs_count: number, unconstrained: boolean = false) {
+  const noirFile = OUTER_ATTESTED_CIRCUIT_TEMPLATE(disclosure_proofs_count, unconstrained)
+  const name = `outer_attested_id_count_${disclosure_proofs_count + 1}`
+  const nargoFile = NARGO_TEMPLATE(name, [
+    { name: "common", path: "../../../../../lib/commitment/common" },
+    { name: "outer_lib", path: "../../../../../lib/outer" },
+    { name: "utils", path: "../../../../../lib/utils" },
+  ])
+  const folderPath = `./src/noir/bin/main/outer/attested_id/count_${disclosure_proofs_count + 1}`
   const noirFilePath = `${folderPath}/src/main.nr`
   const nargoFilePath = `${folderPath}/Nargo.toml`
   ensureDirectoryExistence(noirFilePath)
@@ -1286,6 +1555,18 @@ const generateFaceMatchAndroidCircuits = ({ unconstrained = false }: { unconstra
         })
       })
     })
+    // Tier 2 base proofs, the EVM ones committing their parameters with SHA-256
+    ;[false, true].forEach((evm) => {
+      intermediate_signature_algorithms.forEach((a) => {
+        generateAttestedIdAndroidCircuit(root_signature_algorithm, [a], evm, unconstrained)
+        intermediate_signature_algorithms.forEach((b) => {
+          generateAttestedIdAndroidCircuit(root_signature_algorithm, [a, b], evm, unconstrained)
+          intermediate_signature_algorithms.forEach((c) => {
+            generateAttestedIdAndroidCircuit(root_signature_algorithm, [a, b, c], evm, unconstrained)
+          })
+        })
+      })
+    })
     // EVM
     intermediate_signature_algorithms.forEach((a) => {
       generateFaceMatchAndroidCircuit(root_signature_algorithm, [a], true, unconstrained)
@@ -1303,6 +1584,7 @@ const generateOuterCircuits = ({ unconstrained = false }: { unconstrained: boole
   console.log("Generating outer circuits...")
   for (let i = 1; i <= 10; i++) {
     generateOuterCircuit(i, unconstrained)
+    generateOuterAttestedCircuit(i, unconstrained)
   }
 }
 

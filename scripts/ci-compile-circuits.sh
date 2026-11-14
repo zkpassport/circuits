@@ -79,6 +79,12 @@ FACEMATCH=(
     "facematch_ios_evm"
     "facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256"
     "facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256_evm"
+    "attested_id_ios"
+    "attested_id_ios_evm"
+    "attested_id_android_rk_ecdsa_ik_count_1_ik_ecdsa_p256_sha256"
+    "attested_id_android_rk_ecdsa_ik_count_1_ik_ecdsa_p256_sha256_evm"
+    "outer_attested_id_count_2"
+    "outer_evm_attested_id_count_2"
 )
 
 echo "Compiling ${#CIRCUITS[@]} brillig + ${#FACEMATCH[@]} facematch circuits with $JOBS parallel jobs"

@@ -1,0 +1,10 @@
+[package]
+name = "outer_attested_id_count_5"
+type = "bin"
+authors = ["Theo Madzou", "Michael Elliot"]
+compiler_version = ">=1.0.0"
+
+[dependencies]
+common = { path = "../../../../../lib/commitment/common" }
+outer_lib = { path = "../../../../../lib/outer" }
+utils = { path = "../../../../../lib/utils" }
