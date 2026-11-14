@@ -38,7 +38,7 @@ contract Tier2VerifierTest is Test {
 
   function test_RefusesAChangedPublicInput() public view {
     bytes32[] memory changed = publicInputs;
-    // The credential scheme, the last public input: 200 (iOS) read as 201 (Android)
+    // The verification method, the last public input: 200 (iOS) read as 201 (Android)
     changed[changed.length - 1] = bytes32(uint256(201));
     assertFalse(_verifies(proof, changed));
   }

@@ -30,7 +30,7 @@ use facematch::param_commit::calculate_attested_id_param_commitment_sha2;
 use sig_check_ecdsa::{verify_nist_p256_blackbox as verify_nist_p256, verify_nist_p384};
 use sig_check_rsa::verify_signature;
 use utils::{
-    constants::{CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID, SHA256_IDENTIFIER},
+    constants::{SHA256_IDENTIFIER, VERIFICATION_METHOD_ATTESTED_CAPTURE_ANDROID},
     poseidon2_hash_packed,
     split_array,
     types::{DG1Data, SaltedValue},
@@ -222,5 +222,5 @@ fn main(
         facematch_mode,
     );
 
-    (comm_out, param_commitment, CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID)
+    (comm_out, param_commitment, VERIFICATION_METHOD_ATTESTED_CAPTURE_ANDROID)
 }

@@ -17,7 +17,7 @@
 # comm_out -> commitment over the salted DG1, expiry date, attested digest and private nullifier
 # param_commitment -> commitment over the attestation root key, environment, app ID and mode,
 #                     checked outside the circuit as for the facematch circuit
-# credential_scheme -> CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS: the verifier reads the tier from it
+# verification_method -> VERIFICATION_METHOD_ATTESTED_CAPTURE_IOS: the verifier reads the tier from it
 */
 
 use commitment::{calculate_attested_digest, commit_to_disclosure_attested};
@@ -36,7 +36,7 @@ use facematch::constants::{
 };
 use facematch::param_commit::calculate_attested_id_param_commitment_sha2;
 use utils::{
-    constants::{CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS, SHA256_IDENTIFIER},
+    constants::{SHA256_IDENTIFIER, VERIFICATION_METHOD_ATTESTED_CAPTURE_IOS},
     poseidon2_hash_packed,
     split_array,
     types::{DG1Data, SaltedValue},
@@ -152,5 +152,5 @@ fn main(
 
     let attested_date = get_tbs_not_before_timestamp(credential_tbs);
 
-    (attested_date, comm_out, param_commitment, CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS)
+    (attested_date, comm_out, param_commitment, VERIFICATION_METHOD_ATTESTED_CAPTURE_IOS)
 }

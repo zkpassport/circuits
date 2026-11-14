@@ -8,7 +8,7 @@
 # chip base proofs; its device attestation parameters are the first parameter commitment, which
 # the verifier must check (the circuit cannot know which attestation root keys are genuine).
 # Both platforms' attested ID proofs have the same public inputs (the attestation's date,
-# comm_out, the parameter commitment and the credential scheme), so one circuit wraps either.
+# comm_out, the parameter commitment and the verification method), so one circuit wraps either.
 ############################################################
 
 # Inputs/Outputs
@@ -22,7 +22,7 @@ param_commitments -> The attested ID proof's parameter commitment, then those of
 nullifier_type -> The type of the nullifier
 scoped_nullifier -> The scoped nullifier
 oprf_pk_hash -> The hash of the OPRF public key used for salted nullifiers (0 if non-salted)
-credential_scheme -> CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS or _ANDROID, as the attested ID proof outputs
+verification_method -> VERIFICATION_METHOD_ATTESTED_CAPTURE_IOS or _ANDROID, as the attested ID proof outputs
 attested_id_proof -> The proof of the attested ID circuit
 disclosure_proofs -> The proofs of the disclosure circuits
 */
@@ -31,8 +31,8 @@ use common::compute_merkle_root;
 use outer_lib::{AttestedIdProof, DisclosureProof, poseidon2_hash, prepare_disclosure_inputs};
 use std::verify_proof_with_type;
 use utils::constants::{
-    CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID, CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS,
     NON_SALTED_MOCK_NULLIFIER, NONE_NULLIFIER, SALTED_MOCK_NULLIFIER, SALTED_NULLIFIER,
+    VERIFICATION_METHOD_ATTESTED_CAPTURE_ANDROID, VERIFICATION_METHOD_ATTESTED_CAPTURE_IOS,
 };
 global PROOF_TYPE_HONK_ZK: u32 = 6;
 // How old the attestation may be, and how far ahead of the outer proof's date for clock skew
@@ -49,7 +49,7 @@ fn main(
     nullifier_type: pub Field,
     scoped_nullifier: pub Field,
     oprf_pk_hash: pub Field,
-    credential_scheme: pub Field,
+    verification_method: pub Field,
     attested_id_proof: AttestedIdProof<4>,
     disclosure_proofs: [DisclosureProof; 9],
 ) {
@@ -108,9 +108,9 @@ fn main(
     // A scheme only the attested ID circuits output, which also keeps any other circuit with as
     // many public inputs out of the base proof's place; it must equal the base proof's, below
     assert(
-        (credential_scheme == CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS)
-            | (credential_scheme == CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID),
-        "Not a Tier 2 credential scheme",
+        (verification_method == VERIFICATION_METHOD_ATTESTED_CAPTURE_IOS)
+            | (verification_method == VERIFICATION_METHOD_ATTESTED_CAPTURE_ANDROID),
+        "Not a Tier 2 verification method",
     );
     // The attestation's date: the integrity token's on Android, the App Attest credential
     // certificate's notBefore on iOS (a fresh key is attested for every face match)
@@ -125,8 +125,8 @@ fn main(
     );
     assert_eq(
         attested_scheme,
-        credential_scheme,
-        "Credential scheme from attested ID circuit != expected credential scheme",
+        verification_method,
+        "Verification method from attested ID circuit != expected verification method",
     );
     assert_eq(
         attested_param_commitment,

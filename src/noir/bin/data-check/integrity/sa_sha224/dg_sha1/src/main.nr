@@ -3,11 +3,11 @@ use commitment::commit_to_disclosure;
 use data_check_integrity::{
     check_dg1_sha1, check_signed_attributes_sha224, get_dg2_hash_from_econtent,
 };
-use utils::constants::CREDENTIAL_SCHEME_ICAO_CHIP;
 use utils::{
     constants::{SHA1_DIGEST_LENGTH, SHA1_IDENTIFIER},
     types::{DG1Data, EContentData, SaltedValue, SignedAttrsData},
 };
+use utils::constants::VERIFICATION_METHOD_ICAO_CHIP;
 
 fn main(
     comm_in: pub Field,
@@ -48,5 +48,5 @@ fn main(
         salted_private_nullifier,
     );
     // The chip's signatures verified the data: every proof built on this one carries the scheme
-    (comm_out, CREDENTIAL_SCHEME_ICAO_CHIP)
+    (comm_out, VERIFICATION_METHOD_ICAO_CHIP)
 }

@@ -139,7 +139,7 @@ export async function generateTier2EvmFixture(
     nullifier_type: d[5],
     scoped_nullifier: d[6],
     oprf_pk_hash: d[7],
-    credential_scheme: attested.publicInputs[3],
+    verification_method: attested.publicInputs[3],
     attested_id_proof: await leaf(attested, attested.publicInputs),
     disclosure_proofs: [await leaf(disclose, [d[0], d[6], d[5], d[7]])],
   }

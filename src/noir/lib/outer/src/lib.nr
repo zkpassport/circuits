@@ -6,12 +6,12 @@ global VKEY_SIZE: u32 = 115;
 pub fn prepare_integrity_check_inputs(
     comm_in: Field,
     comm_out: Field,
-    credential_scheme: Field,
+    verification_method: Field,
 ) -> [Field; 3] {
     let mut result: [Field; 3] = [0; 3];
     result[0] = comm_in;
     result[1] = comm_out;
-    result[2] = credential_scheme;
+    result[2] = verification_method;
     result
 }
 
@@ -69,7 +69,7 @@ pub struct DSCtoIDDataProof {
 pub struct IntegrityCheckProof {
     pub vkey: [Field; VKEY_SIZE],
     pub proof: [Field; PROOF_SIZE],
-    // comm_in, comm_out, credential_scheme
+    // comm_in, comm_out, verification_method
     pub public_inputs: [Field; 3],
     pub key_hash: Field,
     // Hash path for circuit C key hash in the sub-circuit merkle tree
@@ -93,8 +93,8 @@ pub struct DisclosureProof {
 pub struct AttestedIdProof<let N: u32> {
     pub vkey: [Field; VKEY_SIZE],
     pub proof: [Field; PROOF_SIZE],
-    // iOS: comm_out, param_commitment, credential_scheme
-    // Android: current_date, comm_out, param_commitment, credential_scheme
+    // iOS: comm_out, param_commitment, verification_method
+    // Android: current_date, comm_out, param_commitment, verification_method
     pub public_inputs: [Field; N],
     pub key_hash: Field,
     pub tree_hash_path: [Field; 12],

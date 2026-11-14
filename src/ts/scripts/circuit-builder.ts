@@ -415,7 +415,7 @@ const DATA_INTEGRITY_CHECK_TEMPLATE = (
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 use commitment::commit_to_disclosure;
-use utils::constants::CREDENTIAL_SCHEME_ICAO_CHIP;
+use utils::constants::VERIFICATION_METHOD_ICAO_CHIP;
 use data_check_integrity::{check_dg1_${dg_hash_algorithm}, check_signed_attributes_${signed_attributes_hash_algorithm}, get_dg2_hash_from_econtent};
 use utils::{types::{DG1Data, EContentData, SignedAttrsData, SaltedValue}, constants::{${getHashAlgorithmIdentifier(
   dg_hash_algorithm,
@@ -465,7 +465,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         salted_private_nullifier,
     );
     // The chip's signatures verified the data: every proof built on this one carries the scheme
-    (comm_out, CREDENTIAL_SCHEME_ICAO_CHIP)
+    (comm_out, VERIFICATION_METHOD_ICAO_CHIP)
 }
 `
 
@@ -498,7 +498,7 @@ use facematch::constants::{
 use facematch::param_commit::${attested ? (evm ? "calculate_attested_id_param_commitment_sha2" : "calculate_attested_id_param_commitment") : "{calculate_param_commitment, calculate_param_commitment_sha2}"};
 use sig_check_ecdsa::{verify_nist_p256_blackbox as verify_nist_p256, verify_nist_p384};
 use sig_check_rsa::verify_signature;
-use utils::{poseidon2_hash_packed, split_array, ${attested ? "constants::{CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID, SHA256_IDENTIFIER}, types::{DG1Data, SaltedValue}" : "types::{DG1Data, SaltedValue, MRZExpiryDate}"}, unsafe_get_asn1_element_length};
+use utils::{poseidon2_hash_packed, split_array, ${attested ? "constants::{VERIFICATION_METHOD_ATTESTED_CAPTURE_ANDROID, SHA256_IDENTIFIER}, types::{DG1Data, SaltedValue}" : "types::{DG1Data, SaltedValue, MRZExpiryDate}"}, unsafe_get_asn1_element_length};
 
 ${unconstrained ? "unconstrained " : ""}fn main(
     ${attested ? `// The integrity token's timestamp (seconds), public so the outer proof can check the
@@ -735,7 +735,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     let param_commitment =
         ${attested ? (evm ? "calculate_attested_id_param_commitment_sha2" : "calculate_attested_id_param_commitment") : evm ? "calculate_param_commitment_sha2" : "calculate_param_commitment"}(root_key_leaf, environment, app_id_hash, play_integrity_public_key_hash, facematch_mode);
 
-    ${attested ? "(comm_out, param_commitment, CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID)" : "(param_commitment, nullifier_type, nullifier, oprf_pk_hash)"}
+    ${attested ? "(comm_out, param_commitment, VERIFICATION_METHOD_ATTESTED_CAPTURE_ANDROID)" : "(param_commitment, nullifier_type, nullifier, oprf_pk_hash)"}
 }
 `
 
@@ -763,7 +763,7 @@ service_subscope -> The service subscope
 param_commitments -> The commitments over the parameters of the disclosure circuits
 nullifier_type -> The type of the nullifier
 scoped_nullifier -> The scoped nullifier
-credential_scheme -> What verified the ID (CREDENTIAL_SCHEME_* in utils): 1xx when the issuer signed it, 2xx when a device attested a camera read of it
+verification_method -> What verified the ID (VERIFICATION_METHOD_* in utils): 1xx when the issuer signed it, 2xx when a device attested a camera read of it
 csc_to_dsc_proof -> The proof of the CSC to DSC circuit
 dsc_to_id_data_proof -> The proof of the DSC to ID Data circuit
 integrity_check_proof -> The proof of the integrity check circuit
@@ -799,7 +799,7 @@ fn verify_subproofs(
     // The hash of the OPRF public key used for salted nullifiers (0 if non-salted)
     oprf_pk_hash: Field,
     // What verified the ID, as the base proof output it
-    credential_scheme: Field,
+    verification_method: Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
     integrity_check_proof: IntegrityCheckProof,
@@ -907,13 +907,13 @@ fn verify_subproofs(
         prepare_integrity_check_inputs(
             integrity_check_proof.public_inputs[0], // comm_in
             integrity_check_proof.public_inputs[1], // comm_out
-            integrity_check_proof.public_inputs[2], // credential_scheme
+            integrity_check_proof.public_inputs[2], // verification_method
         ),
         integrity_check_proof.key_hash,
         PROOF_TYPE_HONK_ZK,
     );
 
-    assert_eq(integrity_check_proof.public_inputs[2], credential_scheme, "Credential scheme from integrity check circuit != expected credential scheme");
+    assert_eq(integrity_check_proof.public_inputs[2], verification_method, "Verification method from integrity check circuit != expected verification method");
 
     let mut found_valid_scoped_nullifier = false;
 
@@ -964,7 +964,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     nullifier_type: pub Field,
     scoped_nullifier: pub Field,
     oprf_pk_hash: pub Field,
-    credential_scheme: pub Field,
+    verification_method: pub Field,
     csc_to_dsc_proof: CSCtoDSCProof,
     dsc_to_id_data_proof: DSCtoIDDataProof,
     integrity_check_proof: IntegrityCheckProof,
@@ -980,7 +980,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         nullifier_type,
         scoped_nullifier,
         oprf_pk_hash,
-        credential_scheme,
+        verification_method,
         csc_to_dsc_proof,
         dsc_to_id_data_proof,
         integrity_check_proof,
@@ -1002,7 +1002,7 @@ const OUTER_ATTESTED_CIRCUIT_TEMPLATE = (
 # chip base proofs; its device attestation parameters are the first parameter commitment, which
 # the verifier must check (the circuit cannot know which attestation root keys are genuine).
 # Both platforms' attested ID proofs have the same public inputs (the attestation's date,
-# comm_out, the parameter commitment and the credential scheme), so one circuit wraps either.
+# comm_out, the parameter commitment and the verification method), so one circuit wraps either.
 ############################################################
 
 # Inputs/Outputs
@@ -1016,7 +1016,7 @@ param_commitments -> The attested ID proof's parameter commitment, then those of
 nullifier_type -> The type of the nullifier
 scoped_nullifier -> The scoped nullifier
 oprf_pk_hash -> The hash of the OPRF public key used for salted nullifiers (0 if non-salted)
-credential_scheme -> CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS or _ANDROID, as the attested ID proof outputs
+verification_method -> VERIFICATION_METHOD_ATTESTED_CAPTURE_IOS or _ANDROID, as the attested ID proof outputs
 attested_id_proof -> The proof of the attested ID circuit
 disclosure_proofs -> The proofs of the disclosure circuits
 */
@@ -1025,7 +1025,7 @@ use common::compute_merkle_root;
 use outer_lib::{AttestedIdProof, DisclosureProof, poseidon2_hash, prepare_disclosure_inputs};
 use std::verify_proof_with_type;
 use utils::constants::{
-    CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID, CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS, NON_SALTED_MOCK_NULLIFIER, NONE_NULLIFIER,
+    VERIFICATION_METHOD_ATTESTED_CAPTURE_ANDROID, VERIFICATION_METHOD_ATTESTED_CAPTURE_IOS, NON_SALTED_MOCK_NULLIFIER, NONE_NULLIFIER,
     SALTED_MOCK_NULLIFIER, SALTED_NULLIFIER,
 };
 global PROOF_TYPE_HONK_ZK: u32 = 6;
@@ -1043,7 +1043,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     nullifier_type: pub Field,
     scoped_nullifier: pub Field,
     oprf_pk_hash: pub Field,
-    credential_scheme: pub Field,
+    verification_method: pub Field,
     attested_id_proof: AttestedIdProof<4>,
     disclosure_proofs: [DisclosureProof; ${disclosure_proofs_count}],
 ) {
@@ -1094,9 +1094,9 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     // A scheme only the attested ID circuits output, which also keeps any other circuit with as
     // many public inputs out of the base proof's place; it must equal the base proof's, below
     assert(
-        (credential_scheme == CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS)
-            | (credential_scheme == CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID),
-        "Not a Tier 2 credential scheme",
+        (verification_method == VERIFICATION_METHOD_ATTESTED_CAPTURE_IOS)
+            | (verification_method == VERIFICATION_METHOD_ATTESTED_CAPTURE_ANDROID),
+        "Not a Tier 2 verification method",
     );
     // The attestation's date: the integrity token's on Android, the App Attest credential
     // certificate's notBefore on iOS (a fresh key is attested for every face match)
@@ -1109,7 +1109,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
             & (current_date <= attested_date + ATTESTED_ID_PROOF_MAX_AGE_SECONDS),
         "Attested ID proof is not recent",
     );
-    assert_eq(attested_scheme, credential_scheme, "Credential scheme from attested ID circuit != expected credential scheme");
+    assert_eq(attested_scheme, verification_method, "Verification method from attested ID circuit != expected verification method");
     assert_eq(attested_param_commitment, param_commitments[0], "Attested ID parameter commitment != first parameter commitment");
 
     verify_proof_with_type(
