@@ -86,19 +86,8 @@ import {
 import { sha256, sha384 } from "@noble/hashes/sha2.js"
 import { AlgorithmIdentifier } from "@peculiar/asn1-x509"
 import type { Alpha3Code } from "i18n-iso-countries"
-import {
-  id_ecdsaWithSHA512,
-  id_ecdsaWithSHA256,
-  id_ecdsaWithSHA384,
-  id_ecdsaWithSHA224,
-  id_ecdsaWithSHA1,
-} from "@peculiar/asn1-ecc"
-import {
-  id_sha1WithRSAEncryption,
-  id_sha224WithRSAEncryption,
-  id_sha256WithRSAEncryption,
-  id_sha384WithRSAEncryption,
-} from "@peculiar/asn1-rsa"
+import { id_ecdsaWithSHA512, id_ecdsaWithSHA256, id_ecdsaWithSHA384, id_ecdsaWithSHA224, id_ecdsaWithSHA1 } from "@peculiar/asn1-ecc"
+import { id_sha1WithRSAEncryption, id_sha224WithRSAEncryption, id_sha256WithRSAEncryption, id_sha384WithRSAEncryption } from "@peculiar/asn1-rsa"
 
 // Test constants
 const SALT = 3n
@@ -191,68 +180,50 @@ async function setupPassport(state: TestState, config: PassportSetupConfig) {
 // ─── Core pipeline test helpers ─────────────────────────────────────────────────
 
 function describeDscTest(
-  state: TestState,
-  circuitName: string,
-  testLabel: string,
-  timeout = 30000,
-  useCli = true,
+  state: TestState, circuitName: string, testLabel: string,
+  timeout = 30000, useCli = true,
 ) {
   describe("dsc", () => {
-    test(
-      testLabel,
-      async () => {
-        const circuit = Circuit.from(circuitName)
-        const inputs = await state.helper.generateCircuitInputs("dsc")
-        const proof = await circuit.prove(inputs, {
-          circuitName,
-          useCli,
-        })
-        expect(proof).toBeDefined()
-        expect(proof.publicInputs.length).toEqual(2)
-        const merkleRoot = getMerkleRootFromDSCProof(proof)
-        expect(merkleRoot).toBeDefined()
-        state.dscCommitment = getCommitmentFromDSCProof(proof)
-        await circuit.destroy()
-      },
-      timeout,
-    )
+    test(testLabel, async () => {
+      const circuit = Circuit.from(circuitName)
+      const inputs = await state.helper.generateCircuitInputs("dsc")
+      const proof = await circuit.prove(inputs, {
+        circuitName,
+        useCli,
+      })
+      expect(proof).toBeDefined()
+      expect(proof.publicInputs.length).toEqual(2)
+      const merkleRoot = getMerkleRootFromDSCProof(proof)
+      expect(merkleRoot).toBeDefined()
+      state.dscCommitment = getCommitmentFromDSCProof(proof)
+      await circuit.destroy()
+    }, timeout)
   })
 }
 
 function describeIdTest(
-  state: TestState,
-  circuitName: string,
-  testLabel: string,
-  timeout = 30000,
-  useCli = true,
-  proveName?: string,
+  state: TestState, circuitName: string, testLabel: string,
+  timeout = 30000, useCli = true, proveName?: string,
 ) {
   describe("id", () => {
-    test(
-      testLabel,
-      async () => {
-        const circuit = Circuit.from(circuitName)
-        const inputs = await state.helper.generateCircuitInputs("id")
-        const proof = await circuit.prove(inputs, {
-          circuitName: proveName ?? circuitName,
-          useCli,
-        })
-        expect(proof).toBeDefined()
-        const commitmentIn = getCommitmentInFromIDDataProof(proof)
-        state.idDataCommitment = getCommitmentOutFromIDDataProof(proof)
-        expect(commitmentIn).toEqual(state.dscCommitment)
-        await circuit.destroy()
-      },
-      timeout,
-    )
+    test(testLabel, async () => {
+      const circuit = Circuit.from(circuitName)
+      const inputs = await state.helper.generateCircuitInputs("id")
+      const proof = await circuit.prove(inputs, {
+        circuitName: proveName ?? circuitName,
+        useCli,
+      })
+      expect(proof).toBeDefined()
+      const commitmentIn = getCommitmentInFromIDDataProof(proof)
+      state.idDataCommitment = getCommitmentOutFromIDDataProof(proof)
+      expect(commitmentIn).toEqual(state.dscCommitment)
+      await circuit.destroy()
+    }, timeout)
   })
 }
 
 function describeIntegrityTest(
-  state: TestState,
-  circuitName: string,
-  timeout = 30000,
-  useCli = true,
+  state: TestState, circuitName: string, timeout = 30000, useCli = true,
 ) {
   describe("integrity", () => {
     test("data integrity check", async () => {
@@ -331,30 +302,20 @@ function describeDiscloseTests(
           gender: { disclose: true },
         }
         let inputs = await getDiscloseCircuitInputs(
-          state.helper.passport as any,
-          query,
-          INTEGRITY_TO_DISCLOSURE_SALTS,
-          0n,
-          0n,
-          0n,
-          nowTimestamp,
+          state.helper.passport as any, query,
+          INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp,
         )
         if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
-        const proof = await circuit.prove(
-          inputs,
-          proveOpts({
-            witness: await circuit.solve(inputs),
-          }),
-        )
+        const proof = await circuit.prove(inputs, proveOpts({
+          witness: await circuit.solve(inputs),
+        }))
         expect(proof).toBeDefined()
         const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
         const disclosedBytes = getDisclosedBytesFromMrzAndMask(
-          state.helper.passport.mrz,
-          inputs.disclose_mask,
+          state.helper.passport.mrz, inputs.disclose_mask,
         )
         const calculatedParamCommitment = await getDiscloseParameterCommitment(
-          inputs.disclose_mask,
-          disclosedBytes,
+          inputs.disclose_mask, disclosedBytes,
         )
         expect(paramCommitment).toEqual(calculatedParamCommitment)
         const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
@@ -379,30 +340,20 @@ function describeDiscloseTests(
 
     test("disclose some bytes", async () => {
       let inputs = await getDiscloseCircuitInputs(
-        state.helper.passport as any,
-        opts.discloseSome.query,
-        INTEGRITY_TO_DISCLOSURE_SALTS,
-        0n,
-        0n,
-        0n,
-        nowTimestamp,
+        state.helper.passport as any, opts.discloseSome.query,
+        INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
-      const proof = await circuit.prove(
-        inputs,
-        proveOpts({
-          witness: await circuit.solve(inputs),
-        }),
-      )
+      const proof = await circuit.prove(inputs, proveOpts({
+        witness: await circuit.solve(inputs),
+      }))
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const disclosedBytes = getDisclosedBytesFromMrzAndMask(
-        state.helper.passport.mrz,
-        inputs.disclose_mask,
+        state.helper.passport.mrz, inputs.disclose_mask,
       )
       const calculatedParamCommitment = await getDiscloseParameterCommitment(
-        inputs.disclose_mask,
-        disclosedBytes,
+        inputs.disclose_mask, disclosedBytes,
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
@@ -429,19 +380,16 @@ function describeDiscloseTests(
 
 // ─── Inclusion / Exclusion check helpers ────────────────────────────────────────
 
-function describeInclusionCheckTests(state: TestState, countries: Alpha3Code[], useCli = true) {
+function describeInclusionCheckTests(
+  state: TestState, countries: Alpha3Code[], useCli = true,
+) {
   describe("inclusion-check", () => {
     test("nationality", async () => {
       const circuit = Circuit.from("inclusion_check_nationality")
       const query: Query = { nationality: { in: countries } }
       const inputs = await getNationalityInclusionCircuitInputs(
-        state.helper.passport as any,
-        query,
-        INTEGRITY_TO_DISCLOSURE_SALTS,
-        0n,
-        0n,
-        0n,
-        nowTimestamp,
+        state.helper.passport as any, query,
+        INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
@@ -451,8 +399,7 @@ function describeInclusionCheckTests(state: TestState, countries: Alpha3Code[], 
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getCountryParameterCommitment(
-        ProofType.NATIONALITY_INCLUSION,
-        countries,
+        ProofType.NATIONALITY_INCLUSION, countries,
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
@@ -468,13 +415,8 @@ function describeInclusionCheckTests(state: TestState, countries: Alpha3Code[], 
       const circuit = Circuit.from("inclusion_check_issuing_country")
       const query: Query = { issuing_country: { in: countries } }
       const inputs = await getIssuingCountryInclusionCircuitInputs(
-        state.helper.passport as any,
-        query,
-        INTEGRITY_TO_DISCLOSURE_SALTS,
-        0n,
-        0n,
-        0n,
-        nowTimestamp,
+        state.helper.passport as any, query,
+        INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate inclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
@@ -484,8 +426,7 @@ function describeInclusionCheckTests(state: TestState, countries: Alpha3Code[], 
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getCountryParameterCommitment(
-        ProofType.ISSUING_COUNTRY_INCLUSION,
-        countries,
+        ProofType.ISSUING_COUNTRY_INCLUSION, countries,
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
@@ -510,13 +451,8 @@ function describeExclusionCheckTests(
       const circuit = Circuit.from("exclusion_check_nationality")
       const query: Query = { nationality: { out: exclusionCountries } }
       const inputs = await getNationalityExclusionCircuitInputs(
-        state.helper.passport as any,
-        query,
-        INTEGRITY_TO_DISCLOSURE_SALTS,
-        0n,
-        0n,
-        0n,
-        nowTimestamp,
+        state.helper.passport as any, query,
+        INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
@@ -526,9 +462,7 @@ function describeExclusionCheckTests(
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getCountryParameterCommitment(
-        ProofType.NATIONALITY_EXCLUSION,
-        sortedExclusionCountries,
-        true,
+        ProofType.NATIONALITY_EXCLUSION, sortedExclusionCountries, true,
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
@@ -544,13 +478,8 @@ function describeExclusionCheckTests(
       const circuit = Circuit.from("exclusion_check_issuing_country")
       const query: Query = { issuing_country: { out: exclusionCountries } }
       const inputs = await getIssuingCountryExclusionCircuitInputs(
-        state.helper.passport as any,
-        query,
-        INTEGRITY_TO_DISCLOSURE_SALTS,
-        0n,
-        0n,
-        0n,
-        nowTimestamp,
+        state.helper.passport as any, query,
+        INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate exclusion check circuit inputs")
       const proof = await circuit.prove(inputs, {
@@ -560,9 +489,7 @@ function describeExclusionCheckTests(
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       const calculatedParamCommitment = await getCountryParameterCommitment(
-        ProofType.ISSUING_COUNTRY_EXCLUSION,
-        sortedExclusionCountries,
-        true,
+        ProofType.ISSUING_COUNTRY_EXCLUSION, sortedExclusionCountries, true,
       )
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
@@ -579,25 +506,16 @@ function describeExclusionCheckTests(
 // ─── Common disclose expectations ───────────────────────────────────────────────
 
 const DISCLOSE_ALL_AUS_JOHNNY: DiscloseAllExpected = {
-  issuingCountry: "AUS",
-  nationality: "AUS",
-  name: "JOHNNY SILVERHAND",
-  firstName: "JOHNNY",
-  lastName: "SILVERHAND",
+  issuingCountry: "AUS", nationality: "AUS",
+  name: "JOHNNY SILVERHAND", firstName: "JOHNNY", lastName: "SILVERHAND",
 }
 const DISCLOSE_ALL_AUS_JOHNNY_MATTHEW: DiscloseAllExpected = {
-  issuingCountry: "AUS",
-  nationality: "AUS",
-  name: "JOHNNY MATTHEW SILVERHAND",
-  firstName: "JOHNNY",
-  lastName: "SILVERHAND",
+  issuingCountry: "AUS", nationality: "AUS",
+  name: "JOHNNY MATTHEW SILVERHAND", firstName: "JOHNNY", lastName: "SILVERHAND",
 }
 const DISCLOSE_ALL_DE_JOHNNY: DiscloseAllExpected = {
-  issuingCountry: "DEU",
-  nationality: "DEU",
-  name: "JOHNNY SILVERHAND",
-  firstName: "JOHNNY",
-  lastName: "SILVERHAND",
+  issuingCountry: "DEU", nationality: "DEU",
+  name: "JOHNNY SILVERHAND", firstName: "JOHNNY", lastName: "SILVERHAND",
 }
 
 function discloseSomeNationalityOnly(nationality: string): DiscloseSomeConfig {
@@ -609,18 +527,8 @@ function discloseSomeNationalityOnly(nationality: string): DiscloseSomeConfig {
 
 function discloseSomeWithNames(nationality: string): DiscloseSomeConfig {
   return {
-    query: {
-      nationality: { disclose: true },
-      firstname: { disclose: true },
-      lastname: { disclose: true },
-    },
-    expected: {
-      issuingCountry: "",
-      nationality,
-      name: "JOHNNY SILVERHAND",
-      firstName: "JOHNNY",
-      lastName: "SILVERHAND",
-    },
+    query: { nationality: { disclose: true }, firstname: { disclose: true }, lastname: { disclose: true } },
+    expected: { issuingCountry: "", nationality, name: "JOHNNY SILVERHAND", firstName: "JOHNNY", lastName: "SILVERHAND" },
   }
 }
 
@@ -656,14 +564,7 @@ const suiteConfigs: SuiteConfig[] = [
     name: "subcircuits - RSA PKCS - SHA-1",
     setup: {
       mrz: MRZ_AUS_JOHNNY,
-      certParams: {
-        cscSigningHashAlgorithm: "SHA-1",
-        cscKeyType: "RSA",
-        cscKeySize: 4096,
-        dscSigningHashAlgorithm: "SHA-1",
-        dscKeyType: "RSA",
-        dscKeySize: 2048,
-      },
+      certParams: { cscSigningHashAlgorithm: "SHA-1", cscKeyType: "RSA", cscKeySize: 4096, dscSigningHashAlgorithm: "SHA-1", dscKeyType: "RSA", dscKeySize: 2048 },
       loadFixtures: true,
       sodHash: "SHA-1",
       sodAlgorithm: new AlgorithmIdentifier({ algorithm: id_sha1WithRSAEncryption }),
@@ -682,14 +583,7 @@ const suiteConfigs: SuiteConfig[] = [
     name: "subcircuits - RSA PKCS - SHA-224 integrity check",
     setup: {
       mrz: MRZ_AUS_JOHNNY,
-      certParams: {
-        cscSigningHashAlgorithm: "SHA-256",
-        cscKeyType: "RSA",
-        cscKeySize: 4096,
-        dscSigningHashAlgorithm: "SHA-256",
-        dscKeyType: "RSA",
-        dscKeySize: 2048,
-      },
+      certParams: { cscSigningHashAlgorithm: "SHA-256", cscKeyType: "RSA", cscKeySize: 4096, dscSigningHashAlgorithm: "SHA-256", dscKeyType: "RSA", dscKeySize: 2048 },
       loadFixtures: true,
       sodHash: "SHA-224",
       sodAlgorithm: new AlgorithmIdentifier({ algorithm: id_sha224WithRSAEncryption }),
@@ -708,14 +602,7 @@ const suiteConfigs: SuiteConfig[] = [
     name: "subcircuits - ECDSA NIST P-384 and P-256",
     setup: {
       mrz: MRZ_AUS_JOHNNY_MATTHEW,
-      certParams: {
-        cscSigningHashAlgorithm: "SHA-384",
-        cscKeyType: "ECDSA",
-        cscCurve: "P-384",
-        dscSigningHashAlgorithm: "SHA-256",
-        dscKeyType: "ECDSA",
-        dscCurve: "P-256",
-      },
+      certParams: { cscSigningHashAlgorithm: "SHA-384", cscKeyType: "ECDSA", cscCurve: "P-384", dscSigningHashAlgorithm: "SHA-256", dscKeyType: "ECDSA", dscCurve: "P-256" },
       dscKeypairPath: path.join(FIXTURES_PATH, "dsc-keypair-ecdsa.json"),
       sodHash: "SHA-384",
       sodAlgorithm: new AlgorithmIdentifier({ algorithm: id_ecdsaWithSHA384 }),
@@ -735,14 +622,7 @@ const suiteConfigs: SuiteConfig[] = [
     name: "subcircuits - ECDSA NIST P-521 and P-384",
     setup: {
       mrz: MRZ_AUS_JOHNNY,
-      certParams: {
-        cscSigningHashAlgorithm: "SHA-512",
-        cscKeyType: "ECDSA",
-        cscCurve: "P-521",
-        dscSigningHashAlgorithm: "SHA-384",
-        dscKeyType: "ECDSA",
-        dscCurve: "P-384",
-      },
+      certParams: { cscSigningHashAlgorithm: "SHA-512", cscKeyType: "ECDSA", cscCurve: "P-521", dscSigningHashAlgorithm: "SHA-384", dscKeyType: "ECDSA", dscCurve: "P-384" },
       sodHash: "SHA-512",
       sodAlgorithm: new AlgorithmIdentifier({ algorithm: id_ecdsaWithSHA512 }),
       signSodHash: "SHA-384",
@@ -761,14 +641,7 @@ const suiteConfigs: SuiteConfig[] = [
     name: "subcircuits - ECDSA NIST P-256 and Brainpool P-192",
     setup: {
       mrz: MRZ_AUS_JOHNNY_MATTHEW,
-      certParams: {
-        cscSigningHashAlgorithm: "SHA-1",
-        cscKeyType: "ECDSA",
-        cscCurve: "P-256",
-        dscSigningHashAlgorithm: "SHA-1",
-        dscKeyType: "ECDSA",
-        dscCurve: "brainpoolP192r1",
-      },
+      certParams: { cscSigningHashAlgorithm: "SHA-1", cscKeyType: "ECDSA", cscCurve: "P-256", dscSigningHashAlgorithm: "SHA-1", dscKeyType: "ECDSA", dscCurve: "brainpoolP192r1" },
       sodHash: "SHA-1",
       sodAlgorithm: new AlgorithmIdentifier({ algorithm: id_ecdsaWithSHA1 }),
       signSodHash: "SHA-1",
@@ -788,14 +661,7 @@ const suiteConfigs: SuiteConfig[] = [
     name: "subcircuits - ECDSA NIST P-256 and Brainpool P-224",
     setup: {
       mrz: MRZ_AUS_JOHNNY_MATTHEW,
-      certParams: {
-        cscSigningHashAlgorithm: "SHA-1",
-        cscKeyType: "ECDSA",
-        cscCurve: "P-256",
-        dscSigningHashAlgorithm: "SHA-1",
-        dscKeyType: "ECDSA",
-        dscCurve: "brainpoolP224r1",
-      },
+      certParams: { cscSigningHashAlgorithm: "SHA-1", cscKeyType: "ECDSA", cscCurve: "P-256", dscSigningHashAlgorithm: "SHA-1", dscKeyType: "ECDSA", dscCurve: "brainpoolP224r1" },
       sodHash: "SHA-1",
       sodAlgorithm: new AlgorithmIdentifier({ algorithm: id_ecdsaWithSHA1 }),
       signSodHash: "SHA-1",
@@ -815,14 +681,7 @@ const suiteConfigs: SuiteConfig[] = [
     name: "subcircuits - ECDSA NIST P-384 and P-256 - SHA-1",
     setup: {
       mrz: MRZ_AUS_JOHNNY_MATTHEW,
-      certParams: {
-        cscSigningHashAlgorithm: "SHA-1",
-        cscKeyType: "ECDSA",
-        cscCurve: "P-384",
-        dscSigningHashAlgorithm: "SHA-1",
-        dscKeyType: "ECDSA",
-        dscCurve: "P-256",
-      },
+      certParams: { cscSigningHashAlgorithm: "SHA-1", cscKeyType: "ECDSA", cscCurve: "P-384", dscSigningHashAlgorithm: "SHA-1", dscKeyType: "ECDSA", dscCurve: "P-256" },
       sodHash: "SHA-1",
       sodAlgorithm: new AlgorithmIdentifier({ algorithm: id_ecdsaWithSHA1 }),
       signSodHash: "SHA-1",
@@ -841,15 +700,7 @@ const suiteConfigs: SuiteConfig[] = [
     name: "subcircuits - ECDSA NIST P-521 and Brainpool P-512r1",
     setup: {
       mrz: MRZ_DE_JOHNNY,
-      certParams: {
-        cscSigningHashAlgorithm: "SHA-512",
-        cscKeyType: "ECDSA",
-        cscCurve: "P-521",
-        dscSigningHashAlgorithm: "SHA-512",
-        dscKeyType: "ECDSA",
-        dscCurve: "brainpoolP512r1",
-        issuingCountry: "DE",
-      },
+      certParams: { cscSigningHashAlgorithm: "SHA-512", cscKeyType: "ECDSA", cscCurve: "P-521", dscSigningHashAlgorithm: "SHA-512", dscKeyType: "ECDSA", dscCurve: "brainpoolP512r1", issuingCountry: "DE" },
       sodHash: "SHA-512",
       sodAlgorithm: new AlgorithmIdentifier({ algorithm: id_ecdsaWithSHA512 }),
       signSodHash: "SHA-512",
@@ -878,14 +729,7 @@ const suiteConfigs: SuiteConfig[] = [
     name: "subcircuits - ECDSA NIST P-256 and P-192",
     setup: {
       mrz: MRZ_AUS_JOHNNY,
-      certParams: {
-        cscSigningHashAlgorithm: "SHA-1",
-        cscKeyType: "ECDSA",
-        cscCurve: "P-256",
-        dscSigningHashAlgorithm: "SHA-1",
-        dscKeyType: "ECDSA",
-        dscCurve: "P-192",
-      },
+      certParams: { cscSigningHashAlgorithm: "SHA-1", cscKeyType: "ECDSA", cscCurve: "P-256", dscSigningHashAlgorithm: "SHA-1", dscKeyType: "ECDSA", dscCurve: "P-192" },
       sodHash: "SHA-1",
       sodAlgorithm: new AlgorithmIdentifier({ algorithm: id_ecdsaWithSHA1 }),
       signSodHash: "SHA-1",
@@ -904,14 +748,7 @@ const suiteConfigs: SuiteConfig[] = [
     name: "subcircuits - ECDSA NIST P-256 and P-224",
     setup: {
       mrz: MRZ_AUS_JOHNNY,
-      certParams: {
-        cscSigningHashAlgorithm: "SHA-256",
-        cscKeyType: "ECDSA",
-        cscCurve: "P-256",
-        dscSigningHashAlgorithm: "SHA-256",
-        dscKeyType: "ECDSA",
-        dscCurve: "P-224",
-      },
+      certParams: { cscSigningHashAlgorithm: "SHA-256", cscKeyType: "ECDSA", cscCurve: "P-256", dscSigningHashAlgorithm: "SHA-256", dscKeyType: "ECDSA", dscCurve: "P-224" },
       sodHash: "SHA-224",
       sodAlgorithm: new AlgorithmIdentifier({ algorithm: id_ecdsaWithSHA224 }),
       signSodHash: "SHA-224",
@@ -930,14 +767,7 @@ const suiteConfigs: SuiteConfig[] = [
     name: "subcircuits - ECDSA NIST P-521 and P-521",
     setup: {
       mrz: MRZ_AUS_JOHNNY,
-      certParams: {
-        cscSigningHashAlgorithm: "SHA-512",
-        cscKeyType: "ECDSA",
-        cscCurve: "P-521",
-        dscSigningHashAlgorithm: "SHA-512",
-        dscKeyType: "ECDSA",
-        dscCurve: "P-521",
-      },
+      certParams: { cscSigningHashAlgorithm: "SHA-512", cscKeyType: "ECDSA", cscCurve: "P-521", dscSigningHashAlgorithm: "SHA-512", dscKeyType: "ECDSA", dscCurve: "P-521" },
       sodHash: "SHA-512",
       sodAlgorithm: new AlgorithmIdentifier({ algorithm: id_ecdsaWithSHA512 }),
       signSodHash: "SHA-512",
@@ -957,14 +787,7 @@ const suiteConfigs: SuiteConfig[] = [
     name: "subcircuits - ECDSA NIST P-384 and Brainpool P-256r1",
     setup: {
       mrz: MRZ_AUS_JOHNNY,
-      certParams: {
-        cscSigningHashAlgorithm: "SHA-256",
-        cscKeyType: "ECDSA",
-        cscCurve: "P-384",
-        dscSigningHashAlgorithm: "SHA-256",
-        dscKeyType: "ECDSA",
-        dscCurve: "brainpoolP256r1",
-      },
+      certParams: { cscSigningHashAlgorithm: "SHA-256", cscKeyType: "ECDSA", cscCurve: "P-384", dscSigningHashAlgorithm: "SHA-256", dscKeyType: "ECDSA", dscCurve: "brainpoolP256r1" },
       sodHash: "SHA-256",
       sodAlgorithm: new AlgorithmIdentifier({ algorithm: id_ecdsaWithSHA256 }),
       signSodHash: "SHA-256",
@@ -983,14 +806,7 @@ const suiteConfigs: SuiteConfig[] = [
     name: "subcircuits - ECDSA NIST P-521 and Brainpool P-384r1",
     setup: {
       mrz: MRZ_AUS_JOHNNY,
-      certParams: {
-        cscSigningHashAlgorithm: "SHA-384",
-        cscKeyType: "ECDSA",
-        cscCurve: "P-521",
-        dscSigningHashAlgorithm: "SHA-384",
-        dscKeyType: "ECDSA",
-        dscCurve: "brainpoolP384r1",
-      },
+      certParams: { cscSigningHashAlgorithm: "SHA-384", cscKeyType: "ECDSA", cscCurve: "P-521", dscSigningHashAlgorithm: "SHA-384", dscKeyType: "ECDSA", dscCurve: "brainpoolP384r1" },
       sodHash: "SHA-384",
       sodAlgorithm: new AlgorithmIdentifier({ algorithm: id_ecdsaWithSHA384 }),
       signSodHash: "SHA-384",
@@ -1010,14 +826,7 @@ const suiteConfigs: SuiteConfig[] = [
     name: "subcircuits - RSA PKCS - 6144 bits",
     setup: {
       mrz: MRZ_AUS_JOHNNY,
-      certParams: {
-        cscSigningHashAlgorithm: "SHA-256",
-        cscKeyType: "RSA",
-        cscKeySize: 6144,
-        dscSigningHashAlgorithm: "SHA-1",
-        dscKeyType: "RSA",
-        dscKeySize: 4096,
-      },
+      certParams: { cscSigningHashAlgorithm: "SHA-256", cscKeyType: "RSA", cscKeySize: 6144, dscSigningHashAlgorithm: "SHA-1", dscKeyType: "RSA", dscKeySize: 4096 },
       loadFixtures: true,
       sodHash: "SHA-1",
       sodAlgorithm: new AlgorithmIdentifier({ algorithm: id_sha1WithRSAEncryption }),
@@ -1044,14 +853,7 @@ for (const config of suiteConfigs) {
     }, 60000)
 
     describeDscTest(state, config.dscCircuit, config.dscLabel, config.dscTimeout, config.dscUseCli)
-    describeIdTest(
-      state,
-      config.idCircuit,
-      config.idLabel,
-      config.idTimeout,
-      config.idUseCli,
-      config.idProveName,
-    )
+    describeIdTest(state, config.idCircuit, config.idLabel, config.idTimeout, config.idUseCli, config.idProveName)
     describeIntegrityTest(state, config.integrityCircuit, undefined, config.integrityUseCli)
     describeDiscloseTests(state, {
       discloseAll: config.discloseAll,
@@ -1063,10 +865,7 @@ for (const config of suiteConfigs) {
     }
     if (config.exclusionCountries) {
       describeExclusionCheckTests(
-        state,
-        config.exclusionCountries,
-        config.sortedExclusionCountries!,
-        config.exclusionUseCli,
+        state, config.exclusionCountries, config.sortedExclusionCountries!, config.exclusionUseCli,
       )
     }
   })
@@ -1118,14 +917,8 @@ describe("subcircuits - RSA PKCS", () => {
     test("verify facematch", async () => {
       const query: Query = { facematch: { mode: "regular" } }
       let inputs = await getFacematchCircuitInputs(
-        state.helper.passport as any,
-        query,
-        INTEGRITY_TO_DISCLOSURE_SALTS,
-        0n,
-        0n,
-        0n,
-        nowTimestamp,
-        true,
+        state.helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS,
+        0n, 0n, 0n, nowTimestamp, true,
       )
       if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
       expect(BigInt(inputs.comm_in)).toEqual(state.integrityCheckCommitment)
@@ -1145,10 +938,7 @@ describe("subcircuits - RSA PKCS", () => {
       const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
       const facematch_mode = 1n
       const calculatedParamCommitment = await getFacematchParameterCommitment(
-        root_key_leaf,
-        environment,
-        app_id_hash,
-        facematch_mode,
+        root_key_leaf, environment, app_id_hash, facematch_mode,
       )
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(calculatedParamCommitment).toEqual(paramCommitment)
@@ -1161,13 +951,8 @@ describe("subcircuits - RSA PKCS", () => {
     test("verify facematch - strict mode", async () => {
       const query: Query = { facematch: { mode: "strict" } }
       let inputs = await getFacematchCircuitInputs(
-        state.helper.passport as any,
-        query,
-        INTEGRITY_TO_DISCLOSURE_SALTS,
-        0n,
-        0n,
-        0n,
-        nowTimestamp,
+        state.helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS,
+        0n, 0n, 0n, nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
       expect(BigInt(inputs.comm_in)).toEqual(state.integrityCheckCommitment)
@@ -1187,10 +972,7 @@ describe("subcircuits - RSA PKCS", () => {
       const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
       const facematch_mode = 2n
       const calculatedParamCommitment = await getFacematchParameterCommitment(
-        root_key_leaf,
-        environment,
-        app_id_hash,
-        facematch_mode,
+        root_key_leaf, environment, app_id_hash, facematch_mode,
       )
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(calculatedParamCommitment).toEqual(paramCommitment)
@@ -1203,13 +985,8 @@ describe("subcircuits - RSA PKCS", () => {
     test("verify facematch evm", async () => {
       const query: Query = { facematch: { mode: "regular" } }
       let inputs = await getFacematchCircuitInputs(
-        state.helper.passport as any,
-        query,
-        INTEGRITY_TO_DISCLOSURE_SALTS,
-        0n,
-        0n,
-        0n,
-        nowTimestamp,
+        state.helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS,
+        0n, 0n, 0n, nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
       expect(BigInt(inputs.comm_in)).toEqual(state.integrityCheckCommitment)
@@ -1229,10 +1006,7 @@ describe("subcircuits - RSA PKCS", () => {
       const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
       const facematch_mode = 1n
       const calculatedParamCommitment = await getFacematchEvmParameterCommitment(
-        root_key_leaf,
-        environment,
-        app_id_hash,
-        facematch_mode,
+        root_key_leaf, environment, app_id_hash, facematch_mode,
       )
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(calculatedParamCommitment).toEqual(paramCommitment)
@@ -1264,13 +1038,8 @@ describe("subcircuits - RSA PKCS", () => {
     test("verify facematch", async () => {
       const query: Query = { facematch: { mode: "regular" } }
       let inputs = await getFacematchCircuitInputs(
-        state.helper.passport as any,
-        query,
-        INTEGRITY_TO_DISCLOSURE_SALTS,
-        0n,
-        0n,
-        0n,
-        nowTimestamp,
+        state.helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS,
+        0n, 0n, 0n, nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
       expect(BigInt(inputs.comm_in)).toEqual(state.integrityCheckCommitment)
@@ -1289,10 +1058,7 @@ describe("subcircuits - RSA PKCS", () => {
       const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
       const facematch_mode = 1n
       const calculatedParamCommitment = await getFacematchParameterCommitment(
-        root_key_leaf,
-        environment,
-        app_id_hash,
-        facematch_mode,
+        root_key_leaf, environment, app_id_hash, facematch_mode,
       )
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(calculatedParamCommitment).toEqual(paramCommitment)
@@ -1305,13 +1071,8 @@ describe("subcircuits - RSA PKCS", () => {
     test("verify facematch evm", async () => {
       const query: Query = { facematch: { mode: "strict" } }
       let inputs = await getFacematchCircuitInputs(
-        state.helper.passport as any,
-        query,
-        INTEGRITY_TO_DISCLOSURE_SALTS,
-        0n,
-        0n,
-        0n,
-        nowTimestamp,
+        state.helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS,
+        0n, 0n, 0n, nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
       expect(BigInt(inputs.comm_in)).toEqual(state.integrityCheckCommitment)
@@ -1330,10 +1091,7 @@ describe("subcircuits - RSA PKCS", () => {
       const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
       const facematch_mode = 2n
       const calculatedParamCommitment = await getFacematchEvmParameterCommitment(
-        root_key_leaf,
-        environment,
-        app_id_hash,
-        facematch_mode,
+        root_key_leaf, environment, app_id_hash, facematch_mode,
       )
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(calculatedParamCommitment).toEqual(paramCommitment)
@@ -1346,49 +1104,27 @@ describe("subcircuits - RSA PKCS", () => {
 
   describe("disclose", () => {
     let circuit: Circuit
-    beforeAll(async () => {
-      circuit = Circuit.from("disclose_bytes")
-    })
-    afterAll(async () => {
-      await circuit.destroy()
-    })
+    beforeAll(async () => { circuit = Circuit.from("disclose_bytes") })
+    afterAll(async () => { await circuit.destroy() })
 
     test("disclose all bytes", async () => {
       const query: Query = {
-        issuing_country: { disclose: true },
-        nationality: { disclose: true },
-        document_type: { disclose: true },
-        document_number: { disclose: true },
-        fullname: { disclose: true },
-        birthdate: { disclose: true },
-        expiry_date: { disclose: true },
-        gender: { disclose: true },
+        issuing_country: { disclose: true }, nationality: { disclose: true },
+        document_type: { disclose: true }, document_number: { disclose: true },
+        fullname: { disclose: true }, birthdate: { disclose: true },
+        expiry_date: { disclose: true }, gender: { disclose: true },
       }
       let inputs = await getDiscloseCircuitInputs(
-        state.helper.passport as any,
-        query,
-        INTEGRITY_TO_DISCLOSURE_SALTS,
-        0n,
-        0n,
-        0n,
-        nowTimestamp,
+        state.helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
-        witness: await circuit.solve(inputs),
-        useCli: true,
-        circuitName: "disclose_bytes",
+        witness: await circuit.solve(inputs), useCli: true, circuitName: "disclose_bytes",
       })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const disclosedBytes = getDisclosedBytesFromMrzAndMask(
-        state.helper.passport.mrz,
-        inputs.disclose_mask,
-      )
-      const calculatedParamCommitment = await getDiscloseParameterCommitment(
-        inputs.disclose_mask,
-        disclosedBytes,
-      )
+      const disclosedBytes = getDisclosedBytesFromMrzAndMask(state.helper.passport.mrz, inputs.disclose_mask)
+      const calculatedParamCommitment = await getDiscloseParameterCommitment(inputs.disclose_mask, disclosedBytes)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
       const nullifier = getNullifierFromDisclosureProof(proof)
@@ -1416,30 +1152,16 @@ describe("subcircuits - RSA PKCS", () => {
     test("disclose some bytes", async () => {
       const query: Query = { nationality: { disclose: true } }
       let inputs = await getDiscloseCircuitInputs(
-        state.helper.passport as any,
-        query,
-        INTEGRITY_TO_DISCLOSURE_SALTS,
-        0n,
-        0n,
-        0n,
-        nowTimestamp,
+        state.helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
-        witness: await circuit.solve(inputs),
-        useCli: true,
-        circuitName: "disclose_bytes",
+        witness: await circuit.solve(inputs), useCli: true, circuitName: "disclose_bytes",
       })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const disclosedBytes = getDisclosedBytesFromMrzAndMask(
-        state.helper.passport.mrz,
-        inputs.disclose_mask,
-      )
-      const calculatedParamCommitment = await getDiscloseParameterCommitment(
-        inputs.disclose_mask,
-        disclosedBytes,
-      )
+      const disclosedBytes = getDisclosedBytesFromMrzAndMask(state.helper.passport.mrz, inputs.disclose_mask)
+      const calculatedParamCommitment = await getDiscloseParameterCommitment(inputs.disclose_mask, disclosedBytes)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
       const nullifier = getNullifierFromDisclosureProof(proof)
@@ -1465,49 +1187,27 @@ describe("subcircuits - RSA PKCS", () => {
 
   describe("disclose evm", () => {
     let circuit: Circuit
-    beforeAll(async () => {
-      circuit = Circuit.from("disclose_bytes_evm")
-    })
-    afterAll(async () => {
-      await circuit.destroy()
-    })
+    beforeAll(async () => { circuit = Circuit.from("disclose_bytes_evm") })
+    afterAll(async () => { await circuit.destroy() })
 
     test("disclose all bytes", async () => {
       const query: Query = {
-        issuing_country: { disclose: true },
-        nationality: { disclose: true },
-        document_type: { disclose: true },
-        document_number: { disclose: true },
-        fullname: { disclose: true },
-        birthdate: { disclose: true },
-        expiry_date: { disclose: true },
-        gender: { disclose: true },
+        issuing_country: { disclose: true }, nationality: { disclose: true },
+        document_type: { disclose: true }, document_number: { disclose: true },
+        fullname: { disclose: true }, birthdate: { disclose: true },
+        expiry_date: { disclose: true }, gender: { disclose: true },
       }
       let inputs = await getDiscloseCircuitInputs(
-        state.helper.passport as any,
-        query,
-        INTEGRITY_TO_DISCLOSURE_SALTS,
-        0n,
-        0n,
-        0n,
-        nowTimestamp,
+        state.helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
-        witness: await circuit.solve(inputs),
-        useCli: true,
-        circuitName: "disclose_bytes_evm",
+        witness: await circuit.solve(inputs), useCli: true, circuitName: "disclose_bytes_evm",
       })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const disclosedBytes = getDisclosedBytesFromMrzAndMask(
-        state.helper.passport.mrz,
-        inputs.disclose_mask,
-      )
-      const calculatedParamCommitment = await getDiscloseEVMParameterCommitment(
-        inputs.disclose_mask,
-        disclosedBytes,
-      )
+      const disclosedBytes = getDisclosedBytesFromMrzAndMask(state.helper.passport.mrz, inputs.disclose_mask)
+      const calculatedParamCommitment = await getDiscloseEVMParameterCommitment(inputs.disclose_mask, disclosedBytes)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
       const nullifier = getNullifierFromDisclosureProof(proof)
@@ -1533,30 +1233,16 @@ describe("subcircuits - RSA PKCS", () => {
     test("disclose some bytes", async () => {
       const query: Query = { nationality: { disclose: true } }
       let inputs = await getDiscloseCircuitInputs(
-        state.helper.passport as any,
-        query,
-        INTEGRITY_TO_DISCLOSURE_SALTS,
-        0n,
-        0n,
-        0n,
-        nowTimestamp,
+        state.helper.passport as any, query, INTEGRITY_TO_DISCLOSURE_SALTS, 0n, 0n, 0n, nowTimestamp,
       )
       if (!inputs) throw new Error("Unable to generate disclose circuit inputs")
       const proof = await circuit.prove(inputs, {
-        witness: await circuit.solve(inputs),
-        useCli: true,
-        circuitName: "disclose_bytes_evm",
+        witness: await circuit.solve(inputs), useCli: true, circuitName: "disclose_bytes_evm",
       })
       expect(proof).toBeDefined()
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
-      const disclosedBytes = getDisclosedBytesFromMrzAndMask(
-        state.helper.passport.mrz,
-        inputs.disclose_mask,
-      )
-      const calculatedParamCommitment = await getDiscloseEVMParameterCommitment(
-        inputs.disclose_mask,
-        disclosedBytes,
-      )
+      const disclosedBytes = getDisclosedBytesFromMrzAndMask(state.helper.passport.mrz, inputs.disclose_mask)
+      const calculatedParamCommitment = await getDiscloseEVMParameterCommitment(inputs.disclose_mask, disclosedBytes)
       expect(paramCommitment).toEqual(calculatedParamCommitment)
       const disclosedData = DisclosedData.fromDisclosedBytes(disclosedBytes, "passport")
       const nullifier = getNullifierFromDisclosureProof(proof)
@@ -3537,11 +3223,7 @@ describe("attested id (Tier 2)", () => {
   describe("outer proof", () => {
     type Subproof = { proof: string[]; publicInputs: string[]; vkey: string[]; vkeyHash: string }
 
-    const recursiveProof = async (
-      circuit: Circuit,
-      name: string,
-      inputs: any,
-    ): Promise<Subproof> => {
+    const recursiveProof = async (circuit: Circuit, name: string, inputs: any): Promise<Subproof> => {
       const proof = await circuit.prove(inputs, {
         witness: await circuit.solve(inputs, true),
         useCli: true,
@@ -3727,7 +3409,9 @@ describe("aadhaar", () => {
   // A V2 Secure QR signed by a test RSA-2048 key, held as a UIDAI certificate in a test
   // Certificate Registry, with its aadhaar_id inputs and the outputs the utils twins expect.
   // Made by scripts/generate-aadhaar-fixture.ts in @zkpassport/utils.
-  const FIXTURE = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures/aadhaar.json"), "utf8"))
+  const FIXTURE = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "fixtures/aadhaar.json"), "utf8"),
+  )
   const SALTS = { dg1Salt: 11n, expiryDateSalt: 12n, dg2HashSalt: 13n, privateNullifierSalt: 14n }
   let circuit: Circuit
   let discloseCircuit: Circuit
@@ -3760,10 +3444,7 @@ describe("aadhaar", () => {
         SALTS.privateNullifierSalt,
         BigInt(FIXTURE.privateNullifier),
       ).formatForInput(),
-      salted_expiry_date: SaltedValue.fromValue(
-        SALTS.expiryDateSalt,
-        getExpiryDate(dg1),
-      ).formatForInput(),
+      salted_expiry_date: SaltedValue.fromValue(SALTS.expiryDateSalt, getExpiryDate(dg1)).formatForInput(),
       salted_dg1: SaltedValue.fromValue(SALTS.dg1Salt, FIXTURE.dg1).formatForInput(),
       salted_dg2_hash: SaltedValue.fromValue(
         SALTS.dg2HashSalt,
