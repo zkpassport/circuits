@@ -85,11 +85,13 @@ fn test_nullifier_changes_with_the_date_of_birth() {
 }
 
 #[test]
-fn test_nullifier_changes_with_the_expiry_date() {
+fn test_nullifier_ignores_the_expiry_date() {
     let dg1 = sample_dg1();
     let mut other = dg1;
     other[71] = 49; // 2030-04-03 -> 2031-04-03
-    assert(calculate_tier2_private_nullifier(dg1) != calculate_tier2_private_nullifier(other));
+    // A card may print its expiry only on a side the scan can't tie to the holder: another
+    // date must not give the same person a new identity
+    assert_eq(calculate_tier2_private_nullifier(dg1), calculate_tier2_private_nullifier(other));
 }
 
 // The sample ID card with its number continued in the optional data: "D23145890" + "7342<",
@@ -161,12 +163,12 @@ fn test_vectors_for_typescript() {
     // the same values.
     assert_eq(
         private_nullifier,
-        0x064c866cb0248d050c72dc3a01c74d839bbc18df5600debb0b2e2ff1a645c447,
+        0x1d7dc5da5df5c2bd5557d57aba828043a2b90eaf96d623c0e8ab49720ef7542e,
     );
     let id_card_nullifier = calculate_tier2_private_nullifier(sample_id_card_dg1());
     assert_eq(
         id_card_nullifier,
-        0x02c7905c961b56ce7050e0cc7873e9d2bbabfca8835d7eb74619eaa3f2a8a5ae,
+        0x2cb827c084093276ffc846f806d1c6b1c27b7fbd0f1ee0008d4778c66b95268a,
     );
     // Germany writes D<< as its issuing country, which reads as DEU
     let mut german = sample_dg1();
@@ -174,11 +176,11 @@ fn test_vectors_for_typescript() {
     german[8] = 60;
     german[9] = 60;
     let german_nullifier = calculate_tier2_private_nullifier(german);
-    assert_eq(german_nullifier, 0x2e2744a716091a7543c8953ae0f37f99203ceb3007b5947ad303400802d57ea4);
+    assert_eq(german_nullifier, 0x1f180760db638ff2c74cb7f862f10f4b19a76b742e307d714ac975acd736a6ca);
     let overflow_nullifier = calculate_tier2_private_nullifier(overflowing_id_card_dg1());
     assert_eq(
         overflow_nullifier,
-        0x19ab7b603299a71e284d8871c0400dfbf94bdf092fbb4e62065779c367bfa653,
+        0x065ac3643fddb079f4ba4dc9581aeb6985adeef1e48c2bba91dc5e69da45b8fb,
     );
-    assert_eq(comm_out, 0xf92dc8dc9c50429014208f468fd8e06a83062b2a2d0d5349dd497f9fe3c6be);
+    assert_eq(comm_out, 0x2835c00a0035ee2e89cceb33c9f4d08020df39f910b3bb36a1d27bcebc258410);
 }

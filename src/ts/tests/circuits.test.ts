@@ -99,8 +99,8 @@ const INTEGRITY_TO_DISCLOSURE_SALTS: IntegrityToDisclosureSalts = {
 }
 const EXPECTED_NULLIFIER = 0xf03bc01b2dd79b1b8906831e8bd47f1cdf7435e8f38010a9cd1978a1b13a26an
 const nowTimestamp = getNowTimestamp()
-// The integrity check proof's public inputs: comm_in, then its outputs comm_out and credential_scheme
-const CREDENTIAL_SCHEME_ICAO_CHIP = 100n
+// The integrity check proof's public inputs: comm_in, then its outputs comm_out and verification_method
+const VERIFICATION_METHOD_ICAO_CHIP = 100n
 const FIXTURES_PATH = path.join(__dirname, "fixtures")
 
 // Common MRZ strings
@@ -235,9 +235,9 @@ function describeIntegrityTest(
       })
       expect(proof).toBeDefined()
       expect(proof.publicInputs).toHaveLength(3)
-      const [commitmentIn, commitmentOut, credentialScheme] = proof.publicInputs.map(BigInt)
+      const [commitmentIn, commitmentOut, verificationMethod] = proof.publicInputs.map(BigInt)
       expect(commitmentIn).toEqual(state.idDataCommitment)
-      expect(credentialScheme).toEqual(CREDENTIAL_SCHEME_ICAO_CHIP)
+      expect(verificationMethod).toEqual(VERIFICATION_METHOD_ICAO_CHIP)
       state.integrityCheckCommitment = commitmentOut
       await circuit.destroy()
     }, timeout)
@@ -2890,9 +2890,9 @@ describe("attested id (Tier 2)", () => {
     .toUInt8Array()
   // Private nullifiers printed by the attested-to-disclosure Noir lib tests
   const PASSPORT_PRIVATE_NULLIFIER =
-    0x064c866cb0248d050c72dc3a01c74d839bbc18df5600debb0b2e2ff1a645c447n
+    0x1d7dc5da5df5c2bd5557d57aba828043a2b90eaf96d623c0e8ab49720ef7542en
   const ID_CARD_PRIVATE_NULLIFIER =
-    0x02c7905c961b56ce7050e0cc7873e9d2bbabfca8835d7eb74619eaa3f2a8a5aen
+    0x2cb827c084093276ffc846f806d1c6b1c27b7fbd0f1ee0008d4778c66b95268an
   const PORTRAIT_HASH = sha256(new TextEncoder().encode("portrait"))
   const OTHER_PORTRAIT_HASH = sha256(new TextEncoder().encode("another portrait"))
 
@@ -2925,7 +2925,7 @@ describe("attested id (Tier 2)", () => {
         circuitName: CIRCUIT_NAME,
       })
       expect(proof.publicInputs).toHaveLength(4)
-      const [attestedDate, commOut, paramCommitment, credentialScheme] =
+      const [attestedDate, commOut, paramCommitment, verificationMethod] =
         proof.publicInputs.map(BigInt)
       // The credential certificate's notBefore, at the start of its day
       expect(attestedDate).toEqual(BigInt(attestation.attestedDate))
@@ -2957,7 +2957,7 @@ describe("attested id (Tier 2)", () => {
           BigInt(FACEMATCH_MODE_STRICT),
         ),
       )
-      expect(credentialScheme).toEqual(200n)
+      expect(verificationMethod).toEqual(200n)
 
       const discloseMask = Array(90).fill(1)
       const discloseInputs = {
@@ -3020,11 +3020,11 @@ describe("attested id (Tier 2)", () => {
         useCli: true,
         circuitName: CIRCUIT_NAME,
       })
-      const [, commOut, , credentialScheme] = proof.publicInputs.map(BigInt)
+      const [, commOut, , verificationMethod] = proof.publicInputs.map(BigInt)
       const expected = await calculateAttestedIdCommitment(SALTS, ID_CARD_DG1, PORTRAIT_HASH)
       expect(expected.privateNullifier).toEqual(ID_CARD_PRIVATE_NULLIFIER)
       expect(commOut).toEqual(expected.commitment)
-      expect(credentialScheme).toEqual(200n)
+      expect(verificationMethod).toEqual(200n)
     }, 90000)
 
     test("driving licence (TD1 from its barcode): proves, with the state in its nullifier", async () => {
@@ -3136,7 +3136,7 @@ describe("attested id (Tier 2)", () => {
         circuitName: CIRCUIT_NAME,
       })
       expect(proof.publicInputs).toHaveLength(4)
-      const [currentDate, commOut, paramCommitment, credentialScheme] =
+      const [currentDate, commOut, paramCommitment, verificationMethod] =
         proof.publicInputs.map(BigInt)
       expect(currentDate).toEqual(BigInt(nowTimestamp))
       const expected = await calculateAttestedIdCommitment(SALTS, PASSPORT_DG1, PORTRAIT_HASH)
@@ -3151,7 +3151,7 @@ describe("attested id (Tier 2)", () => {
           mode: FACEMATCH_MODE_STRICT,
         }),
       )
-      expect(credentialScheme).toEqual(201n)
+      expect(verificationMethod).toEqual(201n)
     }, 120000)
 
     test("fails with a regular face match", async () => {
@@ -3298,7 +3298,7 @@ describe("attested id (Tier 2)", () => {
         nullifier_type: d[5],
         scoped_nullifier: d[6],
         oprf_pk_hash: d[7],
-        credential_scheme: `0x${scheme.toString(16)}`,
+        verification_method: `0x${scheme.toString(16)}`,
         attested_id_proof: await leaf(attested, attested.publicInputs),
         disclosure_proofs: [await leaf(disclose, [d[0], d[6], d[5], d[7]])],
       }
@@ -3354,13 +3354,13 @@ describe("attested id (Tier 2)", () => {
       // Not a Tier 2 scheme, or not the one the attested ID proof states
       await expectOuterToFail(
         "outer_attested_id_count_2",
-        { ...inputs, credential_scheme: "0x64" },
-        "Not a Tier 2 credential scheme",
+        { ...inputs, verification_method: "0x64" },
+        "Not a Tier 2 verification method",
       )
       await expectOuterToFail(
         "outer_attested_id_count_2",
-        { ...inputs, credential_scheme: "0xc9" },
-        "Credential scheme from attested ID circuit != expected credential scheme",
+        { ...inputs, verification_method: "0xc9" },
+        "Verification method from attested ID circuit != expected verification method",
       )
       await expectOuterToFail(
         "outer_attested_id_count_2",

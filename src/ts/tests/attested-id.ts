@@ -200,8 +200,9 @@ export async function calculateTier2PrivateNullifier(dg1: Uint8Array): Promise<b
     enc("ATTESTED_ID"),
     Buffer.from(country).toString() === "D<<" ? enc("DEU") : country,
     getFullDocumentNumber(padded),
+    // The expiry date is left out: a card may print it only on a side the scan can't tie to the
+    // holder, where another date would give the same person a new identity
     mrz.subarray(layout.dateOfBirth, layout.dateOfBirth + 6),
-    mrz.subarray(layout.expiryDate, layout.expiryDate + 6),
   )
   return poseidon2HashAsync(packBeBytesIntoFields(fields, 31).map((x) => BigInt(x)))
 }

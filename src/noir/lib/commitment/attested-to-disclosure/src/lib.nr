@@ -32,9 +32,9 @@ global NULLIFIER_DOCUMENT_NUMBER_LENGTH: u32 = 24;
 global NULLIFIER_DOMAIN: [u8; 11] = "ATTESTED_ID".as_bytes();
 global NULLIFIER_DOMAIN_LENGTH: u32 = 11;
 
-/// The length of the fields the Tier 2 nullifier is derived from: 50 bytes, two packed fields
+/// The length of the fields the Tier 2 nullifier is derived from: 44 bytes, two packed fields
 global NULLIFIER_FIELDS_LENGTH: u32 =
-    NULLIFIER_DOMAIN_LENGTH + 3 + NULLIFIER_DOCUMENT_NUMBER_LENGTH + 6 + 6;
+    NULLIFIER_DOMAIN_LENGTH + 3 + NULLIFIER_DOCUMENT_NUMBER_LENGTH + 6;
 
 /// Where a TD1 MRZ's optional data starts, after the document number and its check digit
 global TD1_OPTIONAL_DATA_INDEX: u32 = 15;
@@ -72,14 +72,15 @@ fn get_full_document_number(dg1: DG1Data) -> [u8; NULLIFIER_DOCUMENT_NUMBER_LENG
 }
 
 /// A camera-read ID has no signature to derive a nullifier from, so it comes from the MRZ
-/// fields every document has and OCR reads reliably: issuing country, and the whole document
-/// number, date of birth and expiry date, which carry check digits, after the "ATTESTED_ID" domain. The same document always
-/// gives the same nullifier; names are left out, as OCR may read them differently each time.
+/// fields every document has and OCR reads reliably: issuing country, the whole document number
+/// and the date of birth, which carry check digits, after the "ATTESTED_ID" domain. The same
+/// document always gives the same nullifier. Names are left out, as OCR may read them
+/// differently each time, and so is the expiry date: a card may print it only on a side the
+/// scan can't tie to the holder, where another date would give the same person a new identity.
 pub fn calculate_tier2_private_nullifier(dg1: DG1Data) -> Field {
     let issuing_country = get_issuing_country_from_mrz(dg1);
     let document_number = get_full_document_number(dg1);
     let date_of_birth = get_dob_from_mrz(dg1);
-    let expiry_date = get_expiry_date_from_mrz(dg1);
 
     let mut fields: [u8; NULLIFIER_FIELDS_LENGTH] = [0; NULLIFIER_FIELDS_LENGTH];
     for i in 0..NULLIFIER_DOMAIN_LENGTH {
@@ -94,7 +95,6 @@ pub fn calculate_tier2_private_nullifier(dg1: DG1Data) -> Field {
     }
     for i in 0..6 {
         fields[d + 3 + NULLIFIER_DOCUMENT_NUMBER_LENGTH + i] = date_of_birth[i];
-        fields[d + 9 + NULLIFIER_DOCUMENT_NUMBER_LENGTH + i] = expiry_date[i];
     }
     let packed: [Field; 2] = pack_be_bytes_into_fields::<NULLIFIER_FIELDS_LENGTH, 2, 31>(fields);
     Poseidon2::hash(packed, 2)
