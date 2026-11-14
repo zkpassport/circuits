@@ -156,17 +156,29 @@ fn test_vectors_for_typescript() {
         4,
         digest,
     );
-    println(f"tier2_private_nullifier={private_nullifier}");
+    // These pin the Tier 2 nullifier: a change here gives every camera-read ID a new identity,
+    // so it must be deliberate. The TypeScript twins (circuits.test.ts, @zkpassport/utils) use
+    // the same values.
+    assert_eq(
+        private_nullifier,
+        0x064c866cb0248d050c72dc3a01c74d839bbc18df5600debb0b2e2ff1a645c447,
+    );
     let id_card_nullifier = calculate_tier2_private_nullifier(sample_id_card_dg1());
-    println(f"tier2_id_card_private_nullifier={id_card_nullifier}");
+    assert_eq(
+        id_card_nullifier,
+        0x02c7905c961b56ce7050e0cc7873e9d2bbabfca8835d7eb74619eaa3f2a8a5ae,
+    );
     // Germany writes D<< as its issuing country, which reads as DEU
     let mut german = sample_dg1();
     german[7] = 68;
     german[8] = 60;
     german[9] = 60;
     let german_nullifier = calculate_tier2_private_nullifier(german);
-    println(f"tier2_german_private_nullifier={german_nullifier}");
+    assert_eq(german_nullifier, 0x2e2744a716091a7543c8953ae0f37f99203ceb3007b5947ad303400802d57ea4);
     let overflow_nullifier = calculate_tier2_private_nullifier(overflowing_id_card_dg1());
-    println(f"tier2_long_number_private_nullifier={overflow_nullifier}");
-    println(f"comm_out={comm_out}");
+    assert_eq(
+        overflow_nullifier,
+        0x19ab7b603299a71e284d8871c0400dfbf94bdf092fbb4e62065779c367bfa653,
+    );
+    assert_eq(comm_out, 0xf92dc8dc9c50429014208f468fd8e06a83062b2a2d0d5349dd497f9fe3c6be);
 }
