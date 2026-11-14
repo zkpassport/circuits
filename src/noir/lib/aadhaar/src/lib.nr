@@ -1,9 +1,12 @@
-use common::{hash_salt_dg1_dg2_hash_private_nullifier, normalize_dg2_hash};
+use common::{
+    calculate_certificate_root_v1, CertificateTreeLeaf,
+    compute_certificate_tree_root_using_hash_path_v1, hash_salt_dg1_dg2_hash_private_nullifier,
+    normalize_dg2_hash, UIDAI_CERT_TYPE,
+};
 use poseidon::poseidon2::Poseidon2;
 use utils::{
-    constants::{DG1_LENGTH, PROOF_TYPE_AADHAAR, SHA256_IDENTIFIER},
+    constants::{DG1_LENGTH, SHA256_IDENTIFIER},
     get_expiry_date_from_mrz,
-    poseidon2_hash_packed,
     types::{DG1Data, SaltedValue},
 };
 
@@ -64,6 +67,8 @@ pub global AADHAAR_NATIONALITY: [u8; 3] = [88, 88, 88];
 global DOCUMENT_NUMBER_MASK: [u8; 5] = [88, 88, 88, 88, 88];
 /// Aadhaar has no expiry, so the MRZ gets the signing date plus this many years
 pub global AADHAAR_VALIDITY_YEARS: u32 = 10;
+/// Depth of the Certificate Registry's certificate tree
+pub global CERTIFICATE_TREE_HEIGHT: u32 = 16;
 
 /// The Aadhaar data the base proof commits to
 pub struct AadhaarData {
@@ -376,13 +381,43 @@ pub fn calculate_aadhaar_private_nullifier(photo_hash: [u8; 32]) -> Field {
     )
 }
 
-/// The UIDAI key the signature was checked against, committed to so the verifier can check
-/// it outside the circuit against UIDAI's published keys
-pub fn calculate_aadhaar_param_commitment(pubkey: [u8; 256]) -> Field {
-    Poseidon2::hash(
-        [PROOF_TYPE_AADHAAR as Field, poseidon2_hash_packed(pubkey, 256)],
-        2,
-    )
+/// Checks the UIDAI key is in the Certificate Registry under the published v1
+/// `certificate_registry_root`, as a UIDAI leaf for India, so a key that is not UIDAI's can't
+/// sign a QR code the circuit accepts
+pub fn verify_uidai_key_in_registry(
+    pubkey: [u8; 256],
+    certificate_registry_root: Field,
+    schema_version: u16,
+    timestamp: u32,
+    certificate_tree_index: Field,
+    certificate_tree_hash_path: [Field; CERTIFICATE_TREE_HEIGHT],
+    certificate_tags: [Field; 3],
+    uidai_cert_expiry: u32,
+    uidai_cert_fingerprint: Field,
+    revocation_tree_root: Field,
+    masterlist_tree_root: Field,
+) {
+    let leaf = CertificateTreeLeaf {
+        tags: certificate_tags,
+        cert_type: UIDAI_CERT_TYPE,
+        country: "IND",
+        public_key: pubkey,
+        expiry: uidai_cert_expiry,
+        fingerprint: uidai_cert_fingerprint,
+    };
+    let certificate_tree_root = compute_certificate_tree_root_using_hash_path_v1(
+        leaf,
+        certificate_tree_index,
+        certificate_tree_hash_path,
+    );
+    let computed_root = calculate_certificate_root_v1(
+        schema_version,
+        timestamp,
+        certificate_tree_root,
+        revocation_tree_root,
+        masterlist_tree_root,
+    );
+    assert(computed_root == certificate_registry_root, "Certificate registry root mismatch");
 }
 
 /// The commitment the disclosure circuits take as `comm_in`, with the same shape as the one
