@@ -79,6 +79,7 @@ FACEMATCH=(
     "facematch_ios_evm"
     "facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256"
     "facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256_evm"
+    "aadhaar_id"
     "attested_id_ios"
     "attested_id_ios_evm"
     "attested_id_android_rk_ecdsa_ik_count_1_ik_ecdsa_p256_sha256"
