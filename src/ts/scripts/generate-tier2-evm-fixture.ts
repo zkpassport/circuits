@@ -2,11 +2,11 @@
  * Generates a Tier 2 outer EVM proof over a synthetic iOS attestation, for the on-chain
  * verification test in zkpassport-packages' registry-contracts:
  *
- *   attested_id_ios_evm + disclose_bytes_evm → outer_attested_ios_count_2 (EVM, no ZK)
+ *   attested_id_ios_evm + disclose_bytes_evm → outer_attested_id_count_2 (EVM, no ZK)
  *
  * Writes proof.hex, public_inputs.json, committed_inputs.hex and attestation.json, and the
  * outer circuit's Solidity verifier, to the directory given as the first argument. Needs
- * attested_id_ios_evm, disclose_bytes_evm and outer_attested_ios_count_2 compiled into target/.
+ * attested_id_ios_evm, disclose_bytes_evm and outer_attested_id_count_2 compiled into target/.
  *
  *   npx tsx src/ts/scripts/generate-tier2-evm-fixture.ts <out dir>
  */
@@ -141,11 +141,11 @@ async function main() {
     disclosure_proofs: [await leaf(disclose, [d[0], d[6], d[5], d[7]])],
   }
 
-  const outer = Circuit.from("outer_attested_ios_count_2")
+  const outer = Circuit.from("outer_attested_id_count_2")
   const outerProof = await outer.prove(outerInputs as any, {
     witness: await outer.solve(outerInputs as any, true),
     useCli: true,
-    circuitName: "outer_attested_ios_count_2",
+    circuitName: "outer_attested_id_count_2",
     evm: true,
     disableZK: true,
   })
@@ -156,7 +156,7 @@ async function main() {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tier2-vk-"))
   fs.writeFileSync(path.join(tempDir, "vk"), vkeyBytes)
   await execAsync(
-    `bb write_solidity_verifier -t evm-no-zk --optimized -k "${path.join(tempDir, "vk")}" -o "${path.join(outDir, "OuterAttestedIosCount2.sol")}"`,
+    `bb write_solidity_verifier -t evm-no-zk --optimized -k "${path.join(tempDir, "vk")}" -o "${path.join(outDir, "OuterAttestedIdCount2.sol")}"`,
   )
   fs.rmSync(tempDir, { recursive: true, force: true })
 

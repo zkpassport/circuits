@@ -27,7 +27,7 @@ export const FACEMATCH_MODE_REGULAR = 1
 export const FACEMATCH_MODE_STRICT = 2
 // ZKPassportAppAttest attestationType: a chip face match, or an ID read by camera
 export const ATTESTATION_TYPE_FACE_MATCH = 1
-export const ATTESTATION_TYPE_ATTESTED_ID = 3
+export const ATTESTATION_TYPE_ATTESTED_ID = 2
 
 const enc = (s: string) => new TextEncoder().encode(s)
 const concat = (...parts: Uint8Array[]) => {

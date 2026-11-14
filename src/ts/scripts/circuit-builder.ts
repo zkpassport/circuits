@@ -991,17 +991,18 @@ ${unconstrained ? "unconstrained " : ""}fn main(
 
 const OUTER_ATTESTED_CIRCUIT_TEMPLATE = (
   disclosure_proofs_count: number,
-  platform: "ios" | "android",
   unconstrained: boolean = false,
 ) => `// This is an auto-generated file, to change the code please edit: src/ts/scripts/circuit-builder.ts
 /*
 ############################################################
-# Outer Circuit, Tier 2 (${platform === "ios" ? "iOS" : "Android"})
+# Outer Circuit, Tier 2 (attested ID, iOS or Android)
 ############################################################
 # Wraps ${disclosure_proofs_count + 1} subproofs (the attested ID base proof + ${disclosure_proofs_count} disclosure proofs)
 # into a single proof by verifying them recursively. The attested ID proof stands in for the three
 # chip base proofs; its device attestation parameters are the first parameter commitment, which
 # the verifier must check (the circuit cannot know which attestation root keys are genuine).
+# Both platforms' attested ID proofs have the same public inputs (the attestation's date,
+# comm_out, the parameter commitment and the credential scheme), so one circuit wraps either.
 ############################################################
 
 # Inputs/Outputs
@@ -1015,7 +1016,7 @@ param_commitments -> The attested ID proof's parameter commitment, then those of
 nullifier_type -> The type of the nullifier
 scoped_nullifier -> The scoped nullifier
 oprf_pk_hash -> The hash of the OPRF public key used for salted nullifiers (0 if non-salted)
-credential_scheme -> ${platform === "ios" ? "CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS" : "CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID"}
+credential_scheme -> CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS or _ANDROID, as the attested ID proof outputs
 attested_id_proof -> The proof of the attested ID circuit
 disclosure_proofs -> The proofs of the disclosure circuits
 */
@@ -1024,7 +1025,7 @@ use common::compute_merkle_root;
 use outer_lib::{AttestedIdProof, DisclosureProof, poseidon2_hash, prepare_disclosure_inputs};
 use std::verify_proof_with_type;
 use utils::constants::{
-    ${platform === "ios" ? "CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS" : "CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID"}, NON_SALTED_MOCK_NULLIFIER, NONE_NULLIFIER,
+    CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID, CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS, NON_SALTED_MOCK_NULLIFIER, NONE_NULLIFIER,
     SALTED_MOCK_NULLIFIER, SALTED_NULLIFIER,
 };
 global PROOF_TYPE_HONK_ZK: u32 = 6;
@@ -1090,9 +1091,13 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         "oprf_pk_hash must be zero unless the nullifier is salted",
     );
 
-    // The scheme only the attested ID circuits of this platform output, which also keeps any other
-    // circuit with as many public inputs out of the base proof's place
-    assert_eq(credential_scheme, ${platform === "ios" ? "CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS" : "CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID"}, "Not a Tier 2 credential scheme for this platform");
+    // A scheme only the attested ID circuits output, which also keeps any other circuit with as
+    // many public inputs out of the base proof's place; it must equal the base proof's, below
+    assert(
+        (credential_scheme == CREDENTIAL_SCHEME_ATTESTED_CAPTURE_IOS)
+            | (credential_scheme == CREDENTIAL_SCHEME_ATTESTED_CAPTURE_ANDROID),
+        "Not a Tier 2 credential scheme",
+    );
     // The attestation's date: the integrity token's on Android, the App Attest credential
     // certificate's notBefore on iOS (a fresh key is attested for every face match)
     let attested_date = attested_id_proof.public_inputs[0] as u64;
@@ -1382,19 +1387,15 @@ function generateOuterCircuit(disclosure_proofs_count: number, unconstrained: bo
   generatedCircuits.push({ name, path: folderPath })
 }
 
-function generateOuterAttestedCircuit(
-  disclosure_proofs_count: number,
-  platform: "ios" | "android",
-  unconstrained: boolean = false,
-) {
-  const noirFile = OUTER_ATTESTED_CIRCUIT_TEMPLATE(disclosure_proofs_count, platform, unconstrained)
-  const name = `outer_attested_${platform}_count_${disclosure_proofs_count + 1}`
+function generateOuterAttestedCircuit(disclosure_proofs_count: number, unconstrained: boolean = false) {
+  const noirFile = OUTER_ATTESTED_CIRCUIT_TEMPLATE(disclosure_proofs_count, unconstrained)
+  const name = `outer_attested_id_count_${disclosure_proofs_count + 1}`
   const nargoFile = NARGO_TEMPLATE(name, [
-    { name: "common", path: "../../../../../../lib/commitment/common" },
-    { name: "outer_lib", path: "../../../../../../lib/outer" },
-    { name: "utils", path: "../../../../../../lib/utils" },
+    { name: "common", path: "../../../../../lib/commitment/common" },
+    { name: "outer_lib", path: "../../../../../lib/outer" },
+    { name: "utils", path: "../../../../../lib/utils" },
   ])
-  const folderPath = `./src/noir/bin/main/outer/attested/${platform}/count_${disclosure_proofs_count + 1}`
+  const folderPath = `./src/noir/bin/main/outer/attested_id/count_${disclosure_proofs_count + 1}`
   const noirFilePath = `${folderPath}/src/main.nr`
   const nargoFilePath = `${folderPath}/Nargo.toml`
   ensureDirectoryExistence(noirFilePath)
@@ -1583,8 +1584,7 @@ const generateOuterCircuits = ({ unconstrained = false }: { unconstrained: boole
   console.log("Generating outer circuits...")
   for (let i = 1; i <= 10; i++) {
     generateOuterCircuit(i, unconstrained)
-    generateOuterAttestedCircuit(i, "ios", unconstrained)
-    generateOuterAttestedCircuit(i, "android", unconstrained)
+    generateOuterAttestedCircuit(i, unconstrained)
   }
 }
 

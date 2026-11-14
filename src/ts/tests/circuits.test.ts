@@ -3336,7 +3336,7 @@ describe("attested id (Tier 2)", () => {
       const disclose = await discloseOn(BigInt(attested.publicInputs[1]), PASSPORT_DG1)
       const inputs = await outerInputs(attested, disclose, 200n)
 
-      const proof = await proveOuter("outer_attested_ios_count_2", inputs)
+      const proof = await proveOuter("outer_attested_id_count_2", inputs)
       const publicInputs = proof.publicInputs.map(BigInt)
       // The chip outer's layout: roots, date, scopes, param commitments, then the trailing four
       expect(publicInputs).toHaveLength(11)
@@ -3346,25 +3346,31 @@ describe("attested id (Tier 2)", () => {
 
       // The face match must be recent: within 30 days of the outer proof
       await expectOuterToFail(
-        "outer_attested_ios_count_2",
+        "outer_attested_id_count_2",
         { ...inputs, current_date: nowTimestamp + 31 * 24 * 60 * 60 },
         "Attested ID proof is not recent",
       )
 
+      // Not a Tier 2 scheme, or not the one the attested ID proof states
       await expectOuterToFail(
-        "outer_attested_ios_count_2",
-        { ...inputs, credential_scheme: "0xc9" },
-        "Not a Tier 2 credential scheme for this platform",
+        "outer_attested_id_count_2",
+        { ...inputs, credential_scheme: "0x64" },
+        "Not a Tier 2 credential scheme",
       )
       await expectOuterToFail(
-        "outer_attested_ios_count_2",
+        "outer_attested_id_count_2",
+        { ...inputs, credential_scheme: "0xc9" },
+        "Credential scheme from attested ID circuit != expected credential scheme",
+      )
+      await expectOuterToFail(
+        "outer_attested_id_count_2",
         { ...inputs, param_commitments: ["0x1", inputs.param_commitments[1]] },
         "Attested ID parameter commitment != first parameter commitment",
       )
       const otherDisclose = { ...inputs.disclosure_proofs[0] }
       otherDisclose.public_inputs = ["0x2", ...otherDisclose.public_inputs.slice(1)]
       await expectOuterToFail(
-        "outer_attested_ios_count_2",
+        "outer_attested_id_count_2",
         { ...inputs, disclosure_proofs: [otherDisclose] },
         "Commitment out from attested ID circuit != commitment in from disclosure circuit",
       )
@@ -3384,13 +3390,14 @@ describe("attested id (Tier 2)", () => {
       const disclose = await discloseOn(BigInt(attested.publicInputs[1]), PASSPORT_DG1)
       const inputs = await outerInputs(attested, disclose, 201n)
 
-      const proof = await proveOuter("outer_attested_android_count_2", inputs)
+      // The same outer circuit as iOS: both attested ID proofs have the same public inputs
+      const proof = await proveOuter("outer_attested_id_count_2", inputs)
       const publicInputs = proof.publicInputs.map(BigInt)
       expect(publicInputs[5]).toEqual(BigInt(attested.publicInputs[2]))
       expect(publicInputs[publicInputs.length - 1]).toEqual(201n)
 
       await expectOuterToFail(
-        "outer_attested_android_count_2",
+        "outer_attested_id_count_2",
         { ...inputs, current_date: nowTimestamp + 31 * 24 * 60 * 60 },
         "Attested ID proof is not recent",
       )
