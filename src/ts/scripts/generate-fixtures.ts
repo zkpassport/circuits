@@ -1,5 +1,6 @@
 import { poseidon2HashAsync } from "@zkpassport/poseidon2"
 import type { IntegrityToDisclosureSalts, OPRFProof, PackagedCertificatesFile, Query } from "@zkpassport/utils"
+import { generateTier2EvmFixture } from "./generate-tier2-evm-fixture"
 import {
   Binary,
   ProofType,
@@ -959,6 +960,14 @@ class FixtureGenerator {
     }
 
     await this.writeFixturesToFiles(fixtures)
+
+    // A Tier 2 (attested ID) outer EVM proof, verified by test/Tier2Verifier.t.sol with the
+    // packaged OuterAttestedIdCount2 verifier
+    console.log("Generating the Tier 2 outer EVM proof fixture...")
+    await generateTier2EvmFixture(
+      path.join(__dirname, "..", "..", "solidity", "test", "fixtures", "tier2"),
+      { writeVerifier: false },
+    )
     console.log("Fixture generation completed successfully!")
   }
 }

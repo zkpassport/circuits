@@ -4,9 +4,11 @@
  *
  *   attested_id_ios_evm + disclose_bytes_evm → outer_attested_id_count_2 (EVM, no ZK)
  *
- * Writes proof.hex, public_inputs.json, committed_inputs.hex and attestation.json, and the
- * outer circuit's Solidity verifier, to the directory given as the first argument. Needs
- * attested_id_ios_evm, disclose_bytes_evm and outer_attested_id_count_2 compiled into target/.
+ * Writes proof.hex, public_inputs.json, committed_inputs.hex and attestation.json, and, when run
+ * from the command line, the outer circuit's Solidity verifier, to the directory given as the first
+ * argument. Needs attested_id_ios_evm, disclose_bytes_evm and outer_attested_id_count_2 compiled
+ * into target/. generate-fixtures.ts also writes it for this repo's contract tests, which verify it
+ * with the packaged OuterAttestedIdCount2 verifier.
  *
  *   npx tsx src/ts/scripts/generate-tier2-evm-fixture.ts <out dir>
  */
@@ -69,9 +71,10 @@ async function recursiveProof(name: string, inputs: any): Promise<Subproof> {
   return { proof: proof.proof, publicInputs: proof.publicInputs, vkey, vkeyHash }
 }
 
-async function main() {
-  const outDir = process.argv[2]
-  if (!outDir) throw new Error("Usage: generate-tier2-evm-fixture.ts <out dir>")
+export async function generateTier2EvmFixture(
+  outDir: string,
+  { writeVerifier = true }: { writeVerifier?: boolean } = {},
+) {
   fs.mkdirSync(outDir, { recursive: true })
   const now = Math.floor(Date.now() / 1000)
   const dg1 = new Uint8Array(DG1)
@@ -151,14 +154,16 @@ async function main() {
   })
 
   // The verifier for this outer circuit, from the same vkey the proof was made with
-  const { vkeyBytes } = await outer.getVerificationKey({ evm: true })
+  if (writeVerifier) {
+    const { vkeyBytes } = await outer.getVerificationKey({ evm: true })
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tier2-vk-"))
+    fs.writeFileSync(path.join(tempDir, "vk"), vkeyBytes)
+    await execAsync(
+      `bb write_solidity_verifier -t evm-no-zk --optimized -k "${path.join(tempDir, "vk")}" -o "${path.join(outDir, "OuterAttestedIdCount2.sol")}"`,
+    )
+    fs.rmSync(tempDir, { recursive: true, force: true })
+  }
   await outer.destroy()
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tier2-vk-"))
-  fs.writeFileSync(path.join(tempDir, "vk"), vkeyBytes)
-  await execAsync(
-    `bb write_solidity_verifier -t evm-no-zk --optimized -k "${path.join(tempDir, "vk")}" -o "${path.join(outDir, "OuterAttestedIdCount2.sol")}"`,
-  )
-  fs.rmSync(tempDir, { recursive: true, force: true })
 
   // The committed inputs as the SDK builds them for the contract, in parameter commitment order
   const rootKeyLeaf = await packLeBytesAndHashPoseidon2(
@@ -204,7 +209,11 @@ async function main() {
   console.log(`Wrote the Tier 2 outer EVM proof fixture to ${outDir}`)
 }
 
-main().catch((error) => {
-  console.error(error)
-  process.exit(1)
-})
+if (process.argv[1]?.endsWith("generate-tier2-evm-fixture.ts")) {
+  const outDir = process.argv[2]
+  if (!outDir) throw new Error("Usage: generate-tier2-evm-fixture.ts <out dir>")
+  generateTier2EvmFixture(outDir).catch((error) => {
+    console.error(error)
+    process.exit(1)
+  })
+}
