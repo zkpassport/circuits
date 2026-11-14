@@ -1,5 +1,6 @@
 import { poseidon2HashAsync } from "@zkpassport/poseidon2"
 import type { IntegrityToDisclosureSalts, OPRFProof, PackagedCertificatesFile, Query } from "@zkpassport/utils"
+import { generateAadhaarEvmFixture } from "./generate-aadhaar-evm-fixture"
 import { generateTier2EvmFixture } from "./generate-tier2-evm-fixture"
 import {
   Binary,
@@ -973,6 +974,13 @@ class FixtureGenerator {
     console.log("Generating the Tier 2 outer EVM proof fixture...")
     await generateTier2EvmFixture(
       path.join(__dirname, "..", "..", "solidity", "test", "fixtures", "tier2"),
+      { writeVerifier: false },
+    )
+    // An Aadhaar outer EVM proof, verified by test/AadhaarVerifier.t.sol with the packaged
+    // OuterAadhaarCount3 verifier
+    console.log("Generating the Aadhaar outer EVM proof fixture...")
+    await generateAadhaarEvmFixture(
+      path.join(__dirname, "..", "..", "solidity", "test", "fixtures", "aadhaar"),
       { writeVerifier: false },
     )
     console.log("Fixture generation completed successfully!")
