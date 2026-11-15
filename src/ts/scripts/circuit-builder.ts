@@ -493,7 +493,7 @@ use commitment::{calculate_attested_digest, commit_to_disclosure_attested};` : `
 use data_check_expiry::check_expiry_from_date;`}
 use data_check_tbs_pubkey::{verify_ecdsa_pubkey_in_tbs, verify_rsa_pubkey_in_tbs};
 use facematch::{
-    android::{get_app_id_from_credential_tbs, constants::INTEGRITY_TOKEN_MAX_LENGTH, token::{is_integrity_token_fresh, verify_integrity_token, verify_nonce, verify_integrity_token_signature, parse_integrity_token}}, calculate_attestation_registry_leaf,
+    android::{get_app_id_from_credential_tbs, constants::INTEGRITY_TOKEN_MAX_LENGTH, token::{is_integrity_token_fresh, verify_integrity_token, verify_nonce, verify_integrity_token_signature, parse_integrity_token}, get_tbs_serial_number, hardware::{assert_serial_not_revoked, RevocationProof}}, calculate_attestation_registry_leaf,
     get_client_data_hash, prepare_client_data_hash_for_signature, get_facematch_mode_from_client_data, get_tbs_hash_sha256,
     get_tbs_hash_sha384, ${attested ? "get_dg2_hash_from_client_data" : "verify_dg2_hash_in_client_data"}
 };
@@ -542,7 +542,13 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     intermediate_${index + 1}_tbs: [u8; ${signature_algorithm === "rsa" ? 1000 : 700}],
     // ${index === 0 ? "RSA" : intermediate_signature_algorithms[index - 1].signature_algorithm} signature from the ${index === 0 ? "root" : `intermediate certificate #${index}`} over the intermediate certificate #${index + 1} TBS
     intermediate_${index + 1}_sig: [u8; ${index === 0 ? root_signature_algorithm === "rsa" ? 512 : 96 : intermediate_signature_algorithms[index - 1].signature_algorithm === "rsa" ? Math.ceil(intermediate_signature_algorithms[index - 1].bit_size / 8) : Math.ceil(intermediate_signature_algorithms[index - 1].bit_size / 4)}],
+    // Shows the serial number of intermediate certificate #${index + 1} is not in the revocation tree
+    intermediate_${index + 1}_revocation_proof: RevocationProof,
     `).join("")}
+    // @committed
+    // The root of the tree of revoked attestation certificate serial numbers is committed to
+    // (via parameter commitment) and can be verified outside the circuit
+    revocation_root: Field,
     // This is the leaf certificate derived from the private key in the KeyStore
     // so we have control over the signature algorithm used (i.e P-256 with SHA256)
     // so client_data_sig will always be P-256 with SHA256
@@ -651,6 +657,10 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         "Failed to verify client data hash",
     );
 
+    ${intermediate_signature_algorithms.map((_, index) => `
+    assert_serial_not_revoked(revocation_root, get_tbs_serial_number(intermediate_${index + 1}_tbs), intermediate_${index + 1}_revocation_proof);
+    `).join("")}
+
     // Verify the app ID in the credential certificate TBS matches the expected app ID
     let (tbs_app_id, app_id_length): ([u8; APP_ID_MAX_LEN], u32) =
         get_app_id_from_credential_tbs(credential_tbs);
@@ -742,7 +752,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
     let play_integrity_public_key_hash = poseidon2_hash_packed(play_integrity_public_key, play_integrity_public_key.len());
     let param_commitment =
-        ${attested ? (evm ? "calculate_attested_id_param_commitment_sha2" : "calculate_attested_id_param_commitment") : evm ? "calculate_param_commitment_sha2" : "calculate_param_commitment"}(root_key_leaf, environment, app_id_hash, play_integrity_public_key_hash, facematch_mode);
+        ${attested ? (evm ? "calculate_attested_id_param_commitment_sha2" : "calculate_attested_id_param_commitment") : evm ? "calculate_param_commitment_sha2" : "calculate_param_commitment"}(root_key_leaf, environment, app_id_hash, play_integrity_public_key_hash, facematch_mode, revocation_root);
 
     ${attested ? "(comm_out, param_commitment, VERIFICATION_METHOD_ATTESTED_CAPTURE_ANDROID)" : "(param_commitment, nullifier_type, nullifier, oprf_pk_hash)"}
 }

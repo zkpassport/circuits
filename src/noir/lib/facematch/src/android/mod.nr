@@ -10,6 +10,7 @@ use utils::{
 
 pub mod constants;
 pub mod token;
+pub mod hardware;
 use constants::{ANDROID_KEY_ORIGIN_GENERATED, OID_ANDROID_KEY_ATTESTATION};
 pub mod tests;
 
@@ -60,74 +61,125 @@ fn expect_enter<let N: u32>(tbs: [u8; N], pos: u32, tag: u8) -> u32 {
     enter_element(tbs, pos)
 }
 
-pub fn get_app_id_from_credential_tbs<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: u32>(
+/// Bounds of the two authorization lists of the Android KeyDescription, and the security
+/// levels it reports for the attestation and for the key.
+struct KeyDescriptionLayout {
+    attestation_security_level: u8,
+    keymint_security_level: u8,
+    software_enforced_start: u32,
+    software_enforced_end: u32,
+    hardware_enforced_start: u32,
+    hardware_enforced_end: u32,
+}
+
+fn read_enumerated<let N: u32>(tbs: [u8; N], pos: u32) -> u8 {
+    assert((tbs[pos] == 0x0A) & (tbs[pos + 1] == 0x01), "expected a one-byte ENUMERATED");
+    tbs[pos + 2]
+}
+
+/// Walks the KeyDescription structurally. The attestation OID is anchored on its first
+/// occurrence and the attacker-chosen `attestationChallenge` is skipped by length, so no
+/// field can be read from bytes the app controls.
+/// Framing: 04 extension OCTET STRING -> 30 KeyDescription -> attestationVersion,
+/// attestationSecurityLevel, keyMintVersion, keyMintSecurityLevel, attestationChallenge,
+/// uniqueId, softwareEnforced, hardwareEnforced.
+fn get_key_description_layout<let TBS_MAX_LEN: u32>(
     tbs: [u8; TBS_MAX_LEN],
-) -> ([u8; APP_ID_MAX_LEN], u32) {
-    // Locate the Android Key Attestation extension OID. Strict first-occurrence so the
-    // anchor cannot be pointed at a planted copy inside attacker-controlled bytes.
+) -> KeyDescriptionLayout {
     let oid_offset = find_subarray_index_strict(OID_ANDROID_KEY_ATTESTATION, tbs);
     assert(
         oid_offset < TBS_MAX_LEN,
         "Android Key Attestation OID not found in credential certificate",
     );
 
-    // Walk the KeyDescription structurally to confine the app-id search to the
-    // CA-attested `softwareEnforced` set: the attacker-chosen `attestationChallenge`
-    // (field 5) precedes it, so a flat scan could match a planted BF 85 45 blob there.
-    // Framing: 04 extension OCTET STRING -> 30 KeyDescription -> 6 fixed fields -> 30
-    // softwareEnforced.
     let mut p: u32 = oid_offset + OID_ANDROID_KEY_ATTESTATION.len();
-    p = expect_enter(tbs, p, 0x04); // extension value OCTET STRING
-    p = expect_enter(tbs, p, 0x30); // KeyDescription SEQUENCE
-    // Skip the six fixed fields by length, stepping over attestationChallenge.
-    for _i in 0..6 {
-        p = skip_element(tbs, p);
-    }
-    // Enter softwareEnforced and bound the app-id search to its contents only.
+    p = expect_enter(tbs, p, 0x04);
+    let (description_len, description_consumed) = read_der_length(tbs, p + 1);
+    let description_end = p + 1 + description_consumed + description_len;
+    assert(description_end <= TBS_MAX_LEN, "KeyDescription exceeds certificate bounds");
+    p = expect_enter(tbs, p, 0x30);
+
+    p = skip_element(tbs, p);
+    let attestation_security_level = read_enumerated(tbs, p);
+    p = skip_element(tbs, p);
+    p = skip_element(tbs, p);
+    let keymint_security_level = read_enumerated(tbs, p);
+    p = skip_element(tbs, p);
+    p = skip_element(tbs, p);
+    p = skip_element(tbs, p);
+
     assert(tbs[p] == 0x30, "softwareEnforced SEQUENCE not found");
     let (sw_len, sw_consumed) = read_der_length(tbs, p + 1);
-    let sw_start = p + 1 + sw_consumed;
-    let sw_end = sw_start + sw_len;
-    assert(sw_end <= TBS_MAX_LEN, "softwareEnforced exceeds certificate bounds");
+    let software_enforced_start = p + 1 + sw_consumed;
+    let software_enforced_end = software_enforced_start + sw_len;
+    assert(software_enforced_end <= description_end, "softwareEnforced exceeds KeyDescription");
 
-    // Walk the softwareEnforced entries and match the [709] DER *tag* (BF 85 45),
-    // skipping each non-matching entry by length. Only tag positions are inspected, so a
-    // value that merely contains those bytes cannot be mistaken for the tag. The entry
-    // cap bounds the walk (softwareEnforced holds only a handful of entries).
-    let app_id_tag: [u8; 3] = [0xBF, 0x85, 0x45];
-    let MAX_SW_ENTRIES: u32 = 32;
-    p = sw_start;
-    let mut tag_offset: u32 = TBS_MAX_LEN;
+    p = software_enforced_end;
+    assert(tbs[p] == 0x30, "hardwareEnforced SEQUENCE not found");
+    let (hw_len, hw_consumed) = read_der_length(tbs, p + 1);
+    let hardware_enforced_start = p + 1 + hw_consumed;
+    let hardware_enforced_end = hardware_enforced_start + hw_len;
+    assert(hardware_enforced_end <= description_end, "hardwareEnforced exceeds KeyDescription");
+
+    KeyDescriptionLayout {
+        attestation_security_level,
+        keymint_security_level,
+        software_enforced_start,
+        software_enforced_end,
+        hardware_enforced_start,
+        hardware_enforced_end,
+    }
+}
+
+/// Finds the entry with a three-byte context tag in an authorization list, stepping from tag
+/// to tag by length so a value that merely contains the tag bytes is never matched.
+/// Returns the position of the entry's content.
+fn find_authorization_entry<let N: u32>(tbs: [u8; N], start: u32, end: u32, tag: [u8; 3]) -> u32 {
+    let MAX_ENTRIES: u32 = 48;
+    let mut p = start;
+    let mut content_offset: u32 = N;
     let mut found: bool = false;
-    for _ in 0..MAX_SW_ENTRIES {
-        if !found & (p + 3 <= sw_end) {
-            if (tbs[p] == app_id_tag[0])
-                & (tbs[p + 1] == app_id_tag[1])
-                & (tbs[p + 2] == app_id_tag[2]) {
-                tag_offset = p;
+    for _ in 0..MAX_ENTRIES {
+        if !found & (p + 3 <= end) {
+            if (tbs[p] == tag[0]) & (tbs[p + 1] == tag[1]) & (tbs[p + 2] == tag[2]) {
+                let (len, consumed) = read_der_length(tbs, p + 3);
+                content_offset = p + 3 + consumed;
+                assert(content_offset + len <= end, "authorization entry exceeds its list");
                 found = true;
             } else {
                 p = skip_tagged_element(tbs, p);
             }
         }
     }
-    assert(found, "attestationApplicationId [709] not found in softwareEnforced");
+    assert(found, "authorization entry not found");
+    content_offset
+}
 
-    // Descend [709] (3-byte tag, length at +3): OCTET STRING -> SEQUENCE -> SET ->
-    // SEQUENCE -> packageName OCTET STRING (the app id).
-    let (_, tag_len_bytes) = read_der_length(tbs, tag_offset + 3);
-    let mut q = tag_offset + 3 + tag_len_bytes;
-    q = expect_enter(tbs, q, 0x04); // OCTET STRING wrapper
-    q = expect_enter(tbs, q, 0x30); // AttestationApplicationId SEQUENCE
-    q = expect_enter(tbs, q, 0x31); // SET OF AttestationPackageInfo
-    q = expect_enter(tbs, q, 0x30); // AttestationPackageInfo SEQUENCE
+/// Reads the attestationApplicationId [709] from softwareEnforced, where Keystore records the
+/// package name and the digest of the certificate the APK is signed with.
+/// Framing: OCTET STRING -> SEQUENCE -> SET OF AttestationPackageInfo -> SEQUENCE ->
+/// packageName OCTET STRING, then the SET OF signatureDigests.
+fn get_attestation_application_id<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: u32>(
+    tbs: [u8; TBS_MAX_LEN],
+    layout: KeyDescriptionLayout,
+) -> ([u8; APP_ID_MAX_LEN], u32, [u8; 32]) {
+    let mut q = find_authorization_entry(
+        tbs,
+        layout.software_enforced_start,
+        layout.software_enforced_end,
+        [0xBF, 0x85, 0x45],
+    );
+    q = expect_enter(tbs, q, 0x04);
+    q = expect_enter(tbs, q, 0x30);
+    let packages_offset = q;
+    q = expect_enter(tbs, q, 0x31);
+    q = expect_enter(tbs, q, 0x30);
     assert(tbs[q] == 0x04, "packageName OCTET STRING not found");
     let (app_id_length, app_id_len_bytes) = read_der_length(tbs, q + 1);
     let app_id_offset = q + 1 + app_id_len_bytes;
     assert(app_id_offset + app_id_length <= TBS_MAX_LEN, "App ID exceeds certificate bounds");
     assert(app_id_length <= APP_ID_MAX_LEN, "App ID length exceeds maximum allowed length");
 
-    // Extract the app ID with dynamic length, padding with zeros if needed
     let mut app_id = [0u8; APP_ID_MAX_LEN];
     for i in 0..APP_ID_MAX_LEN {
         if i < app_id_length {
@@ -135,7 +187,122 @@ pub fn get_app_id_from_credential_tbs<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: 
         }
     }
 
+    let mut d = skip_element(tbs, packages_offset);
+    d = expect_enter(tbs, d, 0x31);
+    assert((tbs[d] == 0x04) & (tbs[d + 1] == 32), "signature digest must be a SHA-256 digest");
+    assert(d + 2 + 32 <= layout.software_enforced_end, "signature digest exceeds softwareEnforced");
+    let mut signing_digest = [0u8; 32];
+    for i in 0..32 {
+        signing_digest[i] = tbs[d + 2 + i];
+    }
+
+    (app_id, app_id_length, signing_digest)
+}
+
+pub fn get_app_id_from_credential_tbs<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: u32>(
+    tbs: [u8; TBS_MAX_LEN],
+) -> ([u8; APP_ID_MAX_LEN], u32) {
+    let layout = get_key_description_layout(tbs);
+    let (app_id, app_id_length, _) = get_attestation_application_id(tbs, layout);
     (app_id, app_id_length)
+}
+
+/// What the Android key attestation says about the device and the app, read from the
+/// credential certificate. `device_locked`, `verified_boot_*` and `os_patch_level` come from
+/// hardwareEnforced; the package name and signing digest from softwareEnforced.
+pub struct AndroidKeyDescription<let APP_ID_MAX_LEN: u32> {
+    pub attestation_security_level: u8,
+    pub keymint_security_level: u8,
+    pub verified_boot_key: [u8; 32],
+    pub device_locked: bool,
+    pub verified_boot_state: u8,
+    /// YYYYMM
+    pub os_patch_level: u32,
+    pub app_id: [u8; APP_ID_MAX_LEN],
+    pub app_id_length: u32,
+    pub app_signing_digest: [u8; 32],
+}
+
+fn read_small_integer<let N: u32>(tbs: [u8; N], pos: u32) -> u32 {
+    assert(tbs[pos] == 0x02, "INTEGER not found");
+    let len = tbs[pos + 1] as u32;
+    assert((len >= 1) & (len <= 4), "INTEGER too long");
+    assert(tbs[pos + 2] < 0x80, "INTEGER must be positive");
+    let mut value: u32 = 0;
+    for i in 0..4 {
+        if i < len {
+            value = value * 256 + tbs[pos + 2 + i] as u32;
+        }
+    }
+    value
+}
+
+pub fn get_key_description<let TBS_MAX_LEN: u32, let APP_ID_MAX_LEN: u32>(
+    tbs: [u8; TBS_MAX_LEN],
+) -> AndroidKeyDescription<APP_ID_MAX_LEN> {
+    let layout = get_key_description_layout(tbs);
+    let (app_id, app_id_length, app_signing_digest) = get_attestation_application_id(tbs, layout);
+
+    // rootOfTrust [704]: SEQUENCE { verifiedBootKey OCTET STRING, deviceLocked BOOLEAN,
+    // verifiedBootState ENUMERATED, verifiedBootHash OCTET STRING }
+    let mut r = find_authorization_entry(
+        tbs,
+        layout.hardware_enforced_start,
+        layout.hardware_enforced_end,
+        [0xBF, 0x85, 0x40],
+    );
+    r = expect_enter(tbs, r, 0x30);
+    assert((tbs[r] == 0x04) & (tbs[r + 1] == 32), "verifiedBootKey must be 32 bytes");
+    let mut verified_boot_key = [0u8; 32];
+    for i in 0..32 {
+        verified_boot_key[i] = tbs[r + 2 + i];
+    }
+    r += 34;
+    assert((tbs[r] == 0x01) & (tbs[r + 1] == 0x01), "deviceLocked BOOLEAN not found");
+    let device_locked = tbs[r + 2] != 0;
+    r += 3;
+    let verified_boot_state = read_enumerated(tbs, r);
+    assert(r + 3 <= layout.hardware_enforced_end, "rootOfTrust exceeds hardwareEnforced");
+
+    let patch_offset = find_authorization_entry(
+        tbs,
+        layout.hardware_enforced_start,
+        layout.hardware_enforced_end,
+        [0xBF, 0x85, 0x42],
+    );
+    let os_patch_level = read_small_integer(tbs, patch_offset);
+
+    AndroidKeyDescription {
+        attestation_security_level: layout.attestation_security_level,
+        keymint_security_level: layout.keymint_security_level,
+        verified_boot_key,
+        device_locked,
+        verified_boot_state,
+        os_patch_level,
+        app_id,
+        app_id_length,
+        app_signing_digest,
+    }
+}
+
+/// Reads the serial number of a certificate from its TBS, as an integer. Serials are at most
+/// 20 octets (RFC 5280), plus a leading zero when the top bit is set, so they fit in a Field.
+pub fn get_tbs_serial_number<let TBS_MAX_LEN: u32>(tbs: [u8; TBS_MAX_LEN]) -> Field {
+    let mut p = expect_enter(tbs, 0, 0x30);
+    if tbs[p] == 0xA0 {
+        p = skip_element(tbs, p);
+    }
+    assert(tbs[p] == 0x02, "serialNumber INTEGER not found");
+    let len = tbs[p + 1] as u32;
+    assert((len >= 1) & (len <= 21), "serialNumber too long");
+    assert((len < 21) | (tbs[p + 2] == 0), "serialNumber too long");
+    let mut serial: Field = 0;
+    for i in 0..21 {
+        if i < len {
+            serial = serial * 256 + tbs[p + 2 + i] as Field;
+        }
+    }
+    serial
 }
 
 // NOTE: unlike the hardened `get_app_id_from_credential_tbs`, this still uses non-strict

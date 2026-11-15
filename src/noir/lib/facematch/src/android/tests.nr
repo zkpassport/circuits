@@ -2,7 +2,17 @@
 // The real credential TBS below is captured from the `android_strict_mode_dev`
 // facematch fixture; its attestationApplicationId (in softwareEnforced) is
 // "app.zkpassport.zkpassport".
-use super::get_app_id_from_credential_tbs;
+use super::constants::{
+    ANDROID_BOOT_KEY_ALLOWLIST_DEPTH, ANDROID_REVOCATION_TREE_DEPTH, KM_SECURITY_LEVEL_STRONGBOX,
+    VERIFIED_BOOT_STATE_VERIFIED,
+};
+use super::{get_app_id_from_credential_tbs, get_key_description, get_tbs_serial_number};
+use super::hardware::{
+    assert_serial_not_revoked, get_boot_key_allowlist_leaf, is_os_patch_level_recent,
+    RevocationProof, verify_hardware_device_state,
+};
+use poseidon::poseidon2::Poseidon2;
+use utils::ordered_mt::OrderedMerkleTreeInclusionProof;
 
 global REAL_CREDENTIAL_TBS: [u8; 1000] = [
     48, 130, 2, 94, 160, 3, 2, 1, 2, 2, 1, 1, 48, 10, 6, 8, 42, 134, 72, 206, 61, 4, 3, 2, 48, 63,
@@ -98,4 +108,262 @@ fn test_get_app_id_ignores_planted_challenge() {
     let (expected, expected_len) = expected_app_id();
     assert(len == expected_len, "planted challenge changed the app id length");
     assert(app_id == expected, "planted challenge spoofed the app id");
+}
+
+global REAL_VERIFIED_BOOT_KEY: [u8; 32] = [
+    0, 63, 26, 222, 157, 71, 110, 97, 43, 0, 242, 152, 62, 106, 215, 220, 209, 94, 106, 128, 204,
+    45, 187, 0, 141, 167, 214, 131, 158, 215, 58, 143,
+];
+global REAL_APP_SIGNING_DIGEST: [u8; 32] = [
+    250, 198, 23, 69, 220, 9, 3, 120, 111, 185, 237, 230, 42, 150, 43, 57, 159, 115, 72, 240, 187,
+    111, 137, 155, 131, 50, 102, 117, 145, 3, 59, 156,
+];
+// Offsets within REAL_CREDENTIAL_TBS of the deviceLocked and verifiedBootState values
+global DEVICE_LOCKED_OFFSET: u32 = 534;
+global VERIFIED_BOOT_STATE_OFFSET: u32 = 537;
+// 2024-09-15 and 2025-09-15
+global SEPT_2024: u64 = 1726358400;
+global SEPT_2025: u64 = 1757894400;
+
+#[test]
+fn test_get_key_description_real_cert() {
+    let description = get_key_description::<_, 32>(REAL_CREDENTIAL_TBS);
+    assert(description.attestation_security_level == KM_SECURITY_LEVEL_STRONGBOX);
+    assert(description.keymint_security_level == KM_SECURITY_LEVEL_STRONGBOX);
+    assert(description.verified_boot_key == REAL_VERIFIED_BOOT_KEY);
+    assert(description.device_locked);
+    assert(description.verified_boot_state == VERIFIED_BOOT_STATE_VERIFIED);
+    assert(description.os_patch_level == 202409);
+    assert(description.app_signing_digest == REAL_APP_SIGNING_DIGEST);
+    let (expected, expected_len) = expected_app_id();
+    assert(description.app_id == expected);
+    assert(description.app_id_length == expected_len);
+}
+
+#[test]
+fn test_get_tbs_serial_number_real_cert() {
+    assert(get_tbs_serial_number(REAL_CREDENTIAL_TBS) == 1);
+}
+
+#[test]
+fn test_hardware_device_state_accepts_locked_oem_device() {
+    let description = get_key_description::<_, 32>(REAL_CREDENTIAL_TBS);
+    verify_hardware_device_state(
+        description,
+        0,
+        0,
+        [0; ANDROID_BOOT_KEY_ALLOWLIST_DEPTH],
+        SEPT_2025,
+    );
+}
+
+#[test(should_fail_with = "Bootloader must be locked")]
+fn test_hardware_device_state_rejects_unlocked_bootloader() {
+    let mut tbs = REAL_CREDENTIAL_TBS;
+    tbs[DEVICE_LOCKED_OFFSET] = 0;
+    let description = get_key_description::<_, 32>(tbs);
+    verify_hardware_device_state(
+        description,
+        0,
+        0,
+        [0; ANDROID_BOOT_KEY_ALLOWLIST_DEPTH],
+        SEPT_2025,
+    );
+}
+
+#[test(should_fail_with = "OS must pass verified boot")]
+fn test_hardware_device_state_rejects_unverified_os() {
+    let mut tbs = REAL_CREDENTIAL_TBS;
+    tbs[VERIFIED_BOOT_STATE_OFFSET] = 2;
+    let description = get_key_description::<_, 32>(tbs);
+    verify_hardware_device_state(
+        description,
+        0,
+        0,
+        [0; ANDROID_BOOT_KEY_ALLOWLIST_DEPTH],
+        SEPT_2025,
+    );
+}
+
+fn allowlist_root_with(boot_key: [u8; 32]) -> Field {
+    let mut current = get_boot_key_allowlist_leaf(boot_key);
+    for _ in 0..ANDROID_BOOT_KEY_ALLOWLIST_DEPTH {
+        current = Poseidon2::hash([current, 0], 2);
+    }
+    current
+}
+
+#[test]
+fn test_hardware_device_state_accepts_allowlisted_self_signed_os() {
+    let mut tbs = REAL_CREDENTIAL_TBS;
+    tbs[VERIFIED_BOOT_STATE_OFFSET] = 1;
+    let description = get_key_description::<_, 32>(tbs);
+    verify_hardware_device_state(
+        description,
+        allowlist_root_with(REAL_VERIFIED_BOOT_KEY),
+        0,
+        [0; ANDROID_BOOT_KEY_ALLOWLIST_DEPTH],
+        SEPT_2025,
+    );
+}
+
+#[test(should_fail_with = "Verified boot key is not on the allowlist")]
+fn test_hardware_device_state_rejects_unknown_self_signed_os() {
+    let mut tbs = REAL_CREDENTIAL_TBS;
+    tbs[VERIFIED_BOOT_STATE_OFFSET] = 1;
+    let description = get_key_description::<_, 32>(tbs);
+    verify_hardware_device_state(
+        description,
+        allowlist_root_with([1; 32]),
+        0,
+        [0; ANDROID_BOOT_KEY_ALLOWLIST_DEPTH],
+        SEPT_2025,
+    );
+}
+
+#[test(should_fail_with = "Security patch level is too old")]
+fn test_hardware_device_state_rejects_old_patch() {
+    let description = get_key_description::<_, 32>(REAL_CREDENTIAL_TBS);
+    verify_hardware_device_state(
+        description,
+        0,
+        0,
+        [0; ANDROID_BOOT_KEY_ALLOWLIST_DEPTH],
+        SEPT_2025 + 31 * 24 * 60 * 60,
+    );
+}
+
+#[test]
+fn test_os_patch_level_recency() {
+    assert(is_os_patch_level_recent(202409, SEPT_2024));
+    assert(is_os_patch_level_recent(202410, SEPT_2024));
+    assert(!is_os_patch_level_recent(202411, SEPT_2024));
+    assert(is_os_patch_level_recent(202409, SEPT_2025));
+    assert(!is_os_patch_level_recent(202408, SEPT_2025));
+    assert(!is_os_patch_level_recent(202413, SEPT_2024));
+    assert(!is_os_patch_level_recent(202400, SEPT_2024));
+}
+
+// A rootOfTrust planted in the attacker-chosen attestationChallenge, claiming an unlocked
+// device, must not be read in place of the genuine one in hardwareEnforced
+#[test]
+fn test_get_key_description_ignores_planted_root_of_trust() {
+    let mut tbs = REAL_CREDENTIAL_TBS;
+    let planted: [u8; 8] = [0xBF, 0x85, 0x40, 0x05, 0x30, 0x03, 0x01, 0x01];
+    for i in 0..planted.len() {
+        tbs[CHALLENGE_CONTENT_OFFSET + i] = planted[i];
+    }
+    let description = get_key_description::<_, 32>(tbs);
+    assert(description.device_locked);
+    assert(description.verified_boot_key == REAL_VERIFIED_BOOT_KEY);
+}
+
+// An ordered tree holding the sentinels 0 and -1 around the revoked serials 5 and 9
+fn revocation_tree() -> (Field, [[Field; ANDROID_REVOCATION_TREE_DEPTH]; 4], [Field; 4]) {
+    let leaves: [Field; 4] = [0, 5, 9, -1];
+    let mut zero = 0;
+    let mut zeros = [0; ANDROID_REVOCATION_TREE_DEPTH];
+    for i in 0..ANDROID_REVOCATION_TREE_DEPTH {
+        zeros[i] = zero;
+        zero = Poseidon2::hash([zero, zero], 2);
+    }
+    let a = Poseidon2::hash([leaves[0], leaves[1]], 2);
+    let b = Poseidon2::hash([leaves[2], leaves[3]], 2);
+    let mut root = Poseidon2::hash([a, b], 2);
+    for i in 2..ANDROID_REVOCATION_TREE_DEPTH {
+        root = Poseidon2::hash([root, zeros[i]], 2);
+    }
+    let mut paths = [zeros; 4];
+    for j in 0..4 {
+        paths[j][0] = leaves[j ^ 1];
+        paths[j][1] = if j < 2 { b } else { a };
+    }
+    (root, paths, leaves)
+}
+
+fn revocation_proof(left_index: u32) -> (Field, RevocationProof) {
+    let (root, paths, leaves) = revocation_tree();
+    let proof = RevocationProof::new(
+        OrderedMerkleTreeInclusionProof {
+            leaf: leaves[left_index],
+            leaf_index: left_index as Field,
+            sibling_path: paths[left_index],
+        },
+        OrderedMerkleTreeInclusionProof {
+            leaf: leaves[left_index + 1],
+            leaf_index: (left_index + 1) as Field,
+            sibling_path: paths[left_index + 1],
+        },
+    );
+    (root, proof)
+}
+
+#[test]
+fn test_serial_not_revoked() {
+    let (root, proof) = revocation_proof(1);
+    assert_serial_not_revoked(root, 7, proof);
+}
+
+#[test(should_fail)]
+fn test_revoked_serial_rejected() {
+    let (root, proof) = revocation_proof(0);
+    assert_serial_not_revoked(root, 5, proof);
+}
+
+#[test(should_fail)]
+fn test_revocation_proof_with_gap_rejected() {
+    let (root, paths, leaves) = revocation_tree();
+    let proof = RevocationProof::new(
+        OrderedMerkleTreeInclusionProof { leaf: leaves[0], leaf_index: 0, sibling_path: paths[0] },
+        OrderedMerkleTreeInclusionProof { leaf: leaves[2], leaf_index: 2, sibling_path: paths[2] },
+    );
+    assert_serial_not_revoked(root, 5, proof);
+}
+
+global EMPTY_REVOCATION_ROOT: Field =
+    0x23157e6435e936c4698498358363acb2a9a811908c4806e1087677338e1c5525;
+
+#[test]
+fn test_serial_not_revoked_in_empty_revocation_tree() {
+    let upper = [
+        0x0b63a53787021a4a962a452c2921b3663aff1ffd8d5510540f8e659e782956f1,
+        0x0e34ac2c09f45a503d2908bcb12f1cbae5fa4065759c88d501c097506a8b2290,
+        0x21f9172d72fdcdafc312eee05cf5092980dda821da5b760a9fb8dbdf607c8a20,
+        0x2373ea368857ec7af97e7b470d705848e2bf93ed7bef142a490f2119bcf82d8e,
+        0x120157cfaaa49ce3da30f8b47879114977c24b266d58b0ac18b325d878aafddf,
+        0x01c28fe1059ae0237b72334700697bdf465e03df03986fe05200cadeda66bd76,
+        0x2d78ed82f93b61ba718b17c2dfe5b52375b4d37cbbed6f1fc98b47614b0cf21b,
+        0x067243231eddf4222f3911defbba7705aff06ed45960b27f6f91319196ef97e1,
+        0x1849b85f3c693693e732dfc4577217acc18295193bede09ce8b97ad910310972,
+        0x2a775ea761d20435b31fa2c33ff07663e24542ffb9e7b293dfce3042eb104686,
+        0x0f320b0703439a8114f81593de99cd0b8f3b9bf854601abb5b2ea0e8a3dda4a7,
+        0x0d07f6e7a8a0e9199d6d92801fff867002ff5b4808962f9da2ba5ce1bdd26a73,
+        0x1c4954081e324939350febc2b918a293ebcdaead01be95ec02fcbe8d2c1635d1,
+        0x0197f2171ef99c2d053ee1fb5ff5ab288d56b9b41b4716c9214a4d97facc4c4a,
+        0x2b9cdd484c5ba1e4d6efcc3f18734b5ac4c4a0b9102e2aeb48521a661d3feee9,
+        0x14f44d672eb357739e42463497f9fdac46623af863eea4d947ca00a497dcdeb3,
+        0x071d7627ae3b2eabda8a810227bf04206370ac78dbf6c372380182dbd3711fe3,
+        0x2fdc08d9fe075ac58cb8c00f98697861a13b3ab6f9d41a4e768f75e477475bf5,
+        0x20165fe405652104dceaeeca92950aa5adc571b8cafe192878cba58ff1be49c5,
+    ];
+    let mut left_path = [0; 20];
+    let mut right_path = [0; 20];
+    left_path[0] = 0x2523648240000001ba344d80000000086121000000000013a700000000000012;
+    for i in 1..20 {
+        left_path[i] = upper[i - 1];
+        right_path[i] = upper[i - 1];
+    }
+    let proof = RevocationProof::new(
+        OrderedMerkleTreeInclusionProof { leaf: 0, leaf_index: 0, sibling_path: left_path },
+        OrderedMerkleTreeInclusionProof {
+            leaf: 0x2523648240000001ba344d80000000086121000000000013a700000000000012,
+            leaf_index: 1,
+            sibling_path: right_path,
+        },
+    );
+    assert_serial_not_revoked(
+        EMPTY_REVOCATION_ROOT,
+        get_tbs_serial_number(REAL_CREDENTIAL_TBS),
+        proof,
+    );
 }

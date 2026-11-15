@@ -134,8 +134,14 @@ fn main(
 
     let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
     // Since the integrity public key hash is only for Android, we set it to 0 for iOS
-    let param_commitment =
-        calculate_param_commitment_sha2(root_key_leaf, environment, app_id_hash, 0, facematch_mode);
+    let param_commitment = calculate_param_commitment_sha2(
+        root_key_leaf,
+        environment,
+        app_id_hash,
+        0,
+        facematch_mode,
+        0,
+    );
 
     (param_commitment, nullifier_type, nullifier, oprf_pk_hash)
 }
