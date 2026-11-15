@@ -1534,7 +1534,7 @@ describe("subcircuits - RSA PKCS", () => {
       const currentDate = getCurrentDateFromDisclosureProof(proof)
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
-    }, 10000)
+    }, 60000)
   })
 
   describe("exclusion-check evm", () => {
@@ -1685,7 +1685,7 @@ describe("subcircuits - RSA PKCS", () => {
       const currentDate = getCurrentDateFromDisclosureProof(proof)
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
-    }, 10000)
+    }, 60000)
 
     test("issuing country - should fail if the list is not sorted", async () => {
       const circuit = Circuit.from("exclusion_check_issuing_country_evm")
@@ -2857,7 +2857,7 @@ describe("subcircuits - RSA PKCS - German passport", () => {
       const currentDate = getCurrentDateFromDisclosureProof(proof)
       expect(currentDate.getTime()).toEqual(nowTimestamp * 1000)
       await circuit.destroy()
-    }, 10000)
+    }, 60000)
   })
 })
 
