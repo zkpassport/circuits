@@ -807,8 +807,15 @@ class FixtureGenerator {
     )
 
     // Outer circuit takes oprf_pk_hash as a top-level input; 0 for NON_SALTED fixtures,
-    // Poseidon2(pk.x, pk.y) for SALTED fixtures.
-    const proof = await circuit.prove({ ...inputs, oprf_pk_hash: oprfPkHash }, {
+    // Poseidon2(pk.x, pk.y) for SALTED fixtures. The verification method is the integrity
+    // proof's last output (comm_in, comm_out, verification_method), passed here as the utils
+    // this repo pins predate it.
+    const outerInputs = {
+      ...inputs,
+      oprf_pk_hash: oprfPkHash,
+      verification_method: baseSubproofs[2].publicInputs[2],
+    }
+    const proof = await circuit.prove(outerInputs, {
       useCli: true,
       circuitName: evmCircuitName,
       recursive: false,
