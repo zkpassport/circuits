@@ -1398,10 +1398,10 @@ const generateFaceMatchAndroidCircuits = ({ unconstrained = false }: { unconstra
   // Support both RSA (old) and ECDSA P384 (new) root keys
   const root_signature_algorithms: ("rsa" | "ecdsa")[] = ["rsa", "ecdsa"]
   console.log("Generating FaceMatch Android circuits...")
-  const variants = root_signature_algorithms
-    .map((root_signature_algorithm) => ({ root_signature_algorithm, hardware: false }))
-    // Factory-provisioned keyboxes, the ones that leak, chain to the RSA root
-    .concat([{ root_signature_algorithm: "ecdsa" as const, hardware: true }])
+  const variants = root_signature_algorithms.map((root_signature_algorithm) => ({
+    root_signature_algorithm,
+    hardware: false,
+  }))
   variants.forEach(({ root_signature_algorithm, hardware }) => {
     // Non-EVM
     intermediate_signature_algorithms.forEach((a) => {
