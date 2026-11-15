@@ -3451,10 +3451,10 @@ describe("aadhaar", () => {
       useCli: true,
       circuitName: "aadhaar_id",
     })
-    const [certificateRegistryRoot, commOut, credentialScheme] = proof.publicInputs.map(BigInt)
+    const [certificateRegistryRoot, commOut, verificationMethod] = proof.publicInputs.map(BigInt)
     expect(certificateRegistryRoot).toEqual(BigInt(FIXTURE.certificateRegistryRoot))
     expect(commOut).toEqual(BigInt(FIXTURE.commOut))
-    expect(credentialScheme).toEqual(101n)
+    expect(verificationMethod).toEqual(101n)
 
     const dg1 = new Uint8Array(FIXTURE.dg1)
     const discloseMask = Array(90).fill(1)
@@ -3526,7 +3526,7 @@ describe("aadhaar", () => {
       nullifier_type: d[5],
       scoped_nullifier: d[6],
       oprf_pk_hash: d[7],
-      credential_scheme: "0x65",
+      verification_method: "0x65",
       aadhaar_id_proof: await leaf(aadhaar, aadhaar.publicInputs),
       disclosure_proofs: [await leaf(disclose, [d[0], d[6], d[5], d[7]])],
     }
@@ -3553,7 +3553,7 @@ describe("aadhaar", () => {
       { certificate_registry_root: "0x1" },
       "Certificate registry root from Aadhaar ID circuit != expected certificate registry root",
     )
-    await fails({ credential_scheme: "0x64" }, "Not the Aadhaar credential scheme")
+    await fails({ verification_method: "0x64" }, "Not the Aadhaar verification method")
     const otherDisclose = { ...inputs.disclosure_proofs[0] }
     otherDisclose.public_inputs = ["0x2", ...otherDisclose.public_inputs.slice(1)]
     await fails(

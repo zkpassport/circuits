@@ -1,13 +1,13 @@
 // Base proof of an Aadhaar Secure QR code, in place of the three chip base proofs. Outputs the
 // same comm_out as the integrity check circuit. Public: certificate_registry_root, comm_out,
-// credential_scheme.
+// verification_method.
 
 use aadhaar::{
     AADHAAR_DELIMITER_COUNT, AADHAAR_MAX_DATA_LENGTH, CERTIFICATE_TREE_HEIGHT,
     commit_to_disclosure_aadhaar, parse_aadhaar_data, verify_uidai_key_in_registry,
 };
 use sig_check_rsa::verify_signature;
-use utils::constants::CREDENTIAL_SCHEME_UIDAI_AADHAAR;
+use utils::constants::VERIFICATION_METHOD_UIDAI_AADHAAR;
 
 fn main(
     certificate_registry_root: pub Field,
@@ -71,5 +71,5 @@ fn main(
         private_nullifier_salt,
     );
 
-    (comm_out, CREDENTIAL_SCHEME_UIDAI_AADHAAR)
+    (comm_out, VERIFICATION_METHOD_UIDAI_AADHAAR)
 }

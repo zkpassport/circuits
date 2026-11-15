@@ -1168,7 +1168,7 @@ use common::compute_merkle_root;
 use outer_lib::{AadhaarIdProof, DisclosureProof, poseidon2_hash, prepare_disclosure_inputs};
 use std::verify_proof_with_type;
 use utils::constants::{
-    CREDENTIAL_SCHEME_UIDAI_AADHAAR, NON_SALTED_MOCK_NULLIFIER, NONE_NULLIFIER, SALTED_MOCK_NULLIFIER,
+    VERIFICATION_METHOD_UIDAI_AADHAAR, NON_SALTED_MOCK_NULLIFIER, NONE_NULLIFIER, SALTED_MOCK_NULLIFIER,
     SALTED_NULLIFIER,
 };
 global PROOF_TYPE_HONK_ZK: u32 = 6;
@@ -1183,7 +1183,7 @@ ${unconstrained ? "unconstrained " : ""}fn main(
     nullifier_type: pub Field,
     scoped_nullifier: pub Field,
     oprf_pk_hash: pub Field,
-    credential_scheme: pub Field,
+    verification_method: pub Field,
     aadhaar_id_proof: AadhaarIdProof,
     disclosure_proofs: [DisclosureProof; ${disclosure_proofs_count}],
 ) {
@@ -1229,14 +1229,14 @@ ${unconstrained ? "unconstrained " : ""}fn main(
         "oprf_pk_hash must be zero unless the nullifier is salted",
     );
 
-    assert_eq(credential_scheme, CREDENTIAL_SCHEME_UIDAI_AADHAAR, "Not the Aadhaar credential scheme");
+    assert_eq(verification_method, VERIFICATION_METHOD_UIDAI_AADHAAR, "Not the Aadhaar verification method");
     assert_eq(
         aadhaar_id_proof.public_inputs[0],
         certificate_registry_root,
         "Certificate registry root from Aadhaar ID circuit != expected certificate registry root",
     );
     let comm_out = aadhaar_id_proof.public_inputs[1];
-    assert_eq(aadhaar_id_proof.public_inputs[2], credential_scheme, "Credential scheme from Aadhaar ID circuit != expected credential scheme");
+    assert_eq(aadhaar_id_proof.public_inputs[2], verification_method, "Verification method from Aadhaar ID circuit != expected verification method");
 
     verify_proof_with_type(
         aadhaar_id_proof.vkey,

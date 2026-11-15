@@ -36,7 +36,7 @@ contract AadhaarVerifierTest is Test {
     assertFalse(_verifies(proof, changed));
   }
 
-  function test_RefusesAnotherCredentialScheme() public view {
+  function test_RefusesAnotherVerificationMethod() public view {
     bytes32[] memory changed = publicInputs;
     changed[changed.length - 1] = bytes32(uint256(100));
     assertFalse(_verifies(proof, changed));

@@ -161,7 +161,7 @@ export async function generateAadhaarEvmFixture(
     nullifier_type: d[5],
     scoped_nullifier: d[6],
     oprf_pk_hash: d[7],
-    credential_scheme: aadhaar.publicInputs[2],
+    verification_method: aadhaar.publicInputs[2],
     aadhaar_id_proof: await leaf(aadhaar, aadhaar.publicInputs),
     disclosure_proofs: [
       await leaf(facematch, [f[0], f[6], f[5], f[7]]),
