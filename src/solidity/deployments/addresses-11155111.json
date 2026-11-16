@@ -1,28 +1,28 @@
 {
   "sub_verifier_versions": {
-    "0.22.0": {
-      "address": "0x954d8b68d6fDD4a9f38986A72e62905A8ade969A",
+    "0.23.0": {
+      "address": "0xA84CA498451dEbfC87b91CC687384e7297A26A79",
       "admin": "0x2000ab040a899f914D6DfD2457C3dFBB22d4c762",
-      "deployed_at": 1793966616,
+      "deployed_at": 1794844344,
       "proof_verifiers": {
-        "outer_count_10": "0x64AC4C42aca2921086542A84019E78fEB3c00d3f",
-        "outer_count_11": "0x46433fBDB0Be5138606368BC4d6439308100e037",
-        "outer_count_12": "0x9794378EF233BCf94EbC6aEDd80915af97E7B9B9",
-        "outer_count_13": "0x0153443B77a1648b489ac38894879a7DE5dda17f",
-        "outer_count_4": "0x2CAbC19AeAEba7E7fBBB47f39657C6b4c19014A9",
-        "outer_count_5": "0x9550b53306A390a082eAB4246D7C700E6e883f0f",
-        "outer_count_6": "0xeFbe1E001819ef32478E74f943f999dBAa2583E1",
-        "outer_count_7": "0xeEA67C5cdFb91E40D7b658d251D10679Fdfc4368",
-        "outer_count_8": "0x55ff114e92D80A8ECc2635bBCD06D12c041480aa",
-        "outer_count_9": "0xC0AF9f4288bF60194B6ea2b47F7D82cef0E9Cda6"
+        "outer_count_10": "0x0fad0A638EC5471722804d27EFd8F6dbdcE29CBA",
+        "outer_count_11": "0xAAfE3a88fc821A9D5E44Ec57244F82c77D27C4ae",
+        "outer_count_12": "0xF106BAF21cEb7D97f35c39D4B1609acEf0B7e8eC",
+        "outer_count_13": "0xc66d1c7e48f1cF87cBf07810aD2Ef600B3fD3167",
+        "outer_count_4": "0xB138a7faCb44Ebe14183265B1b78b3df248D3d80",
+        "outer_count_5": "0x1d3e0Ecf373bb230Cee504ED626B0a67835b11De",
+        "outer_count_6": "0x3085eE01cdb9a2270336A29ab636221444c550f5",
+        "outer_count_7": "0xaf916b4C3Df8f6c140c5B4d13B6b7B8451648659",
+        "outer_count_8": "0xb22D78FAA1645Beec092aE4B8C2f85629624a7E8",
+        "outer_count_9": "0x035680380E37587Ddfe27BD45d1214Fcc9fa9373"
       },
       "root_verifier": "0x1D000001000EFD9a6371f4d90bB8920D5431c0D8"
     }
   },
   "verifier_helper_versions": {
-    "0.21.1": {
-      "address": "0xe8AE97eF2fFF59597D1B6882286754FEC200F3a9",
-      "deployed_at": 1789451088,
+    "0.23.0": {
+      "address": "0x81F01Cd4bABEBEEf270514B3BF7cADE3dFd01b61",
+      "deployed_at": 1794849240,
       "root_registry": "0x1D0000020038d6E40E1d98e09fA1bb3A7DAA8B70"
     }
   }
