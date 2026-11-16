@@ -493,7 +493,7 @@ use commitment::{calculate_attested_digest, commit_to_disclosure_attested};` : `
 use data_check_expiry::check_expiry_from_date;`}
 use data_check_tbs_pubkey::{verify_ecdsa_pubkey_in_tbs, verify_rsa_pubkey_in_tbs};
 use facematch::{
-    android::{get_app_id_from_credential_tbs, constants::INTEGRITY_TOKEN_MAX_LENGTH, token::{is_integrity_token_fresh, verify_integrity_token, verify_nonce, verify_integrity_token_signature, parse_integrity_token}, get_tbs_serial_number, hardware::{assert_serial_not_revoked, RevocationProof}}, calculate_attestation_registry_leaf,
+    android::{get_app_id_from_credential_tbs, constants::INTEGRITY_TOKEN_MAX_LENGTH, token::{is_integrity_token_fresh, verify_integrity_token, verify_nonce, verify_integrity_token_signature, parse_integrity_token}, get_tbs_serial_number, revocation::{assert_serial_not_revoked, RevocationProof}}, calculate_attestation_registry_leaf,
     get_client_data_hash, prepare_client_data_hash_for_signature, get_facematch_mode_from_client_data, get_tbs_hash_sha256,
     get_tbs_hash_sha384, ${attested ? "get_dg2_hash_from_client_data" : "verify_dg2_hash_in_client_data"}
 };

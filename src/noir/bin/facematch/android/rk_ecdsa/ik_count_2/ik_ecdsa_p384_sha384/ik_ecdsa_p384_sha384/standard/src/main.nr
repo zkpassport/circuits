@@ -7,7 +7,7 @@ use facematch::{
         constants::INTEGRITY_TOKEN_MAX_LENGTH,
         get_app_id_from_credential_tbs,
         get_tbs_serial_number,
-        hardware::{assert_serial_not_revoked, RevocationProof},
+        revocation::{assert_serial_not_revoked, RevocationProof},
         token::{
             is_integrity_token_fresh, parse_integrity_token, verify_integrity_token,
             verify_integrity_token_signature, verify_nonce,
