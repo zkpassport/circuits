@@ -17,11 +17,11 @@ uint256 constant NUMBER_UNSHIFTED = 36;
 uint256 constant NUMBER_TO_BE_SHIFTED = 5;
 uint256 constant PAIRING_POINTS_SIZE = 8;
 
-uint256 constant VK_HASH = 0x128e018cf7f2646e510efc0467d3ee5c0ef9c81b26aa11b31102599f91928a09;
+uint256 constant VK_HASH = 0x0345a25899029830ed562e47667bb6da8c07e5355e5a4d18d7b4a0507dd1b890;
 uint256 constant CIRCUIT_SIZE = 4194304;
 uint256 constant LOG_N = 22;
-uint256 constant NUMBER_PUBLIC_INPUTS = 17;
-uint256 constant REAL_NUMBER_PUBLIC_INPUTS = 9;
+uint256 constant NUMBER_PUBLIC_INPUTS = 18;
+uint256 constant REAL_NUMBER_PUBLIC_INPUTS = 10;
 uint256 constant PUBLIC_INPUTS_OFFSET = 5; // NUM_DISABLED_ROWS_IN_SUMCHECK + NUM_ZERO_ROWS = 4 + 1
 
 contract HonkVerifier is IVerifier {
@@ -1453,42 +1453,42 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
             //
             // Although defined at the top of the file, it is used towards the end of the algorithm when batching in the commitment scheme.
             function loadVk() {
-                mstore(Q_L_X_LOC, 0x0d79bd12f0ec31fe00636beb0bdfec138488277ce4a8a763c1e509c161e37928)
-                mstore(Q_L_Y_LOC, 0x182195adfd3e4f1afabc4c226b57f3db868c97fa69278eafed11dd5feb138d36)
-                mstore(Q_R_X_LOC, 0x1d2cf2cf51f7b3e72d8f02c470c96136b22a0e9d0655b2a0ee785a0b382cf5aa)
-                mstore(Q_R_Y_LOC, 0x21dbd0de145ada7072eb47bf7e64d4931eff8ada14100a6d5975d61a9b1faa7b)
-                mstore(Q_O_X_LOC, 0x1b9b013029e32adaa0b3e92628df1822df96e22ab6430bf55a482ad2ec337c1e)
-                mstore(Q_O_Y_LOC, 0x08a1a2f61ab5111c82caec8ee4c68c83576349d5ff390a064578bf246b209b61)
-                mstore(Q_4_X_LOC, 0x2efe4f4d30e841f3f5c7d09f4c2e4d4c0d8c9465508b7bc1b2cfe93d2dfe31d0)
-                mstore(Q_4_Y_LOC, 0x27af3e973a770f4af20a83438aac71a2a8a197365a6765cca53c6bd018f60db1)
-                mstore(Q_M_X_LOC, 0x08fdbd54d2b8462025acc96874371d43289e6e85278c70a77c9c06c518855872)
-                mstore(Q_M_Y_LOC, 0x2f0b8ba0bede0866a801da9add87e2555f65e18401b0cf06a90dd358030c4cc1)
-                mstore(Q_C_X_LOC, 0x2bfc27da8ec7e6344b7554f94381ba23eae00439b00f46d76e15a12a89e328ae)
-                mstore(Q_C_Y_LOC, 0x2bfbc61cee2bd4977054b6d81e610efd15004170ba66845253f547e8e75ad2b2)
+                mstore(Q_L_X_LOC, 0x00529baac7ac8adcd33b1012ec915d2fe3580938ef1e344d47617835d5fd1073)
+                mstore(Q_L_Y_LOC, 0x1552b732def759f13ffaec3ed840925205656702ce96e1c0ce296a793b9ee962)
+                mstore(Q_R_X_LOC, 0x0acb68715303e532637b38f8a83b9108df5e5c44ac409a4416b19c1567f0db3d)
+                mstore(Q_R_Y_LOC, 0x1f7684bbd25aac9a4fb3727c0c90bd3f07cb2a074a8be2ebd6d624de73624367)
+                mstore(Q_O_X_LOC, 0x289cb5e6b5ede56f236058a841188fa4fc9849ef372d6918d0ec0a3110c88aff)
+                mstore(Q_O_Y_LOC, 0x0c165c673b072bac5bbfbd7918abd326deef67059152c6da636f5c2542f07038)
+                mstore(Q_4_X_LOC, 0x0457e4f2fb3f7a5a9174cd1af5a77f4ae8f6992e7268bab4f625c701f9afe5cc)
+                mstore(Q_4_Y_LOC, 0x21a927a09359c710704e41281609aabf0e2af04abe0331158d9e0ffeea21a72b)
+                mstore(Q_M_X_LOC, 0x17c8857a443eb088ca2d881f676c2e08687113f8beb7f9afc82a7d2d674db142)
+                mstore(Q_M_Y_LOC, 0x02a7de1660d96e68d33170c2b3f80aad7f862cdd10d0c9ce6f264589eb2318d2)
+                mstore(Q_C_X_LOC, 0x2a05593fac2c65c68080a9c4d7fc915d9e046a64cb221d05d091b2b45964c460)
+                mstore(Q_C_Y_LOC, 0x274eb458051edbdfdd98ca5641f6324f57223d8d02650a0cadccd69d123983cd)
                 mstore(Q_LOOKUP_X_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
                 mstore(Q_LOOKUP_Y_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
-                mstore(Q_ARITH_X_LOC, 0x28c0e456c53280292d28a555365138d1f9efd4730977b04934fe902a63e1f975)
-                mstore(Q_ARITH_Y_LOC, 0x15904775fc77519233ede7ac7f9379aa5adb9f6d9c7afdb6bd185593f24caf1e)
-                mstore(Q_DELTA_RANGE_X_LOC, 0x048e8b7fc255f1796ac9f17399357e1a9f71795e6ece013a54c875712681b399)
-                mstore(Q_DELTA_RANGE_Y_LOC, 0x20cf6994709d2ff60596230c9b974978a17bbdea4d219a1baa73da533bd76378)
+                mstore(Q_ARITH_X_LOC, 0x113f8a439426c0adaadf3eda52b31b9e9993f0465f3e9d508246828bfc5339ae)
+                mstore(Q_ARITH_Y_LOC, 0x099651daf17d221245b579479ad0fe5aa40ab2e5eb2583c3d93c7f62f1e4cb0c)
+                mstore(Q_DELTA_RANGE_X_LOC, 0x2e99dae8d554143767d2d2a6bf4f808202449e7aeb5edf1370461f1db95e650d)
+                mstore(Q_DELTA_RANGE_Y_LOC, 0x10dc682ee502fab6731a45733ccf4d38eda57a495185f8dbc4484fb420ccd564)
                 mstore(Q_ELLIPTIC_X_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
                 mstore(Q_ELLIPTIC_Y_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
-                mstore(Q_MEMORY_X_LOC, 0x0f0a59da65437c3d8f9e681135b10c321887fc4f968cadabdc68ce4addca9549)
-                mstore(Q_MEMORY_Y_LOC, 0x213e0ebce4e056b7af1fe70fe472610d9688bb99dc88e91c963e9eb5d174383d)
-                mstore(Q_NNF_X_LOC, 0x13c64ad8d19601ae82052767f6d22d647833ff08fe98cd0a16c370dc7301b9b0)
-                mstore(Q_NNF_Y_LOC, 0x2d4854159fbd7b41e05d1d9b8e051962bb3746852041d2f2b9a872b2e7ef1577)
-                mstore(Q_POSEIDON_2_EXTERNAL_X_LOC, 0x19b6b4f51eee2d6f53eeac1a348ab83e366ad0c5c908c535310b496f8ba5baba)
-                mstore(Q_POSEIDON_2_EXTERNAL_Y_LOC, 0x2da628662f4679b7b5fa8f404625790d36e551e4ab5bb4dbd1b58ca65f7c6ed0)
-                mstore(Q_POSEIDON_2_INTERNAL_X_LOC, 0x23ec4498fb76ff244e82f36c7db89958b2ba2843c9fbca7ed29f8ddb2547a8b4)
-                mstore(Q_POSEIDON_2_INTERNAL_Y_LOC, 0x1b94dbc6562f4cd1d775f68842c4140880bb09ccee06a2ec9bdaa60c9c73295d)
-                mstore(SIGMA_1_X_LOC, 0x2d19ad7c865c0885f0599aa0ab513816c4a10e9cd2f3457d9958e968750078fc)
-                mstore(SIGMA_1_Y_LOC, 0x0af218583e66e82b29858d317fe0dd6c8d6875fcd00bf6590cce7c89cb76a1a9)
-                mstore(SIGMA_2_X_LOC, 0x00038007e3539cedb6409e83f2cbee105b80edb934dbe1c02e779af4a8d1adbb)
-                mstore(SIGMA_2_Y_LOC, 0x159e44ca28faa3eaed77391869282220a630733cc4536edab544267faa45958f)
-                mstore(SIGMA_3_X_LOC, 0x302cc6b46d5001932d29456a1b66abb15b8621596ca2cfb12b20ad8faba14306)
-                mstore(SIGMA_3_Y_LOC, 0x15d7192adf6a53d8578c2217777dc2d38b2ca0e9466771d096b27126ae1e499d)
-                mstore(SIGMA_4_X_LOC, 0x24f9264fe7cb61e9b0544c005fcd456c7d89d6a13fa203434d57252d6e9b0e6e)
-                mstore(SIGMA_4_Y_LOC, 0x0c2889884805f3827a86801f76c91423af1921f0d6bf973c72a4b21adf468a0e)
+                mstore(Q_MEMORY_X_LOC, 0x20f800da34a06157bed8c751a410f6c5bcf99c9848cedecf5efc4d17369b7bbb)
+                mstore(Q_MEMORY_Y_LOC, 0x14f5a9214cdd57aea0395868eb4e6c58edc273bd23ac9a61b73d5d76764b913f)
+                mstore(Q_NNF_X_LOC, 0x0cd2f242d9a94e09cbe9eb6e4286d67873ac1c7a79c9277249a94f2549e8c128)
+                mstore(Q_NNF_Y_LOC, 0x1e72a1fee13c475c386ca637ec95dfb1485906bebc9554d6c489a9da5b87ab05)
+                mstore(Q_POSEIDON_2_EXTERNAL_X_LOC, 0x1bd638c9b1b7b8a0704a7cf815ddae07b3339e1d119d9841c96587ec3561dfe8)
+                mstore(Q_POSEIDON_2_EXTERNAL_Y_LOC, 0x1ecffad13ad7864cc8c4e24775aac355d114b890f8992c266e9784235b3fdc9a)
+                mstore(Q_POSEIDON_2_INTERNAL_X_LOC, 0x2b25b93b2a34223171aa305be384c38c1d745429b95bb786c1a126648835fac4)
+                mstore(Q_POSEIDON_2_INTERNAL_Y_LOC, 0x1edb92a1e848beb80bd2b299962e5d3de2c1a860d90b1f1cd5222b6c5dc0488d)
+                mstore(SIGMA_1_X_LOC, 0x2516c10b0d4b3de2059de33ef5d932054e28485f108ef67e0b9e237ee6ce7143)
+                mstore(SIGMA_1_Y_LOC, 0x2e549bb12eae6226dc7e1cc2cf1143a4fbbf4ebffd7676970a329e6e9b75f85f)
+                mstore(SIGMA_2_X_LOC, 0x04bda49105406e25745bc3fd346a53cc407f0d918a127e2028f5aba0b76e480a)
+                mstore(SIGMA_2_Y_LOC, 0x0800cc1774fa69a2f7b8bbb9db1e9da81a87c45c6160249d74db8a84a0378357)
+                mstore(SIGMA_3_X_LOC, 0x25c58a693288479f09b48c26a6d5816ea98d8c768937e54691629af1246ab975)
+                mstore(SIGMA_3_Y_LOC, 0x11d0f62d4924174e17c05c2daeaf2d6c7a3a61a586537d295e4745da73d6ba79)
+                mstore(SIGMA_4_X_LOC, 0x303e6479559a0a362e68b14a845ff37935664eb39eef079a62d3c3b856660b53)
+                mstore(SIGMA_4_Y_LOC, 0x232b4dbaf7775315752d5e5835572e320f9df2cd1bab373c942da065ef0a2c97)
                 mstore(TABLE_1_X_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
                 mstore(TABLE_1_Y_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
                 mstore(TABLE_2_X_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
@@ -1497,18 +1497,18 @@ uint256 internal constant SS_GEMINI_EVALS_LOC = 0x40;
                 mstore(TABLE_3_Y_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
                 mstore(TABLE_4_X_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
                 mstore(TABLE_4_Y_LOC, 0x0000000000000000000000000000000000000000000000000000000000000000)
-                mstore(ID_1_X_LOC, 0x0b2bffd19d98157ed765c441e54580f33a06bdf98ca8fe98639dddb423363c10)
-                mstore(ID_1_Y_LOC, 0x28b5465975570e9b7578180f3f747efccc52aba42757c59775409d55b528acd4)
-                mstore(ID_2_X_LOC, 0x2babdb98843a9a4eea6f0264549f9becf5faac46b023dfaf41c5de4d026edebe)
-                mstore(ID_2_Y_LOC, 0x1cabd6d2de3426dbd1bb59219d701729bd3cad9fbab11be9201f52b66cd18ae6)
-                mstore(ID_3_X_LOC, 0x02ad889c2e9b07644650b47b65d4ae82c90632ff45d5fb5809203595707a7ca6)
-                mstore(ID_3_Y_LOC, 0x17d81e6d9a2e7bcc56948729695c7b839d84ecb2839b5d144d0bcee00c79df2a)
-                mstore(ID_4_X_LOC, 0x297b0579682ee9720de97e38e9a59ba505774cf81986bf304b529f43a71987f3)
-                mstore(ID_4_Y_LOC, 0x1cd65a7efd551775ec1e2348c4b949616a5ccd6fed7b626e4492da09ff85ea19)
+                mstore(ID_1_X_LOC, 0x0d93532cc2ff220eed2ad525d620dec34368cb43a8fd80b62329710d2d759801)
+                mstore(ID_1_Y_LOC, 0x00a14c4b04f68be35777b7bdc05c67102b39eddfe5d4e761a42d2ccffd6e01e6)
+                mstore(ID_2_X_LOC, 0x108993ff72185300fac7a4e549733b97484d8c7c0f6a5fa94238c1c2a960bd1f)
+                mstore(ID_2_Y_LOC, 0x0c5e147b32ddfa9e7b82b70555d3f9d123398eeb8b0313d34118067c6608ea4a)
+                mstore(ID_3_X_LOC, 0x28a67d9e89dff5cec16cb0242e2b9dfeca0f91ebacbdb2b128c33132c55e09fb)
+                mstore(ID_3_Y_LOC, 0x0921da3e1a75c92e44167db790f4328918cd5beeef7ac41167ec5b78c172b7c8)
+                mstore(ID_4_X_LOC, 0x0fa3e237f4400fdc0e1e1d6128ef6d03f92441bdc1b83d3c42b4bb97878abc35)
+                mstore(ID_4_Y_LOC, 0x1dc9f118ccb247ed0715df48af220396398206b0e201f3a4b650c7fc41ca3aa9)
                 mstore(LAGRANGE_FIRST_X_LOC, 0x2a56ce41f6b0be13b9c26747621b821eee81b23a887f299049b14c11e98460d6)
                 mstore(LAGRANGE_FIRST_Y_LOC, 0x1aa98f2de3ddda547d8f6de4e725ded5827d6338c78656c0d12ca1aea6ef2c7c)
-                mstore(LAGRANGE_LAST_X_LOC, 0x0d67f65e00cf7982cc8ce63604ac1f00dc5cab52c46bc1c9077be4beb2779a09)
-                mstore(LAGRANGE_LAST_Y_LOC, 0x2b1684db75d2271b574e472c7d7ca38b9ecec6e9a23bc649911cfda6e900b065)
+                mstore(LAGRANGE_LAST_X_LOC, 0x07bbd8b7223a4ab8933bd0f0ce7cbd3899f4f616bb2738c1f958bcd92b1d5956)
+                mstore(LAGRANGE_LAST_Y_LOC, 0x03367647cb672813e5c5ce49a945e5689a5214d7624445fc44e76a5970de81e0)
             }
 
             // Prime field order - placing on the stack

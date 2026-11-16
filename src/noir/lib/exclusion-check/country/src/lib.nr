@@ -200,10 +200,11 @@ pub fn check_nationality_exclusion<let N: u32>(dg1: DG1Data, country_list: [u32;
         + nationality_bytes[1] as u32 * 0x100
         + nationality_bytes[2] as u32;
 
-    // A conformant document never has an empty nationality (sum 0). Reject it so a
-    // \0\0\0 nationality can't silently pass the "not in list" check on a malformed
-    // document and evade the denylist.
+    // An empty nationality, \0\0\0 (sum 0) or all filler "<<<" (0x3c3c3c, what a document that
+    // states none carries, like a driving licence), is in no list, so it would pass any "not in
+    // list" check and evade the denylist. Reject both.
     assert(nationality_sum != 0, "Nationality is empty");
+    assert(nationality_sum != 0x3c3c3c, "Nationality is empty");
 
     check_exclusion(nationality_sum, country_list);
 }

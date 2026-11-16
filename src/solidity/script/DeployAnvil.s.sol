@@ -17,10 +17,20 @@ import {HonkVerifier as OuterCount10} from "../src/ultra-honk-verifiers/OuterCou
 import {HonkVerifier as OuterCount11} from "../src/ultra-honk-verifiers/OuterCount11.sol";
 import {HonkVerifier as OuterCount12} from "../src/ultra-honk-verifiers/OuterCount12.sol";
 import {HonkVerifier as OuterCount13} from "../src/ultra-honk-verifiers/OuterCount13.sol";
+import {HonkVerifier as OuterAttestedIdCount2} from "../src/ultra-honk-verifiers/OuterAttestedIdCount2.sol";
+import {HonkVerifier as OuterAttestedIdCount3} from "../src/ultra-honk-verifiers/OuterAttestedIdCount3.sol";
+import {HonkVerifier as OuterAttestedIdCount4} from "../src/ultra-honk-verifiers/OuterAttestedIdCount4.sol";
+import {HonkVerifier as OuterAttestedIdCount5} from "../src/ultra-honk-verifiers/OuterAttestedIdCount5.sol";
+import {HonkVerifier as OuterAttestedIdCount6} from "../src/ultra-honk-verifiers/OuterAttestedIdCount6.sol";
+import {HonkVerifier as OuterAttestedIdCount7} from "../src/ultra-honk-verifiers/OuterAttestedIdCount7.sol";
+import {HonkVerifier as OuterAttestedIdCount8} from "../src/ultra-honk-verifiers/OuterAttestedIdCount8.sol";
+import {HonkVerifier as OuterAttestedIdCount9} from "../src/ultra-honk-verifiers/OuterAttestedIdCount9.sol";
+import {HonkVerifier as OuterAttestedIdCount10} from "../src/ultra-honk-verifiers/OuterAttestedIdCount10.sol";
+import {HonkVerifier as OuterAttestedIdCount11} from "../src/ultra-honk-verifiers/OuterAttestedIdCount11.sol";
 
 contract DeployAnvil is Script {
     uint256 constant FIRST_OUTER = 4;
-    uint256 constant NUM_OUTER = 10;
+    uint256 constant NUM_OUTER = 20;
     string constant PACKAGED_DIR = "../../target/packaged/circuits/";
 
     function run() external {
@@ -52,11 +62,20 @@ contract DeployAnvil is Script {
         outerVerifiers[7] = address(new OuterCount11());
         outerVerifiers[8] = address(new OuterCount12());
         outerVerifiers[9] = address(new OuterCount13());
+        outerVerifiers[10] = address(new OuterAttestedIdCount2());
+        outerVerifiers[11] = address(new OuterAttestedIdCount3());
+        outerVerifiers[12] = address(new OuterAttestedIdCount4());
+        outerVerifiers[13] = address(new OuterAttestedIdCount5());
+        outerVerifiers[14] = address(new OuterAttestedIdCount6());
+        outerVerifiers[15] = address(new OuterAttestedIdCount7());
+        outerVerifiers[16] = address(new OuterAttestedIdCount8());
+        outerVerifiers[17] = address(new OuterAttestedIdCount9());
+        outerVerifiers[18] = address(new OuterAttestedIdCount10());
+        outerVerifiers[19] = address(new OuterAttestedIdCount11());
 
         ProofVerifier[] memory proofVerifiers = new ProofVerifier[](NUM_OUTER);
         for (uint256 i = 0; i < NUM_OUTER; i++) {
-            uint256 count = 4 + i;
-            string memory path = string.concat(PACKAGED_DIR, "outer_evm_count_", vm.toString(count), ".json");
+            string memory path = string.concat(PACKAGED_DIR, _outerEvmName(i), ".json");
             bytes32 vkeyHash = vm.parseJsonBytes32(vm.readFile(path), ".vkey_hash");
             proofVerifiers[i] = ProofVerifier({vkeyHash: vkeyHash, verifier: outerVerifiers[i]});
         }
@@ -79,7 +98,14 @@ contract DeployAnvil is Script {
         console.log("globalOPRFPubKeyHash:");
         console.logBytes32(globalOprfPkHash);
         for (uint256 i = 0; i < NUM_OUTER; i++) {
-            console.log("  outer_count_", FIRST_OUTER + i, outerVerifiers[i]);
+            console.log(" ", _outerEvmName(i), outerVerifiers[i]);
         }
+    }
+
+    // The packaged EVM outer circuit verified by outerVerifiers[i]: 10 chip ones, then 10 Tier 2
+    // ones, for an attested ID from either platform
+    function _outerEvmName(uint256 i) internal pure returns (string memory) {
+        if (i < 10) return string.concat("outer_evm_count_", vm.toString(FIRST_OUTER + i));
+        return string.concat("outer_evm_attested_id_count_", vm.toString(2 + i - 10));
     }
 }

@@ -1,5 +1,6 @@
 import { poseidon2HashAsync } from "@zkpassport/poseidon2"
 import type { IntegrityToDisclosureSalts, OPRFProof, PackagedCertificatesFile, Query } from "@zkpassport/utils"
+import { generateTier2EvmFixture } from "./generate-tier2-evm-fixture"
 import {
   Binary,
   ProofType,
@@ -806,8 +807,15 @@ class FixtureGenerator {
     )
 
     // Outer circuit takes oprf_pk_hash as a top-level input; 0 for NON_SALTED fixtures,
-    // Poseidon2(pk.x, pk.y) for SALTED fixtures.
-    const proof = await circuit.prove({ ...inputs, oprf_pk_hash: oprfPkHash }, {
+    // Poseidon2(pk.x, pk.y) for SALTED fixtures. The verification method is the integrity
+    // proof's last output (comm_in, comm_out, verification_method), passed here as the utils
+    // this repo pins predate it.
+    const outerInputs = {
+      ...inputs,
+      oprf_pk_hash: oprfPkHash,
+      verification_method: baseSubproofs[2].publicInputs[2],
+    }
+    const proof = await circuit.prove(outerInputs, {
       useCli: true,
       circuitName: evmCircuitName,
       recursive: false,
@@ -959,6 +967,14 @@ class FixtureGenerator {
     }
 
     await this.writeFixturesToFiles(fixtures)
+
+    // A Tier 2 (attested ID) outer EVM proof, verified by test/Tier2Verifier.t.sol with the
+    // packaged OuterAttestedIdCount2 verifier
+    console.log("Generating the Tier 2 outer EVM proof fixture...")
+    await generateTier2EvmFixture(
+      path.join(__dirname, "..", "..", "solidity", "test", "fixtures", "tier2"),
+      { writeVerifier: false },
+    )
     console.log("Fixture generation completed successfully!")
   }
 }

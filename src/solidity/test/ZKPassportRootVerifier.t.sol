@@ -283,7 +283,9 @@ contract RootVerifierTest is ZKPassportTest {
 
   function test_VerifySalted_GlobalOPRFKey_Success() public {
     FixtureData memory data = loadFixture(fixtures.salted);
-    bytes32 oprfPkHash = data.publicInputs[data.publicInputs.length - 1];
+    bytes32 oprfPkHash = data.publicInputs[
+      data.publicInputs.length - PublicInput.OPRF_PK_HASH_OFFSET_FROM_END
+    ];
     assertNotEq(oprfPkHash, bytes32(0), "Salted fixture must carry a non-zero oprf_pk_hash");
 
     // Configure the SubVerifier's protocol-default OPRF key to match the proof's hash.
@@ -296,9 +298,11 @@ contract RootVerifierTest is ZKPassportTest {
     (bool result, bytes32 scopedNullifier, ) = rootVerifier.verify(params);
     assertEq(result, true, "Salted proof should verify under global OPRF key");
     assertNotEq(scopedNullifier, bytes32(0), "Scoped nullifier should be non-zero");
-    // nullifier_type at [length-3] must be SALTED_NULLIFIER (=1).
+    // The proof's nullifier_type must be SALTED_NULLIFIER (=1).
     assertEq(
-      uint256(data.publicInputs[data.publicInputs.length - 3]),
+      uint256(
+        data.publicInputs[data.publicInputs.length - PublicInput.NULLIFIER_TYPE_OFFSET_FROM_END]
+      ),
       uint256(NullifierType.SALTED_NULLIFIER),
       "Salted fixture must report SALTED_NULLIFIER"
     );
@@ -324,7 +328,9 @@ contract RootVerifierTest is ZKPassportTest {
     // globalOPRFPubKeyHash is left unset
     assertEq(subVerifier.globalOPRFPubKeyHash(), bytes32(0), "global OPRF key should start unset");
     assertEq(
-      uint256(data.publicInputs[data.publicInputs.length - 3]),
+      uint256(
+        data.publicInputs[data.publicInputs.length - PublicInput.NULLIFIER_TYPE_OFFSET_FROM_END]
+      ),
       uint256(NullifierType.SALTED_NULLIFIER),
       "Salted fixture must report SALTED_NULLIFIER"
     );
