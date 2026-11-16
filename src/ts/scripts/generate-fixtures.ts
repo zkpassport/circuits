@@ -480,14 +480,18 @@ class FixtureGenerator {
     // On iOS, the integrity public key hash is 0 since it's logic specific to Android
     const integrityPubKeyHash = 0n
     const facematch_mode = 1n
+    // On iOS, the revocation root is 0 since there is no published revocation list
+    const revocationRoot = 0n
+    // The six-field face match entry; ProofTypeLength in the pinned @zkpassport/utils still has the five-field length
+    const facematchEvmLength = 130
     const paramCommitment = getParameterCommitmentFromDisclosureProof(facematchProof)
     const vkey = (await facematchCircuit.getVerificationKey({ evm: false })).vkeyFields
     const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x) => BigInt(x)))).toString(16)}`
 
     const committedInputs =
-      ProofType.FACEMATCH.toString(16).padStart(2, "0") + ProofTypeLength[ProofType.FACEMATCH].evm.toString(16).padStart(4, "0") + Array.from(numberToBytesBE(root_key_leaf, 32))
+      ProofType.FACEMATCH.toString(16).padStart(2, "0") + facematchEvmLength.toString(16).padStart(4, "0") + Array.from(numberToBytesBE(root_key_leaf, 32))
       .map((x) => x.toString(16).padStart(2, "0"))
-      .join("") + environment.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(app_id_hash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + Array.from(numberToBytesBE(integrityPubKeyHash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + facematch_mode.toString(16).padStart(2, "0")
+      .join("") + environment.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(app_id_hash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + Array.from(numberToBytesBE(integrityPubKeyHash, 32)).map((x) => x.toString(16).padStart(2, "0")).join("") + facematch_mode.toString(16).padStart(2, "0") + Array.from(numberToBytesBE(revocationRoot, 32)).map((x) => x.toString(16).padStart(2, "0")).join("")
 
     await facematchCircuit.destroy()
 
