@@ -109,7 +109,27 @@ contract DeploySubVerifier is DeployBase {
     // Outer attested id (10 subproofs)
     bytes32(hex"09a5887278f803914c95866a82cdbc1923942bec76498191ed6930a573ccf73d"),
     // Outer attested id (11 subproofs)
-    bytes32(hex"2aa6bc63b3c3439fe8d312bf5580950030c9ae337f495c825f532e6333e94c4a")
+    bytes32(hex"2aa6bc63b3c3439fe8d312bf5580950030c9ae337f495c825f532e6333e94c4a"),
+    // Outer aadhaar (2 subproofs)
+    bytes32(hex"2a96f0eb849c56e37e178ed7b02d8b34db389cf5d8348f083ab05732407f32cf"),
+    // Outer aadhaar (3 subproofs)
+    bytes32(hex"04eadcd086da42344d24eb2948941aa0629f8d3b11164efbca69406f958c8078"),
+    // Outer aadhaar (4 subproofs)
+    bytes32(hex"147de6c2ce71b256b5e1709ad6e47781553dae656ce193c72a8e7ab36485dd01"),
+    // Outer aadhaar (5 subproofs)
+    bytes32(hex"2e0ffc51dcba0f11ff44312ea435a139b20ab47a6b6c0667e3e6a88b748ec732"),
+    // Outer aadhaar (6 subproofs)
+    bytes32(hex"2e9c7178ba362682292fc02de965d2de10f18ddf634810a0ad3a7d536544d131"),
+    // Outer aadhaar (7 subproofs)
+    bytes32(hex"1ceb503169dc3c62495cac420c5c841f3a806690a0c85d8587c59e866b222356"),
+    // Outer aadhaar (8 subproofs)
+    bytes32(hex"1157bd59c15fb7da11957941875eab28d2f13cbfc46730114e2cbdac56fd83d7"),
+    // Outer aadhaar (9 subproofs)
+    bytes32(hex"2ca604c2e234873925b2e3a825a0bb046de479a78af6a6363e8262277ebb70c1"),
+    // Outer aadhaar (10 subproofs)
+    bytes32(hex"095717ae615ac65f56cbe7c8352485a4f904a949c2d664ef11fb7ebce82d3cdb"),
+    // Outer aadhaar (11 subproofs)
+    bytes32(hex"0e419276af88ad08e7fb0a43a15fa3cdd3e6213637132a44bb2271d16b900e76")
   ];
   address[] public proofVerifiers = new address[](30);
 
