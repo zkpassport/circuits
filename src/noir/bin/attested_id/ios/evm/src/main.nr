@@ -148,6 +148,7 @@ fn main(
         app_id_hash,
         0,
         FACEMATCH_MODE_STRICT,
+        0,
     );
 
     let attested_date = get_tbs_not_before_timestamp(credential_tbs);

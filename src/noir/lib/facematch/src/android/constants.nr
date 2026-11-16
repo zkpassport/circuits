@@ -30,3 +30,12 @@ pub global PLAY_INTEGRITY_PUBLIC_KEY_Y: [u8; 32] = [
 ];
 
 pub global INTEGRITY_TOKEN_MAX_LENGTH: u32 = 1024;
+
+// Revoked keyboxes are rejected through the revocation tree, so this only bounds how long a
+// verdict from a leak Google never detects stays usable
+pub global INTEGRITY_TOKEN_MAX_AGE_SECONDS: u64 = 365 * 24 * 60 * 60;
+// The token is stamped by Google's clock and the proof date by the phone's
+pub global INTEGRITY_TOKEN_MAX_CLOCK_SKEW_SECONDS: u64 = 24 * 60 * 60;
+
+// Ordered tree of the attestation certificate serial numbers Google lists as revoked
+pub global ANDROID_REVOCATION_TREE_DEPTH: u32 = 20;

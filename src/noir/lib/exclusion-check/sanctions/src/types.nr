@@ -1,28 +1,11 @@
+use utils::ordered_mt::{OrderedMerkleTreeInclusionProof, OrderedMerkleTreeProof};
+
 pub global SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH: u32 = 18;
 
-type SanctionsOrderedMerkleTreeSiblingPath = [Field; SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH];
-
-pub struct SanctionsOrderedMerkleTreeInclusionProof {
-    pub leaf: Field,
-    pub leaf_index: Field,
-    pub sibling_path: SanctionsOrderedMerkleTreeSiblingPath,
-}
+pub type SanctionsOrderedMerkleTreeInclusionProof = OrderedMerkleTreeInclusionProof<SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH>;
 
 /// A proof for a single Sanctions sparse merkle tree
-pub struct SanctionsOrderedMerkleTreeProof {
-    /// The siblings of the leaf value
-    pub left: SanctionsOrderedMerkleTreeInclusionProof,
-    pub right: SanctionsOrderedMerkleTreeInclusionProof,
-}
-
-impl SanctionsOrderedMerkleTreeProof {
-    pub fn new(
-        left: SanctionsOrderedMerkleTreeInclusionProof,
-        right: SanctionsOrderedMerkleTreeInclusionProof,
-    ) -> Self {
-        Self { left, right }
-    }
-}
+pub type SanctionsOrderedMerkleTreeProof = OrderedMerkleTreeProof<SANCTIONS_ORDERED_MERKLE_TREE_LEAF_DEPTH>;
 
 /// A collection of proofs for the three Sanctions sparse merkle trees
 pub struct SanctionsOrderedMerkleTreeProofs {

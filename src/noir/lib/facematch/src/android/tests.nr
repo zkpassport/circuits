@@ -2,7 +2,11 @@
 // The real credential TBS below is captured from the `android_strict_mode_dev`
 // facematch fixture; its attestationApplicationId (in softwareEnforced) is
 // "app.zkpassport.zkpassport".
-use super::get_app_id_from_credential_tbs;
+use super::constants::ANDROID_REVOCATION_TREE_DEPTH;
+use super::{get_app_id_from_credential_tbs, get_tbs_serial_number};
+use super::revocation::{assert_serial_not_revoked, RevocationProof};
+use poseidon::poseidon2::Poseidon2;
+use utils::ordered_mt::OrderedMerkleTreeInclusionProof;
 
 global REAL_CREDENTIAL_TBS: [u8; 1000] = [
     48, 130, 2, 94, 160, 3, 2, 1, 2, 2, 1, 1, 48, 10, 6, 8, 42, 134, 72, 206, 61, 4, 3, 2, 48, 63,
@@ -98,4 +102,119 @@ fn test_get_app_id_ignores_planted_challenge() {
     let (expected, expected_len) = expected_app_id();
     assert(len == expected_len, "planted challenge changed the app id length");
     assert(app_id == expected, "planted challenge spoofed the app id");
+}
+
+#[test]
+fn test_get_tbs_serial_number_real_cert() {
+    assert(get_tbs_serial_number(REAL_CREDENTIAL_TBS) == 1);
+}
+
+// An ordered tree holding the sentinels 0 and -1 around the revoked serials 5 and 9
+fn revocation_tree() -> (Field, [[Field; ANDROID_REVOCATION_TREE_DEPTH]; 4], [Field; 4]) {
+    let leaves: [Field; 4] = [0, 5, 9, -1];
+    let mut zero = 0;
+    let mut zeros = [0; ANDROID_REVOCATION_TREE_DEPTH];
+    for i in 0..ANDROID_REVOCATION_TREE_DEPTH {
+        zeros[i] = zero;
+        zero = Poseidon2::hash([zero, zero], 2);
+    }
+    let a = Poseidon2::hash([leaves[0], leaves[1]], 2);
+    let b = Poseidon2::hash([leaves[2], leaves[3]], 2);
+    let mut root = Poseidon2::hash([a, b], 2);
+    for i in 2..ANDROID_REVOCATION_TREE_DEPTH {
+        root = Poseidon2::hash([root, zeros[i]], 2);
+    }
+    let mut paths = [zeros; 4];
+    for j in 0..4 {
+        paths[j][0] = leaves[j ^ 1];
+        paths[j][1] = if j < 2 { b } else { a };
+    }
+    (root, paths, leaves)
+}
+
+fn revocation_proof(left_index: u32) -> (Field, RevocationProof) {
+    let (root, paths, leaves) = revocation_tree();
+    let proof = RevocationProof::new(
+        OrderedMerkleTreeInclusionProof {
+            leaf: leaves[left_index],
+            leaf_index: left_index as Field,
+            sibling_path: paths[left_index],
+        },
+        OrderedMerkleTreeInclusionProof {
+            leaf: leaves[left_index + 1],
+            leaf_index: (left_index + 1) as Field,
+            sibling_path: paths[left_index + 1],
+        },
+    );
+    (root, proof)
+}
+
+#[test]
+fn test_serial_not_revoked() {
+    let (root, proof) = revocation_proof(1);
+    assert_serial_not_revoked(root, 7, proof);
+}
+
+#[test(should_fail)]
+fn test_revoked_serial_rejected() {
+    let (root, proof) = revocation_proof(0);
+    assert_serial_not_revoked(root, 5, proof);
+}
+
+#[test(should_fail)]
+fn test_revocation_proof_with_gap_rejected() {
+    let (root, paths, leaves) = revocation_tree();
+    let proof = RevocationProof::new(
+        OrderedMerkleTreeInclusionProof { leaf: leaves[0], leaf_index: 0, sibling_path: paths[0] },
+        OrderedMerkleTreeInclusionProof { leaf: leaves[2], leaf_index: 2, sibling_path: paths[2] },
+    );
+    assert_serial_not_revoked(root, 5, proof);
+}
+
+global EMPTY_REVOCATION_ROOT: Field =
+    0x23157e6435e936c4698498358363acb2a9a811908c4806e1087677338e1c5525;
+
+#[test]
+fn test_serial_not_revoked_in_empty_revocation_tree() {
+    let upper = [
+        0x0b63a53787021a4a962a452c2921b3663aff1ffd8d5510540f8e659e782956f1,
+        0x0e34ac2c09f45a503d2908bcb12f1cbae5fa4065759c88d501c097506a8b2290,
+        0x21f9172d72fdcdafc312eee05cf5092980dda821da5b760a9fb8dbdf607c8a20,
+        0x2373ea368857ec7af97e7b470d705848e2bf93ed7bef142a490f2119bcf82d8e,
+        0x120157cfaaa49ce3da30f8b47879114977c24b266d58b0ac18b325d878aafddf,
+        0x01c28fe1059ae0237b72334700697bdf465e03df03986fe05200cadeda66bd76,
+        0x2d78ed82f93b61ba718b17c2dfe5b52375b4d37cbbed6f1fc98b47614b0cf21b,
+        0x067243231eddf4222f3911defbba7705aff06ed45960b27f6f91319196ef97e1,
+        0x1849b85f3c693693e732dfc4577217acc18295193bede09ce8b97ad910310972,
+        0x2a775ea761d20435b31fa2c33ff07663e24542ffb9e7b293dfce3042eb104686,
+        0x0f320b0703439a8114f81593de99cd0b8f3b9bf854601abb5b2ea0e8a3dda4a7,
+        0x0d07f6e7a8a0e9199d6d92801fff867002ff5b4808962f9da2ba5ce1bdd26a73,
+        0x1c4954081e324939350febc2b918a293ebcdaead01be95ec02fcbe8d2c1635d1,
+        0x0197f2171ef99c2d053ee1fb5ff5ab288d56b9b41b4716c9214a4d97facc4c4a,
+        0x2b9cdd484c5ba1e4d6efcc3f18734b5ac4c4a0b9102e2aeb48521a661d3feee9,
+        0x14f44d672eb357739e42463497f9fdac46623af863eea4d947ca00a497dcdeb3,
+        0x071d7627ae3b2eabda8a810227bf04206370ac78dbf6c372380182dbd3711fe3,
+        0x2fdc08d9fe075ac58cb8c00f98697861a13b3ab6f9d41a4e768f75e477475bf5,
+        0x20165fe405652104dceaeeca92950aa5adc571b8cafe192878cba58ff1be49c5,
+    ];
+    let mut left_path = [0; 20];
+    let mut right_path = [0; 20];
+    left_path[0] = 0x2523648240000001ba344d80000000086121000000000013a700000000000012;
+    for i in 1..20 {
+        left_path[i] = upper[i - 1];
+        right_path[i] = upper[i - 1];
+    }
+    let proof = RevocationProof::new(
+        OrderedMerkleTreeInclusionProof { leaf: 0, leaf_index: 0, sibling_path: left_path },
+        OrderedMerkleTreeInclusionProof {
+            leaf: 0x2523648240000001ba344d80000000086121000000000013a700000000000012,
+            leaf_index: 1,
+            sibling_path: right_path,
+        },
+    );
+    assert_serial_not_revoked(
+        EMPTY_REVOCATION_ROOT,
+        get_tbs_serial_number(REAL_CREDENTIAL_TBS),
+        proof,
+    );
 }
