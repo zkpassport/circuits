@@ -46,7 +46,6 @@ import {
   NullifierType,
   getFacematchCircuitInputs,
   getFacematchParameterCommitment,
-  getFacematchEvmParameterCommitment,
   packLeBytesAndHashPoseidon2,
   OPRF_ZERO_PROOF,
   SaltedValue,
@@ -79,7 +78,11 @@ import {
   buildIosAttestedIdInputs,
   calculateAttestationParamCommitment,
   calculateAttestedIdCommitment,
+  calculateFacematchEvmParamCommitment,
+  calculateFacematchParamCommitment,
   calculateTier2PrivateNullifier,
+  getEmptyRevocationInputs,
+  getEmptyRevocationTree,
   getExpiryDate,
   padDg1,
 } from "./attested-id"
@@ -937,9 +940,14 @@ describe("subcircuits - RSA PKCS", () => {
       ])
       const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
       const facematch_mode = 1n
-      const calculatedParamCommitment = await getFacematchParameterCommitment(
-        root_key_leaf, environment, app_id_hash, facematch_mode,
-      )
+      const calculatedParamCommitment = await calculateFacematchParamCommitment({
+        rootKeyLeaf: root_key_leaf,
+        environment,
+        appIdHash: app_id_hash,
+        integrityAnchor: 0n,
+        mode: facematch_mode,
+        revocationRoot: 0n,
+      })
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(calculatedParamCommitment).toEqual(paramCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
@@ -971,9 +979,14 @@ describe("subcircuits - RSA PKCS", () => {
       ])
       const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
       const facematch_mode = 2n
-      const calculatedParamCommitment = await getFacematchParameterCommitment(
-        root_key_leaf, environment, app_id_hash, facematch_mode,
-      )
+      const calculatedParamCommitment = await calculateFacematchParamCommitment({
+        rootKeyLeaf: root_key_leaf,
+        environment,
+        appIdHash: app_id_hash,
+        integrityAnchor: 0n,
+        mode: facematch_mode,
+        revocationRoot: 0n,
+      })
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(calculatedParamCommitment).toEqual(paramCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
@@ -1005,9 +1018,14 @@ describe("subcircuits - RSA PKCS", () => {
       ])
       const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
       const facematch_mode = 1n
-      const calculatedParamCommitment = await getFacematchEvmParameterCommitment(
-        root_key_leaf, environment, app_id_hash, facematch_mode,
-      )
+      const calculatedParamCommitment = calculateFacematchEvmParamCommitment({
+        rootKeyLeaf: root_key_leaf,
+        environment,
+        appIdHash: app_id_hash,
+        integrityAnchor: 0n,
+        mode: facematch_mode,
+        revocationRoot: 0n,
+      })
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(calculatedParamCommitment).toEqual(paramCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
@@ -1021,10 +1039,19 @@ describe("subcircuits - RSA PKCS", () => {
     // The fixtures' Play Integrity tokens are from this time, and the circuit rejects a token
     // older than the attestation reuse window, so their proofs are dated then
     const ANDROID_FIXTURE_TIMESTAMP = 1760459252
+    // Poseidon2 hash of the Play Integrity public key, packed little-endian
+    const PLAY_INTEGRITY_PUBLIC_KEY_HASH =
+      8544227306600425492560068004835614964118871262589609739238120993689090208159n
+    // Root of the revocation tree with no revoked serials, as the Noir tests pin it
+    const EMPTY_REVOCATION_ROOT =
+      0x23157e6435e936c4698498358363acb2a9a811908c4806e1087677338e1c5525n
     let androidCircuit: Circuit
     let androidEvmCircuit: Circuit
+    let revocationTree: Awaited<ReturnType<typeof getEmptyRevocationTree>>
 
-    beforeAll(() => {
+    beforeAll(async () => {
+      revocationTree = await getEmptyRevocationTree()
+      expect(revocationTree.root).toEqual(EMPTY_REVOCATION_ROOT)
       androidCircuit = Circuit.from(
         "facematch_android_rk_rsa_ik_count_3_ik_ecdsa_p384_sha384_ik_ecdsa_p256_sha256_ik_ecdsa_p256_sha256",
       )
@@ -1047,7 +1074,11 @@ describe("subcircuits - RSA PKCS", () => {
       if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
       expect(BigInt(inputs.comm_in)).toEqual(state.integrityCheckCommitment)
 
-      const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH.android_regular_mode_dev }
+      const combinedInputs = {
+        ...inputs,
+        ...FIXTURES_FACEMATCH.android_regular_mode_dev,
+        ...(await getEmptyRevocationInputs(3)),
+      }
       const proof = await androidCircuit.prove(combinedInputs, {
         witness: await androidCircuit.solve(combinedInputs),
         useCli: true,
@@ -1060,9 +1091,14 @@ describe("subcircuits - RSA PKCS", () => {
       const app_id = new Uint8Array([...new TextEncoder().encode("app.zkpassport.zkpassport")])
       const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
       const facematch_mode = 1n
-      const calculatedParamCommitment = await getFacematchParameterCommitment(
-        root_key_leaf, environment, app_id_hash, facematch_mode,
-      )
+      const calculatedParamCommitment = await calculateFacematchParamCommitment({
+        rootKeyLeaf: root_key_leaf,
+        environment,
+        appIdHash: app_id_hash,
+        integrityAnchor: PLAY_INTEGRITY_PUBLIC_KEY_HASH,
+        mode: facematch_mode,
+        revocationRoot: revocationTree.root,
+      })
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(calculatedParamCommitment).toEqual(paramCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
@@ -1080,7 +1116,11 @@ describe("subcircuits - RSA PKCS", () => {
       if (!inputs) throw new Error("Unable to generate facematch circuit inputs")
       expect(BigInt(inputs.comm_in)).toEqual(state.integrityCheckCommitment)
 
-      const combinedInputs = { ...inputs, ...FIXTURES_FACEMATCH.android_strict_mode_dev }
+      const combinedInputs = {
+        ...inputs,
+        ...FIXTURES_FACEMATCH.android_strict_mode_dev,
+        ...(await getEmptyRevocationInputs(3)),
+      }
       const proof = await androidEvmCircuit.prove(combinedInputs, {
         witness: await androidEvmCircuit.solve(combinedInputs),
         useCli: true,
@@ -1093,9 +1133,14 @@ describe("subcircuits - RSA PKCS", () => {
       const app_id = new Uint8Array([...new TextEncoder().encode("app.zkpassport.zkpassport")])
       const app_id_hash = await packLeBytesAndHashPoseidon2(app_id)
       const facematch_mode = 2n
-      const calculatedParamCommitment = await getFacematchEvmParameterCommitment(
-        root_key_leaf, environment, app_id_hash, facematch_mode,
-      )
+      const calculatedParamCommitment = calculateFacematchEvmParamCommitment({
+        rootKeyLeaf: root_key_leaf,
+        environment,
+        appIdHash: app_id_hash,
+        integrityAnchor: PLAY_INTEGRITY_PUBLIC_KEY_HASH,
+        mode: facematch_mode,
+        revocationRoot: revocationTree.root,
+      })
       const paramCommitment = getParameterCommitmentFromDisclosureProof(proof)
       expect(calculatedParamCommitment).toEqual(paramCommitment)
       const nullifier = getNullifierFromDisclosureProof(proof)
@@ -3152,6 +3197,7 @@ describe("attested id (Tier 2)", () => {
           appId: attestation.appId,
           integrityPublicKey: attestation.playIntegrityPublicKey,
           mode: FACEMATCH_MODE_STRICT,
+          revocationRoot: attestation.revocationRoot,
         }),
       )
       expect(verificationMethod).toEqual(201n)

@@ -3,6 +3,7 @@ import { sha256, sha384 } from "@noble/hashes/sha2.js"
 import {
   hashSaltDg1Dg2HashPrivateNullifier,
   normalizeDg2Hash,
+  packBeBytesIntoField,
   packBeBytesIntoFields,
   packLeBytesAndHashPoseidon2,
   Binary,
@@ -20,7 +21,12 @@ const APP_ID_MAX_LEN = 100
 const INTEGRITY_TOKEN_MAX_LENGTH = 1024
 const ATTESTATION_KEY_TYPE_APPLE = 1
 const ATTESTATION_KEY_TYPE_GOOGLE = 2
+const PROOF_TYPE_FACEMATCH = 10n
 const PROOF_TYPE_ATTESTED_ID = 11n
+const REVOCATION_TREE_DEPTH = 20
+// The ordered tree's upper sentinel, as @zkpassport/utils' AsyncOrderedMT places it
+const REVOCATION_TREE_UPPER_SENTINEL =
+  0x2523648240000001ba344d80000000086121000000000013a700000000000012n
 const SHA256_IDENTIFIER = 3
 
 export const FACEMATCH_MODE_REGULAR = 1
@@ -235,6 +241,89 @@ export async function calculateAttestedIdCommitment(
   return { commitment: commitment.toBigInt(), privateNullifier, dg2HashNormalized }
 }
 
+const toHex = (value: bigint) => `0x${value.toString(16).padStart(64, "0")}`
+
+/**
+ * The revocation tree with no revoked serials, and the proof that any serial between its two
+ * sentinels is absent, as the Android circuits' `assert_serial_not_revoked` takes it
+ */
+export async function getEmptyRevocationTree() {
+  const empty = [0n]
+  for (let level = 1; level < REVOCATION_TREE_DEPTH; level++) {
+    empty.push(await poseidon2HashAsync([empty[level - 1], empty[level - 1]]))
+  }
+  let root = await poseidon2HashAsync([0n, REVOCATION_TREE_UPPER_SENTINEL])
+  for (let level = 1; level < REVOCATION_TREE_DEPTH; level++) {
+    root = await poseidon2HashAsync([root, empty[level]])
+  }
+  const upper = empty.slice(1).map(toHex)
+  return {
+    root,
+    proof: {
+      left: {
+        leaf: toHex(0n),
+        leaf_index: toHex(0n),
+        sibling_path: [toHex(REVOCATION_TREE_UPPER_SENTINEL), ...upper],
+      },
+      right: {
+        leaf: toHex(REVOCATION_TREE_UPPER_SENTINEL),
+        leaf_index: toHex(1n),
+        sibling_path: [toHex(0n), ...upper],
+      },
+    },
+  }
+}
+
+/** Revocation inputs of an Android circuit with `count` intermediates, against the empty tree */
+export async function getEmptyRevocationInputs(count: number) {
+  const { root, proof } = await getEmptyRevocationTree()
+  const inputs: Record<string, unknown> = { revocation_root: toHex(root) }
+  for (let i = 1; i <= count; i++) inputs[`intermediate_${i}_revocation_proof`] = proof
+  return inputs
+}
+
+type FacematchParams = {
+  rootKeyLeaf: bigint
+  environment: bigint
+  appIdHash: bigint
+  integrityAnchor: bigint
+  mode: bigint
+  revocationRoot: bigint
+}
+
+const facematchParamCommitment = (proofType: bigint, p: FacematchParams) =>
+  poseidon2HashAsync([
+    proofType,
+    6n,
+    p.rootKeyLeaf,
+    p.environment,
+    p.appIdHash,
+    p.integrityAnchor,
+    p.mode,
+    p.revocationRoot,
+  ])
+
+/** The face match parameter commitment, six fields as the circuits compute it */
+export const calculateFacematchParamCommitment = (p: FacematchParams) =>
+  facematchParamCommitment(PROOF_TYPE_FACEMATCH, p)
+
+/** The EVM face match parameter commitment: SHA-256 over the 133-byte preimage */
+export function calculateFacematchEvmParamCommitment(p: FacematchParams): bigint {
+  const be = (value: bigint, length: number) =>
+    Uint8Array.from({ length }, (_, i) => Number((value >> BigInt(8 * (length - 1 - i))) & 0xffn))
+  const preimage = concat(
+    new Uint8Array([Number(PROOF_TYPE_FACEMATCH)]),
+    be(130n, 2),
+    be(p.rootKeyLeaf, 32),
+    be(p.environment, 1),
+    be(p.appIdHash, 32),
+    be(p.integrityAnchor, 32),
+    be(p.mode, 1),
+    be(p.revocationRoot, 32),
+  )
+  return packBeBytesIntoField(sha256(preimage), 31)
+}
+
 export async function calculateAttestationParamCommitment(opts: {
   rootKeyType: number
   rootKey: Uint8Array
@@ -242,22 +331,20 @@ export async function calculateAttestationParamCommitment(opts: {
   appId: string
   integrityPublicKey?: Uint8Array
   mode: number
+  revocationRoot?: bigint
 }): Promise<bigint> {
-  const rootKeyLeaf = await packLeBytesAndHashPoseidon2(
-    concat(new Uint8Array([opts.rootKeyType]), opts.rootKey),
-  )
-  const integrityKeyHash = opts.integrityPublicKey
-    ? await packLeBytesAndHashPoseidon2(opts.integrityPublicKey)
-    : 0n
-  return poseidon2HashAsync([
-    PROOF_TYPE_ATTESTED_ID,
-    5n,
-    rootKeyLeaf,
-    BigInt(opts.environment),
-    await packLeBytesAndHashPoseidon2(enc(opts.appId)),
-    integrityKeyHash,
-    BigInt(opts.mode),
-  ])
+  return facematchParamCommitment(PROOF_TYPE_ATTESTED_ID, {
+    rootKeyLeaf: await packLeBytesAndHashPoseidon2(
+      concat(new Uint8Array([opts.rootKeyType]), opts.rootKey),
+    ),
+    environment: BigInt(opts.environment),
+    appIdHash: await packLeBytesAndHashPoseidon2(enc(opts.appId)),
+    integrityAnchor: opts.integrityPublicKey
+      ? await packLeBytesAndHashPoseidon2(opts.integrityPublicKey)
+      : 0n,
+    mode: BigInt(opts.mode),
+    revocationRoot: opts.revocationRoot ?? 0n,
+  })
 }
 
 export type AttestationOptions = {
@@ -451,12 +538,15 @@ export async function buildAndroidAttestedIdInputs(
   const tokenBytes = enc(token)
   const signedPayload = enc(`${JWS_HEADER_BASE64}.${Buffer.from(tokenBytes).toString("base64url")}`)
 
+  const { root: revocationRoot } = await getEmptyRevocationTree()
   return {
     rootKey: root.publicKey,
     appId,
     environment: 1,
     playIntegrityPublicKey: playIntegrity.publicKey,
+    revocationRoot,
     inputs: {
+      ...(await getEmptyRevocationInputs(1)),
       current_date: opts.currentDate,
       ...inputs,
       root_key: Array.from(root.publicKey),
