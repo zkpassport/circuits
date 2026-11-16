@@ -172,12 +172,13 @@ export async function generateTier2EvmFixture(
   const appIdHash = await packLeBytesAndHashPoseidon2(new TextEncoder().encode(attestation.appId))
   const attestedEntry =
     hex(PROOF_TYPE_ATTESTED_ID, 1) +
-    hex(98, 2) +
+    hex(130, 2) +
     hex(rootKeyLeaf, 32) +
     hex(attestation.environment, 1) +
     hex(appIdHash, 32) +
     hex(0, 32) +
-    hex(2, 1)
+    hex(2, 1) +
+    hex(0, 32)
   const mrz = DG1.subarray(5).toString()
   const disclosedBytes = getDisclosedBytesFromMrzAndMask(mrz, discloseMask)
   const discloseEntry =
