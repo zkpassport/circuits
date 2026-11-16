@@ -2,7 +2,6 @@
 // phone on the same Wi-Fi can pull locally packaged circuits:
 //   /by-version/<version>/manifest.json and /by-root/<root>/manifest.json -> manifest.json
 //   /by-hash/<vkey hash>.json                                             -> circuits/<name>.json
-//   /certificates.json                                                    -> certificates.json
 // Usage: npm run serve-circuits [-- --port 8000]
 import { createServer } from "node:http"
 import { networkInterfaces } from "node:os"
@@ -27,7 +26,6 @@ async function resolve(url) {
   ) {
     return path.join(PACKAGED_DIR, "manifest.json")
   }
-  if (pathname === "/certificates.json") return path.join(PACKAGED_DIR, "certificates.json")
   const byHash = pathname.match(/^\/by-hash\/([0-9a-fA-Fx]+)\.json$/)
   if (byHash) {
     const wanted = normaliseHash(byHash[1])
