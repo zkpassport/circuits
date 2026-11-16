@@ -100,3 +100,5 @@ pub struct AttestedIdProof<let N: u32> {
     pub tree_hash_path: [Field; 12],
     pub tree_index: Field,
 }
+
+pub type AadhaarIdProof = AttestedIdProof<3>;

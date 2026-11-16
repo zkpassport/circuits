@@ -16,6 +16,7 @@ pub mod tests;
 
 pub global CSC_CERT_TYPE: u8 = 1;
 pub global DSC_CERT_TYPE: u8 = 2;
+pub global UIDAI_CERT_TYPE: u8 = 3;
 
 pub fn normalize_dg2_hash<let DG2_HASH_SIZE: u32>(dg2_hash: [u8; DG2_HASH_SIZE]) -> Field {
     let packed_dg2_hash: [Field; _] = pack_le_bytes_into_fields::<31, _>(dg2_hash);

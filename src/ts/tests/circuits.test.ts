@@ -3338,8 +3338,7 @@ describe("attested id (Tier 2)", () => {
 
       const proof = await proveOuter("outer_attested_id_count_2", inputs)
       const publicInputs = proof.publicInputs.map(BigInt)
-      // The chip outer's layout: roots, date, scopes, param commitments, then the trailing four
-      expect(publicInputs).toHaveLength(11)
+        expect(publicInputs).toHaveLength(11)
       expect(publicInputs[5]).toEqual(BigInt(attested.publicInputs[2]))
       expect(publicInputs[6]).toEqual(BigInt(disclose.publicInputs[4]))
       expect(publicInputs[publicInputs.length - 1]).toEqual(200n)
@@ -3402,5 +3401,201 @@ describe("attested id (Tier 2)", () => {
         "Attested ID proof is not recent",
       )
     }, 600000)
+  })
+})
+
+describe("aadhaar", () => {
+  // Made by scripts/generate-aadhaar-fixture.ts in @zkpassport/utils
+  const FIXTURE = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "fixtures/aadhaar.json"), "utf8"),
+  )
+  const SALTS = { dg1Salt: 11n, expiryDateSalt: 12n, dg2HashSalt: 13n, privateNullifierSalt: 14n }
+  let circuit: Circuit
+  let discloseCircuit: Circuit
+  beforeAll(() => {
+    circuit = Circuit.from("aadhaar_id")
+    discloseCircuit = Circuit.from("disclose_bytes")
+  })
+  afterAll(async () => {
+    await circuit.destroy()
+    await discloseCircuit.destroy()
+  })
+
+  const discloseInputs = (commOut: string, discloseMask: number[]) => {
+    const dg1 = new Uint8Array(FIXTURE.dg1)
+    return {
+      comm_in: commOut,
+      current_date: nowTimestamp,
+      salted_private_nullifier: SaltedValue.fromValue(
+        SALTS.privateNullifierSalt,
+        BigInt(FIXTURE.privateNullifier),
+      ).formatForInput(),
+      salted_expiry_date: SaltedValue.fromValue(SALTS.expiryDateSalt, getExpiryDate(dg1)).formatForInput(),
+      salted_dg1: SaltedValue.fromValue(SALTS.dg1Salt, FIXTURE.dg1).formatForInput(),
+      salted_dg2_hash: SaltedValue.fromValue(
+        SALTS.dg2HashSalt,
+        BigInt(FIXTURE.photoHashNormalized),
+      ).formatForInput(),
+      salted_dg2_hash_type: SaltedValue.fromValue(SALTS.dg2HashSalt, 3n).formatForInput(),
+      disclose_mask: discloseMask,
+      nullifier_secret: "0x0",
+      oprf_proof: OPRF_ZERO_PROOF,
+      service_scope: "0x0",
+      service_subscope: "0x0",
+    }
+  }
+
+  test("proves, and its commitment is consumed by disclose_bytes", async () => {
+    const proof = await circuit.prove(FIXTURE.inputs, {
+      witness: await circuit.solve(FIXTURE.inputs),
+      useCli: true,
+      circuitName: "aadhaar_id",
+    })
+    const [certificateRegistryRoot, commOut, verificationMethod] = proof.publicInputs.map(BigInt)
+    expect(certificateRegistryRoot).toEqual(BigInt(FIXTURE.certificateRegistryRoot))
+    expect(commOut).toEqual(BigInt(FIXTURE.commOut))
+    expect(verificationMethod).toEqual(101n)
+
+    const dg1 = new Uint8Array(FIXTURE.dg1)
+    const discloseMask = Array(90).fill(1)
+    const inputs = discloseInputs(FIXTURE.commOut, discloseMask)
+    const discloseProof = await discloseCircuit.prove(inputs as any, {
+      witness: await discloseCircuit.solve(inputs as any),
+      useCli: true,
+      circuitName: "disclose_bytes",
+    })
+    expect(getCommitmentInFromDisclosureProof(discloseProof)).toEqual(commOut)
+    const mrz = Buffer.from(dg1.subarray(5, 93)).toString()
+    const disclosedData = DisclosedData.fromDisclosedBytes(
+      getDisclosedBytesFromMrzAndMask(mrz, discloseMask),
+      "passport",
+    )
+    expect(disclosedData.issuingCountry).toBe("IND")
+    expect(disclosedData.nationality).toBe("XXX")
+    expect(disclosedData.documentNumber).toBe("XXXXX1234")
+    expect(disclosedData.dateOfBirth).toEqual(createUTCDate(1990, 7, 15))
+    expect(disclosedData.dateOfExpiry).toEqual(createUTCDate(2036, 2, 15))
+  }, 300000)
+
+  test("outer: wraps the aadhaar_id proof and a disclosure proof built on it", async () => {
+    type Subproof = { proof: string[]; publicInputs: string[]; vkey: string[]; vkeyHash: string }
+    const recursiveProof = async (subcircuit: Circuit, name: string, inputs: any): Promise<Subproof> => {
+      const proof = await subcircuit.prove(inputs, {
+        witness: await subcircuit.solve(inputs, true),
+        useCli: true,
+        circuitName: name,
+        recursive: true,
+      })
+      const vkey = (await subcircuit.getVerificationKey({ evm: false })).vkeyFields
+      const vkeyHash = `0x${(await poseidon2HashAsync(vkey.map((x: string) => BigInt(x)))).toString(16)}`
+      return { proof: proof.proof, publicInputs: proof.publicInputs, vkey, vkeyHash }
+    }
+    const aadhaar = await recursiveProof(circuit, "aadhaar_id", FIXTURE.inputs)
+    const disclose = await recursiveProof(
+      discloseCircuit,
+      "disclose_bytes",
+      discloseInputs(aadhaar.publicInputs[1], Array(90).fill(1)),
+    )
+    const circuitManifest = {
+      version: "0.23.0",
+      root: await calculateCircuitRoot({ hashes: [aadhaar.vkeyHash, disclose.vkeyHash] }),
+      circuits: {
+        aadhaar: { hash: aadhaar.vkeyHash, size: 1 },
+        disclose: { hash: disclose.vkeyHash, size: 1 },
+      },
+    } as any
+    const leaf = async (subproof: Subproof, publicInputs: string[]) => {
+      const { path, index } = await getCircuitMerkleProof(subproof.vkeyHash, circuitManifest)
+      return {
+        vkey: subproof.vkey,
+        proof: subproof.proof,
+        public_inputs: publicInputs,
+        key_hash: subproof.vkeyHash,
+        tree_hash_path: path,
+        tree_index: index.toString(),
+      }
+    }
+    const d = disclose.publicInputs
+    const inputs = {
+      certificate_registry_root: FIXTURE.certificateRegistryRoot,
+      circuit_registry_root: circuitManifest.root,
+      current_date: nowTimestamp,
+      service_scope: "0x0",
+      service_subscope: "0x0",
+      param_commitments: [d[4]],
+      nullifier_type: d[5],
+      scoped_nullifier: d[6],
+      oprf_pk_hash: d[7],
+      verification_method: "0x65",
+      aadhaar_id_proof: await leaf(aadhaar, aadhaar.publicInputs),
+      disclosure_proofs: [await leaf(disclose, [d[0], d[6], d[5], d[7]])],
+    }
+
+    const outer = Circuit.from("outer_aadhaar_count_2")
+    const proof = await outer.prove(inputs as any, {
+      witness: await outer.solve(inputs as any, true),
+      useCli: true,
+      circuitName: "outer_aadhaar_count_2",
+      recursive: true,
+    })
+    const unprefixed = { ...proof, proof: proof.proof.map((x) => x.replace(/^0x/, "")) }
+    expect(await outer.verify(unprefixed, true)).toBe(true)
+    const publicInputs = proof.publicInputs.map(BigInt)
+    // The chip outer's layout: roots, date, scopes, param commitments, then the trailing four
+    expect(publicInputs).toHaveLength(10)
+    expect(publicInputs[0]).toEqual(BigInt(FIXTURE.certificateRegistryRoot))
+    expect(publicInputs[5]).toEqual(BigInt(d[4]))
+    expect(publicInputs[publicInputs.length - 1]).toEqual(101n)
+
+    const fails = (changed: object, message: string) =>
+      expect(outer.solve({ ...inputs, ...changed } as any, true)).rejects.toThrow(message)
+    await fails(
+      { certificate_registry_root: "0x1" },
+      "Certificate registry root from Aadhaar ID circuit != expected certificate registry root",
+    )
+    await fails({ verification_method: "0x64" }, "Not the Aadhaar verification method")
+    const otherDisclose = { ...inputs.disclosure_proofs[0] }
+    otherDisclose.public_inputs = ["0x2", ...otherDisclose.public_inputs.slice(1)]
+    await fails(
+      { disclosure_proofs: [otherDisclose] },
+      "Commitment out from Aadhaar ID circuit != commitment in from disclosure circuit",
+    )
+    await outer.destroy()
+  }, 600000)
+
+  test("rejects a tampered QR code", async () => {
+    const qrData = [...FIXTURE.inputs.qr_data]
+    qrData[40] ^= 1
+    // The RSA library's own constraints fail before the circuit's assertion message
+    await expect(circuit.solve({ ...FIXTURE.inputs, qr_data: qrData })).rejects.toThrow()
+  })
+
+  test("rejects a UIDAI key under another Certificate Registry root", async () => {
+    await expect(
+      circuit.solve({ ...FIXTURE.inputs, certificate_registry_root: "0x1" }),
+    ).rejects.toThrow("Certificate registry root mismatch")
+  })
+
+  test("rejects a QR code signed after its UIDAI certificate expired", async () => {
+    // The fixture's QR code was signed on 2026-03-15
+    await expect(
+      circuit.solve({ ...FIXTURE.inputs, uidai_cert_expiry: 1773532799 }),
+    ).rejects.toThrow("The UIDAI certificate had expired when the QR code was signed")
+  })
+
+  test("rejects a Merkle path that does not lead to the root", async () => {
+    const path = [...FIXTURE.inputs.certificate_tree_hash_path]
+    path[0] = "0x2"
+    await expect(
+      circuit.solve({ ...FIXTURE.inputs, certificate_tree_hash_path: path }),
+    ).rejects.toThrow("Certificate registry root mismatch")
+  })
+
+  test("rejects delimiter indices that skip a field", async () => {
+    const delimiters = [...FIXTURE.inputs.delimiter_indices]
+    delimiters[3] = delimiters[4]
+    await expect(
+      circuit.solve({ ...FIXTURE.inputs, delimiter_indices: delimiters }),
+    ).rejects.toThrow("Delimiter index mismatch")
   })
 })
