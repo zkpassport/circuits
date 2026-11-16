@@ -84,7 +84,6 @@ FACEMATCH=(
     "attested_id_android_rk_ecdsa_ik_count_1_ik_ecdsa_p256_sha256"
     "attested_id_android_rk_ecdsa_ik_count_1_ik_ecdsa_p256_sha256_evm"
     "outer_attested_id_count_2"
-    "outer_evm_attested_id_count_2"
 )
 
 echo "Compiling ${#CIRCUITS[@]} brillig + ${#FACEMATCH[@]} facematch circuits with $JOBS parallel jobs"
