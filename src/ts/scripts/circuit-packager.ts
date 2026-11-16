@@ -205,8 +205,8 @@ const processFile = async (
 }
 
 // The outer circuits a SubVerifier verifies, in the order its deploy script deploys them: the
-// chip ones, then the Tier 2 ones for iOS, then for Android
-const OUTER_KINDS = ["", "attested_id_"]
+// chip ones, then the Tier 2 ones (either platform), then the Aadhaar ones
+const OUTER_KINDS = ["", "attested_id_", "aadhaar_"]
 
 // Get all outer EVM vkey hashes from packaged circuit files
 const getOuterVkeyHashes = (): { kind: string; count: number; hash: string }[] => {
@@ -219,9 +219,9 @@ const getOuterVkeyHashes = (): { kind: string; count: number; hash: string }[] =
       .readdirSync(PACKAGED_CIRCUITS_DIR)
       .filter((file) => file.endsWith(".json"))
 
-    // The EVM outer circuits, chip and Tier 2, and their vkey hashes
+    // The EVM outer circuits, chip, Tier 2 and Aadhaar, and their vkey hashes
     for (const file of packagedFiles) {
-      const outerMatch = file.match(/^outer_evm_((?:attested_id_)?)count_(\d+)\.json$/)
+      const outerMatch = file.match(/^outer_evm_((?:attested_id_|aadhaar_)?)count_(\d+)\.json$/)
       if (outerMatch) {
         const kind = outerMatch[1]
         const count = parseInt(outerMatch[2])

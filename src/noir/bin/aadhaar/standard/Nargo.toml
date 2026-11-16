@@ -1,0 +1,10 @@
+[package]
+name = "aadhaar_id"
+type = "bin"
+authors = ["Saleel"]
+compiler_version = ">=1.0.0"
+
+[dependencies]
+aadhaar = { path = "../../../lib/aadhaar" }
+sig_check_rsa = { path = "../../../lib/sig-check/rsa" }
+utils = { path = "../../../lib/utils" }
