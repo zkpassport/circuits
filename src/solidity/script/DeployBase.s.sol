@@ -12,9 +12,38 @@
 pragma solidity ^0.8.30;
 
 import {Script, console} from "forge-std/Script.sol";
+import {ProofVerifier} from "@zkpassport/registry-contracts/lib/Types.sol";
 
 abstract contract DeployBase is Script {
   string internal constant DEPLOYMENTS_DIR = "./deployments";
+  /// The circuits verified on chain, written by src/ts/scripts/circuit-packager.ts
+  string internal constant EVM_VERIFIERS_PATH = "./evm-verifiers.json";
+
+  /// An entry of evm-verifiers.json. The fields are in alphabetical order, the order parseJson
+  /// decodes a JSON object's keys in.
+  struct EvmVerifier {
+    string circuit;
+    string contractFile;
+    bytes32 vkeyHash;
+  }
+
+  function _readEvmVerifiers() internal view returns (EvmVerifier[] memory verifiers) {
+    verifiers = abi.decode(vm.parseJson(vm.readFile(EVM_VERIFIERS_PATH)), (EvmVerifier[]));
+    require(verifiers.length > 0, "evm-verifiers.json lists no verifiers: package the circuits");
+  }
+
+  /// Deploys the HonkVerifier of each of evm-verifiers.json's circuits, paired with its vkey hash
+  function _deployProofVerifiers(EvmVerifier[] memory verifiers)
+    internal
+    returns (ProofVerifier[] memory proofVerifiers)
+  {
+    proofVerifiers = new ProofVerifier[](verifiers.length);
+    for (uint256 i = 0; i < verifiers.length; i++) {
+      address verifier = deployCode(string.concat(verifiers[i].contractFile, ":HonkVerifier"));
+      proofVerifiers[i] = ProofVerifier({vkeyHash: verifiers[i].vkeyHash, verifier: verifier});
+      console.log(" ", verifiers[i].circuit, verifier);
+    }
+  }
 
   function _ensureDeploymentsDir() internal {
     if (!vm.exists(DEPLOYMENTS_DIR)) {

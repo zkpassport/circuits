@@ -74,13 +74,15 @@ jq -n \
   --arg bb "$bb_installed" \
   --argjson durations "$durations_json" \
   --slurpfile manifest "$OUT/packaged/manifest.json" \
+  --slurpfile evmVerifiers src/solidity/evm-verifiers.json \
   '$manifest[0] as $m | {
     commit: $commit,
     version: $m.version,
     root: $m.root,
     nargo: $nargo,
     bb: $bb,
-    outerEvmVkeyHashes: ($m.circuits | with_entries(select(.key | startswith("outer_evm_"))) | map_values(.hash)),
+    evmVerifiers: $evmVerifiers[0],
+    outerEvmVkeyHashes: ($evmVerifiers[0] | map({(.circuit): .vkeyHash}) | add),
     durations: $durations
   }' > "$OUT/build-info.json"
 
