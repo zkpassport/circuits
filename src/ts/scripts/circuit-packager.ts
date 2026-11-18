@@ -6,8 +6,17 @@ import fs from "fs"
 import type { Blockstore } from "interface-blockstore"
 import path from "path"
 import { promisify } from "util"
-import { snakeToPascal, gzipAsync, initBarretenberg, destroyBarretenberg } from "../utils"
+import { gzipAsync, initBarretenberg, destroyBarretenberg } from "../utils"
 import { Barretenberg } from "@aztec-foundation/bb.js"
+import {
+  evmCircuitName,
+  evmVerifiers,
+  EVM_VERIFIERS_PATH,
+  isOuterCircuit,
+  SOLIDITY_VERIFIERS_DIR,
+  verifierContractFile,
+  writeEvmVerifiers,
+} from "./evm-verifiers"
 
 let barretenberg: Barretenberg
 
@@ -15,7 +24,6 @@ const TARGET_DIR = "target"
 const PACKAGED_DIR = path.join(TARGET_DIR, "packaged")
 const PACKAGED_CIRCUITS_DIR = path.join(TARGET_DIR, "packaged/circuits")
 const MAX_CONCURRENT_PROCESSES = 40
-const DEPLOY_SUB_VERIFIER_SOL_PATH = "src/solidity/script/DeploySubVerifier.s.sol"
 
 /**
  * Calculates the IPFS CIDv0 of the given data
@@ -120,10 +128,7 @@ const processFile = async (
   const outputPath = path.join(PACKAGED_CIRCUITS_DIR, `${outputName}.json`)
   const vkeyPath = path.join(TARGET_DIR, `${outputName}_vkey`)
   const gateCountPath = path.join(TARGET_DIR, `${outputName}.size.json`)
-  const solidityVerifierPath = path.join(
-    "src/solidity/src/ultra-honk-verifiers",
-    `${snakeToPascal(outputName)}.sol`.replace("Evm", ""),
-  )
+  const solidityVerifierPath = path.join(SOLIDITY_VERIFIERS_DIR, verifierContractFile(outputName))
   try {
     // Read the input file and check whether it contains the string "unconstrained main"
     const inputContent = fs.readFileSync(inputPath, "utf-8")
@@ -204,113 +209,13 @@ const processFile = async (
   }
 }
 
-// The outer circuits a SubVerifier verifies, in the order its deploy script deploys them: the
-// chip ones, then the Tier 2 ones (either platform), then the Aadhaar ones
-const OUTER_KINDS = ["", "attested_id_", "aadhaar_"]
-
-// Get all outer EVM vkey hashes from packaged circuit files
-const getOuterVkeyHashes = (): { kind: string; count: number; hash: string }[] => {
-  console.log("Collecting vkey hashes from packaged circuit files...")
-  const vkeyHashes: { kind: string; count: number; hash: string }[] = []
-
-  try {
-    // Get all packaged JSON files
-    const packagedFiles = fs
-      .readdirSync(PACKAGED_CIRCUITS_DIR)
-      .filter((file) => file.endsWith(".json"))
-
-    // The EVM outer circuits, chip, Tier 2 and Aadhaar, and their vkey hashes
-    for (const file of packagedFiles) {
-      const outerMatch = file.match(/^outer_evm_((?:attested_id_|aadhaar_)?)count_(\d+)\.json$/)
-      if (outerMatch) {
-        const kind = outerMatch[1]
-        const count = parseInt(outerMatch[2])
-        const filePath = path.join(PACKAGED_CIRCUITS_DIR, file)
-
-        // Read the packaged circuit file
-        const fileContent = fs.readFileSync(filePath, "utf-8")
-        const packagedCircuit = JSON.parse(fileContent)
-
-        if (packagedCircuit.vkey_hash) {
-          // Ensure the hash has the proper 0x prefix and length
-          let hash = packagedCircuit.vkey_hash as string
-          // Remove "0x" prefix if present
-          const hashWithoutPrefix = hash.startsWith("0x") ? hash.substring(2) : hash
-          // Ensure even number of characters by adding leading zero if needed
-          const paddedHash =
-            hashWithoutPrefix.length % 2 === 1 ? `0${hashWithoutPrefix}` : hashWithoutPrefix
-          // Normalize the hash format to always have 0x prefix
-          const normalizedHash = `0x${paddedHash}`
-
-          vkeyHashes.push({
-            kind,
-            count,
-            hash: normalizedHash,
-          })
-          console.log(`Collected vkey hash for outer_evm_${kind}count_${count}: ${normalizedHash}`)
-        }
-      }
-    }
-
-    vkeyHashes.sort(
-      (a, b) => OUTER_KINDS.indexOf(a.kind) - OUTER_KINDS.indexOf(b.kind) || a.count - b.count,
-    )
-
-    return vkeyHashes
-  } catch (error) {
-    console.error("Error collecting vkey hashes:", error)
-    return []
-  }
-}
-
-const updateVkeyHashesInSolidityDeployScript = (filePath: string) => {
-  const scriptName = filePath.split("/").pop()?.split(".")[0]
-  // Get vkey hashes from packaged files
-  const outerVkeyHashes = getOuterVkeyHashes()
-  if (outerVkeyHashes.length === 0) {
-    console.log(`No outer vkey hashes found to update in ${scriptName}`)
-    return
-  }
-  console.log(`Updating ${scriptName} with vkey hashes...`)
-
-  try {
-    // Read the script file
-    const content = fs.readFileSync(filePath, "utf-8")
-
-    // Find the vkeyHashes array section
-    const vkeyHashesRegex = /(bytes32\[\] public vkeyHashes = \[)([\s\S]*?)(\];)/
-
-    // Generate the new vkey hashes content
-    const newVkeyHashesContent = outerVkeyHashes
-      .map(
-        ({ kind, count, hash }) =>
-          `    // Outer ${kind ? `${kind.replace(/_$/, "").replace("_", " ")} ` : ""}(${count} subproofs)\n    bytes32(hex"${hash
-            .substring(2)
-            .padStart(64, "0")}")`,
-      )
-      .join(",\n")
-
-    // Replace the old vkey hashes with the new ones
-    const updatedContent = content.replace(
-      vkeyHashesRegex,
-      (match, prefix, _, suffix) => `${prefix}\n${newVkeyHashesContent}\n  ${suffix}`,
-    )
-
-    // Write the updated file
-    fs.writeFileSync(filePath, updatedContent)
-    console.log(`Updated vkey hashes in ${filePath}`)
-  } catch (error) {
-    console.error(`Error updating ${filePath}:`, error)
-  }
-}
-
 // Process files with controlled concurrency
 const processFiles = async () => {
   let hasErrors = false
 
   // Split files into two groups: outer proof circuits and the other circuits
-  const outerFiles = files.filter((file) => file.startsWith("outer"))
-  const otherFiles = files.filter((file) => !file.startsWith("outer"))
+  const outerFiles = files.filter((file) => isOuterCircuit(file.replace(".json", "")))
+  const otherFiles = files.filter((file) => !isOuterCircuit(file.replace(".json", "")))
 
   // Process outer proof circuits one at a time
   if (outerFiles.length > 0) {
@@ -328,7 +233,7 @@ const processFiles = async () => {
       const successEvm = await processFile(
         file,
         true,
-        file.replace(/^outer_/, "outer_evm_").replace(".json", ""),
+        evmCircuitName(file.replace(".json", "")),
         true,
       )
       if (!successEvm) {
@@ -352,9 +257,6 @@ const processFiles = async () => {
     // Wait for all files to be processed
     await pool.drain()
   }
-
-  // Update DeploySubVerifier.s.sol with the vkey hashes
-  updateVkeyHashesInSolidityDeployScript(DEPLOY_SUB_VERIFIER_SOL_PATH)
 
   // Exit with error code if any file failed to process
   if (hasErrors) {
@@ -413,6 +315,7 @@ async function generateCircuitManifest(files: string[]) {
   // Save circuit manifest
   fs.writeFileSync(circuitManifestPath, JSON.stringify(manifest, null, 2))
   console.log(`Saved circuit manifest: ${circuitManifestPath}`)
+  return manifest
 }
 
 async function main() {
@@ -425,7 +328,15 @@ async function main() {
     const packagedFiles = fs
       .readdirSync(PACKAGED_CIRCUITS_DIR)
       .filter((file) => file.endsWith(".json"))
-    await generateCircuitManifest(packagedFiles)
+    const manifest = await generateCircuitManifest(packagedFiles)
+    if (only) {
+      console.log(`Not updating ${EVM_VERIFIERS_PATH}: --only packages a subset of the circuits`)
+    } else {
+      // The verifiers the deploy scripts deploy, checked against the manifest and the verifier contracts
+      const verifiers = evmVerifiers(manifest.circuits)
+      writeEvmVerifiers(verifiers)
+      console.log(`Saved the ${verifiers.length} EVM verifiers: ${EVM_VERIFIERS_PATH}`)
+    }
   } catch (error) {
     console.error("Fatal error:", error)
     process.exit(1)

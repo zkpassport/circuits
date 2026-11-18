@@ -17,8 +17,6 @@ remappings = [
 # File system permissions
 fs_permissions = [
   { access = "read-write", path = "./" },
-  # Packaged outer-circuit manifests (vkey hashes) read by script/DeployAnvil.s.sol
-  { access = "read", path = "../../target/packaged/circuits" },
 ]
 
 [lint]

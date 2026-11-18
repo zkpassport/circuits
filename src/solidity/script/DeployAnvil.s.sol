@@ -1,48 +1,15 @@
 pragma solidity ^0.8.30;
 
-import {Script, console} from "forge-std/Script.sol";
+import {console} from "forge-std/Script.sol";
+import {DeployBase} from "./DeployBase.s.sol";
 import {RootVerifier} from "@zkpassport/registry-contracts/RootVerifier.sol";
 import {RootRegistry} from "@zkpassport/registry-contracts/RootRegistry.sol";
 import {SubVerifier} from "@zkpassport/registry-contracts/SubVerifier.sol";
 import {VerifierHelper} from "@zkpassport/registry-contracts/VerifierHelper.sol";
 import {ProofVerifier} from "@zkpassport/registry-contracts/lib/Types.sol";
 import {MockRootRegistry} from "../test/MockRootRegistry.sol";
-import {HonkVerifier as OuterCount4} from "../src/ultra-honk-verifiers/OuterCount4.sol";
-import {HonkVerifier as OuterCount5} from "../src/ultra-honk-verifiers/OuterCount5.sol";
-import {HonkVerifier as OuterCount6} from "../src/ultra-honk-verifiers/OuterCount6.sol";
-import {HonkVerifier as OuterCount7} from "../src/ultra-honk-verifiers/OuterCount7.sol";
-import {HonkVerifier as OuterCount8} from "../src/ultra-honk-verifiers/OuterCount8.sol";
-import {HonkVerifier as OuterCount9} from "../src/ultra-honk-verifiers/OuterCount9.sol";
-import {HonkVerifier as OuterCount10} from "../src/ultra-honk-verifiers/OuterCount10.sol";
-import {HonkVerifier as OuterCount11} from "../src/ultra-honk-verifiers/OuterCount11.sol";
-import {HonkVerifier as OuterCount12} from "../src/ultra-honk-verifiers/OuterCount12.sol";
-import {HonkVerifier as OuterCount13} from "../src/ultra-honk-verifiers/OuterCount13.sol";
-import {HonkVerifier as OuterAttestedIdCount2} from "../src/ultra-honk-verifiers/OuterAttestedIdCount2.sol";
-import {HonkVerifier as OuterAttestedIdCount3} from "../src/ultra-honk-verifiers/OuterAttestedIdCount3.sol";
-import {HonkVerifier as OuterAttestedIdCount4} from "../src/ultra-honk-verifiers/OuterAttestedIdCount4.sol";
-import {HonkVerifier as OuterAttestedIdCount5} from "../src/ultra-honk-verifiers/OuterAttestedIdCount5.sol";
-import {HonkVerifier as OuterAttestedIdCount6} from "../src/ultra-honk-verifiers/OuterAttestedIdCount6.sol";
-import {HonkVerifier as OuterAttestedIdCount7} from "../src/ultra-honk-verifiers/OuterAttestedIdCount7.sol";
-import {HonkVerifier as OuterAttestedIdCount8} from "../src/ultra-honk-verifiers/OuterAttestedIdCount8.sol";
-import {HonkVerifier as OuterAttestedIdCount9} from "../src/ultra-honk-verifiers/OuterAttestedIdCount9.sol";
-import {HonkVerifier as OuterAttestedIdCount10} from "../src/ultra-honk-verifiers/OuterAttestedIdCount10.sol";
-import {HonkVerifier as OuterAttestedIdCount11} from "../src/ultra-honk-verifiers/OuterAttestedIdCount11.sol";
-import {HonkVerifier as OuterAadhaarCount2} from "../src/ultra-honk-verifiers/OuterAadhaarCount2.sol";
-import {HonkVerifier as OuterAadhaarCount3} from "../src/ultra-honk-verifiers/OuterAadhaarCount3.sol";
-import {HonkVerifier as OuterAadhaarCount4} from "../src/ultra-honk-verifiers/OuterAadhaarCount4.sol";
-import {HonkVerifier as OuterAadhaarCount5} from "../src/ultra-honk-verifiers/OuterAadhaarCount5.sol";
-import {HonkVerifier as OuterAadhaarCount6} from "../src/ultra-honk-verifiers/OuterAadhaarCount6.sol";
-import {HonkVerifier as OuterAadhaarCount7} from "../src/ultra-honk-verifiers/OuterAadhaarCount7.sol";
-import {HonkVerifier as OuterAadhaarCount8} from "../src/ultra-honk-verifiers/OuterAadhaarCount8.sol";
-import {HonkVerifier as OuterAadhaarCount9} from "../src/ultra-honk-verifiers/OuterAadhaarCount9.sol";
-import {HonkVerifier as OuterAadhaarCount10} from "../src/ultra-honk-verifiers/OuterAadhaarCount10.sol";
-import {HonkVerifier as OuterAadhaarCount11} from "../src/ultra-honk-verifiers/OuterAadhaarCount11.sol";
 
-contract DeployAnvil is Script {
-    uint256 constant FIRST_OUTER = 4;
-    uint256 constant NUM_OUTER = 30;
-    string constant PACKAGED_DIR = "../../target/packaged/circuits/";
-
+contract DeployAnvil is DeployBase {
     function run() external {
         bytes32 globalOprfPkHash = vm.envBytes32("GLOBAL_OPRF_PK_HASH");
         bytes32 circuitVersion = vm.envBytes32("CIRCUIT_VERSION");
@@ -60,45 +27,9 @@ contract DeployAnvil is Script {
         SubVerifier subVerifier = new SubVerifier(admin, rootVerifier, globalOprfPkHash);
         VerifierHelper verifierHelper = new VerifierHelper(RootRegistry(address(mockRegistry)));
 
-        // 3. Outer circuits
-        address[NUM_OUTER] memory outerVerifiers;
-        outerVerifiers[0] = address(new OuterCount4());
-        outerVerifiers[1] = address(new OuterCount5());
-        outerVerifiers[2] = address(new OuterCount6());
-        outerVerifiers[3] = address(new OuterCount7());
-        outerVerifiers[4] = address(new OuterCount8());
-        outerVerifiers[5] = address(new OuterCount9());
-        outerVerifiers[6] = address(new OuterCount10());
-        outerVerifiers[7] = address(new OuterCount11());
-        outerVerifiers[8] = address(new OuterCount12());
-        outerVerifiers[9] = address(new OuterCount13());
-        outerVerifiers[10] = address(new OuterAttestedIdCount2());
-        outerVerifiers[11] = address(new OuterAttestedIdCount3());
-        outerVerifiers[12] = address(new OuterAttestedIdCount4());
-        outerVerifiers[13] = address(new OuterAttestedIdCount5());
-        outerVerifiers[14] = address(new OuterAttestedIdCount6());
-        outerVerifiers[15] = address(new OuterAttestedIdCount7());
-        outerVerifiers[16] = address(new OuterAttestedIdCount8());
-        outerVerifiers[17] = address(new OuterAttestedIdCount9());
-        outerVerifiers[18] = address(new OuterAttestedIdCount10());
-        outerVerifiers[19] = address(new OuterAttestedIdCount11());
-        outerVerifiers[20] = address(new OuterAadhaarCount2());
-        outerVerifiers[21] = address(new OuterAadhaarCount3());
-        outerVerifiers[22] = address(new OuterAadhaarCount4());
-        outerVerifiers[23] = address(new OuterAadhaarCount5());
-        outerVerifiers[24] = address(new OuterAadhaarCount6());
-        outerVerifiers[25] = address(new OuterAadhaarCount7());
-        outerVerifiers[26] = address(new OuterAadhaarCount8());
-        outerVerifiers[27] = address(new OuterAadhaarCount9());
-        outerVerifiers[28] = address(new OuterAadhaarCount10());
-        outerVerifiers[29] = address(new OuterAadhaarCount11());
-
-        ProofVerifier[] memory proofVerifiers = new ProofVerifier[](NUM_OUTER);
-        for (uint256 i = 0; i < NUM_OUTER; i++) {
-            string memory path = string.concat(PACKAGED_DIR, _outerEvmName(i), ".json");
-            bytes32 vkeyHash = vm.parseJsonBytes32(vm.readFile(path), ".vkey_hash");
-            proofVerifiers[i] = ProofVerifier({vkeyHash: vkeyHash, verifier: outerVerifiers[i]});
-        }
+        // 3. The proof verifiers of the circuits in evm-verifiers.json
+        console.log("Proof verifiers:");
+        ProofVerifier[] memory proofVerifiers = _deployProofVerifiers(_readEvmVerifiers());
         subVerifier.addProofVerifiers(proofVerifiers);
 
         // 5. Register the SubVerifier + helper under the circuit version.
@@ -117,16 +48,5 @@ contract DeployAnvil is Script {
         console.logBytes32(circuitVersion);
         console.log("globalOPRFPubKeyHash:");
         console.logBytes32(globalOprfPkHash);
-        for (uint256 i = 0; i < NUM_OUTER; i++) {
-            console.log(" ", _outerEvmName(i), outerVerifiers[i]);
-        }
-    }
-
-    // The packaged EVM outer circuit verified by outerVerifiers[i]: 10 chip ones, then 10 Tier 2
-    // ones, for an attested ID from either platform, then 10 for an Aadhaar
-    function _outerEvmName(uint256 i) internal pure returns (string memory) {
-        if (i < 10) return string.concat("outer_evm_count_", vm.toString(FIRST_OUTER + i));
-        if (i < 20) return string.concat("outer_evm_attested_id_count_", vm.toString(2 + i - 10));
-        return string.concat("outer_evm_aadhaar_count_", vm.toString(2 + i - 20));
     }
 }
